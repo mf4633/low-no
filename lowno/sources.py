@@ -2,14 +2,19 @@
 All fetches are best-effort with explicit staleness stamps -- a scan that can't
 verify freshness must say so rather than guess (Aug 3-4 lesson: stale data is
 the most expensive input in the system)."""
-import datetime as dt, json, urllib.request
+import datetime as dt, json, time, urllib.request
 
 UA = {"User-Agent": "low-no scanner (github.com/mf4633/low-no)"}
 
-def _get(url, timeout=20):
+def _get(url, timeout=6):
     req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode())
+    except Exception:
+        time.sleep(2)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode())
 
 def latest_obs(station):
     """Returns dict: tempF, running notes, obs time, raw props. api.weather.gov
