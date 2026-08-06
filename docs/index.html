@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOW-NO CALIBRATION LEDGER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFAF6; --ink:#20242A; --faint:#6B7078; --rule:#D8D6CE;
+    --win:#0B6B4F; --miss:#A4382E; --hold:#8A6D1C; --band:#EFEDE5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#16181B; --ink:#E7E5DE; --faint:#9A9C98; --rule:#33363B;
+           --win:#4FB08D; --miss:#D97C6E; --hold:#C8A64B; --band:#1E2125; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:14px/1.55 "IBM Plex Mono",ui-monospace,monospace;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:32px 20px 80px}
+  /* ---- the product block: the page's one signature ---- */
+  pre.product{background:var(--band);border:1px solid var(--rule);
+      padding:18px 20px;margin:0 0 8px;white-space:pre-wrap;font-size:13px;
+      letter-spacing:.02em}
+  pre.product b{font-weight:600}
+  .disclaim{color:var(--faint);font-size:12px;margin:6px 2px 34px}
+  h2{font-size:13px;font-weight:600;letter-spacing:.14em;margin:38px 0 10px;
+     text-transform:uppercase}
+  h2::after{content:"";display:block;height:1px;background:var(--rule);margin-top:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--faint);font-weight:400;padding:6px 8px;
+     border-bottom:1px solid var(--rule);letter-spacing:.05em}
+  td{padding:8px;border-bottom:1px solid var(--rule);vertical-align:top}
+  tr.flag{cursor:pointer}
+  tr.flag:hover td{background:var(--band)}
+  tr.flag:focus-visible td{outline:2px solid var(--hold);outline-offset:-2px}
+  .code{font-weight:600;white-space:nowrap}
+  .WIN{color:var(--win)} .UNGRADED,.PENDING{color:var(--hold)}
+  .FORECAST_BUST,.BOUNDARY,.MECHANISM,.DATA_GAP{color:var(--miss)}
+  tr.why td{background:var(--band);color:var(--ink);font-size:12.5px;
+      border-left:3px solid var(--rule);padding:12px 16px}
+  tr.why .lbl{color:var(--faint)}
+  .empty{border:1px dashed var(--rule);padding:28px 22px;color:var(--faint);
+      font-size:13px;margin-top:6px}
+  .num{font-variant-numeric:tabular-nums}
+  a{color:inherit}
+  @media (prefers-reduced-motion: no-preference){
+    tr.why td{animation:reveal .18s ease-out}
+    @keyframes reveal{from{opacity:0}to{opacity:1}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<pre class="product" id="product">000
+CDUS99 KFLN <span id="ddhhmm">------</span>
+LNOCAL
+
+CALIBRATION REPORT
+LOW-NO EXPERIMENT ... PAPER ONLY ... NO POSITIONS
+ISSUED BY THE NIGHTLY SCORER
+
+...THE LOW-NO STRATEGY CALIBRATION SUMMARY...
+VALID AS OF <span id="asof">AWAITING FIRST SCORECARD</span>
+
+ITEM                    OBSERVED   RECORD*   BREAKEVEN
+.................................................................
+ QUALIFIED FLAGS          <b id="nflag">--</b>
+ GATE HIT RATE            <b id="gate">--</b>       98.2%     (at 0.98)
+ ADVISOR CONCUR CORRECT   <b id="conc">--</b>
+ ADVISOR OVERRIDE CORRECT <b id="ovr">--</b>
+ DAYS COUNTED             <b id="ndays">--</b>        60        (belief)
+
+* RECORD = what the strategy must sustain to clear fees.
+  MISSES ARE THE PRODUCT. SEE ATTRIBUTION BELOW.</pre>
+<p class="disclaim">This ledger grades an instrument, not a bankroll. Constitution:
+no orders, no lottery scanner, gate frozen through the test window.
+Data: <a href="ledger.json">ledger.json</a>, written nightly by the Actions cron.</p>
+
+<h2>Every flag, graded</h2>
+<div id="tablebox"><div class="empty">No scorecards yet. The first nightly run
+(10:05 PM ET) writes ledger.json and this table fills itself. An empty ledger
+is a valid observation: most days, nothing qualifies — that is the gate working.</div></div>
+
+<h2>Attribution codes</h2>
+<table>
+<tr><td class="code WIN">WIN</td><td>Settled above the ceiling. The gate did its job.</td></tr>
+<tr><td class="code FORECAST_BUST">FORECAST_BUST</td><td>Guidance missed ≥3°F cool. The input lied; the gate was honest. Uncatchable by design.</td></tr>
+<tr><td class="code BOUNDARY">BOUNDARY</td><td>Settled exactly at the ceiling — the tenths decided. The ladder was placed well.</td></tr>
+<tr><td class="code MECHANISM">MECHANISM</td><td>A bust mode (precip, smoke, lake, outflow) arrived that the gate scored clean. The advisor exists to catch these.</td></tr>
+<tr><td class="code DATA_GAP">DATA_GAP</td><td>Inputs unverifiable at scan time. Should have been a PASS; counts against the scanner, not the weather.</td></tr>
+<tr><td class="code PENDING">PENDING</td><td>No CLI settlement found yet.</td></tr>
+</table>
+
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const pct=(a,b)=>b? (100*a/b).toFixed(0)+"%":"--";
+fetch("ledger.json").then(r=>r.ok?r.json():null).then(led=>{
+  if(!led||!led.days||!led.days.length) return;
+  const flags=led.days.flatMap(d=>d.flags||[]);
+  const graded=flags.filter(f=>f.settle!=null);
+  const wins=graded.filter(f=>f.attribution==="WIN").length;
+  const adv=f=>f.advisor&&f.advisor.verdict;
+  const conc=graded.filter(f=>adv(f)==="CONCUR");
+  const ovr =graded.filter(f=>adv(f)==="OVERRIDE_TO_PASS");
+  $("nflag").textContent=String(flags.length).padStart(2);
+  $("gate").textContent=pct(wins,graded.length).padStart(4);
+  $("conc").textContent=pct(conc.filter(f=>f.attribution==="WIN").length,conc.length).padStart(4);
+  $("ovr").textContent =pct(ovr.filter(f=>f.attribution!=="WIN").length,ovr.length).padStart(4);
+  $("ndays").textContent=String(led.days.length).padStart(2);
+  $("asof").textContent=(led.generated||"").slice(0,16).replace("T"," ")+"Z";
+  const d=new Date(led.generated||Date.now());
+  $("ddhhmm").textContent=String(d.getUTCDate()).padStart(2,"0")+
+    String(d.getUTCHours()).padStart(2,"0")+String(d.getUTCMinutes()).padStart(2,"0");
+  const rows=flags.sort((a,b)=>a.date<b.date?1:-1).map((f,i)=>{
+    const det=f.detail||{}, a=f.advisor||{};
+    const code=f.settle==null?"PENDING":f.attribution;
+    return `<tr class="flag" tabindex="0" data-i="${i}">
+      <td class="num">${f.date.slice(5)}</td><td>${f.city}</td>
+      <td>${f.verdict==="DEAD_SCAVENGE"?"scavenge":"gated"}</td>
+      <td class="num">≤${det.ceiling??"?"} @ ${det.no_ask??"?"}</td>
+      <td class="num">${det.guide??"—"}</td>
+      <td class="num">${f.settle??"—"}</td>
+      <td>${a.verdict?a.verdict.replace("_TO_PASS","→PASS"):"—"}</td>
+      <td class="code ${code}">${code}</td></tr>
+    <tr class="why" hidden id="why${i}"><td colspan="8">
+      <span class="lbl">advisor:</span> ${a.reasoning??"not run"}<br>
+      ${a.watch?`<span class="lbl">watch:</span> ${a.watch}<br>`:""}
+      ${det.WARN?`<span class="lbl">gate warn:</span> ${det.WARN}<br>`:""}
+      ${det.why?`<span class="lbl">note:</span> ${det.why}`:""}</td></tr>`;
+  }).join("");
+  $("tablebox").innerHTML=`<table>
+    <tr><th>date</th><th>city</th><th>class</th><th>ticket</th>
+    <th>guide</th><th>CLI</th><th>advisor</th><th>grade</th></tr>${rows}</table>
+    <p class="disclaim">Click a row for the advisor's reasoning and, on misses,
+    why the initial assessment was off.</p>`;
+  document.querySelectorAll("tr.flag").forEach(tr=>{
+    const t=()=>{const w=$("why"+tr.dataset.i); w.hidden=!w.hidden;};
+    tr.addEventListener("click",t);
+    tr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t();}});
+  });
+});
+</script>
+</body>
+</html>

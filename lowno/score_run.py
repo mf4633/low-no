@@ -22,6 +22,21 @@ def main():
             settles[city] = m
         except Exception:
             settles[city] = None
+    graded = []
+    for f in last.values():
+        s = settles.get(f["city"])
+        graded.append(dict(date=day, city=f["city"], station=f["station"],
+                           verdict=f["verdict"], detail=f["detail"],
+                           advisor=f.get("advisor"), settle=s,
+                           attribution=score.attribute(f["detail"], s)))
+    import os
+    os.makedirs("docs", exist_ok=True)
+    led = {"days": []}
+    if os.path.exists("docs/ledger.json"):
+        led = json.load(open("docs/ledger.json"))
+    led["days"] = [d for d in led["days"] if d["date"] != day] + [{"date": day, "flags": graded}]
+    led["generated"] = dt.datetime.utcnow().isoformat() + "Z"
+    json.dump(led, open("docs/ledger.json", "w"), indent=1)
     open("REPORT.md", "w").write(score.report(list(last.values()), settles))
     print(open("REPORT.md").read())
 

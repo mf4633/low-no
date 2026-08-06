@@ -24,6 +24,6 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           git config user.name lowno-bot && git config user.email bot@lowno
-          git add -A logs REPORT.md 2>/dev/null || true
+          git add -A
           git diff --cached --quiet || git commit -m "scan $(date -u +%FT%H:%MZ)"
           git push
