@@ -1,0 +1,29 @@
+name: low-no
+on:
+  schedule:
+    - cron: "5 13-23 * * *"   # hourly, 9:05a-7:05p ET (13:05-23:05 UTC)
+    - cron: "5 2 * * *"       # 10:05p ET nightly scorecard
+  workflow_dispatch: {}
+permissions: { contents: write }
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: hourly scan (or nightly score after 01:00 UTC)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          H=$(date -u +%H)
+          if [ "$H" -ge 1 ] && [ "$H" -lt 4 ]; then python -m lowno.score_run || true
+          else python -m lowno.scan || true; fi
+      - name: commit logs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          git add -A logs REPORT.md 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "scan $(date -u +%FT%H:%MZ)"
+          git push
