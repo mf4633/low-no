@@ -44,7 +44,17 @@ def point_forecast_high(lat, lon):
     return None, None, None
 
 def _cents(v):
-    """Kalshi quotes are integer cents. None/absent means no resting order."""
+    """Kalshi now publishes quotes as *_dollars (e.g. "0.98"). Convert to cents.
+    None/absent means no resting order -- distinct from a 100c quote."""
+    if v in (None, ""):
+        return None
+    try:
+        return int(round(float(v) * 100))
+    except (TypeError, ValueError):
+        return None
+
+def _legacy(v):
+    """Pre-2026 integer-cent fields, kept as a fallback."""
     return None if v in (None, "") else int(v)
 
 def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
@@ -70,15 +80,24 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
             os.makedirs(os.path.dirname(probe_path), exist_ok=True)
             with open(probe_path, "w") as f:
                 json.dump({"series": series, "fetched": dt.datetime.utcnow().isoformat() + "Z",
-                           "n_markets": len(markets), "sample_raw": markets[0],
-                           "keys": sorted(markets[0].keys())}, f, indent=1)
+                           "n_markets": len(markets), "keys": sorted(markets[0].keys()),
+                           "rungs": [{k: m.get(k) for k in
+                                      ("ticker", "status", "strike_type", "floor_strike",
+                                       "cap_strike", "yes_bid_dollars", "yes_ask_dollars",
+                                       "no_bid_dollars", "no_ask_dollars", "volume_fp")}
+                                     for m in markets],
+                           "sample_raw": markets[0]}, f, indent=1)
         except Exception:
             pass
 
     rungs = []
     for m in markets:
-        yes_bid, yes_ask = _cents(m.get("yes_bid")), _cents(m.get("yes_ask"))
-        no_ask, no_bid = _cents(m.get("no_ask")), _cents(m.get("no_bid"))
+        # Prefer the current *_dollars schema; fall back to the legacy integer
+        # fields so this keeps working if Kalshi serves either shape.
+        yes_bid = _cents(m.get("yes_bid_dollars")) or _legacy(m.get("yes_bid"))
+        yes_ask = _cents(m.get("yes_ask_dollars")) or _legacy(m.get("yes_ask"))
+        no_ask = _cents(m.get("no_ask_dollars")) or _legacy(m.get("no_ask"))
+        no_bid = _cents(m.get("no_bid_dollars")) or _legacy(m.get("no_bid"))
         src = "native"
         if no_ask is None:
             no_ask = 100 - yes_bid if yes_bid is not None else None
