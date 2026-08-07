@@ -36,7 +36,6 @@ def main():
                            verdict=f["verdict"], detail=f["detail"],
                            advisor=f.get("advisor"), settle=s,
                            attribution=score.attribute(f["detail"], s)))
-    import os
     os.makedirs("docs", exist_ok=True)
     led = {"days": []}
     if os.path.exists("docs/ledger.json"):
