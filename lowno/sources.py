@@ -2,7 +2,7 @@
 All fetches are best-effort with explicit staleness stamps -- a scan that can't
 verify freshness must say so rather than guess (Aug 3-4 lesson: stale data is
 the most expensive input in the system)."""
-import datetime as dt, json, time, urllib.request
+import datetime as dt, json, os, time, urllib.request
 
 UA = {"User-Agent": "low-no scanner (github.com/mf4633/low-no)"}
 
@@ -43,20 +43,52 @@ def point_forecast_high(lat, lon):
             return period["temperature"], period["shortForecast"], pop
     return None, None, None
 
-def kalshi_ladder(series, date_yymmdd):
+def _cents(v):
+    """Kalshi quotes are integer cents. None/absent means no resting order."""
+    return None if v in (None, "") else int(v)
+
+def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
     """Public market quotes for one event day. Returns list of
-    dict(ticker, ceiling, floor, yes_ask, no_ask, no_bid)."""
+    dict(ticker, cap, floor, yes_bid, yes_ask, no_ask, no_bid, quote_src).
+
+    Aug 7 2026 defect: no_ask was derived solely as 100 - yes_bid, which pins to
+    100 whenever yes_bid is absent or zero -- and that was every market, every
+    city, every cycle, so the gate rejected 100% on price before reaching any
+    weather logic. Kalshi returns no_ask/no_bid natively; prefer them and fall
+    back to the synthetic only when the native side is missing. quote_src records
+    which path was taken so the log can prove which one is live.
+    """
     url = (f"https://api.elections.kalshi.com/trade-api/v2/markets"
            f"?series_ticker={series}&status=open&limit=100")
     j = _get(url)
+    markets = [m for m in j.get("markets", []) if date_yymmdd in m.get("ticker", "")]
+
+    # One-shot diagnostic: dump a raw market payload so field names are observable
+    # rather than assumed. Cheap, idempotent, and the next scan proves the fix.
+    if markets and probe_path:
+        try:
+            os.makedirs(os.path.dirname(probe_path), exist_ok=True)
+            with open(probe_path, "w") as f:
+                json.dump({"series": series, "fetched": dt.datetime.utcnow().isoformat() + "Z",
+                           "n_markets": len(markets), "sample_raw": markets[0],
+                           "keys": sorted(markets[0].keys())}, f, indent=1)
+        except Exception:
+            pass
+
     rungs = []
-    for m in j.get("markets", []):
-        if date_yymmdd not in m.get("ticker", ""):
-            continue
+    for m in markets:
+        yes_bid, yes_ask = _cents(m.get("yes_bid")), _cents(m.get("yes_ask"))
+        no_ask, no_bid = _cents(m.get("no_ask")), _cents(m.get("no_bid"))
+        src = "native"
+        if no_ask is None:
+            no_ask = 100 - yes_bid if yes_bid is not None else None
+            src = "synthetic" if no_ask is not None else "absent"
+        if no_bid is None and yes_ask is not None:
+            no_bid = 100 - yes_ask
         rungs.append(dict(ticker=m["ticker"],
                           cap=m.get("cap_strike"), floor=m.get("floor_strike"),
-                          yes_ask=m.get("yes_ask"), no_ask=100 - m.get("yes_bid", 0),
-                          no_bid=100 - m.get("yes_ask", 100)))
+                          yes_bid=yes_bid, yes_ask=yes_ask,
+                          no_ask=no_ask, no_bid=no_bid, quote_src=src))
     return rungs
 
 def cli_max(station4, wfo):

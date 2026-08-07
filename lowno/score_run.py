@@ -1,5 +1,5 @@
 """Nightly entry point: grade today's flags against CLI settlements, write REPORT.md."""
-import json, glob, datetime as dt
+import json, glob, os, zoneinfo, datetime as dt
 from . import score, sources
 from .config import CITIES
 
@@ -7,12 +7,19 @@ WFO = dict(AUS="EWX", CHI="LOT", DEN="BOU", LAX="LOX", MIA="MFL",
            NYC="OKX", PHL="PHI", PHX="PSR", SEA="SEW", SFO="MTR")
 
 def main():
-    day = dt.date.today().isoformat()
+    # The nightly cron fires at 02:05 UTC, which is 10:05 PM ET the PREVIOUS day.
+    # dt.date.today() on a UTC runner therefore named tomorrow's log file and
+    # graded a day that had not happened yet. Score the ET trading day.
+    day = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
+    path = f"logs/{day}.jsonl"
     flags = []
-    for line in open(f"logs/{day}.jsonl"):
-        r = json.loads(line)
-        if r["verdict"] in ("QUALIFIED", "DEAD_SCAVENGE"):
-            flags.append(r)
+    if not os.path.exists(path):
+        print(f"no scan log for {day} -- writing empty day (valid observation)")
+    else:
+        for line in open(path):
+            r = json.loads(line)
+            if r["verdict"] in ("QUALIFIED", "DEAD_SCAVENGE"):
+                flags.append(r)
     # de-dup to last flag per city
     last = {f["city"]: f for f in flags}
     settles = {}

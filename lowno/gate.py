@@ -28,9 +28,17 @@ def evaluate(city, rungs, run_max, guide_high, pop, local_hm, wx_text=""):
     b = bottom_rung(rungs)
     if b is None or b.get("cap") is None:
         return "PASS", "no bottom rung / no ladder"
-    ceil_f, price = b["cap"], (b.get("no_ask") or 100) / 100.0
-    d = dict(ticker=b["ticker"], ceiling=ceil_f, no_ask=price,
+    ceil_f = b["cap"]
+    raw = b.get("no_ask")
+    d = dict(ticker=b["ticker"], ceiling=ceil_f, no_ask=None if raw is None else raw / 100.0,
+             quote_src=b.get("quote_src"), yes_bid=b.get("yes_bid"),
              run_max=run_max, guide=guide_high, pop=pop)
+    # An absent quote is NOT a 100c quote. Conflating them (the pre-Aug-7 bug)
+    # made a parser failure look like a market with no offer -- an unfalsifiable
+    # PASS that logged as if the gate were working.
+    if raw is None:
+        return "PASS", {**d, "why": "no NO offer on book -- quote absent, not priced"}
+    price = raw / 100.0
 
     if run_max is not None and run_max > ceil_f:
         if price <= GATE["max_price"]:
