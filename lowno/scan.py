@@ -23,6 +23,16 @@ def scan_once():
             rungs = sources.kalshi_ladder(c["series"], today.strftime("%y%b%d").upper())
             verdict, detail = gate.evaluate(key, rungs, rmax, guide, pop,
                                             (now_l.hour, now_l.minute), wx)
+            # Full-ladder record: every rung's quotes, not just the bottom one
+            # the gate evaluates. The gate stays frozen -- this is telemetry.
+            # ~6x the settled observations per day at zero marginal fetch cost.
+            results.append(dict(city=key, station=c["station"], verdict="LADDER",
+                detail=dict(guide=guide, pop=pop, run_max=rmax,
+                    rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
+                                na=r.get("no_ask"), yb=r.get("yes_bid"),
+                                ya=r.get("yes_ask"), nb=r.get("no_bid"),
+                                src=r.get("quote_src")) for r in rungs]),
+                at=dt.datetime.utcnow().isoformat()))
             row = dict(city=key, station=c["station"], verdict=verdict,
                        detail=detail, at=dt.datetime.utcnow().isoformat())
             if verdict in ("QUALIFIED", "DEAD_SCAVENGE"):

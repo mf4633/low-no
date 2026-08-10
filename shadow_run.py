@@ -46,9 +46,44 @@ def main():
                          breakeven=round(need,4), lcb=round(lo_,4), ucb=round(hi_,4),
                          mean_pnl_c=round(sum(x["pnl"] for x in g)/n,2),
                          proven=bool(lo_ > need)))
+    # Per-station guide bias from settled days: mean(guide - CLI). This is the
+    # transfer-function candidate (same shape as the EWR-3.5 KNYC correction).
+    bias_acc = defaultdict(list)
+    seen_cd = set()
+    for o in obs:
+        cd = (o["day"], o["city"])
+        if o.get("guide_err") is not None and cd not in seen_cd:
+            seen_cd.add(cd); bias_acc[o["city"]].append(o["guide_err"])
+    bias = {c: round(sum(v)/len(v), 2) for c, v in bias_acc.items()}
+
+    # Candidate rules scored on the SAME deduped city-day units, one entry each.
+    # frozen: the live gate's shape (G>=4, price<=98, no floor)
+    # corrected: G computed from bias-corrected guide
+    # corrected+floor: adds the 90c floor the band data motivates
+    def score_rule(name, keep):
+        taken, seen = [], set()
+        for o in sorted(obs, key=lambda x: x["at"]):
+            if o["price"] > 98 or o["G"] is None: continue
+            cd = (o["day"], o["city"])
+            if cd in seen or not keep(o): continue
+            seen.add(cd); taken.append(o)
+        n = len(taken); k = sum(1 for t in taken if t["won"])
+        lo_, _ = wilson(k, n)
+        return dict(rule=name, n=n, wins=k, hit=(k/n if n else None),
+                    lcb=round(lo_, 3), pnl_c=sum(t["pnl"] for t in taken),
+                    mean_pnl_c=(round(sum(t["pnl"] for t in taken)/n, 2) if n else None))
+    def gcorr(o): return o["G"] - bias.get(o["city"], 0.0)
+    variants = [
+        score_rule("frozen_G4",            lambda o: o["G"] >= 4),
+        score_rule("corrected_G4",         lambda o: gcorr(o) >= 4),
+        score_rule("corrected_G4_floor90", lambda o: gcorr(o) >= 4 and o["price"] >= 90),
+        score_rule("floor96_only",         lambda o: 96 <= o["price"] <= 98),
+    ]
+
     out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z"),
                n_rung_obs=len(obs), n_units=len(units),
-               days=sorted({o["day"] for o in obs}), bands=roll)
+               days=sorted({o["day"] for o in obs}), bands=roll,
+               station_guide_bias=bias, variants=variants)
     json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)
 
     print(f"rung-obs {len(obs)} -> {len(units)} independent units over {len(out['days'])} days")
@@ -57,6 +92,12 @@ def main():
         if not r["n"]: continue
         print(f"{r['band']:>6} {r['n']:>3} {r['wins']:>3} {r['hit']:>6.0%} "
               f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r['mean_pnl_c']:>7.1f} {str(r['proven']):>7}")
+    print("\nstation guide bias (guide - CLI):", dict(sorted(bias.items(), key=lambda kv: -abs(kv[1]))))
+    print(f"\n{'rule':>22} {'n':>3} {'w':>3} {'hit':>6} {'LCB':>5} {'meanP&L':>8}")
+    for v in variants:
+        h = f"{v['hit']:.0%}" if v['hit'] is not None else "--"
+        m = v['mean_pnl_c'] if v['mean_pnl_c'] is not None else "--"
+        print(f"{v['rule']:>22} {v['n']:>3} {v['wins']:>3} {h:>6} {v['lcb']:>5.0%} {m:>8}")
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
 

@@ -29,15 +29,40 @@ def pnl_cents(price_cents, won):
 
 
 def load_day(day):
-    rows = []
+    """Yield one pseudo-record per rung. LADDER rows (full ladder, post Aug-10)
+    expand to one record per rung; on cycles where a LADDER row exists, the
+    gate's bottom-rung row is skipped to avoid double counting."""
+    gate_rows, ladder = [], []
     for line in open(f"logs/{day}.jsonl"):
         r = json.loads(line)
+        if r.get("verdict") == "LADDER":
+            ladder.append(r)
+        else:
+            gate_rows.append(r)
+    ladder_cycles = {(r["city"], r["at"][:15]) for r in ladder}
+    rows = []
+    for r in gate_rows:
         d = r.get("detail") or {}
         if not isinstance(d, dict) or d.get("no_ask") is None:
             continue
         if d.get("quote_src") in (None, "absent"):
-            continue  # pre-fix corrupt records and empty books
+            continue
+        if (r["city"], r["at"][:15]) in ladder_cycles:
+            continue
         rows.append(r)
+    for r in ladder:
+        d = r["detail"]
+        for rung in d.get("rungs", []):
+            if rung.get("na") is None or rung.get("src") in (None, "absent"):
+                continue
+            if rung.get("cap") is None:
+                continue  # top rung has no ceiling; NO-side undefined here
+            rows.append(dict(city=r["city"], station=r["station"], at=r["at"],
+                verdict="LADDER",
+                detail=dict(ticker=rung["t"], ceiling=rung["cap"],
+                    no_ask=rung["na"] / 100.0, yes_bid=rung.get("yb"),
+                    quote_src=rung["src"], guide=d.get("guide"),
+                    pop=d.get("pop"), run_max=d.get("run_max"))))
     return rows
 
 
