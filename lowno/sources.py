@@ -148,11 +148,23 @@ def cli_max(station4, wfo, date=None):
     the wrong day. Both are now hard-matched; no match returns None (PENDING)
     rather than a plausible-looking wrong number.
     """
-    want_awips = "CLI" + station4[1:].upper()
+    site = station4[1:].upper()
+    want_awips = "CLI" + site
     if date is None:
         date = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
-    j = _get(f"https://api.weather.gov/products/types/CLI/locations/{wfo}")
-    for item in j.get("@graph", []):
+    # CLI products are indexed by SITE (SFO, DEN, NYC), not by issuing office --
+    # "MTR" returns zero products, as do BOU/OKX/LOX. WFO kept as a fallback only.
+    graph = []
+    for loc in [site, wfo]:
+        if not loc:
+            continue
+        try:
+            graph = _get(f"https://api.weather.gov/products/types/CLI/locations/{loc}").get("@graph", [])
+        except Exception:
+            graph = []
+        if graph:
+            break
+    for item in graph:
         try:
             text = _get(item["@id"]).get("productText", "") or ""
         except Exception:
