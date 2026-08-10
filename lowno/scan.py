@@ -47,8 +47,8 @@ def scan_once():
         for r in results:
             if r["verdict"] != "LADDER": continue
             d = r["detail"]
-            rungs = [dict(cap=x.get("cap"), no_ask=x.get("na"), yes_bid=x.get("yb"),
-                          ticker=x.get("t")) for x in d["rungs"]]
+            rungs = [dict(cap=x.get("cap"), floor=x.get("fl"), no_ask=x.get("na"),
+                          yes_bid=x.get("yb"), ticker=x.get("t")) for x in d["rungs"]]
             board.append(prob.evaluate_ladder(r["city"], rungs, d.get("guide"),
                                               d.get("run_max"), d.get("pop")))
         os.makedirs("docs", exist_ok=True)
