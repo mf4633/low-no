@@ -139,7 +139,7 @@ def _parse_cli(text):
                 break
     return awips, summary, maxf
 
-def cli_max(station4, wfo, date=None, limit=60):
+def cli_max(station4, wfo, date=None):
     """Settlement: the CLI MAXIMUM for a SPECIFIC station on a SPECIFIC date.
 
     The prior version returned the first MAXIMUM found in the six most recent
@@ -151,7 +151,7 @@ def cli_max(station4, wfo, date=None, limit=60):
     want_awips = "CLI" + station4[1:].upper()
     if date is None:
         date = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
-    j = _get(f"https://api.weather.gov/products/types/CLI/locations/{wfo}?limit={limit}")
+    j = _get(f"https://api.weather.gov/products/types/CLI/locations/{wfo}")
     for item in j.get("@graph", []):
         try:
             text = _get(item["@id"]).get("productText", "") or ""

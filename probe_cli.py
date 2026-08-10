@@ -2,7 +2,7 @@
 import json, sys
 sys.path.insert(0, '.')
 from lowno.sources import _get, _parse_cli
-j = _get("https://api.weather.gov/products/types/CLI/locations/MTR?limit=40")
+j = _get("https://api.weather.gov/products/types/CLI/locations/MTR")
 g = j.get("@graph", [])
 print(f"products returned: {len(g)}")
 out = []
