@@ -144,6 +144,27 @@ fetch("ledger.json").then(r=>r.ok?r.json():null).then(led=>{
     tr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t();}});
   });
 });
+
+fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
+  if(!sh||!sh.bands) return;
+  const box=document.getElementById("shadowbox");
+  if(!box) return;
+  const rows=sh.bands.filter(b=>b.n>0).map(b=>
+    `<tr><td class="num">${b.band}c</td><td class="num">${b.n}</td>
+     <td class="num">${b.wins}</td><td class="num">${(100*b.hit).toFixed(0)}%</td>
+     <td class="num">${(100*b.breakeven).toFixed(1)}%</td>
+     <td class="num">${(100*b.lcb).toFixed(0)}%</td>
+     <td class="num">${b.mean_pnl_c>0?"+":""}${b.mean_pnl_c}c</td>
+     <td class="code ${b.proven?"WIN":"PENDING"}">${b.proven?"PROVEN":"unproven"}</td></tr>`).join("");
+  box.innerHTML=`<h2>SHADOW LEDGER -- EVERY BAND, EVERY RUNG</h2>
+   <p>All scanned rungs settled against CLI, including gate rejections.
+   One unit per city-day-band. ${sh.n_rung_obs} rung-obs -> ${sh.n_units} units
+   over ${sh.days.length} days. A band is PROVEN only when its Wilson 95%
+   lower bound clears the fee breakeven at its mean price. Counterfactual
+   fills at logged ask: an upper bound on live performance.</p>
+   <table><tr><th>band</th><th>n</th><th>wins</th><th>hit</th>
+   <th>need</th><th>LCB</th><th>avg P&L</th><th>status</th></tr>${rows}</table>`;
+});
 </script>
 </body>
 </html>
