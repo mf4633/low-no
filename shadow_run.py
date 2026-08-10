@@ -25,8 +25,9 @@ def main():
     obs = shadow.build()
     json.dump(obs, open("docs/shadow.json", "w"), indent=1)
 
+    bottom = [o for o in obs if o.get("kind", "bottom") == "bottom"]
     units = {}
-    for o in sorted(obs, key=lambda x: x["at"]):
+    for o in sorted(bottom, key=lambda x: x["at"]):
         if o["price"] > 98: continue
         b = band_of(o["price"])
         if b is None: continue
@@ -50,7 +51,7 @@ def main():
     # transfer-function candidate (same shape as the EWR-3.5 KNYC correction).
     bias_acc = defaultdict(list)
     seen_cd = set()
-    for o in obs:
+    for o in obs:   # bias uses ALL kinds: guide_err is per city-day, kind-independent
         cd = (o["day"], o["city"])
         if o.get("guide_err") is not None and cd not in seen_cd:
             seen_cd.add(cd); bias_acc[o["city"]].append(o["guide_err"])
@@ -62,7 +63,7 @@ def main():
     # corrected+floor: adds the 90c floor the band data motivates
     def score_rule(name, keep):
         taken, seen = [], set()
-        for o in sorted(obs, key=lambda x: x["at"]):
+        for o in sorted(bottom, key=lambda x: x["at"]):
             if o["price"] > 98 or o["G"] is None: continue
             cd = (o["day"], o["city"])
             if cd in seen or not keep(o): continue
@@ -81,7 +82,7 @@ def main():
     ]
 
     out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z"),
-               n_rung_obs=len(obs), n_units=len(units),
+               n_rung_obs=len(obs), n_bottom_obs=len(bottom), n_units=len(units),
                days=sorted({o["day"] for o in obs}), bands=roll,
                station_guide_bias=bias, variants=variants)
     json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)

@@ -107,21 +107,39 @@ def evaluate_ladder(city, rungs, guide, run_max, pop):
     m = station_model(city)
     out = []
     for r in rungs:
-        cap, na = r.get("cap"), r.get("no_ask")
-        if cap is None or na is None: continue
-        p_over = rung_probability(cap, guide, run_max, m)
-        if p_over is None: continue
-        # Bottom-ladder rungs are "high < cap" buckets: buying NO bets the high
-        # EXCEEDS the cap (shadow convention: won = settle > ceiling).
-        p_no = p_over
+        cap, fl, na = r.get("cap"), r.get("floor"), r.get("no_ask")
+        if na is None or (cap is None and fl is None): continue
+        if guide is None: continue
+        mu, sig = guide - m["bias"], m["sigma"]
+        Q = lambda x: 1 - norm_cdf((x - mu)/sig)     # P(T_max > x)
+        trunc = Q(run_max) if (run_max is not None and Q(run_max) > 1e-9) else 1.0
+        if fl is None:            # bottom "T<=cap": NO wins iff T > cap
+            kind, label = "bottom", f"<={cap}"
+            p_no = 1.0 if (run_max is not None and run_max > cap) else min(1.0, Q(cap+0.5)/trunc)
+            z_ref = (cap+0.5-mu)/sig
+        elif cap is None:         # top "T>=fl": NO wins iff T < fl
+            kind, label = "top", f">={fl}"
+            p_no = 0.0 if (run_max is not None and run_max >= fl) else                    max(0.0, (Q(run_max if run_max is not None else -999) - Q(fl-0.5))/trunc)
+            z_ref = (fl-0.5-mu)/sig
+        else:                     # range "fl<=T<=cap": NO wins iff T outside
+            kind, label = "range", f"{fl}-{cap}"
+            if run_max is not None and run_max > cap:
+                p_no = 1.0        # already busted high
+            else:
+                p_in = max(0.0, (Q(fl-0.5) - Q(cap+0.5))/trunc)
+                p_no = max(0.0, min(1.0, 1.0 - p_in))
+            z_ref = (cap+0.5-mu)/sig
+        p_over = p_no  # kept name for LCB block below
         price = na/100.0
         fee = FEE(na)
         ev = p_no*(1 - price - fee) - (1-p_no)*price      # $ per $1 contract
-        # LCB: shift pWin down by 1.96 * d(pWin)/d(bias) * se(bias)
+        # LCB: shift pWin down by 1.96 * |dP/dmu| * se(bias).
+        # (Audit fix 2026-08-10: previous version multiplied by an extra sigma,
+        # UNDER-shrinking wherever sigma > 1 -- i.e., less conservative than
+        # advertised at every station except PHX.)
         se = m["sigma"]/math.sqrt(max(m["n_prior"]+m["n_live"],1))
-        z = ((cap+0.5) - (guide - m["bias"]))/m["sigma"]
-        dpdb = math.exp(-z*z/2)/math.sqrt(2*math.pi)/m["sigma"]   # |dP/dmu|
-        p_lcb = max(0.0, p_no - 1.96*dpdb*se*m["sigma"])
+        dpdmu = math.exp(-z_ref*z_ref/2)/math.sqrt(2*math.pi)/m["sigma"]
+        p_lcb = max(0.0, p_no - 1.96*dpdmu*se)
         hk, hk_lcb = half_kelly(p_no, price), half_kelly(p_lcb, price)
         dist = m["dist"]
         warn = []
@@ -129,15 +147,18 @@ def evaluate_ladder(city, rungs, guide, run_max, pop):
             # Convective days left-skew the max (outflow/anvil cap). The Gaussian
             # cannot represent that; do not size on it. Mirrors the gate's PoP rule.
             dist += "+convective"; warn.append(f"PoP {pop} -- Gaussian unfit on storm days")
-        if abs(p_no - (1 - (r.get("yes_bid") or (100-na))/100)) > 0.15:
+        yb = r.get("yes_bid")
+        p_mkt_v = (100-yb)/100 if yb is not None else na/100   # None-check: yb=0 is a real quote
+        if abs(p_no - p_mkt_v) > 0.15:
             # Own shadow finding: on model-vs-market divergence the market was
             # right 7/8. Divergence is a red flag here, not an opportunity.
             warn.append("model-market divergence >15pts -- market historically wins this regime")
             hk_lcb = 0.0
         if dist.endswith("unfit") or "+convective" in dist:
             hk_lcb = 0.0                       # refuse size where the model is unfit
-        out.append(dict(ticker=r.get("ticker") or r.get("t"), ceiling=cap,
-            price=na, p_no=round(p_no,4), p_mkt=round(1-(r.get("yes_bid") or (100-na))/100,4),
+        out.append(dict(ticker=r.get("ticker") or r.get("t"), ceiling=cap, floor=fl,
+            kind=kind, label=label,
+            price=na, p_no=round(p_no,4), p_mkt=round(p_mkt_v,4),
             edge=round(p_no - price,4), ev_c=round(ev*100,1),
             sigma=m["sigma"], bias=m["bias"], dist=dist, warn=warn,
             half_kelly=round(hk,4), half_kelly_lcb=round(hk_lcb,4)))

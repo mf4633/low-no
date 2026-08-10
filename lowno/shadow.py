@@ -55,11 +55,16 @@ def load_day(day):
         for rung in d.get("rungs", []):
             if rung.get("na") is None or rung.get("src") in (None, "absent"):
                 continue
-            if rung.get("cap") is None:
-                continue  # top rung has no ceiling; NO-side undefined here
+            fl, cap = rung.get("fl"), rung.get("cap")
+            # Three instruments per ladder (2026-08-10 audit finding):
+            #   bottom  T-cap,  fl None : YES iff T <= cap          NO wins: T > cap
+            #   range   B-x.5, fl & cap: YES iff fl <= T <= cap     NO wins: T outside
+            #   top     T-fl,  cap None: YES iff T >= fl            NO wins: T < fl
+            # Boundary settles count for YES (conservative for the NO buyer).
+            kind = "bottom" if fl is None else ("top" if cap is None else "range")
             rows.append(dict(city=r["city"], station=r["station"], at=r["at"],
                 verdict="LADDER",
-                detail=dict(ticker=rung["t"], ceiling=rung["cap"],
+                detail=dict(ticker=rung["t"], kind=kind, ceiling=cap, floor=fl,
                     no_ask=rung["na"] / 100.0, yes_bid=rung.get("yb"),
                     quote_src=rung["src"], guide=d.get("guide"),
                     pop=d.get("pop"), run_max=d.get("run_max"))))
@@ -109,13 +114,23 @@ def build(days=None):
         for r in load_day(day):
             d, city = r["detail"], r["city"]
             s = settles.get((day, city))
-            if s is None or d.get("ceiling") is None:
+            if s is None:
                 continue
+            kind = d.get("kind", "bottom")      # gate rows are bottom rungs
+            fl, cap = d.get("floor"), d.get("ceiling")
+            if kind == "bottom":
+                if cap is None: continue
+                won = s > cap
+            elif kind == "top":
+                if fl is None: continue
+                won = s < fl
+            else:                               # range: NO wins strictly outside
+                if fl is None or cap is None: continue
+                won = (s < fl) or (s > cap)
             price = int(round(d["no_ask"] * 100))
-            won = s > d["ceiling"]              # NO pays iff high exceeds ceiling
             guide, yb = d.get("guide"), d.get("yes_bid")
             obs.append(dict(
-                day=day, city=city, at=r["at"], verdict=r["verdict"],
+                day=day, city=city, at=r["at"], verdict=r["verdict"], kind=kind,
                 ceiling=d["ceiling"], price=price, yes_bid=yb,
                 guide=guide, pop=d.get("pop"), run_max=d.get("run_max"),
                 G=(guide - d["ceiling"]) if guide is not None else None,

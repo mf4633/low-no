@@ -174,10 +174,11 @@ fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
   for(const c of eb.cities){
     for(const r of (c.rungs||[])){
       if(r.price>98 && r.p_no>0.5) continue;    // dead fully-priced rungs: noise
+      const lbl=r.label||("<="+r.ceiling);
       const sized = r.half_kelly_lcb>0;
       const warn = (r.warn||[]).join("; ");
       rows+=`<tr class="${sized?"":"dim"}">
-        <td>${c.city}</td><td class="num">&le;${r.ceiling}</td>
+        <td>${c.city}</td><td class="num">${lbl} <span class="muted small">${r.kind||""}</span></td>
         <td class="num">${r.price}c</td>
         <td class="num">${(100*r.p_no).toFixed(1)}%</td>
         <td class="num">${(100*r.p_mkt).toFixed(0)}%</td>
@@ -189,7 +190,7 @@ fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
     }
   }
   box.innerHTML=`<h2>LIVE EDGE BOARD -- MODEL VS MARKET, EVERY RUNG</h2>
-  <p>P(NO) = P(daily max exceeds cap): Normal(guide - bias, sigma), truncated at the
+  <p>P(NO) per bucket type -- bottom (T&le;cap): P(exceed); range (fl&ndash;cap): P(outside); top (T&ge;fl): P(below): Normal(guide - bias, sigma), truncated at the
   running max. bias/sigma = weatherbot Kalman priors (n&ge;820 days/city, 2022-2026)
   blended with this ledger's settlements, precision-weighted. half-Kelly per
   weatherbot convention; the LCB column sizes on the lower confidence bound and is
