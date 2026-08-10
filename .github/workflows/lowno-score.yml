@@ -18,12 +18,15 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m lowno.score_run
-      - name: commit ledger
+      - name: shadow grade all bands
+        if: always()
+        run: python shadow_run.py 2>&1 | tee shadow_out.txt
+      - name: commit ledger + shadow
         if: always()
         run: |
           git config user.name lowno-bot && git config user.email bot@lowno
           git add -A
-          git diff --cached --quiet || git commit -m "scorecard $(date -u +%F)"
+          git diff --cached --quiet || git commit -m "scorecard + shadow $(date -u +%F)"
           git pull --rebase --autostash && git push
       - name: request pages rebuild
         if: always()

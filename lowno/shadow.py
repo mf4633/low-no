@@ -41,17 +41,39 @@ def load_day(day):
     return rows
 
 
+CACHE = "docs/settlements.json"
+
 def settle_map(days):
-    """(day, city) -> CLI max. Cached to one fetch per city per day."""
-    out = {}
+    """(day, city) -> CLI max, persisted to disk.
+
+    Without a cache this refetches every city for every historical day on every
+    nightly run -- O(days x cities) against api.weather.gov and growing forever.
+    Settled values are immutable once the CLI is final, so only misses are
+    fetched. Nulls are NOT cached: an unsettled day retries tomorrow.
+    """
+    cache = {}
+    if os.path.exists(CACHE):
+        try:
+            cache = json.load(open(CACHE))
+        except Exception:
+            cache = {}
+    fetched = 0
     for day in days:
         for city, cfg in CITIES.items():
+            k = f"{day}|{city}"
+            if cache.get(k) is not None:
+                continue
             try:
                 m, _ = sources.cli_max(cfg["station"], None, date=day)
             except Exception:
                 m = None
-            out[(day, city)] = m
-    return out
+            if m is not None:
+                cache[k] = m
+                fetched += 1
+    os.makedirs("docs", exist_ok=True)
+    json.dump(cache, open(CACHE, "w"), indent=0, sort_keys=True)
+    print(f"settlements: {len(cache)} cached, {fetched} newly fetched")
+    return {(d, c): v for k, v in cache.items() for d, c in [k.split("|")]}
 
 
 def build(days=None):
