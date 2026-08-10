@@ -3,7 +3,7 @@ FLAGS ONLY -- this module has no order-placement code and must never grow any.
 The human (or nothing) executes. Run: python -m lowno.scan"""
 import datetime as dt, json, os, zoneinfo
 from .config import CITIES
-from . import sources, gate, advisor
+from . import sources, gate, advisor, prob
 
 def scan_once():
     today = dt.date.today()
@@ -41,6 +41,22 @@ def scan_once():
         except Exception as e:
             results.append(dict(city=key, station=c["station"], verdict="ERROR",
                                 detail={"why": str(e)[:200]}, at=dt.datetime.utcnow().isoformat()))
+    # Live edge board for the site: per-rung probability/edge/half-Kelly.
+    try:
+        board = []
+        for r in results:
+            if r["verdict"] != "LADDER": continue
+            d = r["detail"]
+            rungs = [dict(cap=x.get("cap"), no_ask=x.get("na"), yes_bid=x.get("yb"),
+                          ticker=x.get("t")) for x in d["rungs"]]
+            board.append(prob.evaluate_ladder(r["city"], rungs, d.get("guide"),
+                                              d.get("run_max"), d.get("pop")))
+        os.makedirs("docs", exist_ok=True)
+        json.dump(dict(at=dt.datetime.utcnow().isoformat()+"Z", cities=board),
+                  open("docs/edge.json", "w"), indent=1)
+    except Exception as e:
+        print("edge board failed:", e)
+
     os.makedirs("logs", exist_ok=True)
     path = f"logs/{today.isoformat()}.jsonl"
     with open(path, "a") as f:

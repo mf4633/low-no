@@ -1,0 +1,144 @@
+"""Probability engine for the low-no ladder: P(daily max > ceiling) per rung,
+edge vs. market, sigma, half-Kelly with an LCB shrink.
+
+Conventions ported from weatherbot (mf4633/weatherbot) so numbers on the two
+sites read the same way:
+  halfKelly(p, c) = max(0, (p*b - (1-p)) / b) / 2,  b = (1-c)/c   [analyze_best_case.js]
+  normCdf via Abramowitz & Stegun 7.1.26 erf                       [erf.js]
+  Kelly-LCB shrink: size on the LOWER confidence bound of pWin, not the point
+  estimate; a rung whose LCB-Kelly is 0 shows edge but earns no size.
+
+Model (documented so the site can say exactly what it believes):
+  T_max ~ Normal(mu, sigma), where
+    mu    = guide - bias(city)
+    bias  = precision-weighted blend of the weatherbot prior (y_mean at guide
+            scale, n>=820 days, 2022-2026) and the live settlement ledger
+            (n = days settled so far). Live data dominates as it accumulates.
+    sigma = sigma_seed(city) from weatherbot warm-regime params, inflated by
+            bias-estimation uncertainty; floored at 1.0F.
+  Hard truncation: if run_max already exceeds the ceiling, P(over) = 1. Else
+  condition on T_max >= run_max (the max can't be less than what's been seen):
+    P(over ceiling | max >= run_max) = Q(ceil) / Q(run_max), Q(x)=1-Phi((x-mu)/sig)
+
+NON-NORMAL STATIONS: SFO and LAX marine-layer days are bimodal (burn-off vs.
+cap), and SFO has no weatherbot prior at all. A single Gaussian CANNOT price
+these -- the model marks them dist="marine/unfit" and refuses a half-Kelly
+(size 0) until an empirical error distribution exists (n>=20 settled days).
+Numbers shown for them are Gaussian reference values, explicitly untrusted.
+"""
+import json, math, os
+from collections import defaultdict
+
+# weatherbot per_city_kalman_params.json, high side, warm regime (fitted 2026-05-12)
+WB_PRIOR = {  # city: (y_mean = mean(CLI - guide-scale est), sigma_obs_warm, n)
+    "NYC": (-0.61, 1.68, 825), "CHI": (-0.20, 1.54, 845), "DEN": (-0.45, 1.56, 837),
+    "SEA": (-0.85, 1.68, 822), "PHX": (+0.11, 0.94, 821), "PHL": (-0.42, 1.58, 823),
+    "AUS": (+0.08, 1.70, 822), "LAX": (+0.75, 1.44, 820),
+    # SFO, MIA: no weatherbot fit. Diffuse prior: zero bias, wide sigma, tiny n.
+    "SFO": (0.0, 2.5, 4), "MIA": (0.0, 2.0, 4),
+}
+MARINE = {"SFO", "LAX"}          # bimodal burn-off regime: Gaussian unfit
+EMPIRICAL_MIN_N = 20             # settled days needed before trusting a fit
+FEE = lambda pc: math.ceil(7 * (pc/100) * (1 - pc/100)) / 100  # dollars
+
+def norm_cdf(z):
+    # A&S 7.1.26 via erf, matching weatherbot/erf.js to ~1.5e-7
+    a1,a2,a3,a4,a5,p = 0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429,0.3275911
+    x = z / math.sqrt(2); sign = -1 if x < 0 else 1; x = abs(x)
+    t = 1/(1+p*x)
+    y = 1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*math.exp(-x*x)
+    return 0.5*(1+sign*y)
+
+def half_kelly(p, c):
+    """p = P(win) buying at price c (0..1). weatherbot analyze_best_case.js."""
+    if c <= 0 or c >= 1: return 0.0
+    b = (1-c)/c
+    return max(0.0, (p*b - (1-p))/b) / 2
+
+def live_bias(city):
+    """(mean_err, n_days) from the settlement-vs-guide ledger, via shadow.json."""
+    try:
+        obs = json.load(open("docs/shadow.json"))
+    except Exception:
+        return 0.0, 0
+    seen, errs = set(), []
+    for o in obs:
+        cd = (o.get("day"), o.get("city"))
+        if o.get("city") == city and o.get("guide_err") is not None and cd not in seen:
+            seen.add(cd); errs.append(o["guide_err"])
+    if not errs: return 0.0, 0
+    return sum(errs)/len(errs), len(errs)
+
+def station_model(city):
+    """Blend weatherbot prior with live ledger, precision-weighted."""
+    pm, ps, pn = WB_PRIOR.get(city, (0.0, 2.0, 4))
+    lm, ln = live_bias(city)
+    # prior y_mean is (CLI - est): flip sign to (guide - CLI) convention used live
+    pm = -pm
+    n_eff = pn + ln
+    bias = (pm*pn + lm*ln) / n_eff
+    se_bias = ps / math.sqrt(max(n_eff, 1))
+    sigma = max(1.0, math.hypot(ps, se_bias))
+    dist = "marine/unfit" if city in MARINE or (city == "SFO") else \
+           ("empirical-pending" if ln < EMPIRICAL_MIN_N else "normal")
+    if city in ("SFO", "MIA") and ln < EMPIRICAL_MIN_N:
+        dist = "marine/unfit" if city in MARINE or city == "SFO" else "no-prior/unfit"
+    return dict(bias=round(bias,2), sigma=round(sigma,2), n_live=ln,
+                n_prior=pn, dist=dist)
+
+def rung_probability(ceiling, guide, run_max, model):
+    """P(daily max > ceiling), truncated at the observed running max."""
+    if guide is None or ceiling is None:
+        return None
+    if run_max is not None and run_max > ceiling:
+        return 1.0
+    mu = guide - model["bias"]
+    sig = model["sigma"]
+    q = lambda x: 1 - norm_cdf((x - mu)/sig)
+    p_over = q(ceiling + 0.5)          # settle in whole degrees: > ceiling means >= ceiling+1
+    if run_max is not None:
+        denom = q(run_max)
+        if denom > 1e-9:
+            p_over = min(1.0, p_over/denom)
+    return p_over
+
+def evaluate_ladder(city, rungs, guide, run_max, pop):
+    """Per-rung: pWin(NO), market pWin, edge, EV, half-Kelly point + LCB."""
+    m = station_model(city)
+    out = []
+    for r in rungs:
+        cap, na = r.get("cap"), r.get("no_ask")
+        if cap is None or na is None: continue
+        p_over = rung_probability(cap, guide, run_max, m)
+        if p_over is None: continue
+        # Bottom-ladder rungs are "high < cap" buckets: buying NO bets the high
+        # EXCEEDS the cap (shadow convention: won = settle > ceiling).
+        p_no = p_over
+        price = na/100.0
+        fee = FEE(na)
+        ev = p_no*(1 - price - fee) - (1-p_no)*price      # $ per $1 contract
+        # LCB: shift pWin down by 1.96 * d(pWin)/d(bias) * se(bias)
+        se = m["sigma"]/math.sqrt(max(m["n_prior"]+m["n_live"],1))
+        z = ((cap+0.5) - (guide - m["bias"]))/m["sigma"]
+        dpdb = math.exp(-z*z/2)/math.sqrt(2*math.pi)/m["sigma"]   # |dP/dmu|
+        p_lcb = max(0.0, p_no - 1.96*dpdb*se*m["sigma"])
+        hk, hk_lcb = half_kelly(p_no, price), half_kelly(p_lcb, price)
+        dist = m["dist"]
+        warn = []
+        if pop is not None and pop > 20:
+            # Convective days left-skew the max (outflow/anvil cap). The Gaussian
+            # cannot represent that; do not size on it. Mirrors the gate's PoP rule.
+            dist += "+convective"; warn.append(f"PoP {pop} -- Gaussian unfit on storm days")
+        if abs(p_no - (1 - (r.get("yes_bid") or (100-na))/100)) > 0.15:
+            # Own shadow finding: on model-vs-market divergence the market was
+            # right 7/8. Divergence is a red flag here, not an opportunity.
+            warn.append("model-market divergence >15pts -- market historically wins this regime")
+            hk_lcb = 0.0
+        if dist.endswith("unfit") or "+convective" in dist:
+            hk_lcb = 0.0                       # refuse size where the model is unfit
+        out.append(dict(ticker=r.get("ticker") or r.get("t"), ceiling=cap,
+            price=na, p_no=round(p_no,4), p_mkt=round(1-(r.get("yes_bid") or (100-na))/100,4),
+            edge=round(p_no - price,4), ev_c=round(ev*100,1),
+            sigma=m["sigma"], bias=m["bias"], dist=dist, warn=warn,
+            half_kelly=round(hk,4), half_kelly_lcb=round(hk_lcb,4)))
+    return dict(city=city, model=m, guide=guide, run_max=run_max, pop=pop, rungs=out)

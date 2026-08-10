@@ -50,6 +50,7 @@
     tr.why td{animation:reveal .18s ease-out}
     @keyframes reveal{from{opacity:0}to{opacity:1}}
   }
+tr.dim td{opacity:.45}
 </style>
 </head>
 <body>
@@ -164,6 +165,41 @@ fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
    fills at logged ask: an upper bound on live performance.</p>
    <table><tr><th>band</th><th>n</th><th>wins</th><th>hit</th>
    <th>need</th><th>LCB</th><th>avg P&L</th><th>status</th></tr>${rows}</table>`;
+});
+
+fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
+  if(!eb||!eb.cities) return;
+  const box=document.getElementById("edgebox"); if(!box) return;
+  let rows="";
+  for(const c of eb.cities){
+    for(const r of (c.rungs||[])){
+      if(r.price>98 && r.p_no>0.5) continue;    // dead fully-priced rungs: noise
+      const sized = r.half_kelly_lcb>0;
+      const warn = (r.warn||[]).join("; ");
+      rows+=`<tr class="${sized?"":"dim"}">
+        <td>${c.city}</td><td class="num">&le;${r.ceiling}</td>
+        <td class="num">${r.price}c</td>
+        <td class="num">${(100*r.p_no).toFixed(1)}%</td>
+        <td class="num">${(100*r.p_mkt).toFixed(0)}%</td>
+        <td class="num">${r.edge>0?"+":""}${(100*r.edge).toFixed(1)}</td>
+        <td class="num">${r.sigma.toFixed(2)}</td>
+        <td class="num">${(100*r.half_kelly).toFixed(1)}%</td>
+        <td class="num"><strong>${(100*r.half_kelly_lcb).toFixed(1)}%</strong></td>
+        <td class="code">${r.dist}${warn?" -- "+warn:""}</td></tr>`;
+    }
+  }
+  box.innerHTML=`<h2>LIVE EDGE BOARD -- MODEL VS MARKET, EVERY RUNG</h2>
+  <p>P(NO) = P(daily max exceeds cap): Normal(guide - bias, sigma), truncated at the
+  running max. bias/sigma = weatherbot Kalman priors (n&ge;820 days/city, 2022-2026)
+  blended with this ledger's settlements, precision-weighted. half-Kelly per
+  weatherbot convention; the LCB column sizes on the lower confidence bound and is
+  ZERO wherever the model is unfit: marine-layer stations (SFO/LAX bimodal burn-off
+  -- not Gaussian), no-prior stations, convective days (PoP&gt;20), and
+  model-market divergence &gt;15pts (this ledger: market won 7/8 such disputes).
+  Scanned ${eb.at}. PAPER ONLY. A number here is a hypothesis, not a signal.</p>
+  <table><tr><th>city</th><th>rung</th><th>NO ask</th><th>P(NO) model</th>
+  <th>P(NO) mkt</th><th>edge pts</th><th>&sigma;&deg;F</th><th>half-K</th>
+  <th>half-K LCB</th><th>distribution / trust</th></tr>${rows}</table>`;
 });
 </script>
 </body>
