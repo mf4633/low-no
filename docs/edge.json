@@ -1,5 +1,5 @@
 {
- "at": "2026-08-10T22:51:14.258820Z",
+ "at": "2026-08-10T23:46:32.254230Z",
  "cities": [
   {
    "city": "AUS",
@@ -11,9 +11,9 @@
     "mode": "recency-pooled",
     "dist": "empirical-pending"
    },
-   "guide": 98,
+   "guide": 99,
    "run_max": 98.6,
-   "pop": 16,
+   "pop": 1,
    "rungs": [
     {
      "ticker": "KXHIGHAUS-26AUG10-T94",
@@ -40,10 +40,10 @@
      "kind": "top",
      "label": ">=101",
      "price": 100,
-     "p_no": 0.5562,
+     "p_no": 0.3978,
      "p_mkt": 1.0,
-     "edge": -0.4438,
-     "ev_c": -44.4,
+     "edge": -0.6022,
+     "ev_c": -60.2,
      "sigma": 1.88,
      "bias": -1.56,
      "dist": "empirical-pending",
@@ -60,17 +60,17 @@
      "kind": "range",
      "label": "98-99",
      "price": 1,
-     "p_no": 0.4956,
+     "p_no": 0.7244,
      "p_mkt": 0.01,
-     "edge": 0.4856,
-     "ev_c": 48.1,
+     "edge": 0.7144,
+     "ev_c": 70.7,
      "sigma": 1.88,
      "bias": -1.56,
      "dist": "empirical-pending",
      "warn": [
       "model-market divergence >15pts -- market historically wins this regime"
      ],
-     "half_kelly": 0.2452,
+     "half_kelly": 0.3608,
      "half_kelly_lcb": 0.0
     },
     {
@@ -116,10 +116,10 @@
      "kind": "range",
      "label": "100-101",
      "price": 100,
-     "p_no": 0.4798,
+     "p_no": 0.5243,
      "p_mkt": 1.0,
-     "edge": -0.5202,
-     "ev_c": -52.0,
+     "edge": -0.4757,
+     "ev_c": -47.6,
      "sigma": 1.88,
      "bias": -1.56,
      "dist": "empirical-pending",
@@ -143,7 +143,7 @@
    },
    "guide": 88,
    "run_max": 87.8,
-   "pop": 23,
+   "pop": 44,
    "rungs": [
     {
      "ticker": "KXHIGHCHI-26AUG10-T89",
@@ -160,7 +160,7 @@
      "bias": -0.58,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days",
+      "PoP 44 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "half_kelly": 0.0,
@@ -181,7 +181,7 @@
      "bias": -0.58,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 44 -- Gaussian unfit on storm days"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -201,7 +201,7 @@
      "bias": -0.58,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days",
+      "PoP 44 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "half_kelly": 0.1705,
@@ -222,7 +222,7 @@
      "bias": -0.58,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 44 -- Gaussian unfit on storm days"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -242,7 +242,7 @@
      "bias": -0.58,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 44 -- Gaussian unfit on storm days"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -262,7 +262,7 @@
      "bias": -0.58,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 44 -- Gaussian unfit on storm days"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -989,11 +989,11 @@
      "floor": 110,
      "kind": "range",
      "label": "110-111",
-     "price": 94,
+     "price": 98,
      "p_no": 0.9094,
-     "p_mkt": 0.94,
-     "edge": -0.0306,
-     "ev_c": -4.0,
+     "p_mkt": 0.98,
+     "edge": -0.0706,
+     "ev_c": -8.0,
      "sigma": 1.04,
      "bias": 0.18,
      "dist": "empirical-pending",
@@ -1007,11 +1007,11 @@
      "floor": 108,
      "kind": "range",
      "label": "108-109",
-     "price": 6,
+     "price": 5,
      "p_no": 0.0275,
-     "p_mkt": 0.06,
-     "edge": -0.0325,
-     "ev_c": -3.3,
+     "p_mkt": 0.05,
+     "edge": -0.0225,
+     "ev_c": -2.3,
      "sigma": 1.04,
      "bias": 0.18,
      "dist": "empirical-pending",
@@ -1095,18 +1095,18 @@
      "floor": null,
      "kind": "bottom",
      "label": "<=76",
-     "price": 14,
+     "price": 13,
      "p_no": 0.741,
-     "p_mkt": 0.14,
-     "edge": 0.601,
-     "ev_c": 59.4,
+     "p_mkt": 0.13,
+     "edge": 0.611,
+     "ev_c": 60.4,
      "sigma": 1.86,
      "bias": 0.3,
      "dist": "empirical-pending",
      "warn": [
       "model-market divergence >15pts -- market historically wins this regime"
      ],
-     "half_kelly": 0.3494,
+     "half_kelly": 0.3511,
      "half_kelly_lcb": 0.0
     },
     {
@@ -1151,11 +1151,11 @@
      "floor": 78,
      "kind": "range",
      "label": "78-79",
-     "price": 98,
+     "price": 100,
      "p_no": 0.6236,
-     "p_mkt": 0.98,
-     "edge": -0.3564,
-     "ev_c": -36.3,
+     "p_mkt": 1.0,
+     "edge": -0.3764,
+     "ev_c": -37.6,
      "sigma": 1.86,
      "bias": 0.3,
      "dist": "empirical-pending",
@@ -1171,11 +1171,11 @@
      "floor": 76,
      "kind": "range",
      "label": "76-77",
-     "price": 89,
+     "price": 88,
      "p_no": 0.6611,
-     "p_mkt": 0.89,
-     "edge": -0.2289,
-     "ev_c": -23.6,
+     "p_mkt": 0.88,
+     "edge": -0.2189,
+     "ev_c": -22.6,
      "sigma": 1.86,
      "bias": 0.3,
      "dist": "empirical-pending",
@@ -1281,11 +1281,11 @@
      "floor": 74,
      "kind": "range",
      "label": "74-75",
-     "price": 90,
+     "price": 88,
      "p_no": 0.2563,
-     "p_mkt": 0.9,
-     "edge": -0.6437,
-     "ev_c": -64.6,
+     "p_mkt": 0.88,
+     "edge": -0.6237,
+     "ev_c": -62.6,
      "sigma": 2.77,
      "bias": 5.49,
      "dist": "marine/unfit",
