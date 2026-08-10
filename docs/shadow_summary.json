@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-10T08:31:01.018563Z",
+ "generated": "2026-08-10T09:56:22.471222Z",
  "n_rung_obs": 270,
  "n_units": 33,
  "days": [
@@ -139,6 +139,56 @@
    "ucb": 1.0,
    "mean_pnl_c": 1.5,
    "proven": false
+  }
+ ],
+ "station_guide_bias": {
+  "AUS": -2.33,
+  "CHI": -1.0,
+  "DEN": 0.33,
+  "LAX": -3.0,
+  "MIA": -0.33,
+  "NYC": 1.0,
+  "PHL": 0.0,
+  "PHX": 0.33,
+  "SEA": 0.0,
+  "SFO": 8.33
+ },
+ "variants": [
+  {
+   "rule": "frozen_G4",
+   "n": 2,
+   "wins": 1,
+   "hit": 0.5,
+   "lcb": 0.095,
+   "pnl_c": -42,
+   "mean_pnl_c": -21.0
+  },
+  {
+   "rule": "corrected_G4",
+   "n": 2,
+   "wins": 2,
+   "hit": 1.0,
+   "lcb": 0.342,
+   "pnl_c": 2,
+   "mean_pnl_c": 1.0
+  },
+  {
+   "rule": "corrected_G4_floor90",
+   "n": 2,
+   "wins": 2,
+   "hit": 1.0,
+   "lcb": 0.342,
+   "pnl_c": 2,
+   "mean_pnl_c": 1.0
+  },
+  {
+   "rule": "floor96_only",
+   "n": 8,
+   "wins": 8,
+   "hit": 1.0,
+   "lcb": 0.676,
+   "pnl_c": 12,
+   "mean_pnl_c": 1.5
   }
  ]
 }

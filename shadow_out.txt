@@ -1,4 +1,4 @@
-settlements: 30 cached, 30 newly fetched
+settlements: 30 cached, 0 newly fetched
 rung-obs 270 -> 33 independent units over 3 days
   band   n   w    hit   need    LCB     pnl  proven
   1-10   5   0     0%   5.9%     0%    -5.8   False
@@ -12,5 +12,13 @@ rung-obs 270 -> 33 independent units over 3 days
  81-90   2   1    50%  85.9%     9%   -36.0   False
  91-95   3   2    67%  93.6%    21%   -26.7   False
  96-98   8   8   100%  98.5%    68%     1.5   False
+
+station guide bias (guide - CLI): {'SFO': 8.33, 'LAX': -3.0, 'AUS': -2.33, 'CHI': -1.0, 'NYC': 1.0, 'DEN': 0.33, 'MIA': -0.33, 'PHX': 0.33, 'PHL': 0.0, 'SEA': 0.0}
+
+                  rule   n   w    hit   LCB  meanP&L
+             frozen_G4   2   1    50%   10%    -21.0
+          corrected_G4   2   2   100%   34%      1.0
+  corrected_G4_floor90   2   2   100%   34%      1.0
+          floor96_only   8   8   100%   68%      1.5
 
 No band's 95% lower bound clears its fee breakeven. Nothing proven.
