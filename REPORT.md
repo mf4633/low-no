@@ -8,6 +8,6 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **SFO** QUALIFIED @ 0.05 ceil 76 guide 81 -> CLI None :: **UNGRADED**  _gap station: flips offshore a day before LAX. Weak NE drainage collapses to W reversal - timing city._
+- **SFO** QUALIFIED @ 0.05 ceil 76 guide 81 -> CLI 71 :: **FORECAST_BUST**  _gap station: flips offshore a day before LAX. Weak NE drainage collapses to W reversal - timing city._
 
-no qualified flags today -- a complete and acceptable outcome
+**0/1 hit** (0%) vs 98.2% breakeven at 0.98
