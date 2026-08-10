@@ -70,21 +70,21 @@ def live_bias(city):
     return sum(errs)/len(errs), len(errs)
 
 def station_model(city):
-    """Blend weatherbot prior with live ledger, precision-weighted."""
-    pm, ps, pn = WB_PRIOR.get(city, (0.0, 2.0, 4))
-    lm, ln = live_bias(city)
-    # prior y_mean is (CLI - est): flip sign to (guide - CLI) convention used live
-    pm = -pm
-    n_eff = pn + ln
-    bias = (pm*pn + lm*ln) / n_eff
-    se_bias = ps / math.sqrt(max(n_eff, 1))
-    sigma = max(1.0, math.hypot(ps, se_bias))
-    dist = "marine/unfit" if city in MARINE or (city == "SFO") else \
-           ("empirical-pending" if ln < EMPIRICAL_MIN_N else "normal")
-    if city in ("SFO", "MIA") and ln < EMPIRICAL_MIN_N:
-        dist = "marine/unfit" if city in MARINE or city == "SFO" else "no-prior/unfit"
-    return dict(bias=round(bias,2), sigma=round(sigma,2), n_live=ln,
-                n_prior=pn, dist=dist)
+    """Adaptive bias/sigma from lowno.adaptive: recency-weighted, seasonal when
+    earned, priors retired automatically as live data accrues. Trust taxonomy
+    unchanged: marine stations stay unfit for a Gaussian regardless of n until
+    an explicit empirical distribution replaces it."""
+    from . import adaptive
+    bias, sigma, n_eff, mode = adaptive.bias_sigma(city)
+    _, ln = live_bias(city)
+    if city in MARINE:
+        dist = "marine/unfit"
+    elif ln < EMPIRICAL_MIN_N:
+        dist = "no-prior/unfit" if city == "MIA" and ln < 5 else "empirical-pending"
+    else:
+        dist = "normal"
+    return dict(bias=bias, sigma=sigma, n_live=ln, n_prior=round(n_eff,1),
+                mode=mode, dist=dist)
 
 def rung_probability(ceiling, guide, run_max, model):
     """P(daily max > ceiling), truncated at the observed running max."""

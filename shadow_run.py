@@ -6,7 +6,8 @@ city-day-band so n reflects independent observations, not scan cycles.
 """
 import json, math, datetime as dt
 from collections import defaultdict
-from lowno import shadow
+from lowno import shadow, adaptive
+from lowno.config import CITIES
 
 BANDS = [(1,10),(11,20),(21,30),(31,40),(41,50),(51,60),(61,70),(71,80),(81,90),(91,95),(96,98)]
 
@@ -73,7 +74,9 @@ def main():
         return dict(rule=name, n=n, wins=k, hit=(k/n if n else None),
                     lcb=round(lo_, 3), pnl_c=sum(t["pnl"] for t in taken),
                     mean_pnl_c=(round(sum(t["pnl"] for t in taken)/n, 2) if n else None))
-    def gcorr(o): return o["G"] - bias.get(o["city"], 0.0)
+    abias = {c: adaptive.bias_sigma(c)[0] for c in bias} or \
+            {c: adaptive.bias_sigma(c)[0] for c in {o["city"] for o in obs}}
+    def gcorr(o): return o["G"] - abias.get(o["city"], 0.0)
     variants = [
         score_rule("frozen_G4",            lambda o: o["G"] >= 4),
         score_rule("corrected_G4",         lambda o: gcorr(o) >= 4),
@@ -84,7 +87,12 @@ def main():
     out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z"),
                n_rung_obs=len(obs), n_bottom_obs=len(bottom), n_units=len(units),
                days=sorted({o["day"] for o in obs}), bands=roll,
-               station_guide_bias=bias, variants=variants)
+               station_guide_bias=bias,
+               adaptive={c: dict(zip(("bias","sigma","n_eff","mode"),
+                                     adaptive.bias_sigma(c)))
+                         for c in {o["city"] for o in obs}},
+               diurnal=adaptive.diurnal_climb({k: v["tz"] for k, v in CITIES.items()}),
+               variants=variants)
     json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)
 
     print(f"rung-obs {len(obs)} -> {len(units)} independent units over {len(out['days'])} days")
