@@ -1,34 +1,16 @@
-observations: 270  days: ['2026-08-07', '2026-08-08', '2026-08-09']
-cities settled: ['AUS', 'CHI', 'DEN', 'LAX', 'MIA', 'NYC', 'PHL', 'PHX', 'SEA', 'SFO']
-rung-observations where NO would have won: 221/270
+settlements: 30 cached, 30 newly fetched
+rung-obs 270 -> 33 independent units over 3 days
+  band   n   w    hit   need    LCB     pnl  proven
+  1-10   5   0     0%   5.9%     0%    -5.8   False
+ 11-20   3   0     0%  15.5%     0%   -15.3   False
+ 21-30   2   0     0%  28.1%     0%   -27.5   False
+ 31-40   3   0     0%  36.0%     0%   -35.3   False
+ 41-50   1   0     0%  43.9%     0%   -43.0   False
+ 51-60   2   1    50%  56.1%     9%    -6.0   False
+ 61-70   3   1    33%  66.0%     6%   -32.0   False
+ 71-80   1   0     0%  75.5%     0%   -74.0   False
+ 81-90   2   1    50%  85.9%     9%   -36.0   False
+ 91-95   3   2    67%  93.6%    21%   -26.7   False
+ 96-98   8   8   100%  98.5%    68%     1.5   False
 
-== guide error (NWS guide - CLI actual), by city ==
-  SFO  n= 27 mean= +8.9F  max=+10  min= +6
-  NYC  n= 27 mean= +1.9F  max= +4  min= -2
-  PHL  n= 27 mean= +0.5F  max= +3  min= -3
-  DEN  n= 27 mean= +0.4F  max= +1  min= +0
-  PHX  n= 27 mean= +0.2F  max= +1  min= +0
-  SEA  n= 27 mean= +0.2F  max= +1  min= -1
-  MIA  n= 27 mean= -0.4F  max= +0  min= -1
-  CHI  n= 27 mean= -0.8F  max= +0  min= -3
-  AUS  n= 27 mean= -2.2F  max= -1  min= -3
-  LAX  n= 27 mean= -3.0F  max= -3  min= -3
-
-== variant grid (one entry per city-day) ==
- G floor   n wins    hit   pnl_c     per
- 2     0  11    7    64%     -52    -4.7
- 2    50   7    7   100%      15     2.1
- 2    80   7    7   100%      15     2.1
- 2    90   7    7   100%      15     2.1
- 2    95   7    7   100%       9     1.3
- 3     0   5    4    80%     -39    -7.8
- 3    50   4    4   100%       4     1.0
- 3    80   4    4   100%       4     1.0
- 3    90   4    4   100%       4     1.0
- 3    95   4    4   100%       4     1.0
- 4     0   2    1    50%     -42   -21.0
- 4    50   1    1   100%       1     1.0
- 4    80   1    1   100%       1     1.0
- 4    90   1    1   100%       1     1.0
- 4    95   1    1   100%       1     1.0
- 5     0   1    0     0%     -43   -43.0
+No band's 95% lower bound clears its fee breakeven. Nothing proven.
