@@ -13,7 +13,14 @@ def scan_once():
             tz = zoneinfo.ZoneInfo(c["tz"])
             now_l = dt.datetime.now(tz)
             obs = sources.latest_obs(c["station"])
-            obs_today = [o for o in obs if o["ts"][:10] == now_l.date().isoformat()]
+            # api.weather.gov timestamps are UTC. The old filter compared the UTC
+            # date prefix to the LOCAL date string, so 00:00-07:00Z obs (= prior
+            # local evening on the West Coast, incl. yesterday's ~17:00 near-peak)
+            # matched "today". Convert to station-local time and pin to the
+            # MARKET day (the ticker date), not the wall clock.
+            def _obs_local_date(ts):
+                return dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))                          .astimezone(tz).date().isoformat()
+            obs_today = [o for o in obs if _obs_local_date(o["ts"]) == today.isoformat()]
             rmax = gate.running_max_f(obs_today)
             wx = obs_today[0]["wx"] if obs_today else ""
             try:

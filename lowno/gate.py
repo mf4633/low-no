@@ -7,10 +7,14 @@ def c_to_f(c):
     return None if c is None else c * 9 / 5 + 32
 
 def running_max_f(obs_today):
-    vals = []
-    for o in obs_today:
-        if o.get("tC") is not None: vals.append(c_to_f(o["tC"]))
-        if o.get("max24C") is not None: vals.append(c_to_f(o["max24C"]))
+    """Instantaneous temps only. maxTemperatureLast24Hours is EXCLUDED: read
+    before ~23:00 local it reaches into yesterday afternoon, so folding it in
+    set the morning running max to yesterday's high (audit find, 2026-08-10:
+    PHL "rmax 82.4" at 04:36 ET was Sunday's peak). Cost of exclusion: hourly
+    METAR undersamples true 1-min peaks by ~0.5-1F (the known KDEN settlement
+    premium) -- an honest undercount beats a wrong-day overcount, and CLI
+    settlement is unaffected either way."""
+    vals = [c_to_f(o["tC"]) for o in obs_today if o.get("tC") is not None]
     return max(vals) if vals else None
 
 def bottom_rung(rungs):
