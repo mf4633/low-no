@@ -2,7 +2,7 @@
 All fetches are best-effort with explicit staleness stamps -- a scan that can't
 verify freshness must say so rather than guess (Aug 3-4 lesson: stale data is
 the most expensive input in the system)."""
-import datetime as dt, json, os, time, urllib.request
+import datetime as dt, json, os, re, time, urllib.request, zoneinfo
 
 UA = {"User-Agent": "low-no scanner (github.com/mf4633/low-no)"}
 
@@ -110,15 +110,54 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
                           no_ask=no_ask, no_bid=no_bid, quote_src=src))
     return rungs
 
-def cli_max(station4, wfo):
-    """Settlement: parse the CLI product text for MAXIMUM. Returns (maxF, product_time)."""
-    j = _get(f"https://api.weather.gov/products/types/CLI/locations/{wfo}")
-    for item in j.get("@graph", [])[:6]:
-        text = _get(item["@id"]).get("productText", "")
-        if station4[1:] in text.split("\n", 3)[2] if text else False:
-            pass
-        for line in text.splitlines():
-            ls = line.split()
-            if line.strip().startswith("MAXIMUM") and len(ls) >= 2 and ls[1].isdigit():
-                return int(ls[1]), item.get("issuanceTime")
+def _parse_cli(text):
+    """Return (awips_id, summary_date, max_f) from one CLI product, or (None,None,None).
+
+    Anchors, in order of reliability:
+      line 3-ish  CLISFO            <- AWIPS id, identifies the STATION
+      ...THE ... CLIMATE SUMMARY FOR AUGUST 9 2026...
+      MAXIMUM         76   1:53 PM
+    """
+    awips = summary = maxf = None
+    for line in text.splitlines()[:8]:
+        t = line.strip()
+        if re.fullmatch(r"CLI[A-Z]{3}", t):
+            awips = t
+            break
+    m = re.search(r"SUMMARY FOR\s+([A-Z]+)\s+(\d{1,2})\s+(\d{4})", text)
+    if m:
+        try:
+            summary = dt.datetime.strptime(
+                f"{m.group(1).title()} {m.group(2)} {m.group(3)}", "%B %d %Y").date().isoformat()
+        except ValueError:
+            summary = None
+    for line in text.splitlines():
+        if line.strip().startswith("MAXIMUM"):
+            parts = line.split()
+            if len(parts) >= 2 and re.fullmatch(r"-?\d+", parts[1]):
+                maxf = int(parts[1])
+                break
+    return awips, summary, maxf
+
+def cli_max(station4, wfo, date=None, limit=60):
+    """Settlement: the CLI MAXIMUM for a SPECIFIC station on a SPECIFIC date.
+
+    The prior version returned the first MAXIMUM found in the six most recent
+    products for the WFO, matching neither station nor date -- MTR alone issues
+    CLISFO/CLIOAK/CLISJC, so a grade could silently come from the wrong city on
+    the wrong day. Both are now hard-matched; no match returns None (PENDING)
+    rather than a plausible-looking wrong number.
+    """
+    want_awips = "CLI" + station4[1:].upper()
+    if date is None:
+        date = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
+    j = _get(f"https://api.weather.gov/products/types/CLI/locations/{wfo}?limit={limit}")
+    for item in j.get("@graph", []):
+        try:
+            text = _get(item["@id"]).get("productText", "") or ""
+        except Exception:
+            continue
+        awips, summary, maxf = _parse_cli(text)
+        if awips == want_awips and summary == date and maxf is not None:
+            return maxf, item.get("issuanceTime")
     return None, None
