@@ -73,6 +73,12 @@ def main():
 
     led["days"] = [by_date[d] for d in sorted(by_date)]
     led["generated"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    # Advisor v2 boundary: flags on/after this date were judged by the
+    # state-injecting advisor (station bias + divergence + bust history fed in).
+    # v1 flags (blind) and v2 flags are DIFFERENT populations -- never pool their
+    # advisor-concur stats across this line.
+    led["advisor_version"] = 2
+    led["advisor_v2_since"] = "2026-08-11"
     json.dump(led, open("docs/ledger.json", "w"), indent=1)
     open("REPORT.md", "w").write(score.report(last_graded, last_settles))
     print(open("REPORT.md").read())
