@@ -202,6 +202,19 @@ fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
   <th>P(NO) mkt</th><th>edge pts</th><th>&sigma;&deg;F</th><th>half-K</th>
   <th>half-K LCB</th><th>distribution / trust</th></tr>${rows}</table>`;
 });
+
+Promise.all([fetch("ledger.json").then(r=>r.ok?r.json():null),
+             fetch("shadow_summary.json").then(r=>r.ok?r.json():null)]).then(([lg,sh])=>{
+  if(!lg||!sh||!lg.generated||!sh.generated) return;
+  const lag=(new Date(lg.generated)-new Date(sh.generated))/3.6e6;
+  if(lag>26){
+    const b=document.createElement("div");
+    b.style.cssText="background:#7a1f1f;color:#fff;padding:8px 12px;font-weight:bold;margin:8px 0";
+    b.textContent="SHADOW LEDGER STALE -- last full grade "+sh.generated.slice(0,16)+
+      "Z, ledger at "+lg.generated.slice(0,16)+"Z. Nightly shadow step likely failed; check Actions.";
+    document.body.insertBefore(b, document.body.firstChild);
+  }
+});
 </script>
 </body>
 </html>
