@@ -1,24 +1,24 @@
-settlements: 40 cached, 1 newly fetched
-rung-obs 1020 -> 50 independent units over 4 days
+settlements: 46 cached, 6 newly fetched
+rung-obs 1272 -> 55 independent units over 5 days
   band   n   w    hit   need    LCB     pnl  proven
-  1-10   6   0     0%   5.7%     0%    -5.7   False
+  1-10   7   0     0%   5.8%     0%    -5.7   False
  11-20   4   0     0%  15.2%     0%   -15.0   False
  21-30   2   0     0%  28.1%     0%   -27.5   False
  31-40   6   1    17%  35.4%     3%   -18.3   False
  41-50   2   0     0%  42.9%     0%   -42.0   False
- 51-60   4   2    50%  55.9%    15%    -5.8   False
- 61-70   4   1    25%  66.1%     5%   -40.2   False
+ 51-60   5   2    40%  56.7%    12%   -16.4   False
+ 61-70   5   1    20%  65.5%     4%   -44.6   False
  71-80   2   1    50%  77.5%     9%   -27.0   False
  81-90   5   3    60%  86.9%    23%   -26.8   False
- 91-95   4   3    75%  93.4%    30%   -18.2   False
- 96-98  11  11   100%  98.4%    74%     1.6   False
+ 91-95   5   4    80%  93.9%    38%   -13.8   False
+ 96-98  12  12   100%  98.4%    76%     1.6   False
 
-station guide bias (guide - CLI): {'SFO': 6.75, 'NYC': 2.5, 'LAX': -2.25, 'AUS': -2.0, 'CHI': -1.75, 'DEN': 1.0, 'PHL': 1.0, 'SEA': 0.75, 'MIA': -0.5, 'PHX': 0.25}
+station guide bias (guide - CLI): {'SFO': 6.75, 'NYC': 2.6, 'LAX': -2.25, 'AUS': -1.8, 'PHL': 1.2, 'CHI': -1.0, 'MIA': -0.8, 'SEA': 0.75, 'DEN': 0.6, 'PHX': 0.25}
 
                   rule   n   w    hit   LCB  meanP&L
              frozen_G4   5   4    80%   38%     -6.4
-          corrected_G4   3   3   100%   44%     3.33
-  corrected_G4_floor90   3   3   100%   44%     3.33
-          floor96_only  11  11   100%   74%     1.64
+          corrected_G4   1   1   100%   21%      2.0
+  corrected_G4_floor90   1   1   100%   21%      2.0
+          floor96_only  12  12   100%   76%     1.58
 
 No band's 95% lower bound clears its fee breakeven. Nothing proven.
