@@ -1,11 +1,24 @@
-settlements: 39 cached, 9 newly fetched
-Traceback (most recent call last):
-  File "/home/runner/work/low-no/low-no/shadow_run.py", line 114, in <module>
-    main()
-  File "/home/runner/work/low-no/low-no/shadow_run.py", line 26, in main
-    obs = shadow.build()
-          ^^^^^^^^^^^^^^
-  File "/home/runner/work/low-no/low-no/lowno/shadow.py", line 136, in build
-    G=(guide - d["ceiling"]) if guide is not None else None,
-       ~~~~~~^~~~~~~~~~~~~~
-TypeError: unsupported operand type(s) for -: 'int' and 'NoneType'
+settlements: 40 cached, 1 newly fetched
+rung-obs 1020 -> 50 independent units over 4 days
+  band   n   w    hit   need    LCB     pnl  proven
+  1-10   6   0     0%   5.7%     0%    -5.7   False
+ 11-20   4   0     0%  15.2%     0%   -15.0   False
+ 21-30   2   0     0%  28.1%     0%   -27.5   False
+ 31-40   6   1    17%  35.4%     3%   -18.3   False
+ 41-50   2   0     0%  42.9%     0%   -42.0   False
+ 51-60   4   2    50%  55.9%    15%    -5.8   False
+ 61-70   4   1    25%  66.1%     5%   -40.2   False
+ 71-80   2   1    50%  77.5%     9%   -27.0   False
+ 81-90   5   3    60%  86.9%    23%   -26.8   False
+ 91-95   4   3    75%  93.4%    30%   -18.2   False
+ 96-98  11  11   100%  98.4%    74%     1.6   False
+
+station guide bias (guide - CLI): {'SFO': 6.75, 'NYC': 2.5, 'LAX': -2.25, 'AUS': -2.0, 'CHI': -1.75, 'DEN': 1.0, 'PHL': 1.0, 'SEA': 0.75, 'MIA': -0.5, 'PHX': 0.25}
+
+                  rule   n   w    hit   LCB  meanP&L
+             frozen_G4   5   4    80%   38%     -6.4
+          corrected_G4   3   3   100%   44%     3.33
+  corrected_G4_floor90   3   3   100%   44%     3.33
+          floor96_only  11  11   100%   74%     1.64
+
+No band's 95% lower bound clears its fee breakeven. Nothing proven.
