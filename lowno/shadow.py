@@ -133,7 +133,7 @@ def build(days=None):
                 day=day, city=city, at=r["at"], verdict=r["verdict"], kind=kind,
                 ceiling=d["ceiling"], price=price, yes_bid=yb,
                 guide=guide, pop=d.get("pop"), run_max=d.get("run_max"),
-                G=(guide - d["ceiling"]) if guide is not None else None,
+                G=(guide - cap) if (guide is not None and cap is not None) else None,
                 settle=s, won=won, pnl=pnl_cents(price, won),
                 # market-implied P(NO wins) = 1 - P(YES); yes_bid is in cents
                 mkt_no=(100 - yb) if yb is not None else None,
