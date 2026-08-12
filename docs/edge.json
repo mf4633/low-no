@@ -1,5 +1,5 @@
 {
- "at": "2026-08-12T22:54:26.226002Z",
+ "at": "2026-08-12T23:53:34.571962Z",
  "cities": [
   {
    "city": "AUS",
@@ -13,7 +13,7 @@
    },
    "guide": 101,
    "run_max": 102.2,
-   "pop": 0,
+   "pop": 1,
    "rungs": [
     {
      "ticker": "KXHIGHAUS-26AUG12-T99",
@@ -115,11 +115,11 @@
      "floor": 101,
      "kind": "range",
      "label": "101-102",
-     "price": 1,
+     "price": 2,
      "p_no": 1.0,
-     "p_mkt": 0.01,
-     "edge": 0.99,
-     "ev_c": 98.0,
+     "p_mkt": 0.02,
+     "edge": 0.98,
+     "ev_c": 97.0,
      "sigma": 1.83,
      "bias": -1.37,
      "dist": "empirical-pending",
@@ -141,9 +141,9 @@
     "mode": "recency-pooled",
     "dist": "empirical-pending"
    },
-   "guide": 83,
+   "guide": 78,
    "run_max": 82.94,
-   "pop": 9,
+   "pop": 64,
    "rungs": [
     {
      "ticker": "KXHIGHCHI-26AUG12-T87",
@@ -152,14 +152,16 @@
      "kind": "top",
      "label": ">=87",
      "price": 100,
-     "p_no": 0.9329,
+     "p_no": 0.9998,
      "p_mkt": 1.0,
-     "edge": -0.0671,
-     "ev_c": -6.7,
+     "edge": -0.0002,
+     "ev_c": -0.0,
      "sigma": 1.66,
      "bias": -0.69,
-     "dist": "empirical-pending",
-     "warn": [],
+     "dist": "empirical-pending+convective",
+     "warn": [
+      "PoP 64 -- Gaussian unfit on storm days"
+     ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
     },
@@ -176,8 +178,10 @@
      "ev_c": 0.0,
      "sigma": 1.66,
      "bias": -0.69,
-     "dist": "empirical-pending",
-     "warn": [],
+     "dist": "empirical-pending+convective",
+     "warn": [
+      "PoP 64 -- Gaussian unfit on storm days"
+     ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
     },
@@ -188,15 +192,15 @@
      "kind": "range",
      "label": "86-87",
      "price": 100,
-     "p_no": 0.8118,
+     "p_no": 0.9961,
      "p_mkt": 1.0,
-     "edge": -0.1882,
-     "ev_c": -18.8,
+     "edge": -0.0039,
+     "ev_c": -0.4,
      "sigma": 1.66,
      "bias": -0.69,
-     "dist": "empirical-pending",
+     "dist": "empirical-pending+convective",
      "warn": [
-      "model-market divergence >15pts -- market historically wins this regime"
+      "PoP 64 -- Gaussian unfit on storm days"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -207,15 +211,16 @@
      "floor": 84,
      "kind": "range",
      "label": "84-85",
-     "price": 99,
-     "p_no": 0.3952,
-     "p_mkt": 0.99,
-     "edge": -0.5948,
-     "ev_c": -59.9,
+     "price": 100,
+     "p_no": 0.6444,
+     "p_mkt": 1.0,
+     "edge": -0.3556,
+     "ev_c": -35.6,
      "sigma": 1.66,
      "bias": -0.69,
-     "dist": "empirical-pending",
+     "dist": "empirical-pending+convective",
      "warn": [
+      "PoP 64 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "half_kelly": 0.0,
@@ -227,18 +232,18 @@
      "floor": 82,
      "kind": "range",
      "label": "82-83",
-     "price": 4,
-     "p_no": 0.4648,
-     "p_mkt": 0.04,
-     "edge": 0.4248,
-     "ev_c": 42.0,
+     "price": 1,
+     "p_no": 0.0,
+     "p_mkt": 0.01,
+     "edge": -0.01,
+     "ev_c": -1.0,
      "sigma": 1.66,
      "bias": -0.69,
-     "dist": "empirical-pending",
+     "dist": "empirical-pending+convective",
      "warn": [
-      "model-market divergence >15pts -- market historically wins this regime"
+      "PoP 64 -- Gaussian unfit on storm days"
      ],
-     "half_kelly": 0.2212,
+     "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
     },
     {
@@ -254,8 +259,10 @@
      "ev_c": 0.0,
      "sigma": 1.66,
      "bias": -0.69,
-     "dist": "empirical-pending",
-     "warn": [],
+     "dist": "empirical-pending+convective",
+     "warn": [
+      "PoP 64 -- Gaussian unfit on storm days"
+     ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
     }
@@ -534,7 +541,7 @@
     "dist": "empirical-pending"
    },
    "guide": 92,
-   "run_max": 93.2,
+   "run_max": 91.94,
    "pop": 34,
    "rungs": [
     {
@@ -544,16 +551,15 @@
      "kind": "top",
      "label": ">=96",
      "price": 100,
-     "p_no": 0.7686,
+     "p_no": 0.8537,
      "p_mkt": 1.0,
-     "edge": -0.2314,
-     "ev_c": -23.1,
+     "edge": -0.1463,
+     "ev_c": -14.6,
      "sigma": 2.16,
      "bias": -0.62,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 34 -- Gaussian unfit on storm days",
-      "model-market divergence >15pts -- market historically wins this regime"
+      "PoP 34 -- Gaussian unfit on storm days"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -585,10 +591,10 @@
      "kind": "range",
      "label": "95-96",
      "price": 100,
-     "p_no": 0.6047,
+     "p_no": 0.7501,
      "p_mkt": 1.0,
-     "edge": -0.3953,
-     "ev_c": -39.5,
+     "edge": -0.2499,
+     "ev_c": -25.0,
      "sigma": 2.16,
      "bias": -0.62,
      "dist": "empirical-pending+convective",
@@ -606,10 +612,10 @@
      "kind": "range",
      "label": "93-94",
      "price": 1,
-     "p_no": 0.1625,
+     "p_no": 0.4706,
      "p_mkt": 0.01,
-     "edge": 0.1525,
-     "ev_c": 15.1,
+     "edge": 0.4606,
+     "ev_c": 45.6,
      "sigma": 2.16,
      "bias": -0.62,
      "dist": "empirical-pending+convective",
@@ -617,7 +623,7 @@
       "PoP 34 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
-     "half_kelly": 0.077,
+     "half_kelly": 0.2326,
      "half_kelly_lcb": 0.0
     },
     {
@@ -627,15 +633,16 @@
      "kind": "range",
      "label": "91-92",
      "price": 100,
-     "p_no": 1.0,
+     "p_no": 0.4954,
      "p_mkt": 1.0,
-     "edge": 0.0,
-     "ev_c": 0.0,
+     "edge": -0.5046,
+     "ev_c": -50.5,
      "sigma": 2.16,
      "bias": -0.62,
      "dist": "empirical-pending+convective",
      "warn": [
-      "PoP 34 -- Gaussian unfit on storm days"
+      "PoP 34 -- Gaussian unfit on storm days",
+      "model-market divergence >15pts -- market historically wins this regime"
      ],
      "half_kelly": 0.0,
      "half_kelly_lcb": 0.0
@@ -1083,11 +1090,11 @@
      "floor": 79,
      "kind": "top",
      "label": ">=79",
-     "price": 89,
+     "price": 97,
      "p_no": 0.0,
-     "p_mkt": 0.89,
-     "edge": -0.89,
-     "ev_c": -89.0,
+     "p_mkt": 0.97,
+     "edge": -0.97,
+     "ev_c": -97.0,
      "sigma": 1.81,
      "bias": 0.36,
      "dist": "empirical-pending",
@@ -1121,11 +1128,11 @@
      "floor": 78,
      "kind": "range",
      "label": "78-79",
-     "price": 13,
+     "price": 5,
      "p_no": 0.0,
-     "p_mkt": 0.13,
-     "edge": -0.13,
-     "ev_c": -13.0,
+     "p_mkt": 0.05,
+     "edge": -0.05,
+     "ev_c": -5.0,
      "sigma": 1.81,
      "bias": 0.36,
      "dist": "empirical-pending",
@@ -1245,11 +1252,11 @@
      "floor": 76,
      "kind": "range",
      "label": "76-77",
-     "price": 97,
+     "price": 100,
      "p_no": 0.8811,
-     "p_mkt": 0.97,
-     "edge": -0.0889,
-     "ev_c": -9.8,
+     "p_mkt": 1.0,
+     "edge": -0.1189,
+     "ev_c": -11.9,
      "sigma": 2.7,
      "bias": 3.7,
      "dist": "marine/unfit",
@@ -1263,18 +1270,16 @@
      "floor": 74,
      "kind": "range",
      "label": "74-75",
-     "price": 41,
+     "price": 17,
      "p_no": 0.2114,
-     "p_mkt": 0.41,
-     "edge": -0.1986,
-     "ev_c": -20.3,
+     "p_mkt": 0.17,
+     "edge": 0.0414,
+     "ev_c": 3.9,
      "sigma": 2.7,
      "bias": 3.7,
      "dist": "marine/unfit",
-     "warn": [
-      "model-market divergence >15pts -- market historically wins this regime"
-     ],
-     "half_kelly": 0.0,
+     "warn": [],
+     "half_kelly": 0.025,
      "half_kelly_lcb": 0.0
     },
     {
@@ -1283,17 +1288,15 @@
      "floor": 72,
      "kind": "range",
      "label": "72-73",
-     "price": 68,
+     "price": 87,
      "p_no": 1.0,
-     "p_mkt": 0.68,
-     "edge": 0.32,
-     "ev_c": 30.0,
+     "p_mkt": 0.87,
+     "edge": 0.13,
+     "ev_c": 12.0,
      "sigma": 2.7,
      "bias": 3.7,
      "dist": "marine/unfit",
-     "warn": [
-      "model-market divergence >15pts -- market historically wins this regime"
-     ],
+     "warn": [],
      "half_kelly": 0.5,
      "half_kelly_lcb": 0.0
     },
