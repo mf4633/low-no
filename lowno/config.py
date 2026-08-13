@@ -12,6 +12,11 @@ GATE = {
     "entry_local": (10, 30),  # earliest local entry (h, m) - post-slope-confirmation
     "entry_close": (13, 30),  # after this, scavenge-only (dead rungs)
     "min_net_cents": 1.5,     # skip if fee leaves less than this per contract
+    # Hard ceiling on any single position, independent of Kelly. Half-Kelly at a
+    # 97c near-certainty prescribes 40%+ of bankroll -- correct arithmetic on an
+    # UNPROVEN p. No band's Wilson LCB clears its fee breakeven yet, so the cap
+    # binds on every flag by design. Raise it only when a band is PROVEN.
+    "max_position_frac": 0.05,
 }
 
 # Kalshi series tickers verified against live markets Aug 2026.

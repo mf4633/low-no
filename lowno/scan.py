@@ -2,7 +2,7 @@
 FLAGS ONLY -- this module has no order-placement code and must never grow any.
 The human (or nothing) executes. Run: python -m lowno.scan"""
 import datetime as dt, json, os, zoneinfo
-from .config import CITIES
+from .config import CITIES, GATE
 from . import sources, gate, advisor, prob
 
 def scan_once():
@@ -28,8 +28,20 @@ def scan_once():
             except Exception:
                 guide, short, pop = None, None, None  # unverified -> gate PASSes by design
             rungs = sources.kalshi_ladder(c["series"], today.strftime("%y%b%d").upper())
+            # Depth on the rung the gate actually evaluates. One call per city
+            # per cycle. Every P&L figure assumes a fill AT the logged ask; this
+            # measures whether the contracts to fill it actually exist.
+            br = gate.bottom_rung(rungs)
+            depth = None
+            if br is not None:
+                depth = sources.orderbook_depth(
+                    br["ticker"], max_price=int(GATE["max_price"] * 100),
+                    probe_path=("logs/_ob_probe.json" if key == "DEN" else None))
+
             verdict, detail = gate.evaluate(key, rungs, rmax, guide, pop,
                                             (now_l.hour, now_l.minute), wx)
+            if depth is not None and isinstance(detail, dict):
+                detail["depth"] = depth
             # Full-ladder record: every rung's quotes, not just the bottom one
             # the gate evaluates. The gate stays frozen -- this is telemetry.
             # ~6x the settled observations per day at zero marginal fetch cost.

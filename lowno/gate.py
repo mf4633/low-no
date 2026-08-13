@@ -72,6 +72,25 @@ def evaluate(city, rungs, run_max, guide_high, pop, local_hm, wx_text=""):
     if gross - fee < GATE["min_net_cents"]:
         return "PASS", {**d, "why": f"net {gross - fee:.2f}c under floor"}
     out = {**d, "G": g, "net_cents": round(gross - fee, 2)}
+
+    # ---- HARD SIZE CAP -------------------------------------------------------
+    # Half-Kelly at a 97c near-certainty prescribes 40%+ of bankroll. That is
+    # correct arithmetic on a WRONG p: at these prices a 2-point error in pWin
+    # swings size by tens of percent, and Kelly with a mis-estimated p does not
+    # underperform -- it ruins. CANDIDATE.md named a 5% cap in prose; prose does
+    # not execute. It is a number here, computed and logged on every flag, so the
+    # size that would have been taken is part of the record from day one.
+    # The gate has no model probability -- deliberately; it is pure logic with no
+    # I/O. Sizing off the market-implied p (1 - price) is degenerate: it returns
+    # Kelly = 0 by construction, since the market's own p carries no edge. So the
+    # gate records the CEILING and the inputs; the model-driven half-Kelly lives
+    # in prob.evaluate_ladder(), and the cap below is applied to whichever
+    # estimate is used. Either way no position may exceed max_position_frac.
+    out["size"] = {"cap": GATE["max_position_frac"],
+                   "max_position_frac": GATE["max_position_frac"],
+                   "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+                   "note": ("PAPER ONLY. Cap is unconditional and binds on every flag while "
+                            "no band's Wilson LCB clears its fee breakeven.")}
     # Known residual loss mode (Denver Aug 4): guidance intact but the tape is
     # stalled far below it. The gate does NOT hard-fail this -- the backtest
     # shows coastal winners (LAX Aug 3) share the signature -- but it must be

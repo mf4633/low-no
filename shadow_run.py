@@ -6,7 +6,7 @@ city-day-band so n reflects independent observations, not scan cycles.
 """
 import json, math, datetime as dt
 from collections import defaultdict
-from lowno import shadow, adaptive
+from lowno import shadow, adaptive, convergence
 from lowno.config import CITIES
 
 BANDS = [(1,10),(11,20),(21,30),(31,40),(41,50),(51,60),(61,70),(71,80),(81,90),(91,95),(96,98)]
@@ -92,6 +92,8 @@ def main():
                                      adaptive.bias_sigma(c)))
                          for c in {o["city"] for o in obs}},
                diurnal=adaptive.diurnal_climb({k: v["tz"] for k, v in CITIES.items()}),
+               convergence=convergence.build(),
+               boundary_cases=convergence.boundary_report(),
                variants=variants)
     json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)
 

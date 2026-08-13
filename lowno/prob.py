@@ -141,6 +141,12 @@ def evaluate_ladder(city, rungs, guide, run_max, pop):
         dpdmu = math.exp(-z_ref*z_ref/2)/math.sqrt(2*math.pi)/m["sigma"]
         p_lcb = max(0.0, p_no - 1.96*dpdmu*se)
         hk, hk_lcb = half_kelly(p_no, price), half_kelly(p_lcb, price)
+        # Unconditional position ceiling (config GATE.max_position_frac). Kelly at
+        # a 97c near-certainty says 40%+; that is right arithmetic on an unproven p,
+        # and Kelly with a mis-estimated p ruins rather than underperforms.
+        from .config import GATE as _G
+        _cap = _G.get("max_position_frac", 0.05)
+        hk_capped, hk_lcb_capped = min(hk, _cap), min(hk_lcb, _cap)
         dist = m["dist"]
         warn = []
         if pop is not None and pop > 20:
@@ -161,5 +167,7 @@ def evaluate_ladder(city, rungs, guide, run_max, pop):
             price=na, p_no=round(p_no,4), p_mkt=round(p_mkt_v,4),
             edge=round(p_no - price,4), ev_c=round(ev*100,1),
             sigma=m["sigma"], bias=m["bias"], dist=dist, warn=warn,
-            half_kelly=round(hk,4), half_kelly_lcb=round(hk_lcb,4)))
+            half_kelly=round(hk,4), half_kelly_lcb=round(hk_lcb,4),
+            size_frac=round(hk_lcb_capped,4), size_cap=_cap,
+            cap_binding=bool(hk_lcb > _cap)))
     return dict(city=city, model=m, guide=guide, run_max=run_max, pop=pop, rungs=out)

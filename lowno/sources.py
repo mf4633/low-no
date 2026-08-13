@@ -107,8 +107,119 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
         rungs.append(dict(ticker=m["ticker"],
                           cap=m.get("cap_strike"), floor=m.get("floor_strike"),
                           yes_bid=yes_bid, yes_ask=yes_ask,
-                          no_ask=no_ask, no_bid=no_bid, quote_src=src))
+                          no_ask=no_ask, no_bid=no_bid, quote_src=src,
+                          oi=m.get("open_interest"), vol=m.get("volume")))
     return rungs
+
+
+def _ob_levels(node):
+    """Kalshi orderbook sides appear as [[price_cents, size], ...] (and have also
+    been served as [{"price":..,"size":..}]). Normalize both, tolerate neither."""
+    out = []
+    if not isinstance(node, list):
+        return out
+    for lvl in node:
+        try:
+            if isinstance(lvl, dict):
+                px, sz = lvl.get("price"), lvl.get("size") or lvl.get("quantity")
+            else:
+                px, sz = lvl[0], lvl[1]
+            if px is None or sz is None:
+                continue
+            px = float(px)
+            if px <= 1.0:          # dollars schema
+                px = px * 100
+            out.append((int(round(px)), int(sz)))
+        except Exception:
+            continue
+    return out
+
+
+def orderbook_depth(ticker, max_price=98, probe_path=None):
+    """How many NO contracts are actually buyable at or under max_price.
+
+    Every P&L number in this ledger assumes a fill at the logged ask. That is an
+    assumption about DEPTH, not price, and it has never been measured: a 97c rung
+    with 8 contracts resting is a real edge that is not investable. Returns
+    dict(best_no_ask, depth_at_best, depth_le_max, notional_le_max, levels, src)
+    with None fields rather than raising -- depth is telemetry, never a gate input.
+
+    NO-side asks are derived from YES bids when the book only publishes one side:
+    buying NO at P is selling YES at (100-P), so resting YES bids at (100-P) are
+    the contracts a NO buyer can lift.
+    """
+    try:
+        j = _get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook")
+    except Exception as e:
+        return dict(src="fetch_failed", err=str(e)[:80])
+    ob = j.get("orderbook") or j
+    if probe_path:
+        try:
+            os.makedirs(os.path.dirname(probe_path), exist_ok=True)
+            json.dump({"ticker": ticker, "keys": sorted(ob.keys()) if isinstance(ob, dict) else None,
+                       "raw": j}, open(probe_path, "w"), indent=1)
+        except Exception:
+            pass
+    if not isinstance(ob, dict):
+        return dict(src="unparsed")
+
+    no_lv = _ob_levels(ob.get("no"))
+    src = "native_no"
+    if not no_lv:
+        # derive NO asks from resting YES bids
+        yes_lv = _ob_levels(ob.get("yes"))
+        no_lv = [(100 - px, sz) for px, sz in yes_lv if 0 < px < 100]
+        src = "derived_from_yes" if no_lv else "empty"
+    if not no_lv:
+        return dict(src=src, best_no_ask=None, depth_le_max=0, notional_le_max=0.0)
+
+    buyable = sorted([(px, sz) for px, sz in no_lv if px <= max_price])
+    best = buyable[0][0] if buyable else None
+    depth_best = sum(sz for px, sz in buyable if px == best) if best is not None else 0
+    depth_all = sum(sz for _, sz in buyable)
+    notional = sum(px * sz for px, sz in buyable) / 100.0
+    return dict(src=src, best_no_ask=best, depth_at_best=depth_best,
+                depth_le_max=depth_all, notional_le_max=round(notional, 2),
+                levels=buyable[:8])
+
+
+def asos_1min_max(station4, date=None):
+    """True 1-minute ASOS maximum -- the settlement premium the CLI rounds away.
+
+    Hourly METAR undersamples the peak by ~0.5-1F (the known KDEN effect). When a
+    rung settles within a degree of its ceiling, the tenths decide the trade, so
+    BOUNDARY attributions are unanalyzable without this. Source: Iowa Environmental
+    Mesonet 1-minute ASOS archive. Degrades to None on any failure; never gates.
+    """
+    site = station4[1:].upper()
+    if date is None:
+        date = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
+    y, m, d = date.split("-")
+    url = ("https://mesonet.agron.iastate.edu/cgi-bin/request/asos1min.py"
+           f"?station={site}&tz=UTC&year1={y}&month1={m}&day1={d}"
+           f"&year2={y}&month2={m}&day2={d}&vars=tmpf&sample=1min&what=download&delim=comma")
+    try:
+        with urllib.request.urlopen(url, timeout=45) as r:
+            txt = r.read().decode("utf-8", "replace")
+    except Exception as e:
+        return dict(src="fetch_failed", err=str(e)[:80], max_f=None)
+    best, n, hdr = None, 0, None
+    for line in txt.splitlines():
+        if not line or line.startswith("#"):
+            continue
+        parts = [c.strip() for c in line.split(",")]
+        if hdr is None:
+            hdr = parts
+            continue
+        try:
+            i = hdr.index("tmpf")
+            v = float(parts[i])
+        except Exception:
+            continue
+        n += 1
+        if best is None or v > best:
+            best = v
+    return dict(src="iem_1min", max_f=best, n_obs=n)
 
 def _parse_cli(text):
     """Return (awips_id, summary_date, max_f) from one CLI product, or (None,None,None).
