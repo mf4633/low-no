@@ -152,7 +152,7 @@ def orderbook_depth(ticker, max_price=98, probe_path=None):
         j = _get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook")
     except Exception as e:
         return dict(src="fetch_failed", err=str(e)[:80])
-    ob = j.get("orderbook") or j
+    ob = j.get("orderbook_fp") or j.get("orderbook") or j
     if probe_path:
         try:
             os.makedirs(os.path.dirname(probe_path), exist_ok=True)
@@ -163,13 +163,14 @@ def orderbook_depth(ticker, max_price=98, probe_path=None):
     if not isinstance(ob, dict):
         return dict(src="unparsed")
 
-    no_lv = _ob_levels(ob.get("no"))
-    src = "native_no"
-    if not no_lv:
-        # derive NO asks from resting YES bids
-        yes_lv = _ob_levels(ob.get("yes"))
-        no_lv = [(100 - px, sz) for px, sz in yes_lv if 0 < px < 100]
-        src = "derived_from_yes" if no_lv else "empty"
+    # Probe finding (2026-08-12): Kalshi returns orderbook_fp with BOTH sides as
+    # resting BIDS -- no_dollars are NO bids, yes_dollars are YES bids. There is
+    # no ask side. To BUY NO at price P you must lift a resting YES bid at
+    # (100 - P). So NO-side liquidity available to a buyer = the YES bid stack,
+    # inverted. Reading no_dollars as asks would report the wrong side entirely.
+    yes_lv = _ob_levels(ob.get("yes_dollars") or ob.get("yes"))
+    no_lv = [(100 - px, sz) for px, sz in yes_lv if 0 < px < 100]
+    src = "from_yes_bids" if no_lv else "empty"
     if not no_lv:
         return dict(src=src, best_no_ask=None, depth_le_max=0, notional_le_max=0.0)
 
