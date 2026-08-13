@@ -126,10 +126,14 @@ def _ob_levels(node):
                 px, sz = lvl[0], lvl[1]
             if px is None or sz is None:
                 continue
-            px = float(px)
+            # Both fields arrive as decimal STRINGS ("0.9700", "953.00").
+            # int("953.00") raises, which silently emptied every level.
+            px, sz = float(px), int(float(sz))
             if px <= 1.0:          # dollars schema
                 px = px * 100
-            out.append((int(round(px)), int(sz)))
+            if sz <= 0:
+                continue
+            out.append((int(round(px)), sz))
         except Exception:
             continue
     return out
