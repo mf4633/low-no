@@ -99,9 +99,66 @@
   {
    "date": "2026-08-12",
    "flags": []
+  },
+  {
+   "date": "2026-08-13",
+   "flags": [
+    {
+     "date": "2026-08-13",
+     "city": "SEA",
+     "station": "KSEA",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTSEA-26AUG13-T78",
+      "ceiling": 78,
+      "no_ask": 0.96,
+      "quote_src": "native",
+      "yes_bid": 4,
+      "run_max": 66.2,
+      "guide": 82,
+      "pop": 2,
+      "G": 4,
+      "net_cents": 3.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "WARN": "pace deficit 16F at entry -- Denver-Aug4 profile; verify slope/mechanism before executing",
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 96,
+       "depth_at_best": 151,
+       "depth_le_max": 976,
+       "notional_le_max": 946.3,
+       "levels": [
+        [
+         96,
+         151
+        ],
+        [
+         97,
+         716
+        ],
+        [
+         98,
+         109
+        ]
+       ]
+      }
+     },
+     "advisor": {
+      "verdict": "SKIPPED",
+      "reasoning": "no API key configured"
+     },
+     "settle": 81,
+     "attribution": "WIN"
+    }
+   ]
   }
  ],
- "generated": "2026-08-13T04:19:10.793497Z",
+ "generated": "2026-08-14T04:16:20.923049Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11"
 }
