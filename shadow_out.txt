@@ -1,24 +1,24 @@
-settlements: 69 cached, 10 newly fetched
-rung-obs 2652 -> 79 independent units over 7 days
+settlements: 78 cached, 9 newly fetched
+rung-obs 3084 -> 89 independent units over 8 days
   band   n   w    hit   need    LCB     pnl  proven
-  1-10   7   0     0%   5.8%     0%    -5.7   False
+  1-10   8   0     0%   5.4%     0%    -5.4   False
  11-20   5   0     0%  15.2%     0%   -15.0   False
  21-30   2   0     0%  28.1%     0%   -27.5   False
- 31-40   7   1    14%  36.1%     3%   -21.4   False
- 41-50   4   1    25%  45.9%     5%   -20.5   False
+ 31-40   8   1    12%  36.7%     2%   -23.8   False
+ 41-50   5   1    20%  46.5%     4%   -26.0   False
  51-60   6   3    50%  56.1%    19%    -6.0   False
- 61-70   7   2    29%  66.8%     8%   -37.4   False
- 71-80   3   2    67%  77.2%    21%   -10.3   False
- 81-90   8   6    75%  87.0%    41%   -12.1   False
- 91-95   8   7    88%  94.3%    53%    -6.8   False
- 96-98  22  22   100%  98.3%    85%     1.7   False
+ 61-70   8   2    25%  66.3%     7%   -40.5   False
+ 71-80   4   2    50%  76.0%    15%   -25.5   False
+ 81-90   9   7    78%  87.0%    45%    -9.3   False
+ 91-95   9   8    89%  94.4%    56%    -5.4   False
+ 96-98  25  25   100%  98.3%    87%     1.7   False
 
-station guide bias (guide - CLI): {'LAX': -3.0, 'SFO': 3.0, 'NYC': 2.86, 'AUS': -1.43, 'MIA': -1.0, 'CHI': -0.71, 'DEN': 0.43, 'PHL': 0.43, 'SEA': -0.14, 'PHX': 0.0}
+station guide bias (guide - CLI): {'NYC': 2.88, 'LAX': -2.75, 'SFO': 2.38, 'AUS': -1.12, 'MIA': -1.0, 'CHI': -0.62, 'DEN': -0.25, 'PHL': 0.25, 'SEA': 0.12, 'PHX': 0.0}
 
                   rule   n   w    hit   LCB  meanP&L
-             frozen_G4  10   9    90%   60%     -1.9
-          corrected_G4   5   5   100%   57%      3.2
-  corrected_G4_floor90   5   5   100%   57%      3.2
-          floor96_only  22  22   100%   85%     1.73
+             frozen_G4  11  10    91%   62%    -1.64
+          corrected_G4   6   6   100%   61%     2.83
+  corrected_G4_floor90   6   6   100%   61%     2.83
+          floor96_only  25  25   100%   87%     1.68
 
 No band's 95% lower bound clears its fee breakeven. Nothing proven.
