@@ -1,0 +1,30 @@
+ANTHROPIC_API_KEY present: True | length looks sane: True
+
+--- state pack that v2 injects ---
+{
+ "station_bias": {
+  "guide_minus_cli_meanF": 1.49,
+  "sigmaF": 2.63,
+  "n_eff": 9.5,
+  "mode": "recency-pooled",
+  "note": "add this bias to raw guide before judging pace; positive = guide runs hot"
+ },
+ "bust_history": [
+  {
+   "date": "2026-08-09",
+   "attribution": "FORECAST_BUST",
+   "settle": 71,
+   "ceiling": 76
+  }
+ ]
+}
+
+--- live API call ---
+{
+ "verdict": "ABSTAIN",
+ "reasoning": "advisor error: HTTP Error 400: Bad Request"
+}
+
+RESULT: LIVE - advisor reached the API
+GROUND TRUTH: this flag settled CLI 71 vs ceiling 76 -> FORECAST_BUST (a loss).
+A well-informed advisor should be cautious here: bias says guide runs hot at SFO.
