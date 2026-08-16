@@ -85,6 +85,30 @@ def adaptive_from(a):
             "note": "add this bias to raw guide before judging pace; positive = guide runs hot"}
 
 
+COOL_WORDS = ("marine layer", "marine-layer", "suppress", "capped", "stay cool",
+              "stays cool", "will not reach", "won't reach", "unlikely to reach",
+              "below the cap", "under the cap", "onshore flow", "stratus")
+
+def _direction_guard(out, flag):
+    """The position pays only if the high EXCEEDS the cap. A CONCUR whose own
+    reasoning argues the day stays suppressed is directionally inverted -- that
+    exact failure occurred in the 2026-08-16 smoke test (correct physics, wrong
+    side). Downgrade to ABSTAIN and say why, rather than logging a confident
+    verdict that contradicts itself."""
+    if not isinstance(out, dict):
+        return out
+    if str(out.get("verdict", "")).upper() != "CONCUR":
+        return out
+    txt = str(out.get("reasoning", "")).lower()
+    if any(w in txt for w in COOL_WORDS):
+        out["verdict"] = "ABSTAIN"
+        out["direction_guard"] = (
+            "Downgraded from CONCUR: reasoning argues the day stays cool/capped, "
+            "but this position pays only if the high EXCEEDS the cap. Inverted.")
+        out["original_verdict"] = "CONCUR"
+    return out
+
+
 def advise(flag, obs_tail, ladder):
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
@@ -107,7 +131,8 @@ def advise(flag, obs_tail, ladder):
         with urllib.request.urlopen(req, timeout=60) as r:
             resp = json.loads(r.read())
         text = "".join(b.get("text", "") for b in resp.get("content", []))
-        return json.loads(text[text.index("{"): text.rindex("}") + 1])
+        out = json.loads(text[text.index("{"): text.rindex("}") + 1])
+        return _direction_guard(out, flag)
     except urllib.error.HTTPError as e:
         # Surface the API's own error body. A bare status code sent the 2026-08-16
         # smoke test hunting; the body names the bad field directly.
