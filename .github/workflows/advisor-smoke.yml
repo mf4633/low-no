@@ -1,5 +1,6 @@
 name: advisor smoke test
 on: { workflow_dispatch: {} }
+permissions: { contents: write }
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -10,4 +11,10 @@ jobs:
       - name: replay a real flag through the advisor
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python advisor_smoke.py
+        run: python advisor_smoke.py 2>&1 | tee advisor_smoke_out.txt
+      - name: commit result
+        if: always()
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          git add -A && git diff --cached --quiet || git commit -m "advisor smoke result"
+          git pull --rebase --autostash && git push
