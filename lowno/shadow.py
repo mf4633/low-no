@@ -66,6 +66,7 @@ def load_day(day):
                 verdict="LADDER",
                 detail=dict(ticker=rung["t"], kind=kind, ceiling=cap, floor=fl,
                     no_ask=rung["na"] / 100.0, yes_bid=rung.get("yb"),
+                    depth=rung.get("depth"),
                     quote_src=rung["src"], guide=d.get("guide"),
                     pop=d.get("pop"), run_max=d.get("run_max"))))
     return rows
@@ -137,6 +138,7 @@ def build(days=None):
                 settle=s, won=won, pnl=pnl_cents(price, won),
                 # market-implied P(NO wins) = 1 - P(YES); yes_bid is in cents
                 mkt_no=(100 - yb) if yb is not None else None,
+                depth=d.get("depth"),
                 guide_err=(guide - s) if guide is not None else None,
             ))
     return obs

@@ -42,6 +42,16 @@ def scan_once():
                                             (now_l.hour, now_l.minute), wx)
             if depth is not None and isinstance(detail, dict):
                 detail["depth"] = depth
+            # Also attach to the LADDER record's bottom rung: shadow dedup prefers
+            # LADDER rows for any cycle that has one, so depth stored only on the
+            # gate row never reaches the observations (found 2026-08-16, n=0 on
+            # the depth variant). Store it where the analysis actually reads.
+            if depth is not None and br is not None:
+                for _lr in results:
+                    if _lr.get("verdict") == "LADDER" and _lr.get("city") == key:
+                        for _rg in _lr["detail"].get("rungs", []):
+                            if _rg.get("t") == br["ticker"]:
+                                _rg["depth"] = depth
             # Full-ladder record: every rung's quotes, not just the bottom one
             # the gate evaluates. The gate stays frozen -- this is telemetry.
             # ~6x the settled observations per day at zero marginal fetch cost.

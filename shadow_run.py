@@ -4,7 +4,7 @@ Writes docs/shadow.json (row-level) and docs/shadow_summary.json (band rollup
 with Wilson bounds vs. fee breakeven). Deduplicates to one entry per
 city-day-band so n reflects independent observations, not scan cycles.
 """
-import json, math, datetime as dt
+import json, math, datetime as dt, zoneinfo
 from collections import defaultdict
 from lowno import shadow, adaptive, convergence
 from lowno.config import CITIES
@@ -77,8 +77,37 @@ def main():
     abias = {c: adaptive.bias_sigma(c)[0] for c in bias} or \
             {c: adaptive.bias_sigma(c)[0] for c in {o["city"] for o in obs}}
     def gcorr(o): return o["G"] - abias.get(o["city"], 0.0)
+    # Per-station entry windows from MEASURED convergence hours. The frozen gate
+    # uses one 10:30-13:30 window for all ten stations; the convergence data says
+    # LAX resolves by 12:00 while DEN has not resolved by any earned hour. This
+    # variant enters only at/after a station's convergence hour (when the median
+    # remaining climb is <=1F), i.e. when the day is effectively decided.
+    conv = (convergence.build() or {}).get("convergence_hour_local", {})
+
+    def _local_hour(o):
+        try:
+            u = dt.datetime.fromisoformat(o["at"]).replace(tzinfo=dt.timezone.utc)
+            return u.astimezone(zoneinfo.ZoneInfo(CITIES[o["city"]]["tz"])).hour
+        except Exception:
+            return None
+
+    def in_conv_window(o):
+        h, ch = _local_hour(o), conv.get(o["city"])
+        if h is None or ch is None:
+            return False          # station has not earned a convergence hour yet
+        return ch <= h <= ch + 3
+
+    # Minimum depth: is the 96-98c band actually INVESTABLE? Every P&L figure
+    # assumes a fill at the logged ask; DEN showed 3 contracts resting there.
+    # Depth logging began 2026-08-13, so this variant's n starts from that date.
+    def has_depth(o, need=25):
+        d = o.get("depth") or {}
+        return (d.get("depth_le_max") or 0) >= need
+
     variants = [
         score_rule("frozen_G4",            lambda o: o["G"] >= 4),
+        score_rule("conv_window_96_98",    lambda o: 96 <= o["price"] <= 98 and in_conv_window(o)),
+        score_rule("floor96_depth25",      lambda o: 96 <= o["price"] <= 98 and has_depth(o)),
         score_rule("corrected_G4",         lambda o: gcorr(o) >= 4),
         score_rule("corrected_G4_floor90", lambda o: gcorr(o) >= 4 and o["price"] >= 90),
         score_rule("floor96_only",         lambda o: 96 <= o["price"] <= 98),
