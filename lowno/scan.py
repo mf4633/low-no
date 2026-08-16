@@ -42,6 +42,18 @@ def scan_once():
                                             (now_l.hour, now_l.minute), wx)
             if depth is not None and isinstance(detail, dict):
                 detail["depth"] = depth
+            # Persist the EVIDENCE PACK on every flag. Without it the advisor can
+            # never be backtested: the 2026-08-16 replay found the ledger stores
+            # only the gate's summary, so historical flags have no obs trace or
+            # ladder to re-read and every replay ABSTAINs on missing data.
+            if isinstance(detail, dict) and verdict in ("QUALIFIED", "DEAD_SCAVENGE"):
+                detail["evidence"] = {
+                    "obs_tail": [{"ts": o.get("ts"), "tC": o.get("tC")}
+                                 for o in obs_today[:10]],
+                    "ladder": [{"ticker": r.get("ticker"), "cap": r.get("cap"),
+                                "floor": r.get("floor"), "no_ask": r.get("no_ask"),
+                                "yes_bid": r.get("yes_bid")} for r in rungs],
+                    "wx": (wx or "")[:600]}
             # Also attach to the LADDER record's bottom rung: shadow dedup prefers
             # LADDER rows for any cycle that has one, so depth stored only on the
             # gate row never reaches the observations (found 2026-08-16, n=0 on

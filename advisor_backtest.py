@@ -43,7 +43,10 @@ for date, f in flags:
     flag = {"city": f.get("city"), "station": f.get("station"), **d}
     advisor._load = make_truncated_loader(date)
     pack = advisor._state_pack(flag)
-    out = advisor.advise(flag, [], [])
+    ev = d.get("evidence") or {}
+    obs_tail, ladder = ev.get("obs_tail", []), ev.get("ladder", [])
+    has_ev = bool(obs_tail or ladder)
+    out = advisor.advise(flag, obs_tail, ladder)
     advisor._load = _orig_load
     v = str(out.get("verdict", "?")).upper()
     won = f["settle"] > d.get("ceiling", 10**9)
@@ -51,7 +54,10 @@ for date, f in flags:
         cls = "KEPT" if v == "CONCUR" else "VETOED"
     else:
         cls = "MISSED" if v == "CONCUR" else "CAUGHT"
+    if not has_ev:
+        cls = "NO_EVIDENCE"      # pre-2026-08-16 flags: evidence pack not stored
     rows.append(dict(date=date, city=f.get("city"), ceiling=d.get("ceiling"),
+                     has_evidence=has_ev,
                      price=d.get("no_ask"), settle=f["settle"], won=won,
                      verdict=v, orig=out.get("original_verdict"),
                      guard=bool(out.get("direction_guard")), cls=cls,
@@ -69,6 +75,11 @@ print()
 from collections import Counter
 c = Counter(r["cls"] for r in rows)
 print("summary:", dict(c))
+ne = c.get("NO_EVIDENCE", 0)
+if ne:
+    print(f"\n{ne} flag(s) predate evidence-pack persistence (added 2026-08-16) --"
+          "\ntheir ABSTAINs reflect missing inputs, NOT advisor judgment. Excluded"
+          "\nfrom scoring. Flags from 2026-08-16 forward are replayable.")
 print(f"busts caught: {c['CAUGHT']}/{c['CAUGHT']+c['MISSED']} | "
       f"winners kept: {c['KEPT']}/{c['KEPT']+c['VETOED']}")
 print("\nNOTE: n is tiny. This is a judgment smoke test, not evidence.\n")
