@@ -1,0 +1,62 @@
+[
+ {
+  "date": "2026-08-09",
+  "city": "SFO",
+  "ceiling": 76,
+  "price": 0.05,
+  "settle": 71,
+  "won": false,
+  "verdict": "ABSTAIN",
+  "orig": null,
+  "guard": false,
+  "cls": "CAUGHT",
+  "bias": 1.49,
+  "hist_n": 0,
+  "reasoning": "No observations or ladder data provided \u2014 last_obs and full_ladder are both empty. Cannot assess current pace, deck fate, or sea-breeze state at KSFO. Guide of 81F vs ceiling 76F gives G=+5 and bias-adjusted guide ~82.5F"
+ },
+ {
+  "date": "2026-08-10",
+  "city": "DEN",
+  "ceiling": 92,
+  "price": 0.97,
+  "settle": 95,
+  "won": true,
+  "verdict": "ABSTAIN",
+  "orig": null,
+  "guard": false,
+  "cls": "VETOED",
+  "bias": -0.16,
+  "hist_n": 0,
+  "reasoning": "Last obs and full ladder are both empty arrays \u2014 no current hourly data, no pace slope, no deck-fate signal, no wind trend. The WARN flags a 12F pace deficit requiring a live +2.5F/hr slope or named mechanism removal bef"
+ },
+ {
+  "date": "2026-08-11",
+  "city": "PHX",
+  "ceiling": 101,
+  "price": 0.97,
+  "settle": 104,
+  "won": true,
+  "verdict": "ABSTAIN",
+  "orig": null,
+  "guard": false,
+  "cls": "VETOED",
+  "bias": -0.13,
+  "hist_n": 0,
+  "reasoning": "No observations provided (empty obs array) and no ladder data. Cannot assess pace, current temperature, or intraday trajectory for KPHX on Aug 11. Guide=105 with ceiling=101 gives G=4 (minimum gate), but without any hour"
+ },
+ {
+  "date": "2026-08-13",
+  "city": "SEA",
+  "ceiling": 78,
+  "price": 0.96,
+  "settle": 81,
+  "won": true,
+  "verdict": "ABSTAIN",
+  "orig": null,
+  "guard": false,
+  "cls": "VETOED",
+  "bias": 0.64,
+  "hist_n": 0,
+  "reasoning": "Last obs and full ladder are both empty arrays \u2014 no live hourly data, no current temperature trace, no slope to evaluate. Pace deficit is 16F (Denver-Aug-4 profile); protocol requires a verified +2.5F/hr slope or named m"
+ }
+]

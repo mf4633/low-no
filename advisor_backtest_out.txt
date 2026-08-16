@@ -1,0 +1,21 @@
+graded flags available: 4
+
+date        city ceil     @  CLI   out verdict          guard class    bias hist
+2026-08-09  SFO    76  0.05   71  LOSS ABSTAIN          False CAUGHT   1.49 0
+2026-08-10  DEN    92  0.97   95   WIN ABSTAIN          False VETOED  -0.16 0
+2026-08-11  PHX   101  0.97  104   WIN ABSTAIN          False VETOED  -0.13 0
+2026-08-13  SEA    78  0.96   81   WIN ABSTAIN          False VETOED   0.64 0
+
+summary: {'CAUGHT': 1, 'VETOED': 3}
+busts caught: 1/1 | winners kept: 0/3
+
+NOTE: n is tiny. This is a judgment smoke test, not evidence.
+
+--- 2026-08-09 SFO [CAUGHT]
+    No observations or ladder data provided — last_obs and full_ladder are both empty. Cannot assess current pace, deck fate, or sea-breeze state at KSFO. Guide of 81F vs ceiling 76F gives G=+5 and bias-adjusted guide ~82.5F
+--- 2026-08-10 DEN [VETOED]
+    Last obs and full ladder are both empty arrays — no current hourly data, no pace slope, no deck-fate signal, no wind trend. The WARN flags a 12F pace deficit requiring a live +2.5F/hr slope or named mechanism removal bef
+--- 2026-08-11 PHX [VETOED]
+    No observations provided (empty obs array) and no ladder data. Cannot assess pace, current temperature, or intraday trajectory for KPHX on Aug 11. Guide=105 with ceiling=101 gives G=4 (minimum gate), but without any hour
+--- 2026-08-13 SEA [VETOED]
+    Last obs and full ladder are both empty arrays — no live hourly data, no current temperature trace, no slope to evaluate. Pace deficit is 16F (Denver-Aug-4 profile); protocol requires a verified +2.5F/hr slope or named m
