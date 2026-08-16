@@ -21,8 +21,10 @@ ANTHROPIC_API_KEY present: True | length looks sane: True
 
 --- live API call ---
 {
- "verdict": "ABSTAIN",
- "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011Ce6DtMaEsuyCtQDs7Ccvc\"}"
+ "verdict": "CONCUR",
+ "confidence": 0.93,
+ "reasoning": "KSFO classic marine-layer day. 17:53Z (09:53 local) print is 21.1\u00b0C (70.0\u00b0F), run_max 70.0\u00b0F. Guide 81\u00b0F bias-adjusted to ~79.5\u00b0F but KSFO offshore-flow suppression is the active mechanism \u2014 KSFL flips offshore ~1 day before KLAX, and with POP=0/G=5 there is no synoptic forcing to break the marine lid. Current pace is ~70\u00b0F at ~10am local with no meaningful heating slope evident (18.3\u219220.0\u219221.1\u00b0C, only +1.6\u00b0C/2hr). Reaching 76\u00b0F would require +6\u00b0F more from here \u2014 well outside the marine-capped trajectory. Bust history (settle 71 vs ceiling 76, same day) is directly analogous. NO \u226576\u00b0F is structurally sound.",
+ "watch": "21:53Z obs crossing 23\u00b0C (73.4\u00b0F) \u2014 would signal unexpected marine-layer break and require reassessment"
 }
 
 RESULT: LIVE - advisor reached the API
