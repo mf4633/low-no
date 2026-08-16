@@ -54,6 +54,25 @@ def scan_once():
                                 "floor": r.get("floor"), "no_ask": r.get("no_ask"),
                                 "yes_bid": r.get("yes_bid")} for r in rungs],
                     "wx": (wx or "")[:600]}
+                # Snapshot the model's own probability ON the flag. Without this
+                # the nightly Brier has nothing to grade: edge.json is overwritten
+                # every cycle, so a flag's forecast is gone by settlement time.
+                try:
+                    _lh2 = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).astimezone(
+                        zoneinfo.ZoneInfo(CITIES[key]["tz"])).hour
+                    _bd = prob.evaluate_ladder(key, rungs, guide, rmax, pop,
+                                               local_hour=_lh2, emp_samples=None)
+                    for _r in _bd.get("rungs", []):
+                        if _r.get("ceiling") == detail.get("ceiling") and _r.get("kind") == "bottom":
+                            detail["model"] = {"p_exceed_cap": _r.get("p_no"),
+                                               "p_source": _r.get("p_source"),
+                                               "p_empirical": _r.get("p_empirical"),
+                                               "emp_n": _r.get("emp_n"),
+                                               "sigma": _r.get("sigma"),
+                                               "size_frac": _r.get("size_frac")}
+                            break
+                except Exception as _e:
+                    detail["model"] = {"error": str(_e)[:80]}
             # Also attach to the LADDER record's bottom rung: shadow dedup prefers
             # LADDER rows for any cycle that has one, so depth stored only on the
             # gate row never reaches the observations (found 2026-08-16, n=0 on
@@ -85,6 +104,11 @@ def scan_once():
     # Live edge board for the site: per-rung probability/edge/half-Kelly.
     try:
         board = []
+        try:
+            from . import empirical as _emp
+            _samples = _emp._raw_climbs()
+        except Exception:
+            _samples = None
         for r in results:
             if r["verdict"] != "LADDER": continue
             d = r["detail"]

@@ -102,7 +102,8 @@ def rung_probability(ceiling, guide, run_max, model):
             p_over = min(1.0, p_over/denom)
     return p_over
 
-def evaluate_ladder(city, rungs, guide, run_max, pop):
+def evaluate_ladder(city, rungs, guide, run_max, pop, local_hour=None,
+                    emp_samples=None):
     """Per-rung: pWin(NO), market pWin, edge, EV, half-Kelly point + LCB."""
     m = station_model(city)
     out = []
@@ -130,6 +131,25 @@ def evaluate_ladder(city, rungs, guide, run_max, pop):
                 p_no = max(0.0, min(1.0, 1.0 - p_in))
             z_ref = (cap+0.5-mu)/sig
         p_over = p_no  # kept name for LCB block below
+
+        # Empirical override/blend: P(remaining climb > cap - run_max) observed
+        # at this station-hour. Nonparametric, so it represents skew and
+        # bimodality the Gaussian cannot; blended by its own sample size so it
+        # takes over only as it earns the weight.
+        emp = None
+        if kind == "bottom" and local_hour is not None:
+            try:
+                from . import empirical
+                emp = empirical.p_exceed(city, local_hour, run_max, cap,
+                                         samples=emp_samples)
+                if emp:
+                    p_no, blend_src = empirical.blend(emp["p"], p_no, emp.get("n") or 0)
+                else:
+                    blend_src = "gaussian_only"
+            except Exception:
+                blend_src = "gaussian_error"
+        else:
+            blend_src = "gaussian_only"
         price = na/100.0
         fee = FEE(na)
         ev = p_no*(1 - price - fee) - (1-p_no)*price      # $ per $1 contract
@@ -167,6 +187,8 @@ def evaluate_ladder(city, rungs, guide, run_max, pop):
             price=na, p_no=round(p_no,4), p_mkt=round(p_mkt_v,4),
             edge=round(p_no - price,4), ev_c=round(ev*100,1),
             sigma=m["sigma"], bias=m["bias"], dist=dist, warn=warn,
+            p_empirical=(emp or {}).get("p"), emp_n=(emp or {}).get("n"),
+            emp_source=(emp or {}).get("source"), p_source=blend_src,
             half_kelly=round(hk,4), half_kelly_lcb=round(hk_lcb,4),
             size_frac=round(hk_lcb_capped,4), size_cap=_cap,
             cap_binding=bool(hk_lcb > _cap)))

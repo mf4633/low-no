@@ -61,7 +61,38 @@ def _state_pack(flag):
                 break
         break
 
-    # 3. this station's recent settled bust attributions
+    # 3. what the QUANTITATIVE model already believes, so the advisor argues
+    #    against a number instead of reasoning in a vacuum. Includes the
+    #    empirical remaining-climb distribution -- the advisor was previously
+    #    eyeballing pace from a raw obs list while these existed unused.
+    edge = _load("docs/edge.json", {})
+    for c in edge.get("cities", []):
+        if c.get("city") != city:
+            continue
+        for r in c.get("rungs", []):
+            if r.get("ceiling") == flag.get("ceiling"):
+                pack["model"] = {
+                    "p_exceed_cap": r.get("p_no"), "p_source": r.get("p_source"),
+                    "p_empirical": r.get("p_empirical"), "emp_n": r.get("emp_n"),
+                    "sigma_F": r.get("sigma"),
+                    "note": "p_exceed_cap is P(daily max > cap) = P(this NO position WINS)"}
+                break
+        break
+
+    summ2 = _load("docs/shadow_summary.json", {})
+    conv = (summ2.get("convergence") or {}).get("convergence_hour_local", {}).get(city)
+    if conv is not None:
+        pack["convergence_hour_local"] = {
+            "hour": conv,
+            "note": "first local hour whose median remaining climb is <=1F; before "
+                    "this hour the day is genuinely unresolved"}
+    dep = flag.get("depth")
+    if dep:
+        pack["liquidity"] = {"contracts_at_or_under_98c": dep.get("depth_le_max"),
+                             "at_best_price": dep.get("depth_at_best"),
+                             "note": "if this is small the position is not investable at size"}
+
+    # 4. this station's recent settled bust attributions
     led = _load("docs/ledger.json", {})
     hist = []
     for day in led.get("days", []):
@@ -119,7 +150,12 @@ def advise(flag, obs_tail, ladder):
     if state:
         user += ("\n\nSYSTEM STATE (measured by this ledger -- weight heavily; "
                  "these answer your known failure modes):\n" + json.dumps(state, indent=1))
-    user += ("\n\nLast obs (newest first):\n" + json.dumps(obs_tail[:8], indent=1) +
+    user += ("\n\nREQUIRED in your JSON, in addition to verdict/reasoning: "
+             "\"p_exceed\" = your own probability (0-1) that the daily max EXCEEDS "
+             "the cap, i.e. that this NO position wins. This is scored against "
+             "settlement nightly (Brier), so state your true belief, not the "
+             "model's number and not a hedge."
+             "\n\nLast obs (newest first):\n" + json.dumps(obs_tail[:8], indent=1) +
              "\n\nFull ladder:\n" + json.dumps(ladder, indent=1) +
              "\n\nReturn the strict JSON verdict only.")
     body = json.dumps({"model": MODEL, "max_tokens": 500, "system": system,

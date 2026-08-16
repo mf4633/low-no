@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-16T03:09:24.043541Z",
+ "generated": "2026-08-16T10:21:32.726285Z",
  "n_rung_obs": 3744,
  "n_bottom_obs": 874,
  "n_units": 95,
@@ -161,21 +161,9 @@
   "SFO": 2.0
  },
  "adaptive": {
-  "LAX": {
-   "bias": -2.15,
-   "sigma": 1.51,
-   "n_eff": 9.5,
-   "mode": "recency-pooled"
-  },
-  "CHI": {
-   "bias": -0.4,
-   "sigma": 1.62,
-   "n_eff": 9.5,
-   "mode": "recency-pooled"
-  },
-  "DEN": {
-   "bias": -0.16,
-   "sigma": 1.64,
+  "PHX": {
+   "bias": -0.13,
+   "sigma": 1.0,
    "n_eff": 9.5,
    "mode": "recency-pooled"
   },
@@ -185,9 +173,27 @@
    "n_eff": 9.5,
    "mode": "recency-pooled"
   },
-  "AUS": {
-   "bias": -1.11,
-   "sigma": 1.79,
+  "SFO": {
+   "bias": 1.49,
+   "sigma": 2.63,
+   "n_eff": 9.5,
+   "mode": "recency-pooled"
+  },
+  "CHI": {
+   "bias": -0.4,
+   "sigma": 1.62,
+   "n_eff": 9.5,
+   "mode": "recency-pooled"
+  },
+  "PHL": {
+   "bias": 0.03,
+   "sigma": 1.66,
+   "n_eff": 9.5,
+   "mode": "recency-pooled"
+  },
+  "DEN": {
+   "bias": -0.16,
+   "sigma": 1.64,
    "n_eff": 9.5,
    "mode": "recency-pooled"
   },
@@ -197,67 +203,26 @@
    "n_eff": 9.5,
    "mode": "recency-pooled"
   },
+  "LAX": {
+   "bias": -2.15,
+   "sigma": 1.51,
+   "n_eff": 9.5,
+   "mode": "recency-pooled"
+  },
   "MIA": {
    "bias": -0.83,
    "sigma": 2.13,
    "n_eff": 7.7,
    "mode": "recency-pooled"
   },
-  "PHL": {
-   "bias": 0.03,
-   "sigma": 1.66,
-   "n_eff": 9.5,
-   "mode": "recency-pooled"
-  },
-  "PHX": {
-   "bias": -0.13,
-   "sigma": 1.0,
-   "n_eff": 9.5,
-   "mode": "recency-pooled"
-  },
-  "SFO": {
-   "bias": 1.49,
-   "sigma": 2.63,
+  "AUS": {
+   "bias": -1.11,
+   "sigma": 1.79,
    "n_eff": 9.5,
    "mode": "recency-pooled"
   }
  },
  "diurnal": {
-  "AUS|00": {
-   "n": 3,
-   "q10": 17.8,
-   "q50": 17.8,
-   "q90": 17.8,
-   "ready": false
-  },
-  "CHI|00": {
-   "n": 3,
-   "q10": 3.6,
-   "q50": 3.6,
-   "q90": 3.6,
-   "ready": false
-  },
-  "MIA|02": {
-   "n": 3,
-   "q10": 11.6,
-   "q50": 11.6,
-   "q90": 11.6,
-   "ready": false
-  },
-  "NYC|02": {
-   "n": 3,
-   "q10": 7.0,
-   "q50": 7.0,
-   "q90": 7.0,
-   "ready": false
-  },
-  "PHL|02": {
-   "n": 3,
-   "q10": 11.2,
-   "q50": 11.2,
-   "q90": 11.2,
-   "ready": false
-  },
   "AUS|08": {
    "n": 7,
    "q10": 15.1,
@@ -284,13 +249,6 @@
    "q10": 5.4,
    "q50": 7.2,
    "q90": 8.4,
-   "ready": false
-  },
-  "MIA|10": {
-   "n": 5,
-   "q10": 3.0,
-   "q50": 3.4,
-   "q90": 6.0,
    "ready": false
   },
   "NYC|10": {
@@ -356,13 +314,6 @@
    "q90": 7.0,
    "ready": false
   },
-  "MIA|12": {
-   "n": 5,
-   "q10": 1.1,
-   "q50": 1.6,
-   "q90": 2.6,
-   "ready": false
-  },
   "NYC|12": {
    "n": 8,
    "q10": 2.0,
@@ -412,39 +363,11 @@
    "q90": 7.8,
    "ready": false
   },
-  "DEN|12": {
-   "n": 10,
-   "q10": 3.0,
-   "q50": 6.1,
-   "q90": 13.1,
-   "ready": false
-  },
   "LAX|10": {
    "n": 7,
    "q10": 1.2,
    "q50": 2.8,
    "q90": 3.8,
-   "ready": false
-  },
-  "MIA|14": {
-   "n": 7,
-   "q10": -0.2,
-   "q50": 0.1,
-   "q90": 1.1,
-   "ready": false
-  },
-  "NYC|14": {
-   "n": 10,
-   "q10": 0.1,
-   "q50": 2.0,
-   "q90": 3.0,
-   "ready": false
-  },
-  "PHL|14": {
-   "n": 10,
-   "q10": 0.2,
-   "q50": 0.4,
-   "q90": 4.0,
    "ready": false
   },
   "PHX|10": {
@@ -482,12 +405,33 @@
    "q90": 2.4,
    "ready": true
   },
+  "DEN|12": {
+   "n": 10,
+   "q10": 3.0,
+   "q50": 6.1,
+   "q90": 13.1,
+   "ready": false
+  },
   "LAX|12": {
    "n": 12,
    "q10": -0.8,
    "q50": 0.2,
    "q90": 1.1,
    "ready": true
+  },
+  "NYC|14": {
+   "n": 10,
+   "q10": 0.1,
+   "q50": 2.0,
+   "q90": 3.0,
+   "ready": false
+  },
+  "PHL|14": {
+   "n": 10,
+   "q10": 0.2,
+   "q50": 0.4,
+   "q90": 4.0,
+   "ready": false
   },
   "PHX|12": {
    "n": 12,
@@ -516,13 +460,6 @@
    "q50": 2.0,
    "q90": 2.0,
    "ready": true
-  },
-  "MIA|16": {
-   "n": 8,
-   "q10": -0.2,
-   "q50": 0.8,
-   "q90": 1.1,
-   "ready": false
   },
   "NYC|16": {
    "n": 12,
@@ -586,13 +523,6 @@
    "q50": 2.0,
    "q90": 2.0,
    "ready": true
-  },
-  "MIA|18": {
-   "n": 9,
-   "q10": -0.2,
-   "q50": 0.8,
-   "q90": 2.1,
-   "ready": false
   },
   "NYC|18": {
    "n": 13,
@@ -673,6 +603,76 @@
   },
   "PHL|08": {
    "n": 1,
+   "q10": 11.2,
+   "q50": 11.2,
+   "q90": 11.2,
+   "ready": false
+  },
+  "MIA|10": {
+   "n": 5,
+   "q10": 3.0,
+   "q50": 3.4,
+   "q90": 6.0,
+   "ready": false
+  },
+  "MIA|12": {
+   "n": 5,
+   "q10": 1.1,
+   "q50": 1.6,
+   "q90": 2.6,
+   "ready": false
+  },
+  "MIA|14": {
+   "n": 7,
+   "q10": -0.2,
+   "q50": 0.1,
+   "q90": 1.1,
+   "ready": false
+  },
+  "MIA|16": {
+   "n": 8,
+   "q10": -0.2,
+   "q50": 0.8,
+   "q90": 1.1,
+   "ready": false
+  },
+  "MIA|18": {
+   "n": 9,
+   "q10": -0.2,
+   "q50": 0.8,
+   "q90": 2.1,
+   "ready": false
+  },
+  "AUS|00": {
+   "n": 3,
+   "q10": 17.8,
+   "q50": 17.8,
+   "q90": 17.8,
+   "ready": false
+  },
+  "CHI|00": {
+   "n": 3,
+   "q10": 3.6,
+   "q50": 3.6,
+   "q90": 3.6,
+   "ready": false
+  },
+  "MIA|02": {
+   "n": 3,
+   "q10": 11.6,
+   "q50": 11.6,
+   "q90": 11.6,
+   "ready": false
+  },
+  "NYC|02": {
+   "n": 3,
+   "q10": 7.0,
+   "q50": 7.0,
+   "q90": 7.0,
+   "ready": false
+  },
+  "PHL|02": {
+   "n": 3,
    "q10": 11.2,
    "q50": 11.2,
    "q90": 11.2,
@@ -2126,6 +2126,24 @@
    "mean_pnl_c": -1.64
   },
   {
+   "rule": "conv_window_96_98",
+   "n": 0,
+   "wins": 0,
+   "hit": null,
+   "lcb": 0.0,
+   "pnl_c": 0,
+   "mean_pnl_c": null
+  },
+  {
+   "rule": "floor96_depth25",
+   "n": 0,
+   "wins": 0,
+   "hit": null,
+   "lcb": 0.0,
+   "pnl_c": 0,
+   "mean_pnl_c": null
+  },
+  {
    "rule": "corrected_G4",
    "n": 6,
    "wins": 6,
@@ -2152,5 +2170,47 @@
    "pnl_c": 43,
    "mean_pnl_c": 1.65
   }
- ]
+ ],
+ "brier": {
+  "n_settled": 4,
+  "model": {
+   "n": 0,
+   "brier": null
+  },
+  "advisor": {
+   "n": 0,
+   "brier": null
+  },
+  "rows": [
+   {
+    "date": "2026-08-09",
+    "city": "SFO",
+    "outcome": 0.0,
+    "p_model": null,
+    "p_advisor": null
+   },
+   {
+    "date": "2026-08-10",
+    "city": "DEN",
+    "outcome": 1.0,
+    "p_model": null,
+    "p_advisor": null
+   },
+   {
+    "date": "2026-08-11",
+    "city": "PHX",
+    "outcome": 1.0,
+    "p_model": null,
+    "p_advisor": null
+   },
+   {
+    "date": "2026-08-13",
+    "city": "SEA",
+    "outcome": 1.0,
+    "p_model": null,
+    "p_advisor": null
+   }
+  ],
+  "note": "Brier: lower is better. 0.25 = always saying 50%. Needs ~30+ settled flags before the comparison means anything."
+ }
 }

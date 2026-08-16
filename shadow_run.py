@@ -123,7 +123,7 @@ def main():
                diurnal=adaptive.diurnal_climb({k: v["tz"] for k, v in CITIES.items()}),
                convergence=convergence.build(),
                boundary_cases=convergence.boundary_report(),
-               variants=variants)
+               variants=variants, brier=_brier())
     json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)
 
     print(f"rung-obs {len(obs)} -> {len(units)} independent units over {len(out['days'])} days")
@@ -140,6 +140,40 @@ def main():
         print(f"{v['rule']:>22} {v['n']:>3} {v['wins']:>3} {h:>6} {v['lcb']:>5.0%} {m:>8}")
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
+
+
+
+def _brier():
+    """Score the forecasters against settlement. A verdict cannot be calibrated;
+    a probability can. Both the model's p and the advisor's p_exceed are graded
+    on every settled flag, so 'does the LLM add signal over the model' becomes a
+    measured question rather than an opinion."""
+    try:
+        led = json.load(open("docs/ledger.json"))
+    except Exception:
+        return None
+    rows = []
+    for day in led.get("days", []):
+        for f in day.get("flags", []):
+            s, d = f.get("settle"), (f.get("detail") or {})
+            cap = d.get("ceiling")
+            if s is None or cap is None:
+                continue
+            y = 1.0 if s > cap else 0.0
+            adv = f.get("advisor") or {}
+            rows.append(dict(date=day["date"], city=f.get("city"), outcome=y,
+                             p_model=(d.get("model") or {}).get("p_exceed_cap"),
+                             p_advisor=adv.get("p_exceed")))
+    def score(key):
+        v = [(r[key], r["outcome"]) for r in rows if isinstance(r.get(key), (int, float))]
+        if not v:
+            return dict(n=0, brier=None)
+        return dict(n=len(v), brier=round(sum((p - y) ** 2 for p, y in v) / len(v), 4))
+    return dict(n_settled=len(rows), model=score("p_model"),
+                advisor=score("p_advisor"), rows=rows[-20:],
+                note="Brier: lower is better. 0.25 = always saying 50%. "
+                     "Needs ~30+ settled flags before the comparison means anything.")
+
 
 if __name__ == "__main__":
     main()
