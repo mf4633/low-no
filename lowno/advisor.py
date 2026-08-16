@@ -108,5 +108,14 @@ def advise(flag, obs_tail, ladder):
             resp = json.loads(r.read())
         text = "".join(b.get("text", "") for b in resp.get("content", []))
         return json.loads(text[text.index("{"): text.rindex("}") + 1])
+    except urllib.error.HTTPError as e:
+        # Surface the API's own error body. A bare status code sent the 2026-08-16
+        # smoke test hunting; the body names the bad field directly.
+        try:
+            detail = e.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            detail = ""
+        return {"verdict": "ABSTAIN",
+                "reasoning": f"advisor HTTP {e.code}: {detail}"}
     except Exception as e:
-        return {"verdict": "ABSTAIN", "reasoning": f"advisor error: {str(e)[:120]}"}
+        return {"verdict": "ABSTAIN", "reasoning": f"advisor error: {str(e)[:160]}"}
