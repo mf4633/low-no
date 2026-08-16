@@ -58,10 +58,10 @@ def scan_once():
                 # the nightly Brier has nothing to grade: edge.json is overwritten
                 # every cycle, so a flag's forecast is gone by settlement time.
                 try:
-                    _lh2 = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).astimezone(
+                    _lh2 = dt.datetime.now(dt.timezone.utc).astimezone(
                         zoneinfo.ZoneInfo(CITIES[key]["tz"])).hour
                     _bd = prob.evaluate_ladder(key, rungs, guide, rmax, pop,
-                                               local_hour=_lh2, emp_samples=None)
+                                               local_hour=_lh2)
                     for _r in _bd.get("rungs", []):
                         if _r.get("ceiling") == detail.get("ceiling") and _r.get("kind") == "bottom":
                             detail["model"] = {"p_exceed_cap": _r.get("p_no"),
@@ -114,8 +114,11 @@ def scan_once():
             d = r["detail"]
             rungs = [dict(cap=x.get("cap"), floor=x.get("fl"), no_ask=x.get("na"),
                           yes_bid=x.get("yb"), ticker=x.get("t")) for x in d["rungs"]]
+            _lh = dt.datetime.now(dt.timezone.utc).astimezone(
+                zoneinfo.ZoneInfo(CITIES[r["city"]]["tz"])).hour
             board.append(prob.evaluate_ladder(r["city"], rungs, d.get("guide"),
-                                              d.get("run_max"), d.get("pop")))
+                                              d.get("run_max"), d.get("pop"),
+                                              local_hour=_lh, emp_samples=_samples))
         os.makedirs("docs", exist_ok=True)
         json.dump(dict(at=dt.datetime.utcnow().isoformat()+"Z", cities=board),
                   open("docs/edge.json", "w"), indent=1)
