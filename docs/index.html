@@ -162,11 +162,15 @@ fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
    One unit per city-day-band. ${sh.n_rung_obs} rung-obs -> ${sh.n_units} units
    over ${sh.days.length} days. A band is PROVEN only when its Wilson 95%
    lower bound clears the fee breakeven at its mean price. Counterfactual
-   fills at logged ask: an upper bound on live performance.</p>
+   fills at logged ask: an upper bound on live performance. The <b>empirical</b>
+  column is P(remaining climb &gt; cap &minus; running max) observed at this
+  station and local hour &mdash; nonparametric, so it represents the skew and
+  bimodality a Gaussian cannot. P(NO) is the two blended by sample size.</p>
    <table><tr><th>band</th><th>n</th><th>wins</th><th>hit</th>
    <th>need</th><th>LCB</th><th>avg P&L</th><th>status</th></tr>${rows}</table>`;
 });
 
+fetch("advisor_backtest.json").then(r=>r.ok?r.json():null).then(()=>{}).catch(()=>{});
 fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
   if(!eb||!eb.cities) return;
   const box=document.getElementById("edgebox"); if(!box) return;
@@ -183,6 +187,8 @@ fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
         <td class="num">${(100*r.p_no).toFixed(1)}%</td>
         <td class="num">${(100*r.p_mkt).toFixed(0)}%</td>
         <td class="num">${r.edge>0?"+":""}${(100*r.edge).toFixed(1)}</td>
+        <td class="num">${r.p_empirical!=null?(100*r.p_empirical).toFixed(0)+"%":"&mdash;"}
+            <span class="muted small">${r.emp_n?("n="+r.emp_n):""}</span></td>
         <td class="num">${r.sigma.toFixed(2)}</td>
         <td class="num">${(100*r.half_kelly).toFixed(1)}%</td>
         <td class="num"><strong>${(100*r.half_kelly_lcb).toFixed(1)}%</strong></td>
@@ -199,7 +205,7 @@ fetch("edge.json").then(r=>r.ok?r.json():null).then(eb=>{
   model-market divergence &gt;15pts (this ledger: market won 7/8 such disputes).
   Scanned ${eb.at}. PAPER ONLY. A number here is a hypothesis, not a signal.</p>
   <table><tr><th>city</th><th>rung</th><th>NO ask</th><th>P(NO) model</th>
-  <th>P(NO) mkt</th><th>edge pts</th><th>&sigma;&deg;F</th><th>half-K</th>
+  <th>P(NO) mkt</th><th>edge pts</th><th>empirical</th><th>&sigma;&deg;F</th><th>half-K</th>
   <th>half-K LCB</th><th>distribution / trust</th></tr>${rows}</table>`;
 });
 
@@ -214,6 +220,33 @@ Promise.all([fetch("ledger.json").then(r=>r.ok?r.json():null),
       "Z, ledger at "+lg.generated.slice(0,16)+"Z. Nightly shadow step likely failed; check Actions.";
     document.body.insertBefore(b, document.body.firstChild);
   }
+});
+
+fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
+  if(!sh) return;
+  const box=document.getElementById("scorebox"); if(!box) return;
+  const b=sh.brier||{}, m=b.model||{}, a=b.advisor||{};
+  const cv=(sh.convergence||{}).convergence_hour_local||{};
+  const conv=Object.entries(cv).filter(([k,v])=>v!=null)
+    .sort((x,y)=>x[1]-y[1])
+    .map(([k,v])=>`<tr><td>${k}</td><td class="num">${String(v).padStart(2,"0")}:00</td></tr>`).join("");
+  const unearned=Object.entries(cv).filter(([k,v])=>v==null).map(([k])=>k);
+  const fmt=x=>x==null?"&mdash;":x.toFixed(4);
+  box.innerHTML=`<h2>FORECASTER SCOREBOARD</h2>
+   <p>A verdict cannot be calibrated; a probability can. Both the quantitative
+   model and the Claude advisor now state P(daily max exceeds cap) on every flag,
+   graded against CLI settlement. Brier: lower is better, 0.25 is the score for
+   always saying 50%. Needs ~30 settled flags before the comparison means
+   anything &mdash; currently ${b.n_settled||0}.</p>
+   <table><tr><th>forecaster</th><th>graded</th><th>Brier</th></tr>
+   <tr><td>quantitative model</td><td class="num">${m.n||0}</td><td class="num">${fmt(m.brier)}</td></tr>
+   <tr><td>Claude advisor</td><td class="num">${a.n||0}</td><td class="num">${fmt(a.brier)}</td></tr></table>
+   <h2 style="margin-top:26px">CONVERGENCE HOUR &mdash; WHEN THE DAY IS DECIDED</h2>
+   <p>First local hour whose median remaining climb is &le;1&deg;F. Before this
+   hour the outcome is genuinely unresolved. Measured, not assumed &mdash; and it
+   differs by station by four hours, against one fixed 10:30&ndash;13:30 entry
+   window for all of them.${unearned.length?" Not yet earned: "+unearned.join(", ")+".":""}</p>
+   <table><tr><th>station</th><th>convergence (local)</th></tr>${conv}</table>`;
 });
 </script>
 </body>
