@@ -172,9 +172,182 @@
   {
    "date": "2026-08-17",
    "flags": []
+  },
+  {
+   "date": "2026-08-18",
+   "flags": [
+    {
+     "date": "2026-08-18",
+     "city": "SFO",
+     "station": "KSFO",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTSFO-26AUG18-T68",
+      "ceiling": 68,
+      "no_ask": 0.91,
+      "quote_src": "native",
+      "yes_bid": 9,
+      "run_max": 66.2,
+      "guide": 72,
+      "pop": 0,
+      "G": 4,
+      "net_cents": 8.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 91,
+       "depth_at_best": 66,
+       "depth_le_max": 1024,
+       "notional_le_max": 964.39,
+       "levels": [
+        [
+         91,
+         66
+        ],
+        [
+         92,
+         381
+        ],
+        [
+         93,
+         41
+        ],
+        [
+         94,
+         52
+        ],
+        [
+         95,
+         170
+        ],
+        [
+         96,
+         51
+        ],
+        [
+         97,
+         140
+        ],
+        [
+         98,
+         123
+        ]
+       ]
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-08-18T19:15:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T19:10:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T19:05:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-08-18T19:00:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T18:56:00+00:00",
+         "tC": 17.8
+        },
+        {
+         "ts": "2026-08-18T18:55:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T18:50:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T18:45:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T18:40:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-08-18T18:35:00+00:00",
+         "tC": 18
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTSFO-26AUG18-T75",
+         "cap": null,
+         "floor": 75,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTSFO-26AUG18-T68",
+         "cap": 68,
+         "floor": null,
+         "no_ask": 91,
+         "yes_bid": 9
+        },
+        {
+         "ticker": "KXHIGHTSFO-26AUG18-B74.5",
+         "cap": 75,
+         "floor": 74,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTSFO-26AUG18-B72.5",
+         "cap": 73,
+         "floor": 72,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHTSFO-26AUG18-B70.5",
+         "cap": 71,
+         "floor": 70,
+         "no_ask": 74,
+         "yes_bid": 26
+        },
+        {
+         "ticker": "KXHIGHTSFO-26AUG18-B68.5",
+         "cap": 69,
+         "floor": 68,
+         "no_ask": 45,
+         "yes_bid": 55
+        }
+       ],
+       "wx": "Clear"
+      },
+      "model": {
+       "p_exceed_cap": 0.7341,
+       "p_source": "blend(w_emp=0.72)",
+       "p_empirical": 0.6957,
+       "emp_n": 21,
+       "sigma": 2.61,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor error: substring not found"
+     },
+     "settle": 70,
+     "attribution": "WIN"
+    }
+   ]
   }
  ],
- "generated": "2026-08-18T03:04:48.180431Z",
+ "generated": "2026-08-19T03:07:07.198755Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11"
 }
