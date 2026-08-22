@@ -125,6 +125,17 @@ def scan_once():
     except Exception as e:
         print("edge board failed:", e)
 
+    # Notify on qualifying flags. Best-effort: a notification failure must never
+    # break a scan or lose data, so this is wrapped and logged, not raised.
+    try:
+        from . import notify
+        for _r in results:
+            if _r.get("verdict") in ("QUALIFIED", "DEAD_SCAVENGE"):
+                notify.notify_flag(_r.get("city"), _r["verdict"],
+                                   _r.get("detail") or {}, _r.get("advisor"))
+    except Exception as _e:
+        print("notify: skipped -", str(_e)[:120])
+
     os.makedirs("logs", exist_ok=True)
     path = f"logs/{today.isoformat()}.jsonl"
     with open(path, "a") as f:

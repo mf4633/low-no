@@ -30,8 +30,11 @@ ADAPT = dict(
 WB_PRIOR = {"NYC": (-0.61,1.68), "CHI": (-0.20,1.54), "DEN": (-0.45,1.56),
             "SEA": (-0.85,1.68), "PHX": (+0.11,0.94), "PHL": (-0.42,1.58),
             "AUS": (+0.08,1.70), "LAX": (+0.75,1.44),
-            "SFO": (0.0,2.5), "MIA": (0.0,2.0)}
-MARINE = {"SFO", "LAX"}
+            "SFO": (0.0,2.5), "MIA": (0.0,2.0),
+            "ATL": (0.0,1.8), "BOS": (0.0,1.8), "DAL": (0.0,1.8), "DC": (0.0,1.8),
+            "HOU": (0.0,1.8), "LAS": (0.0,1.5), "MSP": (0.0,1.9), "MSY": (0.0,1.7),
+            "OKC": (0.0,2.0), "SAN": (0.0,2.2), "SAT": (0.0,1.8)}
+MARINE = {"SFO", "LAX", "SAN"}
 
 def _settled_series():
     """[(date, city, guide_err)] one per settled city-day, from shadow.json."""

@@ -9,6 +9,8 @@ from collections import defaultdict
 from lowno import shadow, adaptive, convergence
 from lowno.config import CITIES
 
+MARINE_CITIES = {"SFO", "LAX", "SAN"}   # keep in sync with lowno.prob.MARINE
+
 BANDS = [(1,10),(11,20),(21,30),(31,40),(41,50),(51,60),(61,70),(71,80),(81,90),(91,95),(96,98)]
 
 def wilson(k, n, z=1.96):
@@ -106,6 +108,12 @@ def main():
 
     variants = [
         score_rule("frozen_G4",            lambda o: o["G"] >= 4),
+        # Marine-layer stations are bimodal (burn-off vs. cap); a Gaussian cannot
+        # price them and prob.py already zeroes their size. As of 2026-08-19 every
+        # loss in the ledger is SFO. Scored, not enforced -- SFO is also half the
+        # flag supply, so exclusion trades accuracy for sample rate.
+        score_rule("exclude_marine",       lambda o: o["G"] >= 4 and o["city"] not in MARINE_CITIES),
+        score_rule("floor96_ex_marine",    lambda o: 96 <= o["price"] <= 98 and o["city"] not in MARINE_CITIES),
         score_rule("conv_window_96_98",    lambda o: 96 <= o["price"] <= 98 and in_conv_window(o)),
         score_rule("floor96_depth25",      lambda o: 96 <= o["price"] <= 98 and has_depth(o)),
         score_rule("corrected_G4",         lambda o: gcorr(o) >= 4),

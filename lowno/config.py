@@ -31,6 +31,23 @@ CITIES = {
     "PHX": dict(name="Phoenix",       station="KPHX", tz="America/Phoenix",    series="KXHIGHTPHX", lat=33.4342, lon=-112.0116),
     "SEA": dict(name="Seattle",       station="KSEA", tz="America/Los_Angeles",series="KXHIGHTSEA", lat=47.4502, lon=-122.3088),
     "SFO": dict(name="San Francisco", station="KSFO", tz="America/Los_Angeles",series="KXHIGHTSFO", lat=37.6213, lon=-122.379),
+    # --- added 2026-08-22: station expansion -------------------------------
+    # Flag supply was the binding constraint: 6 flags in 15 days across 10
+    # stations, and 3 of those came from SFO (which produced BOTH losses).
+    # Every series below was verified live on Kalshi AND confirmed to have NWS
+    # CLI products, so settlement can actually resolve. A station without CLI
+    # accumulates PENDING flags forever -- see the MTR/BOU/OKX failure.
+    "ATL": dict(name="Atlanta",       station="KATL", tz="America/New_York",    series="KXHIGHTATL",  lat=33.6301, lon=-84.4418),
+    "BOS": dict(name="Boston",        station="KBOS", tz="America/New_York",    series="KXHIGHTBOS",  lat=42.3606, lon=-71.0097),
+    "DAL": dict(name="Dallas",        station="KDFW", tz="America/Chicago",     series="KXHIGHTDAL",  lat=32.8975, lon=-97.0381),
+    "DC":  dict(name="Washington DC", station="KDCA", tz="America/New_York",    series="KXHIGHTDC",   lat=38.8483, lon=-77.0342),
+    "HOU": dict(name="Houston",       station="KIAH", tz="America/Chicago",     series="KXHIGHTHOU",  lat=29.9902, lon=-95.3368),
+    "LAS": dict(name="Las Vegas",     station="KLAS", tz="America/Los_Angeles", series="KXHIGHTLV",   lat=36.0719, lon=-115.1634),
+    "MSP": dict(name="Minneapolis",   station="KMSP", tz="America/Chicago",     series="KXHIGHTMIN",  lat=44.8831, lon=-93.2289),
+    "MSY": dict(name="New Orleans",   station="KMSY", tz="America/Chicago",     series="KXHIGHTNOLA", lat=29.9934, lon=-90.2581),
+    "OKC": dict(name="Oklahoma City", station="KOKC", tz="America/Chicago",     series="KXHIGHTOKC",  lat=35.3889, lon=-97.6008),
+    "SAN": dict(name="San Diego",     station="KSAN", tz="America/Los_Angeles", series="KXHIGHTSAN",  lat=32.7336, lon=-117.1831),
+    "SAT": dict(name="San Antonio",   station="KSAT", tz="America/Chicago",     series="KXHIGHTSATX", lat=29.5337, lon=-98.4698),
 }
 
 # Station quirk library, calibrated Jul 29-Aug 4 2026. Used by the scorer's

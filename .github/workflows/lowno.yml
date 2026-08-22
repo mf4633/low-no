@@ -3,7 +3,7 @@ on:
   schedule:
     - cron: "5 13-23 * * *"   # hourly, 9:05a-7:05p ET (13:05-23:05 UTC)
   workflow_dispatch: {}
-permissions: { contents: write, pages: write }
+permissions: { contents: write, pages: write, issues: write }
 concurrency:
   group: lowno-commit
   cancel-in-progress: false
@@ -17,6 +17,8 @@ jobs:
       - name: hourly scan
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: python -m lowno.scan
       - name: commit logs
         if: always()
