@@ -9,7 +9,6 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: python probe_series.py 2>&1 | tee discover_out.txt
-      - run: python verify_cli.py BOS DFW DCA SAT ATL IAH MSP DTW BNA LAS SLC PDX STL BWI CLT MCO SAN TPA IND 2>&1 | tee verify_out.txt
       - name: commit
         if: always()
         run: |
