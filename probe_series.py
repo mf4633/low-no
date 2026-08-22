@@ -1,151 +1,101 @@
-"""STEP 1 -- run this FIRST. Discovers every Kalshi daily-high temperature series
-and prints a ready-to-paste CITIES block for the ones not yet configured.
+"""Discover Kalshi daily-high series by probing candidate tickers directly.
 
-Nothing is added blind: a wrong series ticker fails SILENTLY as an empty ladder,
-which looks identical to a quiet market. This probe proves each ticker against
-live markets before it enters config.
-
-    python probe_series.py            # discover + report
-    python probe_series.py --json     # machine-readable dump
-
-Run it on a GitHub Actions runner (or any box with Kalshi reachable), not in a
-restricted sandbox.
+The bulk /markets listing did not return KXHIGH* markets (returned 0), so this
+uses the SAME call shape that works in lowno/sources.py:
+    /markets?series_ticker=<S>&status=open&limit=100
+Kalshi is inconsistent about a leading T (KXHIGHTSEA vs KXHIGHDEN), so both
+forms are tried for every candidate.
 """
-import json, sys, urllib.request, collections
+import json, urllib.request, datetime as dt
 
 UA = {"User-Agent": "lowno-probe/1.0"}
 BASE = "https://api.elections.kalshi.com/trade-api/v2"
 
-# Station metadata for cities we might discover. NWS CLI is indexed by SITE code
-# (SFO, DEN, NYC) -- NOT by WFO. lat/lon are the ASOS site used for settlement.
 KNOWN = {
-    "BOS": ("Boston",        "KBOS", "America/New_York",    42.3606, -71.0097),
-    "DFW": ("Dallas",        "KDFW", "America/Chicago",     32.8975,  -97.0381),
-    "DCA": ("Washington DC", "KDCA", "America/New_York",    38.8483,  -77.0342),
-    "SAT": ("San Antonio",   "KSAT", "America/Chicago",     29.5337,  -98.4698),
-    "ATL": ("Atlanta",       "KATL", "America/New_York",    33.6301,  -84.4418),
-    "IAH": ("Houston",       "KIAH", "America/Chicago",     29.9902,  -95.3368),
-    "HOU": ("Houston Hobby", "KHOU", "America/Chicago",     29.6372,  -95.2820),
-    "MSP": ("Minneapolis",   "KMSP", "America/Chicago",     44.8831,  -93.2289),
-    "DTW": ("Detroit",       "KDTW", "America/New_York",    42.2313,  -83.3308),
-    "BNA": ("Nashville",     "KBNA", "America/Chicago",     36.1189,  -86.6892),
-    "LAS": ("Las Vegas",     "KLAS", "America/Los_Angeles", 36.0719, -115.1634),
-    "SLC": ("Salt Lake City","KSLC", "America/Denver",      40.7884, -111.9778),
-    "PDX": ("Portland",      "KPDX", "America/Los_Angeles", 45.5908, -122.6003),
-    "STL": ("St. Louis",     "KSTL", "America/Chicago",     38.7525,  -90.3737),
-    "BWI": ("Baltimore",     "KBWI", "America/New_York",    39.1754,  -76.6683),
-    "CLT": ("Charlotte",     "KCLT", "America/New_York",    35.2140,  -80.9431),
-    "MCO": ("Orlando",       "KMCO", "America/New_York",    28.4339,  -81.3250),
-    "SAN": ("San Diego",     "KSAN", "America/Los_Angeles", 32.7336, -117.1831),
-    "TPA": ("Tampa",         "KTPA", "America/New_York",    27.9622,  -82.5402),
-    "IND": ("Indianapolis",  "KIND", "America/New_York",    39.7173,  -86.2944),
+    "BOS": ("Boston","KBOS","America/New_York",42.3606,-71.0097),
+    "DFW": ("Dallas","KDFW","America/Chicago",32.8975,-97.0381),
+    "DCA": ("Washington DC","KDCA","America/New_York",38.8483,-77.0342),
+    "SAT": ("San Antonio","KSAT","America/Chicago",29.5337,-98.4698),
+    "ATL": ("Atlanta","KATL","America/New_York",33.6301,-84.4418),
+    "IAH": ("Houston","KIAH","America/Chicago",29.9902,-95.3368),
+    "HOU": ("Houston Hobby","KHOU","America/Chicago",29.6372,-95.2820),
+    "MSP": ("Minneapolis","KMSP","America/Chicago",44.8831,-93.2289),
+    "DTW": ("Detroit","KDTW","America/New_York",42.2313,-83.3308),
+    "BNA": ("Nashville","KBNA","America/Chicago",36.1189,-86.6892),
+    "LAS": ("Las Vegas","KLAS","America/Los_Angeles",36.0719,-115.1634),
+    "SLC": ("Salt Lake City","KSLC","America/Denver",40.7884,-111.9778),
+    "PDX": ("Portland","KPDX","America/Los_Angeles",45.5908,-122.6003),
+    "STL": ("St. Louis","KSTL","America/Chicago",38.7525,-90.3737),
+    "BWI": ("Baltimore","KBWI","America/New_York",39.1754,-76.6683),
+    "CLT": ("Charlotte","KCLT","America/New_York",35.2140,-80.9431),
+    "MCO": ("Orlando","KMCO","America/New_York",28.4339,-81.3250),
+    "SAN": ("San Diego","KSAN","America/Los_Angeles",32.7336,-117.1831),
+    "TPA": ("Tampa","KTPA","America/New_York",27.9622,-82.5402),
+    "IND": ("Indianapolis","KIND","America/New_York",39.7173,-86.2944),
+    "PIT": ("Pittsburgh","KPIT","America/New_York",40.4915,-80.2329),
+    "CVG": ("Cincinnati","KCVG","America/New_York",39.0489,-84.6678),
+    "MEM": ("Memphis","KMEM","America/Chicago",35.0424,-89.9767),
+    "OKC": ("Oklahoma City","KOKC","America/Chicago",35.3931,-97.6007),
+    "ABQ": ("Albuquerque","KABQ","America/Denver",35.0402,-106.6091),
+    "BOI": ("Boise","KBOI","America/Denver",43.5644,-116.2228),
+    "SMF": ("Sacramento","KSMF","America/Los_Angeles",38.6954,-121.5901),
+    "MKE": ("Milwaukee","KMKE","America/Chicago",42.9550,-87.9045),
+    "CLE": ("Cleveland","KCLE","America/New_York",41.4053,-81.8520),
+    "RDU": ("Raleigh","KRDU","America/New_York",35.8923,-78.7819),
+    "JAX": ("Jacksonville","KJAX","America/New_York",30.4941,-81.6879),
+    "OMA": ("Omaha","KOMA","America/Chicago",41.3032,-95.8940),
+    "ICT": ("Wichita","KICT","America/Chicago",37.6499,-97.4331),
+    "TUS": ("Tucson","KTUS","America/Phoenix",32.1314,-110.9553),
+    "ELP": ("El Paso","KELP","America/Denver",31.8111,-106.3760),
 }
-
-# Already in lowno/config.py -- do not re-add.
-CONFIGURED = {"KXHIGHAUS", "KXHIGHCHI", "KXHIGHDEN", "KXHIGHLAX", "KXHIGHMIA",
-              "KXHIGHNY", "KXHIGHPHIL", "KXHIGHTPHX", "KXHIGHTSEA", "KXHIGHTSFO"}
-
-# Marine-layer stations: bimodal burn-off, a Gaussian cannot price them, and in
-# this ledger every single loss has been SFO. New ones inherit the same flag.
-MARINE_SUSPECTS = {"SAN", "PDX"}
-
+CONFIGURED_CODES = {"AUS","CHI","DEN","LAX","MIA","NYC","PHL","PHX","SEA","SFO"}
+MARINE_SUSPECTS = {"SAN","PDX","SMF"}
 
 def get(url):
     req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=45) as f:
+    with urllib.request.urlopen(req, timeout=30) as f:
         return json.loads(f.read())
 
-
-def discover():
-    """Every open KXHIGH* market, grouped by series ticker."""
-    series = collections.defaultdict(lambda: {"n": 0, "example": None, "caps": 0})
-    cursor = None
-    for _ in range(20):                       # hard page cap
-        url = f"{BASE}/markets?status=open&limit=1000"
-        if cursor:
-            url += f"&cursor={cursor}"
-        j = get(url)
-        for m in j.get("markets", []):
-            t = m.get("ticker", "")
-            if not t.startswith("KXHIGH"):
-                continue
-            s = t.split("-")[0]
-            series[s]["n"] += 1
-            series[s]["example"] = t
-            if m.get("cap_strike") is not None:
-                series[s]["caps"] += 1
-        cursor = j.get("cursor")
-        if not cursor:
-            break
-    return dict(series)
-
-
-def guess_code(series_ticker):
-    """KXHIGHTSEA -> SEA, KXHIGHDFW -> DFW. Kalshi is inconsistent about the
-    leading T, so try both."""
-    body = series_ticker[len("KXHIGH"):]
-    for cand in (body, body[1:] if body.startswith("T") else None):
-        if cand and cand in KNOWN:
-            return cand
-    return body
-
+def probe(series):
+    try:
+        j = get(f"{BASE}/markets?series_ticker={series}&status=open&limit=100")
+    except Exception:
+        return None
+    mk = j.get("markets", [])
+    if not mk:
+        return None
+    caps = sum(1 for m in mk if m.get("cap_strike") is not None)
+    return dict(n=len(mk), caps=caps, example=mk[0].get("ticker"))
 
 def main():
-    found = discover()
-    if "--json" in sys.argv:
-        print(json.dumps(found, indent=1))
+    print(f"probing {len(KNOWN)} candidate cities, both ticker forms\n")
+    hits, misses = [], []
+    for code in sorted(KNOWN):
+        found = None
+        for form in (f"KXHIGH{code}", f"KXHIGHT{code}"):
+            r = probe(form)
+            if r:
+                found = (form, r); break
+        if found:
+            form, r = found
+            tag = "ALREADY CONFIGURED" if code in CONFIGURED_CODES else "NEW"
+            print(f"  {code:4} {form:14} mkts={r['n']:>3} caps={r['caps']:>3}  {tag}")
+            if code not in CONFIGURED_CODES:
+                hits.append((code, form, r))
+        else:
+            misses.append(code)
+    print(f"\nno market found for: {', '.join(misses) if misses else '(none)'}")
+    print("\n" + "="*70)
+    if not hits:
+        print("No new series available. Coverage is already complete.")
         return
-
-    print(f"discovered {len(found)} KXHIGH* series\n")
-    print(f"{'series':16} {'mkts':>5} {'w/cap':>6}  {'status':12} example")
-    new = []
-    for s in sorted(found):
-        d = found[s]
-        status = "CONFIGURED" if s in CONFIGURED else "NEW"
-        print(f"{s:16} {d['n']:>5} {d['caps']:>6}  {status:12} {d['example']}")
-        if status == "NEW":
-            new.append(s)
-
-    print("\n" + "=" * 68)
-    if not new:
-        print("No unconfigured series found. Current coverage is complete.")
-        return
-    print("PASTE-READY CITIES ENTRIES (verify each before committing):\n")
-    unknown = []
-    for s in new:
-        code = guess_code(s)
-        if code not in KNOWN:
-            unknown.append((s, code))
-            continue
+    print(f"{len(hits)} NEW SERIES FOUND -- paste into lowno/config.py CITIES:\n")
+    for code, form, r in hits:
         name, station, tz, lat, lon = KNOWN[code]
-        marine = "   # MARINE SUSPECT -- see note below" if code in MARINE_SUSPECTS else ""
+        marine = "   # MARINE -- add to prob.MARINE" if code in MARINE_SUSPECTS else ""
         print(f'    "{code}": dict(name="{name}", station="{station}", '
-              f'tz="{tz}", series="{s}", lat={lat}, lon={lon}),{marine}')
-    if unknown:
-        print("\n# UNRESOLVED -- series exists but no station metadata. Look up the")
-        print("# ASOS site NWS uses for CLI settlement before adding:")
-        for s, code in unknown:
-            print(f"#   {s}  (guessed code {code})")
-    print("""
-NOTES BEFORE YOU COMMIT
------------------------
-1. Verify CLI availability for each new site FIRST:
-     https://api.weather.gov/products/types/CLI/locations
-   If the site code is absent there, settlement will never resolve and the
-   station will accumulate PENDING flags forever. (MTR/BOU/OKX are NOT valid --
-   CLI is indexed by SITE, not by forecast office.)
-2. New stations have ZERO settlement history. Their adaptive bias falls back to
-   the weatherbot prior, and for sites weatherbot never fit, to a diffuse prior.
-   Expect wide sigma and `empirical-pending` for ~2-3 weeks.
-3. Marine suspects (SAN, PDX) inherit SFO's problem: bimodal burn-off that a
-   Gaussian cannot represent. In this ledger EVERY loss has been SFO. Add them
-   to prob.MARINE so the edge board refuses to size them.
-4. Sample-rate math: 10 stations produced 6 flags in 13 days. Continental
-   stations are 3-0; SFO is 1-2. Adding 5-8 continental sites should roughly
-   double flag supply, which is currently the binding constraint on reaching
-   60 units.
-""")
-
+              f'tz="{tz}", series="{form}", lat={lat}, lon={lon}),{marine}')
+    print("\nVERIFY CLI SETTLEMENT FIRST -- see verify_cli_out.txt in this run.")
 
 if __name__ == "__main__":
     main()
