@@ -1,5 +1,6 @@
-settlements: 146 cached, 11 newly fetched
-rung-obs 7752 -> 156 independent units over 15 days
+settlements: 224 cached, 78 newly fetched
+spend: 6 calls, est $0.0855 spent, $4.91 left (~344 calls)
+rung-obs 7818 -> 157 independent units over 16 days
   band   n   w    hit   need    LCB     pnl  proven
   1-10  13   0     0%   6.2%     0%    -6.2   False
  11-20  11   1     9%  15.9%     2%    -6.7   False
@@ -11,16 +12,18 @@ rung-obs 7752 -> 156 independent units over 15 days
  71-80   9   4    44%  77.7%    19%   -32.6   False
  81-90  18  12    67%  88.0%    44%   -21.2   False
  91-95  24  17    71%  94.3%    51%   -23.2   False
- 96-98  40  38    95%  98.2%    84%    -3.2   False
+ 96-98  41  38    93%  98.2%    81%    -5.5   False
 
-station guide bias (guide - CLI): {'LAX': -2.2, 'SFO': 2.07, 'NYC': 1.73, 'DEN': 1.53, 'AUS': -1.07, 'MIA': -0.82, 'CHI': -0.73, 'PHX': -0.4, 'PHL': -0.2, 'SEA': -0.2}
+station guide bias (guide - CLI): {'SAT': 19.0, 'DEN': 2.69, 'LAX': -2.2, 'SFO': 2.07, 'NYC': 1.73, 'MIA': -0.82, 'CHI': -0.73, 'PHX': -0.4, 'AUS': 0.38, 'PHL': -0.2, 'SEA': -0.2}
 
                   rule   n   w    hit   LCB  meanP&L
-             frozen_G4  13  11    85%   58%    -7.85
+             frozen_G4  14  11    79%   52%   -14.29
+        exclude_marine  10   9    90%   60%     -7.4
+     floor96_ex_marine  35  32    91%   78%    -6.77
      conv_window_96_98   0   0     --    0%       --
        floor96_depth25   0   0     --    0%       --
-          corrected_G4   9   9   100%   70%     2.67
-  corrected_G4_floor90   9   9   100%   70%     2.67
-          floor96_only  40  38    95%   84%     -3.2
+          corrected_G4   8   8   100%   68%     2.75
+  corrected_G4_floor90   8   8   100%   68%     2.75
+          floor96_only  41  38    93%   81%    -5.51
 
 No band's 95% lower bound clears its fee breakeven. Nothing proven.
