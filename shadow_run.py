@@ -6,7 +6,7 @@ city-day-band so n reflects independent observations, not scan cycles.
 """
 import json, math, datetime as dt, zoneinfo
 from collections import defaultdict
-from lowno import shadow, adaptive, convergence, spend
+from lowno import shadow, adaptive, convergence, spend, skill
 from lowno.config import CITIES
 
 MARINE_CITIES = {"SFO", "LAX", "SAN"}   # keep in sync with lowno.prob.MARINE
@@ -133,6 +133,10 @@ def main():
                boundary_cases=convergence.boundary_report(),
                variants=variants, brier=_brier())
     json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)
+    try:
+        skill.write()
+    except Exception as e:
+        print('skill: skipped -', str(e)[:100])
     try:
         spend.write()
     except Exception as e:

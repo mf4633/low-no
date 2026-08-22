@@ -1,108 +1,83 @@
-"""Multisource forecast collector.
+"""Competing daily-high forecasts for one station-day.
 
-Six competing highs for a station's local calendar date, for skill
-comparison: NWS gridpoint, NBM / ECMWF / GFS / ICON via Open-Meteo, and
-MET Norway locationforecast. Each source is best-effort and independent:
-a source that can't be fetched reports None rather than being silently
-dropped, so the caller can see exactly which models weighed in (same
-stale-data discipline as sources.py).
+Every forecaster returns its predicted daily maximum in F for the LOCAL date at
+the station. All failures degrade to None -- a missing forecast must never break
+a scan, and a None is honest where a fabricated number is not.
+
+Scored nightly against CLI settlement by lowno.skill.
 """
-import datetime as dt
-import statistics
-import zoneinfo
+import json, urllib.request, datetime as dt, zoneinfo
 
-from .sources import _get
 
-# Open-Meteo model identifiers -> short labels used in the output dict.
-OPEN_METEO_MODELS = {
-    "ncep_nbm_conus": "nbm",
-    "ecmwf_ifs025": "ecmwf",
-    "gfs_seamless": "gfs",
-    "icon_seamless": "icon",
+def _get(url, timeout=25):
+    req = urllib.request.Request(url, headers={"User-Agent": "lowno/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as f:
+        return json.loads(f.read())
+
+
+def _c_to_f(c):
+    return None if c is None else c * 9.0 / 5.0 + 32.0
+
+
+def nws_gridpoint_max(lat, lon, local_date):
+    """Forecaster-adjusted NWS grid. Can differ from raw NBM where the local
+    office overrides guidance -- that disagreement is itself a signal worth
+    measuring."""
+    try:
+        pts = _get(f"https://api.weather.gov/points/{lat},{lon}")
+        grid = pts["properties"]["forecastGridData"]
+        g = _get(grid)
+        vals = g["properties"]["maxTemperature"]["values"]
+        best = None
+        for v in vals:
+            when = v["validTime"].split("/")[0]
+            if when[:10] == local_date:
+                f = _c_to_f(v.get("value"))
+                if f is not None and (best is None or f > best):
+                    best = f
+        return round(best, 1) if best is not None else None
+    except Exception:
+        return None
+
+
+def open_meteo_max(lat, lon, local_date, model="best_match"):
+    """Open-Meteo daily max. Free, no key. model: best_match | ecmwf_ifs025 | gfs_seamless"""
+    try:
+        url = (f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+               f"&daily=temperature_2m_max&temperature_unit=fahrenheit"
+               f"&timezone=auto&start_date={local_date}&end_date={local_date}")
+        if model != "best_match":
+            url += f"&models={model}"
+        j = _get(url)
+        vals = (j.get("daily") or {}).get("temperature_2m_max") or []
+        return round(vals[0], 1) if vals and vals[0] is not None else None
+    except Exception:
+        return None
+
+
+# name -> callable(lat, lon, local_date) -> predicted daily max F
+FORECASTERS = {
+    "nws_grid": lambda la, lo, d: nws_gridpoint_max(la, lo, d),
+    "om_best":  lambda la, lo, d: open_meteo_max(la, lo, d, "best_match"),
+    # ifs04 (0.4 deg grid) is decommissioned: Open-Meteo still accepts the name
+    # and returns HTTP 200 with null values -- the silent-null trap. ifs025 is
+    # the live 0.25 deg grid.
+    "om_ecmwf": lambda la, lo, d: open_meteo_max(la, lo, d, "ecmwf_ifs025"),
+    "om_gfs":   lambda la, lo, d: open_meteo_max(la, lo, d, "gfs_seamless"),
+    # Non-US models: genuinely independent of the NBM/GFS chain, so a miss here
+    # is informative rather than correlated with the incumbent's miss.
+    "om_icon":  lambda la, lo, d: open_meteo_max(la, lo, d, "icon_seamless"),
+    "om_metno": lambda la, lo, d: open_meteo_max(la, lo, d, "metno_seamless"),
 }
 
 
-def nws_high(lat, lon, date_iso):
-    """Daytime-period high (F) from the NWS gridpoint forecast for date_iso,
-    or None if the date is outside the forecast window or the fetch fails."""
-    try:
-        meta = _get(f"https://api.weather.gov/points/{lat},{lon}")
-        fc = _get(meta["properties"]["forecast"])
-        for period in fc["properties"]["periods"]:
-            if period["isDaytime"] and period["startTime"][:10] == date_iso:
-                return float(period["temperature"])
-    except Exception:
-        pass
-    return None
-
-
-def open_meteo_highs(lat, lon, tz, date_iso):
-    """Per-model daily max temp (F) for the local date. Returns
-    {label: highF-or-None} covering every model in OPEN_METEO_MODELS."""
-    out = {label: None for label in OPEN_METEO_MODELS.values()}
-    url = ("https://api.open-meteo.com/v1/forecast"
-           f"?latitude={lat}&longitude={lon}"
-           "&daily=temperature_2m_max&temperature_unit=fahrenheit"
-           f"&timezone={tz}&start_date={date_iso}&end_date={date_iso}"
-           f"&models={','.join(OPEN_METEO_MODELS)}")
-    try:
-        daily = _get(url).get("daily", {})
-    except Exception:
-        return out
-    for model, label in OPEN_METEO_MODELS.items():
-        # multi-model responses suffix the variable; single-model does not
-        vals = daily.get(f"temperature_2m_max_{model}") or daily.get("temperature_2m_max")
-        if vals and vals[0] is not None:
-            out[label] = round(float(vals[0]), 1)
+def collect(city_cfg, local_date):
+    """All competing forecasts for one station-day. NBM `guide` is added by
+    scan.py, which already fetches it -- no point calling twice."""
+    out = {}
+    for name, fn in FORECASTERS.items():
+        try:
+            out[name] = fn(city_cfg["lat"], city_cfg["lon"], local_date)
+        except Exception:
+            out[name] = None
     return out
-
-
-def metno_high(lat, lon, tz, date_iso):
-    """Daily max (F) from MET Norway locationforecast. Max over instant
-    temps stamped on the local date, plus 6-hour-window maxes that start
-    before 18:00 local so the window can't spill past midnight."""
-    zone = zoneinfo.ZoneInfo(tz)
-    try:
-        j = _get("https://api.met.no/weatherapi/locationforecast/2.0/complete"
-                 f"?lat={lat}&lon={lon}")
-        temps = []
-        for entry in j["properties"]["timeseries"]:
-            when = dt.datetime.fromisoformat(entry["time"].replace("Z", "+00:00")).astimezone(zone)
-            if when.date().isoformat() != date_iso:
-                continue
-            data = entry["data"]
-            t = data.get("instant", {}).get("details", {}).get("air_temperature")
-            if t is not None:
-                temps.append(t)
-            if when.hour < 18:
-                t6 = (data.get("next_6_hours", {}).get("details", {}) or {}).get("air_temperature_max")
-                if t6 is not None:
-                    temps.append(t6)
-        if temps:
-            return round(max(temps) * 9 / 5 + 32, 1)
-    except Exception:
-        pass
-    return None
-
-
-def collect(city, date_iso):
-    """All-source forecast highs for one city (a CITIES entry) on date_iso.
-
-    Returns dict(station, date, sources, n, mean, median, spread) where
-    sources maps source label -> highF or None, and the stats cover only
-    the sources that answered. n=0 means nothing answered -- callers must
-    treat that as no-data, not as a zero-degree forecast.
-    """
-    sources = {"nws": nws_high(city["lat"], city["lon"], date_iso)}
-    sources.update(open_meteo_highs(city["lat"], city["lon"], city["tz"], date_iso))
-    sources["metno"] = metno_high(city["lat"], city["lon"], city["tz"], date_iso)
-    got = [v for v in sources.values() if v is not None]
-    return dict(
-        station=city["station"],
-        date=date_iso,
-        sources=sources,
-        n=len(got),
-        mean=round(statistics.mean(got), 1) if got else None,
-        median=round(statistics.median(got), 1) if got else None,
-        spread=round(max(got) - min(got), 1) if got else None,
-    )

@@ -3,7 +3,7 @@ FLAGS ONLY -- this module has no order-placement code and must never grow any.
 The human (or nothing) executes. Run: python -m lowno.scan"""
 import datetime as dt, json, os, zoneinfo
 from .config import CITIES, GATE
-from . import sources, gate, advisor, prob, forecasts
+from . import sources, gate, advisor, prob
 
 def scan_once():
     today = dt.date.today()
@@ -40,6 +40,14 @@ def scan_once():
 
             verdict, detail = gate.evaluate(key, rungs, rmax, guide, pop,
                                             (now_l.hour, now_l.minute), wx)
+            # Competing forecasts for the same station-day. Recorded so their
+            # skill can be scored against CLI -- the ledger previously held only
+            # NBM `guide`, making "which forecaster is best" unanswerable.
+            try:
+                from . import forecasts
+                detail["forecasts"] = forecasts.collect(c, today.isoformat())
+            except Exception as _fe:
+                print("forecasts: skipped -", str(_fe)[:100])
             if depth is not None and isinstance(detail, dict):
                 detail["depth"] = depth
             # Persist the EVIDENCE PACK on every flag. Without it the advisor can
@@ -83,20 +91,11 @@ def scan_once():
                         for _rg in _lr["detail"].get("rungs", []):
                             if _rg.get("t") == br["ticker"]:
                                 _rg["depth"] = depth
-            # Six competing forecast highs (NBM, NWS grid, ECMWF, GFS, ICON,
-            # MET Norway) on every LADDER row. Telemetry only -- the gate still
-            # sees just the NWS guide. Skill comparison needs these captured at
-            # scan time: by settlement the model runs have cycled and are gone.
-            try:
-                fcast = forecasts.collect(c, today.isoformat())
-                fcast.pop("station", None); fcast.pop("date", None)
-            except Exception:
-                fcast = None
             # Full-ladder record: every rung's quotes, not just the bottom one
             # the gate evaluates. The gate stays frozen -- this is telemetry.
             # ~6x the settled observations per day at zero marginal fetch cost.
             results.append(dict(city=key, station=c["station"], verdict="LADDER",
-                detail=dict(guide=guide, pop=pop, run_max=rmax, forecasts=fcast,
+                detail=dict(guide=guide, pop=pop, run_max=rmax,
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
@@ -131,6 +130,13 @@ def scan_once():
         os.makedirs("docs", exist_ok=True)
         json.dump(dict(at=dt.datetime.utcnow().isoformat()+"Z", cities=board),
                   open("docs/edge.json", "w"), indent=1)
+        # Classify positive-edge rungs that carry measured trap signals. The
+        # board sorts by edge and the biggest edges are usually the worst bets.
+        try:
+            from . import traps
+            traps.write()
+        except Exception as _te:
+            print("traps: skipped -", str(_te)[:100])
     except Exception as e:
         print("edge board failed:", e)
 
