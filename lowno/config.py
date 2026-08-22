@@ -48,6 +48,13 @@ CITIES = {
     "OKC": dict(name="Oklahoma City", station="KOKC", tz="America/Chicago",     series="KXHIGHTOKC",  lat=35.3889, lon=-97.6008),
     "SAN": dict(name="San Diego",     station="KSAN", tz="America/Los_Angeles", series="KXHIGHTSAN",  lat=32.7336, lon=-117.1831),
     "SAT": dict(name="San Antonio",   station="KSAT", tz="America/Chicago",     series="KXHIGHTSATX", lat=29.5337, lon=-98.4698),
+    "ATL": dict(name="Atlanta",       station="KATL", tz="America/New_York",    series="KXHIGHTATL", lat=33.6301, lon=-84.4418),
+    "BOS": dict(name="Boston",        station="KBOS", tz="America/New_York",    series="KXHIGHTBOS", lat=42.3606, lon=-71.0097),
+    "HOU": dict(name="Houston Hobby", station="KHOU", tz="America/Chicago",     series="KXHIGHTHOU", lat=29.6372, lon=-95.2820),
+    # SAN is marine-influenced (coastal stratus). Added to prob.MARINE so the
+    # edge board refuses to size it -- SFO's bimodal burn-off has produced every
+    # loss in this ledger and San Diego shares the mechanism.
+    "SAN": dict(name="San Diego",     station="KSAN", tz="America/Los_Angeles", series="KXHIGHTSAN", lat=32.7336, lon=-117.1831),
 }
 
 # Station quirk library, calibrated Jul 29-Aug 4 2026. Used by the scorer's

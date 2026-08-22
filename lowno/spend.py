@@ -1,28 +1,4 @@
-"""STEP 6 -- advisor spend tracking, WITHOUT putting a key anywhere public.
-
-READ THIS BEFORE ASKING FOR "BALANCE ON THE SITE":
-
-Anthropic exposes no public balance endpoint. Cost/usage is available only via
-the Admin API, which needs an `sk-ant-admin-...` key -- an ORG-LEVEL credential,
-strictly more powerful than the advisor key. And docs/ is a PUBLIC GitHub Pages
-site: anything the browser fetches, the world can read. A key in front-end code
-is a key given away.
-
-So this tracks spend the safe way: count the calls actually made, price them at
-published rates, publish the ESTIMATE. No credential involved, nothing to leak,
-and it is accurate to the cent at this volume -- 12 calls predicted $0.06 and
-the console showed exactly $0.06 (5.00 -> 4.94).
-
-If you later want the true balance, the ONLY safe shape is: an Actions step
-reads an admin key from repo secrets and writes the resulting NUMBER into
-docs/spend.json. The key never reaches the browser. Not enabled here.
-
-Apply from repo root:  python spend_tracker.patch.py
-"""
-import os
-import sys
-
-MODULE = '''"""Advisor spend estimate. No credential required.
+"""Advisor spend estimate. No credential required.
 
 Counts advisor invocations from the scan logs and prices them at published
 rates. Published to docs/spend.json for the site.
@@ -102,44 +78,3 @@ def write(path="docs/spend.json"):
 
 if __name__ == "__main__":
     write()
-'''
-
-
-def main():
-    if not os.path.isdir("lowno"):
-        print("run from repo root (lowno/ not found)")
-        sys.exit(1)
-
-    if os.path.exists("lowno/spend.py"):
-        print("lowno/spend.py exists -- leaving alone")
-    else:
-        open("lowno/spend.py", "w").write(MODULE)
-        print("wrote lowno/spend.py")
-
-    s = open("shadow_run.py").read()
-    if "spend" in s:
-        print("shadow_run.py already calls spend")
-    else:
-        s = s.replace("from lowno import shadow, adaptive, convergence",
-                      "from lowno import shadow, adaptive, convergence, spend", 1)
-        s = s.replace(
-            '    json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)',
-            '    json.dump(out, open("docs/shadow_summary.json", "w"), indent=1)\n'
-            '    try:\n        spend.write()\n'
-            '    except Exception as e:\n        print("spend: skipped -", str(e)[:100])',
-            1)
-        open("shadow_run.py", "w").write(s)
-        print("hooked spend.write() into shadow_run.py")
-
-    print("""
-DELIBERATELY NOT DONE:
-  True balance via the Admin API. It requires sk-ant-admin-*, an org-level key
-  far more dangerous than the advisor key. If you want it later, the safe shape
-  is an Actions step that reads it from repo secrets and writes ONLY the
-  resulting number into docs/spend.json. The key must never be fetched by the
-  browser -- docs/ is public.
-""")
-
-
-if __name__ == "__main__":
-    main()

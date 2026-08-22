@@ -136,6 +136,20 @@ def scan_once():
     except Exception as _e:
         print("notify: skipped -", str(_e)[:120])
 
+    # Live intraday tracker for anything flagged or near-flagging today.
+    try:
+        from . import live
+        _conv = {}
+        try:
+            _cv = json.load(open("docs/shadow_summary.json"))
+            _conv = (_cv.get("convergence") or {}).get("convergence_hour_local", {})
+        except Exception:
+            pass
+        live.write(results, emp_samples=_samples if "_samples" in dir() else None,
+                   conv_hours=_conv)
+    except Exception as _e:
+        print("live tracker: skipped -", str(_e)[:120])
+
     os.makedirs("logs", exist_ok=True)
     path = f"logs/{today.isoformat()}.jsonl"
     with open(path, "a") as f:

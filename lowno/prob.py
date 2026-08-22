@@ -36,6 +36,9 @@ WB_PRIOR = {  # city: (y_mean = mean(CLI - guide-scale est), sigma_obs_warm, n)
     "AUS": (+0.08, 1.70, 822), "LAX": (+0.75, 1.44, 820),
     # SFO, MIA: no weatherbot fit. Diffuse prior: zero bias, wide sigma, tiny n.
     "SFO": (0.0, 2.5, 4), "MIA": (0.0, 2.0, 4),
+    # Added 2026-08-22, no weatherbot fit -- diffuse until live settlements accrue.
+    "ATL": (0.0, 1.8, 4), "BOS": (0.0, 1.8, 4),
+    "HOU": (0.0, 1.9, 4), "SAN": (0.0, 2.3, 4),
     # New stations 2026-08-22: no weatherbot fit exists. Diffuse priors -- wide
     # sigma, tiny pseudo-n, so live settlements dominate within ~2 weeks.
     "ATL": (0.0, 1.8, 4), "BOS": (0.0, 1.8, 4), "DAL": (0.0, 1.8, 4),
@@ -43,7 +46,7 @@ WB_PRIOR = {  # city: (y_mean = mean(CLI - guide-scale est), sigma_obs_warm, n)
     "MSP": (0.0, 1.9, 4), "MSY": (0.0, 1.7, 4), "OKC": (0.0, 2.0, 4),
     "SAN": (0.0, 2.2, 4), "SAT": (0.0, 1.8, 4),
 }
-MARINE = {"SFO", "LAX", "SAN"}   # bimodal burn-off; Gaussian unfit. SAN added 2026-08-22.          # bimodal burn-off regime: Gaussian unfit
+MARINE = {"SFO", "LAX", "SAN"}   # bimodal burn-off; Gaussian unfit. SAN added 2026-08-22.
 EMPIRICAL_MIN_N = 20             # settled days needed before trusting a fit
 FEE = lambda pc: math.ceil(7 * (pc/100) * (1 - pc/100)) / 100  # dollars
 
