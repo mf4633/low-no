@@ -3,7 +3,7 @@ FLAGS ONLY -- this module has no order-placement code and must never grow any.
 The human (or nothing) executes. Run: python -m lowno.scan"""
 import datetime as dt, json, os, zoneinfo
 from .config import CITIES, GATE
-from . import sources, gate, advisor, prob
+from . import sources, gate, advisor, prob, forecasts
 
 def scan_once():
     today = dt.date.today()
@@ -83,11 +83,20 @@ def scan_once():
                         for _rg in _lr["detail"].get("rungs", []):
                             if _rg.get("t") == br["ticker"]:
                                 _rg["depth"] = depth
+            # Six competing forecast highs (NBM, NWS grid, ECMWF, GFS, ICON,
+            # MET Norway) on every LADDER row. Telemetry only -- the gate still
+            # sees just the NWS guide. Skill comparison needs these captured at
+            # scan time: by settlement the model runs have cycled and are gone.
+            try:
+                fcast = forecasts.collect(c, today.isoformat())
+                fcast.pop("station", None); fcast.pop("date", None)
+            except Exception:
+                fcast = None
             # Full-ladder record: every rung's quotes, not just the bottom one
             # the gate evaluates. The gate stays frozen -- this is telemetry.
             # ~6x the settled observations per day at zero marginal fetch cost.
             results.append(dict(city=key, station=c["station"], verdict="LADDER",
-                detail=dict(guide=guide, pop=pop, run_max=rmax,
+                detail=dict(guide=guide, pop=pop, run_max=rmax, forecasts=fcast,
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
