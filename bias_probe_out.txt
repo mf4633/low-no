@@ -1,24 +1,27 @@
-city    5min  metar   diff  n5/nM
-ATL     93.2   93.0   -0.2  59/1
-AUS    105.8  102.9   -2.9  59/1
-BOS     69.8   68.0   -1.8  58/2
-CHI     82.4   81.0   -1.4  58/2
-DAL    105.8  102.0   -3.8  59/1
-DC      79.0   78.1   -0.9  58/2
-DEN     89.1   91.9   +2.9  9/10
-HOU    100.4  100.0   -0.4  59/1
-LAS    109.4  107.1   -2.3  57/3
-LAX     82.4   80.1   -2.3  59/1
-MIA     93.9   91.9   -2.0  57/3
-MSP     79.0   78.1   -0.9  59/1
-MSY     96.8   93.9   -2.9  59/1
-NYC     75.9   75.9   +0.0  10/8
-OKC     98.6   96.1   -2.5  59/1
-PHL     78.8   77.0   -1.8  59/1
-PHX    114.8  111.0   -3.8  59/1
-SAN     82.4   81.0   -1.4  59/1
-SAT    102.9  102.0   -0.9  59/1
-SEA     73.4   69.1   -4.3  59/1
-SFO     69.8   66.9   -2.9  57/3
+city  pairs   meanΔ   maxΔ   sample (metar vs 5min)
+ATL       1   -0.18   -0.2   93.0 vs 93.2
+AUS       1   +0.72   +0.7   102.9 vs 102.2
+BOS       2   +0.00   +0.0   68.0 vs 68.0
+CHI       2   +0.36   +0.4   81.0 vs 80.6
+DAL       1   -0.18   -0.2   102.0 vs 102.2
+DC        2   -0.72   -0.7   78.1 vs 78.8
+HOU       1   -0.36   -0.4   100.0 vs 100.4
+LAS       2   -0.54   -0.5   107.1 vs 107.6
+LAX       1   -0.54   -0.5   80.1 vs 80.6
+MIA       2   +0.00   +0.4   82.0 vs 82.4
+MSP       1   -0.72   -0.7   78.1 vs 78.8
+MSY       1   -1.08   -1.1   93.9 vs 95.0
+OKC       1   -0.72   -0.7   96.1 vs 96.8
+PHL       1   +0.00   +0.0   77.0 vs 77.0
+PHX       1   -0.18   -0.2   111.0 vs 111.2
+SAN       1   +0.36   +0.4   81.0 vs 80.6
+SAT       1   -0.18   -0.2   102.0 vs 102.2
+SEA       1   -0.72   -0.7   69.1 vs 69.8
+SFO       3   +0.36   +0.7   66.9 vs 66.2
 
-mean bias (METAR - 5min): -1.74 F across 21 stations
+PAIRED bias (METAR - nearest 5min): -0.173 F over 26 pairs
+  |diff| > 0.5F in 12/26 pairs
+  METAR warmer in 7/26
+
+A mean near zero means the two streams agree and run_max is fine.
+A consistent positive mean means run_max is biased COOL.
