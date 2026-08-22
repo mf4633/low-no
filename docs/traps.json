@@ -1,22 +1,22 @@
 {
- "at": "2026-08-22T22:37:32.892681Z",
+ "at": "2026-08-22T23:35:50.724808Z",
  "traps": [
   {
    "city": "OKC",
    "ceiling": 102,
-   "price": 4,
-   "p_model": 0.4327,
-   "p_market": 0.04,
-   "edge_pts": 39.3,
+   "price": 1,
+   "p_model": 0.7328,
+   "p_market": 0.01,
+   "edge_pts": 72.3,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 39 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 72 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   }
