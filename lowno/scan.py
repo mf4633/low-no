@@ -40,6 +40,27 @@ def scan_once():
 
             verdict, detail = gate.evaluate(key, rungs, rmax, guide, pop,
                                             (now_l.hour, now_l.minute), wx)
+            # Upstream advection + stall telemetry. NOT gate inputs -- new,
+            # unvalidated features logged so they can be scored as variants.
+            # Both come from the 2026-08-22 MSY call, which was resolved by an
+            # upstream station read and an intraday stall the scanner cannot see.
+            try:
+                from . import advection
+                detail["upstream"] = advection.upstream(key)
+                detail["stall"] = advection.stall(
+                    key, [r for r in results
+                          if r.get("city") == key and r.get("verdict") != "LADDER"])
+            except Exception as _ae:
+                print("advection: skipped -", str(_ae)[:100])
+            # Sky condition and run_max provenance. BKN/OVC at peak heating is a
+            # real differentiator (MSY under BKN250 vs BTR CLR, 2026-08-22) and
+            # was not captured anywhere. run_max_detail records which observation
+            # stream produced the max so the 5-minute cool bias is measurable.
+            try:
+                detail["sky"] = sources.sky_from_obs(obs_today[0]) if obs_today else None
+                detail["run_max_detail"] = gate.running_max_f(obs_today, return_detail=True)
+            except Exception as _se:
+                print("sky/run_max_detail: skipped -", str(_se)[:100])
             # Competing forecasts for the same station-day. Recorded so their
             # skill can be scored against CLI -- the ledger previously held only
             # NBM `guide`, making "which forecaster is best" unanswerable.

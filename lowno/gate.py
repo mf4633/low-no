@@ -6,16 +6,34 @@ from .config import GATE
 def c_to_f(c):
     return None if c is None else c * 9 / 5 + 32
 
-def running_max_f(obs_today):
-    """Instantaneous temps only. maxTemperatureLast24Hours is EXCLUDED: read
-    before ~23:00 local it reaches into yesterday afternoon, so folding it in
-    set the morning running max to yesterday's high (audit find, 2026-08-10:
-    PHL "rmax 82.4" at 04:36 ET was Sunday's peak). Cost of exclusion: hourly
-    METAR undersamples true 1-min peaks by ~0.5-1F (the known KDEN settlement
-    premium) -- an honest undercount beats a wrong-day overcount, and CLI
-    settlement is unaffected either way."""
-    vals = [c_to_f(o["tC"]) for o in obs_today if o.get("tC") is not None]
-    return max(vals) if vals else None
+def running_max_f(obs_today, return_detail=False):
+    """Max temperature so far today, across BOTH observation streams.
+
+    2026-08-22: api.weather.gov interleaves 5-minute automated obs (converted
+    from whole degrees C -- odd Fahrenheit values only) with the :53 METARs
+    (reported to 1F, and the basis for CLI settlement). Taking whichever is
+    most recent, or only the 5-minute stream, understates the day by up to 1F.
+    KMSY read 94F on the METAR while every neighbouring 5-minute ob read 93F.
+
+    That bias lands directly on boundary rungs and contaminates the empirical
+    remaining-climb distributions. Take the max across both, and report which
+    stream produced it so the bias is measurable.
+    """
+    best, best_src, n_metar = None, None, 0
+    for o in obs_today:
+        t = o.get("tC")
+        if t is None:
+            continue
+        f = c_to_f(t)
+        src = "metar" if o.get("raw") else "fivemin"
+        if src == "metar":
+            n_metar += 1
+        if best is None or f > best:
+            best, best_src = f, src
+    if return_detail:
+        return dict(run_max=best, source=best_src, n_metar=n_metar,
+                    n_obs=len(obs_today))
+    return best
 
 def bottom_rung(rungs):
     """The rung with no floor (e.g. '<=75'). Its cap is the ceiling to beat."""

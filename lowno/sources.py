@@ -27,6 +27,16 @@ def latest_obs(station):
         t = p.get("temperature", {}).get("value")
         mx6 = (p.get("maxTemperatureLast24Hours", {}) or {}).get("value")
         out.append(dict(ts=p["timestamp"], tC=t, max24C=mx6,
+                        dewC=(p.get("dewpoint", {}) or {}).get("value"),
+                        # rawMessage is present ONLY on the :53 METARs. The other
+                        # observations are 5-minute automated obs converted from
+                        # whole degrees C, so in F they land on odd values only
+                        # (91/93/95, never 92/94). CLI settles from the official
+                        # observation, so dropping this field made run_max biased
+                        # COOL by up to 1F -- KMSY read 94F on the 2026-08-22
+                        # 2:53 METAR while every neighbouring 5-min ob read 93F.
+                        raw=p.get("rawMessage"),
+                        clouds=p.get("cloudLayers") or [],
                         wind=p.get("windDirection", {}).get("value"),
                         wspd=p.get("windSpeed", {}).get("value"),
                         vis=p.get("visibility", {}).get("value"),
@@ -289,3 +299,43 @@ def cli_max(station4, wfo, date=None):
         if awips == want_awips and summary == date and maxf is not None:
             return maxf, item.get("issuanceTime")
     return None, None
+
+
+def _obs_stream(o):
+    """Which stream an observation came from.
+
+    METARs carry rawMessage; 5-minute automated obs do not. The 5-minute values
+    are converted from whole degrees C, so in F they land only on odd numbers --
+    a second, independent tell used as a fallback when rawMessage is absent.
+    """
+    if o.get("raw"):
+        return "metar"
+    f = o.get("tF")
+    if f is not None and abs(f - round(f)) < 0.01 and int(round(f)) % 2 == 1:
+        return "fivemin_or_odd"
+    return "fivemin"
+
+
+def sky_from_obs(o):
+    """Compact sky condition: worst (most covering) layer plus its height."""
+    order = {"CLR": 0, "SKC": 0, "FEW": 1, "SCT": 2, "BKN": 3, "OVC": 4}
+    layers = o.get("clouds") or []
+    if not layers:
+        return dict(cover=None, base_ft=None, layers=[])
+    best = None
+    for L in layers:
+        amt = (L.get("amount") or "").upper()[:3]
+        ft = L.get("base")
+        if isinstance(ft, dict):
+            ft = ft.get("value")
+        ft = None if ft is None else round(ft * 3.28084)
+        if best is None or order.get(amt, 0) > order.get(best[0], 0):
+            best = (amt, ft)
+    return dict(cover=best[0], base_ft=best[1],
+                layers=[dict(amount=(L.get("amount") or "")[:3],
+                             base_ft=(None if (L.get("base") or {}).get("value") is None
+                                      else round((L["base"]["value"]) * 3.28084)))
+                        for L in layers][:4],
+                note="obscuring cover only matters at BKN/OVC; FEW/SCT trims "
+                     "little insolation. High BKN (>20000ft) is cirrus -- a "
+                     "modest trim, not a cap.")
