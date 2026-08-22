@@ -1,0 +1,18 @@
+name: discover stations
+on: { workflow_dispatch: {} }
+permissions: { contents: write }
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python probe_series.py 2>&1 | tee discover_out.txt
+      - run: python verify_cli.py BOS DFW DCA SAT ATL IAH MSP DTW BNA LAS SLC PDX STL BWI CLT MCO SAN TPA IND 2>&1 | tee verify_out.txt
+      - name: commit
+        if: always()
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          git add -A && git diff --cached --quiet || git commit -m "station discovery output"
+          git pull --rebase --autostash && git push
