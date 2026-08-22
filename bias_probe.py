@@ -1,27 +1,47 @@
-"""Measure the 5-minute vs METAR max bias across all stations."""
+"""Measure 5-min vs METAR bias PAIRWISE, at matched timestamps.
+
+The first version compared max-of-59 five-minute obs against max-of-1 METAR and
+produced a meaningless -1.74F. Maxima over mismatched windows are not a bias.
+This pairs each METAR with the 5-minute ob nearest in time (<=3 min) and reports
+the per-pair difference -- the only comparison that isolates the instrument.
+"""
 import datetime as dt, zoneinfo
 from lowno import sources, gate
 from lowno.config import CITIES
-print(f"{'city':5} {'5min':>6} {'metar':>6} {'diff':>6}  n5/nM")
-tot, n = 0.0, 0
+
+def ts(o):
+    return dt.datetime.fromisoformat(o["ts"].replace("Z", "+00:00"))
+
+allpairs = []
+print(f"{'city':5} {'pairs':>5} {'meanΔ':>7} {'maxΔ':>6}   sample (metar vs 5min)")
 for c, cfg in sorted(CITIES.items()):
     try:
         obs = sources.latest_obs(cfg["station"])
-    except Exception as e:
-        print(f"{c:5} fetch fail {str(e)[:30]}"); continue
-    today = dt.datetime.now(zoneinfo.ZoneInfo(cfg["tz"])).date().isoformat()
-    tod = []
-    for o in obs:
-        try:
-            loc = dt.datetime.fromisoformat(o["ts"].replace("Z","+00:00")).astimezone(
-                zoneinfo.ZoneInfo(cfg["tz"])).date().isoformat()
-        except Exception: continue
-        if loc == today: tod.append(o)
-    five = [gate.c_to_f(o["tC"]) for o in tod if o.get("tC") is not None and not o.get("raw")]
-    met  = [gate.c_to_f(o["tC"]) for o in tod if o.get("tC") is not None and o.get("raw")]
-    if five and met:
-        d = max(met) - max(five); tot += d; n += 1
-        print(f"{c:5} {max(five):6.1f} {max(met):6.1f} {d:+6.1f}  {len(five)}/{len(met)}")
-    else:
-        print(f"{c:5} {'--':>6} {'--':>6} {'--':>6}  {len(five)}/{len(met)}")
-if n: print(f"\nmean bias (METAR - 5min): {tot/n:+.2f} F across {n} stations")
+    except Exception:
+        continue
+    met = [o for o in obs if o.get("raw") and o.get("tC") is not None]
+    fiv = [o for o in obs if not o.get("raw") and o.get("tC") is not None]
+    if not met or not fiv:
+        continue
+    diffs, sample = [], ""
+    for m in met:
+        near = min(fiv, key=lambda f: abs((ts(f) - ts(m)).total_seconds()))
+        gap = abs((ts(near) - ts(m)).total_seconds())
+        if gap > 180:
+            continue
+        d = gate.c_to_f(m["tC"]) - gate.c_to_f(near["tC"])
+        diffs.append(d)
+        if not sample:
+            sample = f"{gate.c_to_f(m['tC']):.1f} vs {gate.c_to_f(near['tC']):.1f}"
+    if diffs:
+        allpairs += diffs
+        print(f"{c:5} {len(diffs):>5} {sum(diffs)/len(diffs):>+7.2f} "
+              f"{max(diffs, key=abs):>+6.1f}   {sample}")
+if allpairs:
+    n = len(allpairs)
+    mean = sum(allpairs) / n
+    print(f"\nPAIRED bias (METAR - nearest 5min): {mean:+.3f} F over {n} pairs")
+    print(f"  |diff| > 0.5F in {sum(1 for d in allpairs if abs(d) > 0.5)}/{n} pairs")
+    print(f"  METAR warmer in {sum(1 for d in allpairs if d > 0)}/{n}")
+    print("\nA mean near zero means the two streams agree and run_max is fine.")
+    print("A consistent positive mean means run_max is biased COOL.")
