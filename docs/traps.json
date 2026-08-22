@@ -1,13 +1,13 @@
 {
- "at": "2026-08-22T20:04:48.390803Z",
+ "at": "2026-08-22T22:37:32.892681Z",
  "traps": [
   {
    "city": "OKC",
    "ceiling": 102,
-   "price": 12,
-   "p_model": 0.4246,
-   "p_market": 0.12,
-   "edge_pts": 30.5,
+   "price": 4,
+   "p_model": 0.4327,
+   "p_market": 0.04,
+   "edge_pts": 39.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,30 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
-  {
-   "city": "MSY",
-   "ceiling": 96,
-   "price": 34,
-   "p_model": 0.6158,
-   "p_market": 0.34,
-   "edge_pts": 27.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "34c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "model and market differ by 39 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   }
