@@ -1,8 +1,261 @@
 {
- "pooled": {},
- "by_station": {},
+ "pooled": {
+  "n": {
+   "n": 36,
+   "bias": -77.61,
+   "mae": 77.61,
+   "rmse": 78.25,
+   "p_within_2F": 0.0
+  },
+  "mean": {
+   "n": 36,
+   "bias": 3.13,
+   "mae": 4.72,
+   "rmse": 8.27,
+   "p_within_2F": 0.556
+  },
+  "median": {
+   "n": 36,
+   "bias": 2.92,
+   "mae": 4.65,
+   "rmse": 8.23,
+   "p_within_2F": 0.639
+  },
+  "spread": {
+   "n": 36,
+   "bias": -78.18,
+   "mae": 78.18,
+   "rmse": 78.99,
+   "p_within_2F": 0.0
+  },
+  "nbm_guide": {
+   "n": 72,
+   "bias": 3.88,
+   "mae": 5.12,
+   "rmse": 8.71,
+   "p_within_2F": 0.583
+  },
+  "nws_grid": {
+   "n": 36,
+   "bias": 3.33,
+   "mae": 4.67,
+   "rmse": 8.54,
+   "p_within_2F": 0.667
+  },
+  "om_best": {
+   "n": 28,
+   "bias": 2.15,
+   "mae": 3.36,
+   "rmse": 7.07,
+   "p_within_2F": 0.643
+  },
+  "om_ecmwf": {
+   "n": 34,
+   "bias": 4.19,
+   "mae": 5.84,
+   "rmse": 9.14,
+   "p_within_2F": 0.5
+  },
+  "om_gfs": {
+   "n": 35,
+   "bias": 3.21,
+   "mae": 4.49,
+   "rmse": 8.36,
+   "p_within_2F": 0.6
+  },
+  "om_icon": {
+   "n": 33,
+   "bias": 3.47,
+   "mae": 5.39,
+   "rmse": 9.32,
+   "p_within_2F": 0.515
+  },
+  "om_metno": {
+   "n": 36,
+   "bias": 2.79,
+   "mae": 4.17,
+   "rmse": 7.66,
+   "p_within_2F": 0.722
+  }
+ },
+ "by_station": {
+  "AUS": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 22.0,
+    "mae": 22.0,
+    "rmse": 22.0,
+    "p_within_2F": 0.0
+   }
+  },
+  "CHI": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -2.0,
+    "mae": 2.0,
+    "rmse": 2.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "DEN": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 20.0,
+    "mae": 20.0,
+    "rmse": 20.0,
+    "p_within_2F": 0.0
+   }
+  },
+  "LAX": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -1.0,
+    "mae": 1.0,
+    "rmse": 1.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "MIA": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -0.5,
+    "mae": 0.5,
+    "rmse": 1.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "NYC": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 1.5,
+    "mae": 2.5,
+    "rmse": 2.92,
+    "p_within_2F": 0.5
+   }
+  },
+  "PHL": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -1.0,
+    "mae": 3.5,
+    "rmse": 3.61,
+    "p_within_2F": 0.0
+   }
+  },
+  "SEA": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -1.0,
+    "mae": 1.0,
+    "rmse": 1.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "SFO": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 3.0,
+    "mae": 3.0,
+    "rmse": 3.0,
+    "p_within_2F": 0.0
+   }
+  },
+  "ATL": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -1.5,
+    "mae": 1.5,
+    "rmse": 1.58,
+    "p_within_2F": 1.0
+   }
+  },
+  "BOS": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 0.25,
+    "mae": 1.75,
+    "rmse": 2.18,
+    "p_within_2F": 0.75
+   }
+  },
+  "DC": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 3.5,
+    "mae": 3.5,
+    "rmse": 4.95,
+    "p_within_2F": 0.5
+   }
+  },
+  "LAS": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -1.0,
+    "mae": 1.0,
+    "rmse": 1.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "MSP": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 0.0,
+    "mae": 0.0,
+    "rmse": 0.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "MSY": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 2.5,
+    "mae": 2.5,
+    "rmse": 2.65,
+    "p_within_2F": 0.75
+   }
+  },
+  "OKC": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 6.5,
+    "mae": 6.5,
+    "rmse": 6.56,
+    "p_within_2F": 0.0
+   }
+  },
+  "SAN": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": -0.5,
+    "mae": 1.0,
+    "rmse": 1.0,
+    "p_within_2F": 1.0
+   }
+  },
+  "SAT": {
+   "nbm_guide": {
+    "n": 4,
+    "bias": 19.0,
+    "mae": 19.0,
+    "rmse": 19.0,
+    "p_within_2F": 0.0
+   }
+  }
+ },
  "min_n": 3,
- "ranking_by_rmse": [],
+ "ranking_by_rmse": [
+  "om_best",
+  "om_metno",
+  "median",
+  "mean",
+  "om_gfs",
+  "nws_grid",
+  "nbm_guide",
+  "om_ecmwf",
+  "om_icon",
+  "n",
+  "spread"
+ ],
  "note": "Started 2026-08-22. Earlier history has only NBM guide -- competing forecasts were never archived and cannot be reconstructed. Needs ~3 weeks before a ranking means anything.",
- "generated": "2026-08-22T20:05:58.830579Z"
+ "generated": "2026-08-23T03:13:42.682093Z"
 }
