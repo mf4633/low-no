@@ -1,13 +1,13 @@
 {
- "at": "2026-08-23T15:37:36.851403Z",
+ "at": "2026-08-23T16:42:25.338139Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 77,
    "price": 4,
-   "p_model": 0.161,
+   "p_model": 0.1616,
    "p_market": 0.04,
-   "edge_pts": 12.1,
+   "edge_pts": 12.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -21,29 +21,6 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "OKC",
-   "ceiling": 101,
-   "price": 43,
-   "p_model": 0.4563,
-   "p_market": 0.43,
-   "edge_pts": 2.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=2.5 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "43c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
