@@ -1,25 +1,5 @@
 {
- "at": "2026-08-23T23:34:32.753696Z",
- "traps": [
-  {
-   "city": "BOS",
-   "ceiling": 77,
-   "price": 1,
-   "p_model": 0.9661,
-   "p_market": 0.01,
-   "edge_pts": 95.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 96 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=2.5 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  }
- ],
+ "at": "2026-08-24T14:04:28.391038Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
