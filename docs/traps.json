@@ -1,13 +1,13 @@
 {
- "at": "2026-08-24T19:42:08.715511Z",
+ "at": "2026-08-24T20:47:21.370761Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 99,
-   "price": 53,
-   "p_model": 0.5446,
-   "p_market": 0.53,
-   "edge_pts": 1.5,
+   "price": 30,
+   "p_model": 0.5549,
+   "p_market": 0.3,
+   "edge_pts": 25.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,12 +15,16 @@
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 25 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "NO_HISTORY",
      "why": "n_eff=2.5 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
      "code": "GRAVEYARD",
-     "why": "53c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "30c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
