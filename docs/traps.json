@@ -1,5 +1,29 @@
 {
- "at": "2026-08-25T15:58:12.038361Z",
- "traps": [],
+ "at": "2026-08-25T16:55:39.477856Z",
+ "traps": [
+  {
+   "city": "NYC",
+   "ceiling": 79,
+   "price": 25,
+   "p_model": 0.3097,
+   "p_market": 0.25,
+   "edge_pts": 6.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=14.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "25c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
