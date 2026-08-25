@@ -1,25 +1,5 @@
 {
- "at": "2026-08-25T14:03:26.151188Z",
- "traps": [
-  {
-   "city": "SEA",
-   "ceiling": 83,
-   "price": 94,
-   "p_model": 0.9574,
-   "p_market": 0.94,
-   "edge_pts": 1.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=14.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  }
- ],
+ "at": "2026-08-25T15:03:28.230774Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
