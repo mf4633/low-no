@@ -15,6 +15,11 @@ from .config import CITIES
 
 FEE_RATE = 0.07  # Kalshi: ceil(0.07 * C * P * (1-P)) cents per contract
 
+# When the bottom-rung cap off-by-one fix (sources.py) deployed. Logs written
+# before this carry the raw Kalshi threshold as the bottom cap (1F too high);
+# used only as a fallback where ladder-based detection is impossible.
+CAP_FIX_UTC = "2026-08-25T17:11"
+
 
 def fee_cents(price_cents):
     p = price_cents / 100.0
@@ -49,9 +54,20 @@ def load_day(day):
             continue
         if (r["city"], r["at"][:15]) in ladder_cycles:
             continue
+        # Gate rows carry no ladder context, so pre/post cap-fix status falls
+        # back to the deploy timestamp (see CAP_FIX_UTC below).
+        d["cap_is_raw"] = r["at"] < CAP_FIX_UTC
         rows.append(r)
     for r in ladder:
         d = r["detail"]
+        # Pre-fix bottom rungs are SELF-IDENTIFYING: their logged cap equals the
+        # first range bucket's floor (the impossible overlap that proved the
+        # off-by-one), while post-fix caps sit 1 below it. Detect per record --
+        # 2026-08-25's log is MIXED (raw before the ~17:11Z deploy, corrected
+        # after), so a date boundary would misgrade that day.
+        range_floors = [g.get("fl") for g in d.get("rungs", [])
+                        if g.get("fl") is not None and g.get("cap") is not None]
+        min_rf = min(range_floors) if range_floors else None
         for rung in d.get("rungs", []):
             if rung.get("na") is None or rung.get("src") in (None, "absent"):
                 continue
@@ -62,9 +78,14 @@ def load_day(day):
             #   top     T-fl,  cap None: YES iff T >= fl            NO wins: T < fl
             # Boundary settles count for YES (conservative for the NO buyer).
             kind = "bottom" if fl is None else ("top" if cap is None else "range")
+            if kind == "bottom" and cap is not None and min_rf is not None:
+                cap_is_raw = cap >= min_rf
+            else:
+                cap_is_raw = r["at"] < CAP_FIX_UTC
             rows.append(dict(city=r["city"], station=r["station"], at=r["at"],
                 verdict="LADDER",
                 detail=dict(ticker=rung["t"], kind=kind, ceiling=cap, floor=fl,
+                    cap_is_raw=cap_is_raw,
                     no_ask=rung["na"] / 100.0, yes_bid=rung.get("yb"),
                     yes_ask=rung.get("ya"),
                     depth=rung.get("depth"),
@@ -129,7 +150,19 @@ def build(days=None):
             fl, cap = d.get("floor"), d.get("ceiling")
             if kind == "bottom":
                 if cap is None: continue
+                # NO side stays graded on the LOGGED cap, even for pre-fix rows
+                # where that cap is the raw threshold (1F too high). Deliberate:
+                # correcting history would silently rewrite every NO band/variant
+                # table mid-measurement. Consequence, named: for pre-fix bottom
+                # rungs a settle exactly AT the logged cap is graded NO-loss when
+                # it was in fact a NO-win, so pre-fix NO figures are pessimistic
+                # at the boundary -- one more reason cap_fix_since populations
+                # must not be pooled.
                 won = s > cap
+                # YES side IS cap-corrected: grade against the true inclusive
+                # cap (logged - 1 for pre-fix rows). So for pre-fix boundary
+                # settles yes_won is NOT simply `not won` -- both read False.
+                yes_cap = cap - 1 if d.get("cap_is_raw") else cap
             elif kind == "top":
                 if fl is None: continue
                 won = s < fl
@@ -144,13 +177,14 @@ def build(days=None):
             # the YES buyer (a real ask sits at or above it). Any band that
             # survives only on the derived price is an artifact, not an edge --
             # yes_price_src marks which population each observation belongs to.
-            yes_won = not won
+            yes_won = (s <= yes_cap) if kind == "bottom" else (not won)
             yes_price = ya if ya is not None else (100 - price)
             yes_price_src = "real_ask" if ya is not None else "derived_ignores_spread"
             yes_spread = (ya - (100 - price)) if ya is not None else None
             obs.append(dict(
                 day=day, city=city, at=r["at"], verdict=r["verdict"], kind=kind,
-                ceiling=d["ceiling"], price=price, yes_bid=yb, yes_ask=ya,
+                ceiling=d["ceiling"], cap_is_raw=d.get("cap_is_raw"),
+                price=price, yes_bid=yb, yes_ask=ya,
                 guide=guide, pop=d.get("pop"), run_max=d.get("run_max"),
                 G=(guide - cap) if (guide is not None and cap is not None) else None,
                 settle=s, won=won, pnl=pnl_cents(price, won),
