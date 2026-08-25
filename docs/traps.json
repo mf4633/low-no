@@ -1,13 +1,13 @@
 {
- "at": "2026-08-25T19:44:35.281964Z",
+ "at": "2026-08-25T20:43:20.261457Z",
  "traps": [
   {
    "city": "DAL",
    "ceiling": 102,
-   "price": 49,
-   "p_model": 0.8619,
-   "p_market": 0.49,
-   "edge_pts": 37.2,
+   "price": 30,
+   "p_model": 0.8803,
+   "p_market": 0.3,
+   "edge_pts": 58.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,21 +16,44 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 37 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 58 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "49c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "30c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 82,
+   "price": 31,
+   "p_model": 0.6032,
+   "p_market": 0.31,
+   "edge_pts": 29.3,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=4.4 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "31c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "NYC",
    "ceiling": 78,
-   "price": 8,
-   "p_model": 0.1507,
-   "p_market": 0.08,
-   "edge_pts": 7.1,
+   "price": 3,
+   "p_model": 0.1118,
+   "p_market": 0.03,
+   "edge_pts": 8.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -43,7 +66,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 2.1F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 2.1F short. The climb window has closed."
     }
    ]
   }
