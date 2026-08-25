@@ -9,7 +9,7 @@ Nothing here places or recommends orders. It scores counterfactuals on logged
 prices, and a counterfactual fill at the logged ask is optimistic by construction
 (no queue, no slippage, no size). Treat every number below as an upper bound.
 """
-import json, glob, os, math, datetime as dt
+import json, glob, os, math, datetime as dt, zoneinfo
 from . import sources
 from .config import CITIES
 
@@ -90,7 +90,14 @@ def settle_map(days):
         except Exception:
             cache = {}
     fetched = 0
+    # Never fetch the CURRENT ET trading date. A CLI product fetched intraday
+    # reports the max SO FAR, not the final max, and non-null cache entries are
+    # immutable -- a midday run on 2026-08-25 froze AUS=82/DEN=67/SAT=81 hours
+    # before peak heat and graded three phantom YES wins. Today settles tomorrow.
+    today_et = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
     for day in days:
+        if day >= today_et:
+            continue
         for city, cfg in CITIES.items():
             k = f"{day}|{city}"
             if cache.get(k) is not None:

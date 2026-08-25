@@ -153,6 +153,36 @@ def main():
         score_rule("floor96_only",         lambda o: 96 <= o["price"] <= 98),
     ]
 
+    # PRE-REGISTERED 2026-08-25, before any qualifying data existed -- so this
+    # variant cannot be a product of scanning the yes_bands table it grew out of.
+    # Rule: buy YES <= 10c on bottom rungs at stations whose measured guide bias
+    # runs hotter than +3F. Mechanism: a hot-biased guide drags the market toward
+    # heat; when the guide busts, the cheap "stays capped" side pays. Constraints:
+    #   * days >= 2026-08-26 ONLY (first full day of cap-corrected scans; earlier
+    #     yes_won grades used the raw threshold cap, which favours YES at the
+    #     exact boundary this bet lives on)
+    #   * real logged yes_ask ONLY -- the derived 100 - no_ask ignores the spread
+    #     and flatters the YES buyer
+    # Known hedge: station bias is evaluated at scoring time, not trade time, so
+    # early units lean on bias measured partly after the fact. Promotion bar is
+    # the same as everything else: >= 60 units, Wilson LCB > fee breakeven.
+    def score_yes_rule(name, keep):
+        taken, seen = [], set()
+        for o in sorted(bottom, key=lambda x: x["at"]):
+            if o.get("yes_price") is None or o["day"] < "2026-08-26": continue
+            cd = (o["day"], o["city"])
+            if cd in seen or not keep(o): continue
+            seen.add(cd); taken.append(o)
+        n = len(taken); k = sum(1 for t in taken if t["yes_won"])
+        lo_, _ = wilson(k, n)
+        return dict(rule=name, n=n, wins=k, hit=(k/n if n else None),
+                    lcb=round(lo_, 3), pnl_c=sum(t["yes_pnl"] for t in taken),
+                    mean_pnl_c=(round(sum(t["yes_pnl"] for t in taken)/n, 2) if n else None))
+    variants.append(score_yes_rule("PREREG_yes10_hotbias3",
+        lambda o: 1 <= o["yes_price"] <= 10
+                  and o.get("yes_price_src") == "real_ask"
+                  and abias.get(o["city"], 0.0) > 3.0))
+
     out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z"),
                n_rung_obs=len(obs), n_bottom_obs=len(bottom), n_units=len(units),
                days=sorted({o["day"] for o in obs}), bands=roll, yes_bands=yroll,
