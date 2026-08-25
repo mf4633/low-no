@@ -1,37 +1,22 @@
 {
- "at": "2026-08-25T22:44:17.505363Z",
+ "at": "2026-08-25T23:37:40.788191Z",
  "traps": [
   {
-   "city": "DAL",
-   "ceiling": 102,
-   "price": 1,
-   "p_model": 0.8803,
-   "p_market": 0.01,
-   "edge_pts": 87.0,
+   "city": "MSP",
+   "ceiling": 82,
+   "price": 2,
+   "p_model": 0.6998,
+   "p_market": 0.02,
+   "edge_pts": 68.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 87 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
-  {
-   "city": "MSP",
-   "ceiling": 82,
-   "price": 10,
-   "p_model": 0.6032,
-   "p_market": 0.1,
-   "edge_pts": 50.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 50 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -40,12 +25,12 @@
    ]
   },
   {
-   "city": "NYC",
-   "ceiling": 78,
-   "price": 2,
-   "p_model": 0.4599,
-   "p_market": 0.02,
-   "edge_pts": 44.0,
+   "city": "DAL",
+   "ceiling": 102,
+   "price": 1,
+   "p_model": 0.6737,
+   "p_market": 0.01,
+   "edge_pts": 66.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -54,7 +39,22 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 44 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 66 pts. In this ledger the market won 7 of 8 such disputes."
+    }
+   ]
+  },
+  {
+   "city": "NYC",
+   "ceiling": 78,
+   "price": 3,
+   "p_model": 0.5028,
+   "p_market": 0.03,
+   "edge_pts": 47.3,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -62,7 +62,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   }
