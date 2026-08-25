@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-25T17:55:15.491385Z",
+ "generated": "2026-08-25T19:13:17.645504Z",
  "n_rung_obs": 11610,
  "n_bottom_obs": 2185,
  "n_units": 201,
@@ -330,51 +330,15 @@
   "HOU": 3.5
  },
  "adaptive": {
-  "SAT": {
-   "bias": 4.5,
-   "sigma": 2.0,
-   "n_eff": 4.4,
-   "mode": "recency-pooled"
-  },
-  "MSY": {
-   "bias": 0.86,
-   "sigma": 1.88,
-   "n_eff": 4.4,
-   "mode": "recency-pooled"
-  },
-  "HOU": {
-   "bias": 1.97,
-   "sigma": 2.05,
-   "n_eff": 3.4,
-   "mode": "recency-pooled"
-  },
-  "NYC": {
-   "bias": 1.45,
-   "sigma": 2.36,
+  "AUS": {
+   "bias": 2.04,
+   "sigma": 7.86,
    "n_eff": 14.6,
    "mode": "seasonal(m08,n=18)"
-  },
-  "LAX": {
-   "bias": -2.14,
-   "sigma": 2.32,
-   "n_eff": 14.6,
-   "mode": "seasonal(m08,n=18)"
-  },
-  "ATL": {
-   "bias": -0.43,
-   "sigma": 2.0,
-   "n_eff": 4.4,
-   "mode": "recency-pooled"
   },
   "BOS": {
    "bias": -0.46,
    "sigma": 2.0,
-   "n_eff": 4.4,
-   "mode": "recency-pooled"
-  },
-  "SAN": {
-   "bias": -0.44,
-   "sigma": 2.44,
    "n_eff": 4.4,
    "mode": "recency-pooled"
   },
@@ -384,17 +348,11 @@
    "n_eff": 14.6,
    "mode": "seasonal(m08,n=18)"
   },
-  "MIA": {
-   "bias": -0.62,
-   "sigma": 2.08,
-   "n_eff": 12.8,
-   "mode": "recency-pooled"
-  },
-  "SFO": {
-   "bias": 1.56,
-   "sigma": 3.75,
-   "n_eff": 14.6,
-   "mode": "seasonal(m08,n=18)"
+  "PHX": {
+   "bias": -0.37,
+   "sigma": 1.07,
+   "n_eff": 13.6,
+   "mode": "seasonal(m08,n=17)"
   },
   "DC": {
    "bias": -0.66,
@@ -402,27 +360,9 @@
    "n_eff": 4.4,
    "mode": "recency-pooled"
   },
-  "CHI": {
-   "bias": -0.83,
-   "sigma": 1.61,
-   "n_eff": 14.6,
-   "mode": "seasonal(m08,n=18)"
-  },
-  "OKC": {
-   "bias": 2.77,
-   "sigma": 2.28,
-   "n_eff": 3.4,
-   "mode": "recency-pooled"
-  },
-  "MSP": {
-   "bias": -0.88,
-   "sigma": 2.11,
-   "n_eff": 4.4,
-   "mode": "recency-pooled"
-  },
-  "AUS": {
-   "bias": 2.04,
-   "sigma": 7.86,
+  "LAX": {
+   "bias": -2.14,
+   "sigma": 2.32,
    "n_eff": 14.6,
    "mode": "seasonal(m08,n=18)"
   },
@@ -438,17 +378,77 @@
    "n_eff": 14.6,
    "mode": "seasonal(m08,n=18)"
   },
+  "SAT": {
+   "bias": 4.5,
+   "sigma": 2.0,
+   "n_eff": 4.4,
+   "mode": "recency-pooled"
+  },
+  "HOU": {
+   "bias": 1.97,
+   "sigma": 2.05,
+   "n_eff": 3.4,
+   "mode": "recency-pooled"
+  },
   "LAS": {
    "bias": -0.56,
    "sigma": 1.71,
    "n_eff": 3.4,
    "mode": "recency-pooled"
   },
-  "PHX": {
-   "bias": -0.37,
-   "sigma": 1.07,
-   "n_eff": 13.6,
-   "mode": "seasonal(m08,n=17)"
+  "MSP": {
+   "bias": -0.88,
+   "sigma": 2.11,
+   "n_eff": 4.4,
+   "mode": "recency-pooled"
+  },
+  "CHI": {
+   "bias": -0.83,
+   "sigma": 1.61,
+   "n_eff": 14.6,
+   "mode": "seasonal(m08,n=18)"
+  },
+  "MSY": {
+   "bias": 0.86,
+   "sigma": 1.88,
+   "n_eff": 4.4,
+   "mode": "recency-pooled"
+  },
+  "OKC": {
+   "bias": 2.77,
+   "sigma": 2.28,
+   "n_eff": 3.4,
+   "mode": "recency-pooled"
+  },
+  "MIA": {
+   "bias": -0.62,
+   "sigma": 2.08,
+   "n_eff": 12.8,
+   "mode": "recency-pooled"
+  },
+  "SAN": {
+   "bias": -0.44,
+   "sigma": 2.44,
+   "n_eff": 4.4,
+   "mode": "recency-pooled"
+  },
+  "SFO": {
+   "bias": 1.56,
+   "sigma": 3.75,
+   "n_eff": 14.6,
+   "mode": "seasonal(m08,n=18)"
+  },
+  "NYC": {
+   "bias": 1.45,
+   "sigma": 2.36,
+   "n_eff": 14.6,
+   "mode": "seasonal(m08,n=18)"
+  },
+  "ATL": {
+   "bias": -0.43,
+   "sigma": 2.0,
+   "n_eff": 4.4,
+   "mode": "recency-pooled"
   }
  },
  "diurnal": {
@@ -3736,7 +3736,9 @@
    "hit": null,
    "lcb": 0.0,
    "pnl_c": 0,
-   "mean_pnl_c": null
+   "mean_pnl_c": null,
+   "mean_price": null,
+   "n_real_ask": 0
   }
  ],
  "brier": {

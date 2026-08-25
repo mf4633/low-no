@@ -177,7 +177,10 @@ def main():
         lo_, _ = wilson(k, n)
         return dict(rule=name, n=n, wins=k, hit=(k/n if n else None),
                     lcb=round(lo_, 3), pnl_c=sum(t["yes_pnl"] for t in taken),
-                    mean_pnl_c=(round(sum(t["yes_pnl"] for t in taken)/n, 2) if n else None))
+                    mean_pnl_c=(round(sum(t["yes_pnl"] for t in taken)/n, 2) if n else None),
+                    mean_price=(round(sum(t["yes_price"] for t in taken)/n, 1) if n else None),
+                    n_real_ask=sum(1 for t in taken
+                                   if t.get("yes_price_src") == "real_ask"))
     variants.append(score_yes_rule("PREREG_yes10_hotbias3",
         lambda o: 1 <= o["yes_price"] <= 10
                   and o.get("yes_price_src") == "real_ask"
@@ -236,6 +239,27 @@ def main():
         h = f"{v['hit']:.0%}" if v['hit'] is not None else "--"
         m = v['mean_pnl_c'] if v['mean_pnl_c'] is not None else "--"
         print(f"{v['rule']:>22} {v['n']:>3} {v['wins']:>3} {h:>6} {v['lcb']:>5.0%} {m:>8}")
+    # Self-announcing promotion review for the pre-registered YES pilot.
+    # The quit lines and promotion criteria live in CANDIDATE.md ("YES Pilot
+    # v1"), pre-committed 2026-08-25 with $0 at risk and n=0. This print exists
+    # so the review date is set by the data, not by anyone remembering to look.
+    pr = next((v for v in variants if v["rule"] == "PREREG_yes10_hotbias3"), None)
+    if pr is not None:
+        if pr["n"] < 60:
+            print(f"\nPREREG_yes10_hotbias3: {pr['n']}/60 units toward promotion "
+                  f"review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)")
+        else:
+            mp = pr["mean_price"]
+            fee = math.ceil(0.07 * 100 * (mp / 100) * (1 - mp / 100))
+            be = mp / (100 - fee)
+            ra = pr["n_real_ask"] / pr["n"]
+            met = pr["lcb"] > be and ra >= 0.90
+            print(f"\nPREREG_yes10_hotbias3: n={pr['n']} hit={pr['hit']:.1%} "
+                  f"LCB={pr['lcb']:.1%} vs breakeven={be:.1%} real_ask={ra:.0%} -> "
+                  + ("PROMOTION CRITERIA 1-3 MET: re-probe liquidity (criterion 4), "
+                     "then review CANDIDATE.md YES Pilot v1 before ANY seed"
+                     if met else "not proven; keep accruing"))
+
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
 
