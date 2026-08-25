@@ -196,8 +196,24 @@ def orderbook_depth(ticker, max_price=98, probe_path=None):
     yes_lv = _ob_levels(ob.get("yes_dollars") or ob.get("yes"))
     no_lv = [(100 - px, sz) for px, sz in yes_lv if 0 < px < 100]
     src = "from_yes_bids" if no_lv else "empty"
+
+    # YES-side liquidity from the SAME payload (zero extra calls): buying YES at
+    # P lifts a resting NO bid at (100-P), so the no_dollars stack, inverted, is
+    # what a YES buyer can fill. Logged for the YES pilot's fill-reality model
+    # (CANDIDATE.md): the paper P&L assumes full fills at the logged ask, and
+    # this is the only record of whether the contracts actually existed. Books
+    # are EPHEMERAL -- this cannot be reconstructed after the fact.
+    nb_lv = _ob_levels(ob.get("no_dollars") or ob.get("no"))
+    yes_ask_lv = sorted([(100 - px, sz) for px, sz in nb_lv if 0 < px < 100])
+    yes_fill = [(px, sz) for px, sz in yes_ask_lv if px <= 10]
+    yes_side = dict(
+        yes_best_ask=(yes_ask_lv[0][0] if yes_ask_lv else None),
+        yes_ctr_le_10c=sum(sz for _, sz in yes_fill),
+        yes_usd_le_10c=round(sum(px * sz for px, sz in yes_fill) / 100.0, 2))
+
     if not no_lv:
-        return dict(src=src, best_no_ask=None, depth_le_max=0, notional_le_max=0.0)
+        return dict(src=src, best_no_ask=None, depth_le_max=0,
+                    notional_le_max=0.0, **yes_side)
 
     buyable = sorted([(px, sz) for px, sz in no_lv if px <= max_price])
     best = buyable[0][0] if buyable else None
@@ -206,7 +222,7 @@ def orderbook_depth(ticker, max_price=98, probe_path=None):
     notional = sum(px * sz for px, sz in buyable) / 100.0
     return dict(src=src, best_no_ask=best, depth_at_best=depth_best,
                 depth_le_max=depth_all, notional_le_max=round(notional, 2),
-                levels=buyable[:8])
+                levels=buyable[:8], **yes_side)
 
 
 def asos_1min_max(station4, date=None):

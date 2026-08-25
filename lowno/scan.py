@@ -115,11 +115,18 @@ def scan_once():
             # Full-ladder record: every rung's quotes, not just the bottom one
             # the gate evaluates. The gate stays frozen -- this is telemetry.
             # ~6x the settled observations per day at zero marginal fetch cost.
+            # oi/vol were fetched per rung and then dropped here since Aug 7;
+            # sky was computed and kept only on the gate row. Both are ephemeral
+            # (unreconstructable later) and cheap (no extra fetches): oi/vol
+            # feed future fill/activity models, sky feeds YES-win attribution
+            # (marine layer / frontal bust vs. clear-day miss).
             results.append(dict(city=key, station=c["station"], verdict="LADDER",
                 detail=dict(guide=guide, pop=pop, run_max=rmax,
+                    sky=(detail.get("sky") if isinstance(detail, dict) else None),
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
+                                oi=r.get("oi"), vol=r.get("vol"),
                                 src=r.get("quote_src")) for r in rungs]),
                 at=dt.datetime.utcnow().isoformat()))
             row = dict(city=key, station=c["station"], verdict=verdict,
