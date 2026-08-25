@@ -114,8 +114,19 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
             src = "synthetic" if no_ask is not None else "absent"
         if no_bid is None and yes_ask is not None:
             no_bid = 100 - yes_ask
+        # Kalshi T-tickers name a THRESHOLD, not an inclusive cap: KXHIGHTSATX-T101
+        # is the contract "100 or below", yet the API's cap_strike says 101.
+        # Verified across all 21 stations (2026-08-25): the bottom rung's raw
+        # cap_strike always equals the FIRST RANGE bucket's floor_strike, which is
+        # impossible for inclusive buckets -- they would overlap. So subtract 1,
+        # for the BOTTOM rung ONLY (floor_strike is None); range and top rungs'
+        # strikes are already inclusive and correct. Do NOT "fix" this back to the
+        # raw API value -- the raw value is preserved in cap_strike_raw.
+        cap_raw = m.get("cap_strike")
+        floor = m.get("floor_strike")
+        cap = cap_raw - 1 if (floor is None and cap_raw is not None) else cap_raw
         rungs.append(dict(ticker=m["ticker"],
-                          cap=m.get("cap_strike"), floor=m.get("floor_strike"),
+                          cap=cap, floor=floor, cap_strike_raw=cap_raw,
                           yes_bid=yes_bid, yes_ask=yes_ask,
                           no_ask=no_ask, no_bid=no_bid, quote_src=src,
                           oi=m.get("open_interest"), vol=m.get("volume")))

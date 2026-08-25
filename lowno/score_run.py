@@ -79,6 +79,12 @@ def main():
     # advisor-concur stats across this line.
     led["advisor_version"] = 2
     led["advisor_v2_since"] = "2026-08-11"
+    # Bottom-rung cap fix boundary: flags before this date were graded against a
+    # ceiling 1F too high (raw Kalshi cap_strike is a threshold, not an inclusive
+    # cap), and their G = guide - ceiling was 1F too small. None of the six
+    # graded flags flip (margins were 2F+), but empirical cells built before the
+    # fix are a DIFFERENT population and must not be pooled with post-fix cells.
+    led["cap_fix_since"] = "2026-08-24"
     json.dump(led, open("docs/ledger.json", "w"), indent=1)
     open("REPORT.md", "w").write(score.report(last_graded, last_settles))
     print(open("REPORT.md").read())

@@ -66,6 +66,7 @@ def load_day(day):
                 verdict="LADDER",
                 detail=dict(ticker=rung["t"], kind=kind, ceiling=cap, floor=fl,
                     no_ask=rung["na"] / 100.0, yes_bid=rung.get("yb"),
+                    yes_ask=rung.get("ya"),
                     depth=rung.get("depth"),
                     quote_src=rung["src"], guide=d.get("guide"),
                     pop=d.get("pop"), run_max=d.get("run_max"))))
@@ -130,12 +131,24 @@ def build(days=None):
                 won = (s < fl) or (s > cap)
             price = int(round(d["no_ask"] * 100))
             guide, yb = d.get("guide"), d.get("yes_bid")
+            ya = d.get("yes_ask")
+            # YES side of the same rung. When no real yes_ask was logged, the
+            # derived price 100 - no_ask IGNORES THE SPREAD and therefore FAVOURS
+            # the YES buyer (a real ask sits at or above it). Any band that
+            # survives only on the derived price is an artifact, not an edge --
+            # yes_price_src marks which population each observation belongs to.
+            yes_won = not won
+            yes_price = ya if ya is not None else (100 - price)
+            yes_price_src = "real_ask" if ya is not None else "derived_ignores_spread"
+            yes_spread = (ya - (100 - price)) if ya is not None else None
             obs.append(dict(
                 day=day, city=city, at=r["at"], verdict=r["verdict"], kind=kind,
-                ceiling=d["ceiling"], price=price, yes_bid=yb,
+                ceiling=d["ceiling"], price=price, yes_bid=yb, yes_ask=ya,
                 guide=guide, pop=d.get("pop"), run_max=d.get("run_max"),
                 G=(guide - cap) if (guide is not None and cap is not None) else None,
                 settle=s, won=won, pnl=pnl_cents(price, won),
+                yes_won=yes_won, yes_price=yes_price, yes_price_src=yes_price_src,
+                yes_spread=yes_spread, yes_pnl=pnl_cents(yes_price, yes_won),
                 # market-implied P(NO wins) = 1 - P(YES); yes_bid is in cents
                 mkt_no=(100 - yb) if yb is not None else None,
                 depth=d.get("depth"),

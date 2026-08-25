@@ -50,6 +50,38 @@ def main():
                          breakeven=round(need,4), lcb=round(lo_,4), ucb=round(hi_,4),
                          mean_pnl_c=round(sum(x["pnl"] for x in g)/n,2),
                          proven=bool(lo_ > need)))
+    # YES side of the same bottom rungs: same bands, same one-entry-per-
+    # city-day-band dedup, same fee model and Wilson bounds. CAUTION: where no
+    # real yes_ask was logged, yes_price is derived as 100 - no_ask, which
+    # IGNORES THE SPREAD and therefore FAVOURS the YES buyer (a real ask sits at
+    # or above the derived price). Any band that survives only on derived prices
+    # is an artifact -- n_real_ask records how much of each band is real quotes.
+    yunits = {}
+    for o in sorted(bottom, key=lambda x: x["at"]):
+        yp = o.get("yes_price")
+        if yp is None: continue
+        b = band_of(yp)
+        if b is None: continue
+        yunits.setdefault((o["day"], o["city"], b), o)   # first cycle in band
+
+    yroll = []
+    for b in [f"{lo}-{hi}" for lo, hi in BANDS]:
+        g = [v for k, v in yunits.items() if k[2] == b]
+        n = len(g); k = sum(1 for x in g if x["yes_won"])
+        if n == 0:
+            yroll.append(dict(band=b, n=0)); continue
+        mp = sum(x["yes_price"] for x in g)/n
+        fee = math.ceil(0.07*100*(mp/100)*(1-mp/100))
+        need = mp/(100-fee)
+        lo_, hi_ = wilson(k, n)
+        yroll.append(dict(band=b, n=n, wins=k, hit=k/n, mean_price=round(mp,1),
+                          breakeven=round(need,4), lcb=round(lo_,4), ucb=round(hi_,4),
+                          mean_pnl_c=round(sum(x["yes_pnl"] for x in g)/n,2),
+                          n_real_ask=sum(1 for x in g
+                                         if x.get("yes_price_src") == "real_ask"),
+                          proven=bool(lo_ > need)))
+    yspreads = [o["yes_spread"] for o in obs if o.get("yes_spread") is not None]
+
     # Per-station guide bias from settled days: mean(guide - CLI). This is the
     # transfer-function candidate (same shape as the EWR-3.5 KNYC correction).
     bias_acc = defaultdict(list)
@@ -123,7 +155,11 @@ def main():
 
     out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z"),
                n_rung_obs=len(obs), n_bottom_obs=len(bottom), n_units=len(units),
-               days=sorted({o["day"] for o in obs}), bands=roll,
+               days=sorted({o["day"] for o in obs}), bands=roll, yes_bands=yroll,
+               yes_spread=dict(n=len(yspreads),
+                               mean=(round(sum(yspreads)/len(yspreads), 2)
+                                     if yspreads else None),
+                               max=(max(yspreads) if yspreads else None)),
                station_guide_bias=bias,
                adaptive={c: dict(zip(("bias","sigma","n_eff","mode"),
                                      adaptive.bias_sigma(c)))
@@ -148,6 +184,22 @@ def main():
         if not r["n"]: continue
         print(f"{r['band']:>6} {r['n']:>3} {r['wins']:>3} {r['hit']:>6.0%} "
               f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r['mean_pnl_c']:>7.1f} {str(r['proven']):>7}")
+    # YES-side sweep. Reminder: derived prices (100 - no_ask) ignore the spread
+    # and flatter the YES buyer -- read the real_ask column before believing a band.
+    print(f"\nYES bands (real_ask = units priced from a logged yes_ask; the rest "
+          f"are 100 - no_ask, spread-blind and optimistic)")
+    print(f"{'band':>6} {'n':>3} {'w':>3} {'hit':>6} {'need':>6} {'LCB':>6} {'pnl':>7} {'real_ask':>8} {'proven':>7}")
+    for r in yroll:
+        if not r["n"]: continue
+        print(f"{r['band']:>6} {r['n']:>3} {r['wins']:>3} {r['hit']:>6.0%} "
+              f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r['mean_pnl_c']:>7.1f} "
+              f"{r['n_real_ask']:>8} {str(r['proven']):>7}")
+    if yspreads:
+        print(f"yes_spread over {len(yspreads)} real-ask obs: "
+              f"mean {sum(yspreads)/len(yspreads):.2f}c, max {max(yspreads)}c")
+    else:
+        print("yes_spread: no real-ask observations yet")
+
     print("\nstation guide bias (guide - CLI):", dict(sorted(bias.items(), key=lambda kv: -abs(kv[1]))))
     print(f"\n{'rule':>22} {'n':>3} {'w':>3} {'hit':>6} {'LCB':>5} {'meanP&L':>8}")
     for v in variants:
