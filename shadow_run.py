@@ -6,7 +6,7 @@ city-day-band so n reflects independent observations, not scan cycles.
 """
 import json, math, datetime as dt, zoneinfo
 from collections import defaultdict
-from lowno import shadow, adaptive, convergence, spend, skill
+from lowno import shadow, adaptive, convergence, spend, skill, paper_pilot
 from lowno.config import CITIES
 
 MARINE_CITIES = {"SFO", "LAX", "SAN"}   # keep in sync with lowno.prob.MARINE
@@ -259,6 +259,22 @@ def main():
                   + ("PROMOTION CRITERIA 1-3 MET: re-probe liquidity (criterion 4), "
                      "then review CANDIDATE.md YES Pilot v1 before ANY seed"
                      if met else "not proven; keep accruing"))
+
+    # PAPER $100 pilot: deterministic nightly replay of the YES Pilot v1 rules
+    # (CANDIDATE.md) against the fixed 6.8% hypothesis. Paper only, no orders.
+    try:
+        pp = paper_pilot.run(obs)
+        json.dump(pp, open("docs/paper_pilot.json", "w"), indent=1)
+        c = pp["config"]
+        print(f"\nPAPER PILOT ${c['bankroll0']:.0f} @ {c['start_day']} "
+              f"(p_hyp {c['p_hyp']:.1%}, half-Kelly, cap {c['cap_frac']:.0%}): "
+              f"${pp['bankroll']:.2f} after {pp['n_trades']} trades "
+              f"({pp['wins']} wins, {pp['n_skipped']} skipped), status {pp['status']}; "
+              f"quit lines ${c['quit_down']:.0f} / ${c['quit_up']:.0f}")
+        if pp["status"] != "ACTIVE":
+            print(f"PAPER PILOT HALTED: {pp['status']} -- see CANDIDATE.md YES Pilot v1")
+    except Exception as e:
+        print("paper pilot: skipped -", str(e)[:100])
 
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
