@@ -1,5 +1,78 @@
 {
- "at": "2026-08-25T20:43:20.264713Z",
- "tracked": [],
+ "at": "2026-08-25T21:41:58.846694Z",
+ "tracked": [
+  {
+   "city": "DEN",
+   "station": "KDEN",
+   "ticker": "KXHIGHDEN-26AUG25-T83",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 82,
+   "run_max": 82.04,
+   "gap_to_clear": -0.0,
+   "already_cleared": true,
+   "guide": 87,
+   "pop": 47,
+   "no_ask": 0.98,
+   "local_hour": 15,
+   "obs_trace": [
+    {
+     "ts": "2026-08-25T20:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T19:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T18:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T17:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T16:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T15:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T14:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T13:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T12:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-25T11:53:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -18.9,
+    "q50": 1.0,
+    "q90": 2.0
+   },
+   "projected_max": {
+    "q10": 63.1,
+    "q50": 83.0,
+    "q90": 84.0
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": true,
+   "note": "day effectively decided"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
