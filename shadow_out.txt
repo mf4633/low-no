@@ -1,4 +1,4 @@
-settlements: 277 cached, 19 newly fetched
+settlements: 277 cached, 0 newly fetched
 forecaster      n   bias   mae  rmse   <=2F
 om_gfs        436  +0.67  2.23  4.23    71%
 om_best       357  +0.72  2.28  4.28    70%
@@ -11,7 +11,7 @@ median         36  +2.92  4.65  8.23    64%
 mean           36  +3.13  4.72  8.27    56%
 n              36 -77.61 77.61 78.25     0%
 spread         36 -78.18 78.18 78.99     0%
-spend: 6 calls, est $0.0855 spent, $4.91 left (~344 calls)
+spend: 14 calls, est $0.1995 spent, $4.80 left (~336 calls)
 rung-obs 11610 -> 201 independent units over 18 days
   band   n   w    hit   need    LCB     pnl  proven
   1-10  15   0     0%   6.3%     0%    -6.2   False
@@ -26,6 +26,21 @@ rung-obs 11610 -> 201 independent units over 18 days
  91-95  29  21    72%  94.4%    54%   -21.7   False
  96-98  53  49    92%  98.2%    82%    -5.7   False
 
+YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
+  band   n   w    hit   need    LCB     pnl real_ask  proven
+  1-10 176  12     7%   2.6%     4%     4.2      161    True
+ 11-20  25   6    24%  14.5%    12%     9.4       21   False
+ 21-30  15   5    33%  25.8%    15%     7.4       14   False
+ 31-40  16   8    50%  36.0%    28%    13.7       13   False
+ 41-50  10   4    40%  46.7%    17%    -6.6        7   False
+ 51-60  11   7    64%  55.3%    35%     8.2       10   False
+ 61-70  13  10    77%  66.5%    50%    10.2        9   False
+ 71-80   7   4    57%  76.5%    25%   -19.0        6   False
+ 81-90  13  11    85%  85.6%    58%    -1.2       10   False
+ 91-95  12  10    83%  94.4%    55%   -10.9        8   False
+ 96-98  12  11    92%  97.6%    65%    -5.9        9   False
+yes_spread over 11310 real-ask obs: mean 2.49c, max 99c
+
 station guide bias (guide - CLI): {'SAT': 7.0, 'OKC': 5.0, 'HOU': 3.5, 'DEN': 2.44, 'LAX': -2.17, 'SFO': 1.72, 'AUS': 1.56, 'NYC': 1.56, 'MSP': -1.33, 'MSY': 1.33, 'DC': -1.0, 'LAS': -1.0, 'CHI': -0.83, 'MIA': -0.71, 'ATL': -0.67, 'BOS': -0.67, 'SAN': -0.67, 'PHL': -0.39, 'SEA': -0.39, 'PHX': -0.35}
 
                   rule   n   w    hit   LCB  meanP&L
@@ -37,5 +52,10 @@ station guide bias (guide - CLI): {'SAT': 7.0, 'OKC': 5.0, 'HOU': 3.5, 'DEN': 2.
           corrected_G4  11  10    91%   62%     2.09
   corrected_G4_floor90  10  10   100%   72%      2.4
           floor96_only  53  49    92%   82%    -5.72
+ PREREG_yes10_hotbias3   0   0     --    0%       --
+
+PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
+
+PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
 
 No band's 95% lower bound clears its fee breakeven. Nothing proven.
