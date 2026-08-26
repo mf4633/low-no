@@ -302,6 +302,7 @@ def main():
     # (CANDIDATE.md) against the fixed 6.8% hypothesis. Paper only, no orders.
     try:
         pp = paper_pilot.run(obs)
+        pp["generated"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
         json.dump(pp, open("docs/paper_pilot.json", "w"), indent=1)
         c = pp["config"]
         print(f"\nPAPER PILOT ${c['bankroll0']:.0f} @ {c['start_day']} "

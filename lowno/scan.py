@@ -176,6 +176,14 @@ def scan_once():
                 continue
             if wr:
                 live_world.append((wkey, w, wr))
+        # Status feed for the site: which world series are live right now.
+        # Written every cycle (even all-dormant) so staleness is detectable.
+        os.makedirs("docs", exist_ok=True)
+        json.dump(dict(at=dt.datetime.utcnow().isoformat() + "Z",
+                       n_series=len(WORLD),
+                       live=[dict(key=k, name=w["name"], series=w["series"],
+                                  n_rungs=len(wr)) for k, w, wr in live_world]),
+                  open("docs/world.json", "w"), indent=1)
         # One batched global-METAR call for every live world city: day-one
         # ladders arrive with obs and regime context attached, not naked.
         wx_obs = sources.metar_now([w["icao"] for _, w, _ in live_world]) if live_world else {}

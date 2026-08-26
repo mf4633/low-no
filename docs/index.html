@@ -254,6 +254,127 @@ fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
    <table><tr><th>station</th><th>convergence (local)</th></tr>${conv}</table>`;
 });
 
+/* ---- PAPER PILOT ---------------------------------------------------- */
+fetch("paper_pilot.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(pp=>{
+  const box=document.getElementById("pilotbox"); if(!box||!pp||!pp.config) return;
+  const c=pp.config;
+  const trades=(pp.rows||[]).filter(x=>x.action==="trade");
+  const rows=trades.map(x=>`<tr>
+    <td class="num">${x.day.slice(5)}</td><td>${x.city}</td>
+    <td class="num">${x.price}c</td><td class="num">${x.contracts}</td>
+    <td class="num">$${x.stake.toFixed(2)}</td>
+    <td class="code ${x.won?"WIN":"FORECAST_BUST"}">${x.won?"WIN":"loss"}</td>
+    <td class="num">${x.pnl>0?"+":""}$${x.pnl.toFixed(2)}</td>
+    <td class="num">$${x.bankroll.toFixed(2)}</td></tr>`).join("");
+  const statusCls=pp.status==="ACTIVE"?"PENDING":(pp.status==="QUIT_UP"?"WIN":"FORECAST_BUST");
+  box.innerHTML=`<h2>PAPER PILOT &mdash; $${c.bankroll0.toFixed(0)} SHADOW BANKROLL</h2>
+    <p>Deterministic nightly replay of the <b>YES Pilot v1</b> rules
+    (CANDIDATE.md): buy YES &le;${c.max_price_c}c on bottom rungs at stations whose
+    measured guide bias exceeds +${c.bias_gate_f}&deg;F, sized at half-Kelly under a fixed
+    ${(100*c.p_hyp).toFixed(1)}% win-rate hypothesis, hard cap ${(100*c.cap_frac).toFixed(0)}%.
+    Real logged asks only; fills assumed full at the ask (optimistic by construction).
+    PAPER ONLY. Trades placed on day D settle in the nightly run of day D+1.
+    Quit lines, pre-committed with $0 at risk: <b>$${c.quit_down.toFixed(0)}</b> down
+    (stop, no reseed) / <b>$${c.quit_up.toFixed(0)}</b> up (withdraw, stop).</p>
+    <pre class="product">BANKROLL  <b>$${pp.bankroll.toFixed(2)}</b>   STATUS <span class="code ${statusCls}">${pp.status}</span>   TRADES ${pp.n_trades} (${pp.wins} wins, ${pp.n_skipped} skipped)</pre>
+    ${trades.length?`<table><tr><th>date</th><th>city</th><th>ask</th><th>ctr</th>
+      <th>stake</th><th>result</th><th>P&amp;L</th><th>bankroll</th></tr>${rows}</table>`
+      :`<div class="empty">No settled trades yet. Entries begin ${c.start_day}; the first
+      settle lands the following night. An empty table on day one is the system
+      working, not failing.</div>`}`;
+});
+
+/* ---- VARIANTS + PREREG ------------------------------------------------ */
+fetch("shadow_summary.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(sh=>{
+  const box=document.getElementById("variantbox"); if(!box||!sh||!sh.variants) return;
+  const rows=sh.variants.map(v=>{
+    const pre=v.rule.startsWith("PREREG");
+    const hit=v.hit!=null?(100*v.hit).toFixed(0)+"%":"&mdash;";
+    const mp=v.mean_pnl_c!=null?((v.mean_pnl_c>0?"+":"")+v.mean_pnl_c+"c"):"&mdash;";
+    return `<tr${pre?' style="font-weight:600"':''}><td>${v.rule}${pre?" &#9733;":""}</td>
+      <td class="num">${v.n}</td><td class="num">${v.wins}</td>
+      <td class="num">${hit}</td><td class="num">${(100*v.lcb).toFixed(0)}%</td>
+      <td class="num">${mp}</td></tr>`;}).join("");
+  const pr=sh.variants.find(v=>v.rule==="PREREG_yes10_hotbias3");
+  const prog=pr?Math.min(100,100*pr.n/60):0;
+  box.innerHTML=`<h2>SCORED VARIANTS &mdash; IDEAS ON TRIAL, GATE UNTOUCHED</h2>
+    <p>Every idea enters here, never the gate. One unit per city-day.
+    &#9733; <b>PREREG_yes10_hotbias3</b> is the pre-registered YES rule
+    (registered 2026-08-25 at n=0, before any qualifying data existed): YES &le;10c,
+    station bias &gt; +3&deg;F, real asks only, cap-corrected days only. Its promotion
+    bar: &ge;60 units AND Wilson LCB &gt; fee breakeven. Progress:
+    <b>${pr?pr.n:0}/60</b> units.</p>
+    <div style="height:8px;background:var(--band);border:1px solid var(--rule)">
+      <div style="height:100%;width:${prog.toFixed(1)}%;background:var(--hold)"></div></div>
+    <table style="margin-top:14px"><tr><th>rule</th><th>n</th><th>w</th>
+    <th>hit</th><th>LCB</th><th>mean P&amp;L</th></tr>${rows}</table>`;
+});
+
+/* ---- YES BANDS -------------------------------------------------------- */
+fetch("shadow_summary.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(sh=>{
+  const box=document.getElementById("yesbox"); if(!box||!sh||!sh.yes_bands) return;
+  const rows=sh.yes_bands.filter(b=>b.n>0).map(b=>
+    `<tr><td class="num">${b.band}c</td><td class="num">${b.n}</td>
+     <td class="num">${b.wins}</td><td class="num">${(100*b.hit).toFixed(0)}%</td>
+     <td class="num">${(100*b.breakeven).toFixed(1)}%</td>
+     <td class="num">${(100*b.lcb).toFixed(0)}%</td>
+     <td class="num">${b.mean_pnl_c>0?"+":""}${b.mean_pnl_c}c</td>
+     <td class="num">${b.n_real_ask}/${b.n}</td>
+     <td class="code ${b.proven?"WIN":"PENDING"}">${b.proven?"nominal*":"unproven"}</td></tr>`).join("");
+  const ys=sh.yes_spread||{};
+  box.innerHTML=`<h2>YES SIDE &mdash; SAME RUNGS, OPPOSITE BET</h2>
+    <p>The YES side of every bottom rung, graded cap-corrected. <b>real ask</b>
+    counts units priced from a logged yes_ask; the remainder use 100&nbsp;&minus;&nbsp;no_ask,
+    which ignores the spread and flatters the YES buyer &mdash; a band surviving only
+    on derived prices is an artifact. Observed spread: mean ${ys.mean!=null?ys.mean+"c":"&mdash;"},
+    max ${ys.max!=null?ys.max+"c":"&mdash;"} over ${ys.n||0} real-ask obs.
+    *"nominal" is NOT proven: these figures come from a post-hoc 22-band scan with
+    counterfactual fills &mdash; the pre-registered variant above is the only YES
+    number that counts.</p>
+    <table><tr><th>band</th><th>n</th><th>wins</th><th>hit</th><th>need</th>
+    <th>LCB</th><th>avg P&amp;L</th><th>real ask</th><th>status</th></tr>${rows}</table>`;
+});
+
+/* ---- STATION PROFILES ------------------------------------------------- */
+fetch("quirks_observed.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(q=>{
+  const box=document.getElementById("profilebox"); if(!box||!q||!q.profiles) return;
+  const rows=Object.entries(q.profiles).filter(([c,p])=>p.n_days>0)
+    .sort((a,b)=>Math.abs(b[1].bias||0)-Math.abs(a[1].bias||0))
+    .map(([c,p])=>`<tr${p.n_days<5?' class="dim"':''}><td>${c}</td>
+      <td class="num">${p.n_days}</td>
+      <td class="num">${p.bias>0?"+":""}${p.bias}&deg;F</td>
+      <td class="num">${p.sd!=null?"&plusmn;"+p.sd:"&mdash;"}</td>
+      <td class="num">${p.hot_bust_days}</td><td class="num">${p.cool_bust_days}</td>
+      <td class="num">${p.boundary_days}</td></tr>`).join("");
+  box.innerHTML=`<h2>STATION PROFILES &mdash; EARNED, NOT ASSUMED</h2>
+    <p>Per-station behavior derived nightly from settled days: bias = mean
+    (guide &minus; CLI); a bust day is |error| &ge; 3&deg;F; boundary = bottom rung
+    settled within 1&deg;F of its cap. Dimmed rows have n &lt; 5 &mdash; four days is
+    not a climate. The hand-calibrated QUIRKS notes cover 7 stations; nothing is
+    promoted into them without this table's data behind it.</p>
+    <table><tr><th>station</th><th>days</th><th>bias</th><th>&sigma;</th>
+    <th>hot busts</th><th>cool busts</th><th>boundary</th></tr>${rows}</table>`;
+});
+
+/* ---- WORLD WATCH ------------------------------------------------------ */
+fetch("world.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(w=>{
+  const box=document.getElementById("worldbox"); if(!box||!w) return;
+  if(!(w.live||[]).length){
+    box.innerHTML=`<h2>WORLD WATCH</h2><p>Kalshi lists <b>${w.n_series}</b> international
+      daily-high series (London, Paris, Tokyo, Sydney, Seoul, Beijing, Shanghai,
+      Hong Kong, Singapore, Dubai, Mumbai, Istanbul, Toronto, Mexico City,
+      S&atilde;o Paulo, Berlin, Frankfurt, Amsterdam, Brussels, Geneva).
+      <b>All dormant</b> as of ${w.at.slice(0,16)}Z &mdash; London last traded 26AUG19.
+      The scanner probes every series hourly; the first cycle after any launch
+      logs the full ladder with obs and regime context attached.</p>`;
+    return;
+  }
+  const rows=w.live.map(x=>`<tr><td>${x.key}</td><td>${x.name}</td>
+    <td class="muted">${x.series}</td><td class="num">${x.n_rungs}</td></tr>`).join("");
+  box.innerHTML=`<h2>WORLD WATCH &mdash; MARKETS LIVE</h2>
+    <table><tr><th>key</th><th>city</th><th>series</th><th>open rungs</th></tr>${rows}</table>`;
+});
+
 /* ---- LIVE TODAY ---------------------------------------------------- */
 fetch("active.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(a=>{
   const box=document.getElementById("livebox"); if(!box||!a||!a.tracked) return;
@@ -318,7 +439,8 @@ fetch("spend.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(s=>{
 (function(){
   const feeds=[["ledger.json","nightly grade"],["shadow_summary.json","shadow + variants"],
                 ["edge.json","hourly edge board"],["active.json","live tracker"],
-                ["spend.json","advisor spend"]];
+                ["spend.json","advisor spend"],["paper_pilot.json","paper pilot"],
+                ["quirks_observed.json","station profiles"],["world.json","world watch"]];
   Promise.all(feeds.map(([f,label])=>
     fetch(f+"?cb="+Date.now()).then(r=>r.ok?r.json():null)
       .then(j=>({f,label,at:(j&&(j.generated||j.at))||null})).catch(()=>({f,label,at:null}))
@@ -329,7 +451,7 @@ fetch("spend.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(s=>{
       if(!r.at) return `<tr><td>${r.label}</td><td class="muted">${r.f}</td>
         <td class="code PENDING">MISSING</td><td class="num">&mdash;</td></tr>`;
       const age=(now-new Date(r.at).getTime())/3.6e6;
-      const limit=r.f==="edge.json"||r.f==="active.json"?3:26;
+      const limit=(r.f==="edge.json"||r.f==="active.json"||r.f==="world.json")?3:26;
       const bad=age>limit;
       return `<tr><td>${r.label}</td><td class="muted">${r.f}</td>
         <td class="code ${bad?"FORECAST_BUST":"WIN"}">${bad?"STALE":"ok"}</td>
@@ -376,10 +498,15 @@ fetch("traps.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(t=>{
 });
 
 </script>
+<div id="pilotbox"></div>
 <div id="livebox"></div>
+<div id="variantbox"></div>
+<div id="yesbox"></div>
 <div id="shadowbox"></div>
 <div id="edgebox"></div>
 <div id="trapbox"></div>
+<div id="profilebox"></div>
+<div id="worldbox"></div>
 <div id="scorebox"></div>
 <div id="spendbox"></div>
 <div id="healthbox"></div>
