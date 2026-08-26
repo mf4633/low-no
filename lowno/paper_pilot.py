@@ -87,31 +87,58 @@ def run(obs):
         units.append(o)
 
     bankroll, rows, status = cfg["bankroll0"], [], "ACTIVE"
+    # DAY-COHORT SIZING (fixed 2026-08-26, before any trade settled): every
+    # position taken on day D is sized off the bankroll as it stood at the
+    # START of day D, and all of that day's P&L is applied at the end. The
+    # first version sized each trade off the running bankroll, which applied
+    # an earlier same-day trade's SETTLEMENT to a position opened minutes
+    # later -- impossible (both are open simultaneously, and neither settles
+    # until that night) and biased the curve upward exactly when it compounds.
+    # Quit lines are therefore evaluated at day boundaries, which is also when
+    # a real trader could act on them.
+    by_day = {}
     for o in units:
-        P = o["yes_price"]
-        fee = _fee(P)
-        b_odds = (100 - P - fee) / P
-        f_star = cfg["p_hyp"] - (1 - cfg["p_hyp"]) / b_odds
-        if f_star <= 0:
-            # Kelly refuses the price: at p_hyp=6.8% anything >= ~6c is a
-            # negative-edge bet even under the optimistic hypothesis.
-            rows.append(dict(day=o["day"], city=o["city"], price=P,
-                             action="skip_kelly", bankroll=round(bankroll, 2)))
-            continue
-        f = min(cfg["kelly_mult"] * f_star, cfg["cap_frac"])
-        contracts = int(bankroll * f * 100 // P)
-        if contracts < 1:
-            rows.append(dict(day=o["day"], city=o["city"], price=P,
-                             action="skip_size", bankroll=round(bankroll, 2)))
-            continue
-        stake = contracts * P / 100.0
-        won = bool(o["yes_won"])
-        pnl = contracts * (100 - P - fee) / 100.0 if won else -stake
-        bankroll += pnl
-        rows.append(dict(day=o["day"], city=o["city"], price=P,
-                         action="trade", contracts=contracts,
-                         stake=round(stake, 2), won=won, pnl=round(pnl, 2),
-                         bankroll=round(bankroll, 2)))
+        by_day.setdefault(o["day"], []).append(o)
+
+    for day in sorted(by_day):
+        day_start = bankroll
+        day_pnl, day_stake = 0.0, 0.0
+        for o in by_day[day]:
+            P = o["yes_price"]
+            fee = _fee(P)
+            b_odds = (100 - P - fee) / P
+            f_star = cfg["p_hyp"] - (1 - cfg["p_hyp"]) / b_odds
+            if f_star <= 0:
+                # Kelly refuses the price: at p_hyp=6.8% anything >= ~6c is a
+                # negative-edge bet even under the optimistic hypothesis.
+                rows.append(dict(day=day, city=o["city"], price=P,
+                                 action="skip_kelly", bankroll=round(day_start, 2)))
+                continue
+            f = min(cfg["kelly_mult"] * f_star, cfg["cap_frac"])
+            contracts = int(day_start * f * 100 // P)
+            if contracts < 1:
+                rows.append(dict(day=day, city=o["city"], price=P,
+                                 action="skip_size", bankroll=round(day_start, 2)))
+                continue
+            stake = contracts * P / 100.0
+            won = bool(o["yes_won"])
+            pnl = contracts * (100 - P - fee) / 100.0 if won else -stake
+            day_pnl += pnl
+            day_stake += stake
+            rows.append(dict(day=day, city=o["city"], price=P,
+                             action="trade", contracts=contracts,
+                             stake=round(stake, 2), won=won, pnl=round(pnl, 2),
+                             bankroll=round(day_start + day_pnl, 2)))
+        bankroll = day_start + day_pnl
+        # Per-unit cap is the pre-committed rule (CANDIDATE.md), so a day with
+        # several qualifying stations can carry several capped positions at
+        # once. Logged, not clipped -- clipping would change a pledged rule.
+        if day_stake > 0:
+            rows.append(dict(day=day, action="day_close",
+                             day_stake=round(day_stake, 2),
+                             day_exposure_pct=round(100 * day_stake / day_start, 2),
+                             day_pnl=round(day_pnl, 2),
+                             bankroll=round(bankroll, 2)))
         if bankroll <= cfg["quit_down"]:
             status = "QUIT_DOWN"
             break
@@ -120,10 +147,17 @@ def run(obs):
             break
 
     trades = [r for r in rows if r["action"] == "trade"]
+    skips = [r for r in rows if r["action"] in ("skip_kelly", "skip_size")]
+    peak = max([cfg["bankroll0"]] + [r["bankroll"] for r in rows if "bankroll" in r])
     return dict(config=cfg, status=status,
                 bankroll=round(bankroll, 2),
                 n_trades=len(trades),
                 wins=sum(1 for r in trades if r["won"]),
-                n_skipped=len(rows) - len(trades),
+                n_skipped=len(skips),
+                max_day_exposure_pct=max([0.0] + [r["day_exposure_pct"]
+                                                  for r in rows
+                                                  if r["action"] == "day_close"]),
+                peak_bankroll=round(peak, 2),
+                drawdown_pct=(round(100 * (peak - bankroll) / peak, 2) if peak else 0.0),
                 last_settled_day=(units[-1]["day"] if units else None),
                 rows=rows)
