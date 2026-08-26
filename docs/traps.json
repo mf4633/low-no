@@ -1,68 +1,30 @@
 {
- "at": "2026-08-25T23:37:40.788191Z",
+ "at": "2026-08-26T14:06:30.639745Z",
  "traps": [
   {
-   "city": "MSP",
-   "ceiling": 82,
-   "price": 2,
-   "p_model": 0.6998,
-   "p_market": 0.02,
-   "edge_pts": 68.0,
+   "city": "SAN",
+   "ceiling": 85,
+   "price": 61,
+   "p_model": 0.6999,
+   "p_market": 0.61,
+   "edge_pts": 9.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=4.4 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
-  {
-   "city": "DAL",
-   "ceiling": 102,
-   "price": 1,
-   "p_model": 0.6737,
-   "p_market": 0.01,
-   "edge_pts": 66.4,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "n_eff=4.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 66 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
-  {
-   "city": "NYC",
-   "ceiling": 78,
-   "price": 3,
-   "p_model": 0.5028,
-   "p_market": 0.03,
-   "edge_pts": 47.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
-     "code": "NO_HISTORY",
-     "why": "n_eff=14.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "61c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
