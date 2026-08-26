@@ -138,6 +138,33 @@ def scan_once():
         except Exception as e:
             results.append(dict(city=key, station=c["station"], verdict="ERROR",
                                 detail={"why": str(e)[:200]}, at=dt.datetime.utcnow().isoformat()))
+    # World-series launch watch (2026-08-26): Kalshi lists 20 international
+    # daily-high series (ICAO tickers); all dormant at audit -- London traded
+    # through 26AUG19 then stopped. Probe each for open markets every cycle and
+    # log full ladders from the day any returns: first-day books are ephemeral
+    # and unreconstructable. No obs/gate/settlement for these yet -- rows are
+    # marked world=True so the edge board and live tracker skip them.
+    try:
+        from .config import WORLD
+        for wkey, w in WORLD.items():
+            try:
+                wr = sources.kalshi_ladder(w["series"], None, probe_path=None)
+            except Exception:
+                continue
+            if not wr:
+                continue
+            print(f"WORLD MARKET LIVE: {wkey} ({w['name']}) {w['series']} -- {len(wr)} open rungs")
+            results.append(dict(city=wkey, station=w["icao"], verdict="LADDER",
+                detail=dict(world=True, guide=None, pop=None, run_max=None,
+                    rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
+                                na=r.get("no_ask"), yb=r.get("yes_bid"),
+                                ya=r.get("yes_ask"), nb=r.get("no_bid"),
+                                oi=r.get("oi"), vol=r.get("vol"),
+                                src=r.get("quote_src")) for r in wr]),
+                at=dt.datetime.utcnow().isoformat()))
+    except Exception as _we:
+        print("world watch: skipped -", str(_we)[:100])
+
     # Live edge board for the site: per-rung probability/edge/half-Kelly.
     try:
         board = []
@@ -149,6 +176,7 @@ def scan_once():
         for r in results:
             if r["verdict"] != "LADDER": continue
             d = r["detail"]
+            if d.get("world"): continue   # no CITIES entry, no model -- quotes only
             rungs = [dict(cap=x.get("cap"), floor=x.get("fl"), no_ask=x.get("na"),
                           yes_bid=x.get("yb"), ticker=x.get("t")) for x in d["rungs"]]
             _lh = dt.datetime.now(dt.timezone.utc).astimezone(
@@ -189,7 +217,9 @@ def scan_once():
             _conv = (_cv.get("convergence") or {}).get("convergence_hour_local", {})
         except Exception:
             pass
-        live.write(results, emp_samples=_samples if "_samples" in dir() else None,
+        _lresults = [r for r in results
+                     if not (isinstance(r.get("detail"), dict) and r["detail"].get("world"))]
+        live.write(_lresults, emp_samples=_samples if "_samples" in dir() else None,
                    conv_hours=_conv)
     except Exception as _e:
         print("live tracker: skipped -", str(_e)[:120])

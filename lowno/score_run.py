@@ -25,7 +25,11 @@ def _grade_day(day):
         city = f["city"]
         if city not in settles:
             try:
-                settles[city], _ = sources.cli_max(CITIES[city]["station"], WFO[city], date=day)
+                # WFO.get, not WFO[...]: the dict only names the original 10
+                # cities, and a KeyError here was silently caught below --
+                # flags from any newer station would sit PENDING forever.
+                # cli_max resolves by SITE when wfo is None, which works.
+                settles[city], _ = sources.cli_max(CITIES[city]["station"], WFO.get(city), date=day)
             except Exception as e:
                 print(f"  {day} {city}: CLI fetch failed ({e})")
                 settles[city] = None

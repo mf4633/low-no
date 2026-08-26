@@ -88,7 +88,11 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
     url = (f"https://api.elections.kalshi.com/trade-api/v2/markets"
            f"?series_ticker={series}&status=open&limit=100")
     j = _get(url)
-    markets = [m for m in j.get("markets", []) if date_yymmdd in m.get("ticker", "")]
+    # date_yymmdd=None returns ALL open markets (any event day) -- used by the
+    # world-series launch watch, where assuming which local date is "today"
+    # would be a bug across 14 timezones.
+    markets = [m for m in j.get("markets", [])
+               if date_yymmdd is None or date_yymmdd in m.get("ticker", "")]
 
     # One-shot diagnostic: dump a raw market payload so field names are observable
     # rather than assumed. Cheap, idempotent, and the next scan proves the fix.

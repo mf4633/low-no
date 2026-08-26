@@ -41,20 +41,58 @@ CITIES = {
     "BOS": dict(name="Boston",        station="KBOS", tz="America/New_York",    series="KXHIGHTBOS",  lat=42.3606, lon=-71.0097),
     "DAL": dict(name="Dallas",        station="KDFW", tz="America/Chicago",     series="KXHIGHTDAL",  lat=32.8975, lon=-97.0381),
     "DC":  dict(name="Washington DC", station="KDCA", tz="America/New_York",    series="KXHIGHTDC",   lat=38.8483, lon=-77.0342),
-    "HOU": dict(name="Houston",       station="KIAH", tz="America/Chicago",     series="KXHIGHTHOU",  lat=29.9902, lon=-95.3368),
+    # HOU settles on HOBBY, not Intercontinental: Kalshi rules_primary names
+    # CLIHOU, the NWS climate product for KHOU (verified via API 2026-08-26).
+    # This dict previously held DUPLICATE keys -- an earlier KIAH entry was
+    # silently overridden by a later KHOU line, which happened to be correct.
+    # Deduplicated 2026-08-26; do not "restore" KIAH.
+    "HOU": dict(name="Houston Hobby", station="KHOU", tz="America/Chicago",     series="KXHIGHTHOU",  lat=29.6372, lon=-95.2820),
     "LAS": dict(name="Las Vegas",     station="KLAS", tz="America/Los_Angeles", series="KXHIGHTLV",   lat=36.0719, lon=-115.1634),
     "MSP": dict(name="Minneapolis",   station="KMSP", tz="America/Chicago",     series="KXHIGHTMIN",  lat=44.8831, lon=-93.2289),
     "MSY": dict(name="New Orleans",   station="KMSY", tz="America/Chicago",     series="KXHIGHTNOLA", lat=29.9934, lon=-90.2581),
     "OKC": dict(name="Oklahoma City", station="KOKC", tz="America/Chicago",     series="KXHIGHTOKC",  lat=35.3889, lon=-97.6008),
-    "SAN": dict(name="San Diego",     station="KSAN", tz="America/Los_Angeles", series="KXHIGHTSAN",  lat=32.7336, lon=-117.1831),
-    "SAT": dict(name="San Antonio",   station="KSAT", tz="America/Chicago",     series="KXHIGHTSATX", lat=29.5337, lon=-98.4698),
-    "ATL": dict(name="Atlanta",       station="KATL", tz="America/New_York",    series="KXHIGHTATL", lat=33.6301, lon=-84.4418),
-    "BOS": dict(name="Boston",        station="KBOS", tz="America/New_York",    series="KXHIGHTBOS", lat=42.3606, lon=-71.0097),
-    "HOU": dict(name="Houston Hobby", station="KHOU", tz="America/Chicago",     series="KXHIGHTHOU", lat=29.6372, lon=-95.2820),
     # SAN is marine-influenced (coastal stratus). Added to prob.MARINE so the
     # edge board refuses to size it -- SFO's bimodal burn-off has produced every
     # loss in this ledger and San Diego shares the mechanism.
-    "SAN": dict(name="San Diego",     station="KSAN", tz="America/Los_Angeles", series="KXHIGHTSAN", lat=32.7336, lon=-117.1831),
+    "SAN": dict(name="San Diego",     station="KSAN", tz="America/Los_Angeles", series="KXHIGHTSAN",  lat=32.7336, lon=-117.1831),
+    "SAT": dict(name="San Antonio",   station="KSAT", tz="America/Chicago",     series="KXHIGHTSATX", lat=29.5337, lon=-98.4698),
+    # --- added 2026-08-26: full-coverage audit against Kalshi's series list --
+    # Both were live with daily markets and unmonitored. Verified: markets open
+    # today AND NWS CLI settles them (EWR 81 / TTN 77 on 8/25).
+    "EWR": dict(name="Newark",        station="KEWR", tz="America/New_York",    series="KXHIGHTEWR",  lat=40.6925, lon=-74.1687),
+    "TTN": dict(name="Trenton",       station="KTTN", tz="America/New_York",    series="KXHIGHTTTN",  lat=40.2767, lon=-74.8135),
+}
+
+# International daily-high series (ICAO-coded tickers), enumerated from
+# Kalshi's Climate and Weather category 2026-08-26. ALL dormant at audit time
+# -- London traded through 26AUG19 then stopped -- so there is nothing to
+# grade yet. The scanner probes each for open markets and logs full ladders
+# from the day any of them returns (first-day books are ephemeral). Obs and
+# settlement plumbing (non-NWS: international METAR / The Weather Company per
+# Kalshi's stated settlement source) gets built when a market is actually
+# live. There is also a full KXLOWT* daily-LOW product line, US and world,
+# deliberately not tracked yet.
+WORLD = {
+    "LON": dict(name="London",      icao="EGLL", tz="Europe/London",       series="KXHIGHTEGLL"),
+    "PAR": dict(name="Paris",       icao="LFPG", tz="Europe/Paris",        series="KXHIGHTLFPG"),
+    "BER": dict(name="Berlin",      icao="EDDB", tz="Europe/Berlin",       series="KXHIGHTEDDB"),
+    "FRA": dict(name="Frankfurt",   icao="EDDF", tz="Europe/Berlin",       series="KXHIGHTEDDF"),
+    "AMS": dict(name="Amsterdam",   icao="EHAM", tz="Europe/Amsterdam",    series="KXHIGHTEHAM"),
+    "BRU": dict(name="Brussels",    icao="EBBR", tz="Europe/Brussels",     series="KXHIGHTEBBR"),
+    "GVA": dict(name="Geneva",      icao="LSGG", tz="Europe/Zurich",       series="KXHIGHTLSGG"),
+    "IST": dict(name="Istanbul",    icao="LTFM", tz="Europe/Istanbul",     series="KXHIGHTLTFM"),
+    "TYO": dict(name="Tokyo",       icao="RJTT", tz="Asia/Tokyo",          series="KXHIGHTRJTT"),
+    "SEL": dict(name="Seoul",       icao="RKSI", tz="Asia/Seoul",          series="KXHIGHTRKSI"),
+    "PEK": dict(name="Beijing",     icao="ZBAA", tz="Asia/Shanghai",       series="KXHIGHTZBAA"),
+    "SHA": dict(name="Shanghai",    icao="ZSPD", tz="Asia/Shanghai",       series="KXHIGHTZSPD"),
+    "HKG": dict(name="Hong Kong",   icao="VHHH", tz="Asia/Hong_Kong",      series="KXHIGHTVHHH"),
+    "SIN": dict(name="Singapore",   icao="WSSS", tz="Asia/Singapore",      series="KXHIGHTWSSS"),
+    "BOM": dict(name="Mumbai",      icao="VABB", tz="Asia/Kolkata",        series="KXHIGHTVABB"),
+    "DXB": dict(name="Dubai",       icao="OMDB", tz="Asia/Dubai",          series="KXHIGHTOMDB"),
+    "SYD": dict(name="Sydney",      icao="YSSY", tz="Australia/Sydney",    series="KXHIGHTYSSY"),
+    "YYZ": dict(name="Toronto",     icao="CYYZ", tz="America/Toronto",     series="KXHIGHTCYYZ"),
+    "MEX": dict(name="Mexico City", icao="MMMX", tz="America/Mexico_City", series="KXHIGHTMMMX"),
+    "GRU": dict(name="Sao Paulo",   icao="SBGR", tz="America/Sao_Paulo",   series="KXHIGHTSBGR"),
 }
 
 # Station quirk library, calibrated Jul 29-Aug 4 2026. Used by the scorer's
