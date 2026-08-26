@@ -83,6 +83,20 @@ def run(obs):
         b, nd = bias_cache[o["day"]].get(o["city"], (0.0, 0))
         if nd < cfg["bias_min_days"] or b <= cfg["bias_gate_f"]:
             continue
+        # LIVENESS (added 2026-08-26, before any trade settled): refuse a rung
+        # whose day is ALREADY DECIDED against YES -- the running max, rounded
+        # the way settlement rounds, is already above the cap. DAL 26AUG26 was
+        # the case in point: max 100.4 against a 99 cap, quoted 1c, dead, and
+        # the rule as written would have bought 292 contracts of it because
+        # "cheap" means "big Kelly" under a fixed win-rate hypothesis.
+        # That hypothesis is an average over LIVE bets; a settled loss has
+        # p=0, not 6.8%, and no trader would take it. Measured on history:
+        # 6 of 181 cheap real-ask units were already dead, 0 of 6 won.
+        # This is a correctness fix, not a tuning knob -- it moves the
+        # historical rate 7.2% -> 7.4%, which is noise.
+        if o.get("run_max") is not None and o.get("ceiling") is not None \
+                and round(o["run_max"]) > o["ceiling"]:
+            continue
         seen.add(cd)
         units.append(o)
 

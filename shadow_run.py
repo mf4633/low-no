@@ -243,6 +243,25 @@ def main():
                   and o.get("yes_price_src") == "real_ask"
                   and abias.get(o["city"], 0.0) > 3.0))
 
+    # Registered 2026-08-26 (LATER than the rule above -- stated plainly so it
+    # is never mistaken for the pre-registered number). Same rule plus a
+    # liveness filter: skip rungs whose day is already decided against YES
+    # (running max, rounded as settlement rounds, already above the cap).
+    # Motivation was a defect, not a backtest: the original rule would buy an
+    # arithmetically-settled loss because a 1c price implies a large Kelly
+    # stake under a fixed hypothesis rate. On history the filter removes 6 of
+    # 181 cheap units, all losers, moving 7.2% -> 7.4% -- inside noise, which
+    # is exactly why it is a correctness fix and not an edge claim. Both
+    # variants are scored side by side from here.
+    def _alive(o):
+        return not (o.get("run_max") is not None and o.get("ceiling") is not None
+                    and round(o["run_max"]) > o["ceiling"])
+    variants.append(score_yes_rule("yes10_hotbias3_live",
+        lambda o: 1 <= o["yes_price"] <= 10
+                  and o.get("yes_price_src") == "real_ask"
+                  and abias.get(o["city"], 0.0) > 3.0
+                  and _alive(o)))
+
     out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z"),
                n_rung_obs=len(obs), n_bottom_obs=len(bottom), n_units=len(units),
                days=sorted({o["day"] for o in obs}), bands=roll, yes_bands=yroll,
