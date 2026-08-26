@@ -85,18 +85,26 @@ def airmass(lat, lon, local_date):
     Telemetry only (logged for future variant scoring, feeds nothing).
     Degrades to None on any failure."""
     try:
+        # NOTE the layer name: the FORECAST API serves soil_moisture_3_to_9cm;
+        # soil_moisture_0_to_7cm is the ARCHIVE API's naming and returns a
+        # silent null here (same trap as the decommissioned ifs04 model).
         url = (f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
-               f"&hourly=temperature_850hPa,geopotential_height_500hPa"
+               f"&hourly=temperature_850hPa,geopotential_height_500hPa,"
+               f"soil_moisture_3_to_9cm"
                f"&temperature_unit=fahrenheit&timezone=auto"
                f"&start_date={local_date}&end_date={local_date}")
         j = _get(url)
         h = j.get("hourly") or {}
         t850 = [v for v in (h.get("temperature_850hPa") or []) if v is not None]
         z500 = [v for v in (h.get("geopotential_height_500hPa") or []) if v is not None]
+        soil = [v for v in (h.get("soil_moisture_3_to_9cm") or []) if v is not None]
         if not t850 and not z500:
             return None
+        # soil moisture m3/m3: dry ground pushes the Bowen ratio toward
+        # sensible heat -- a drought surface amplifies hot busts.
         return dict(t850_max_f=(round(max(t850), 1) if t850 else None),
-                    z500_max_m=(int(round(max(z500))) if z500 else None))
+                    z500_max_m=(int(round(max(z500))) if z500 else None),
+                    soil_m3m3=(round(sum(soil) / len(soil), 3) if soil else None))
     except Exception:
         return None
 

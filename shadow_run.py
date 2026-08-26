@@ -92,6 +92,43 @@ def main():
             seen_cd.add(cd); bias_acc[o["city"]].append(o["guide_err"])
     bias = {c: round(sum(v)/len(v), 2) for c, v in bias_acc.items()}
 
+    # EARNED station profiles: the QUIRKS table in config is hand-calibrated
+    # for 7 of 23 stations and must not be extended by guesswork. This is the
+    # data-derived counterpart for EVERY station, refreshed nightly from
+    # settled days, with n attached so nobody mistakes 3 days for a climate.
+    # Written to docs/quirks_observed.json; promote a line into QUIRKS only
+    # when the behavior has enough days behind it to deserve prose.
+    profiles = {}
+    for c in {o["city"] for o in obs}:
+        days_map = {}
+        for o in obs:
+            if o["city"] == c:
+                days_map.setdefault(o["day"], o)
+        ge = [d.get("guide_err") for d in days_map.values()
+              if d.get("guide_err") is not None]
+        n = len(ge)
+        if n == 0:
+            profiles[c] = dict(n_days=0)
+            continue
+        mu = sum(ge) / n
+        sd = (sum((x - mu) ** 2 for x in ge) / n) ** 0.5 if n > 1 else None
+        bset = {o["day"] for o in obs
+                if o["city"] == c and o.get("kind") == "bottom"
+                and o.get("ceiling") is not None and o.get("settle") is not None
+                and abs(o["settle"] - o["ceiling"]) <= 1}
+        profiles[c] = dict(
+            n_days=n, bias=round(mu, 2),
+            sd=(round(sd, 2) if sd is not None else None),
+            hot_bust_days=sum(1 for x in ge if x >= 3),
+            cool_bust_days=sum(1 for x in ge if x <= -3),
+            boundary_days=len(bset))
+    json.dump(dict(generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+                   note="guide_err = guide - CLI per settled city-day; "
+                        "hot/cool bust = |err| >= 3F; boundary = bottom-rung "
+                        "settle within 1F of ceiling. Earned data, not calibration.",
+                   profiles=profiles),
+              open("docs/quirks_observed.json", "w"), indent=1)
+
     # Candidate rules scored on the SAME deduped city-day units, one entry each.
     # frozen: the live gate's shape (G>=4, price<=98, no floor)
     # corrected: G computed from bias-corrected guide
@@ -198,6 +235,7 @@ def main():
                                      adaptive.bias_sigma(c)))
                          for c in {o["city"] for o in obs}},
                diurnal=adaptive.diurnal_climb({k: v["tz"] for k, v in CITIES.items()}),
+               station_profiles=profiles,
                convergence=convergence.build(),
                boundary_cases=convergence.boundary_report(),
                variants=variants, brier=_brier())

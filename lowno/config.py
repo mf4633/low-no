@@ -131,6 +131,43 @@ REGIME = {
     "TTN": dict(regime="riverine",       water_km=80,  elev_ft=210,  bust_modes=["frontal"]),
 }
 
+# Validated NDBC buoys for the water-adjacent stations (live-checked
+# 2026-08-26: every id below returned a current WTMP; SAN 46235, SEA WPOW1,
+# CHI 45007 were candidates that did NOT and were rejected). Water temp is the
+# ocean/lake half of the land-sea delta-T driving every sea-breeze,
+# lake-breeze, and stratus cap. Open-ocean buoys chosen for stratus stations:
+# upwelling water drives the marine layer; bays run warmer and mislead.
+BUOYS = {
+    "SFO": "46026", "LAX": "46221", "SAN": "46232", "SEA": "PTWW1",
+    "BOS": "44013", "MIA": "VAKF1", "HOU": "42035", "MSY": "NWCL1",
+    "NYC": "44065", "EWR": "44065", "CHI": "45174",
+}
+
+# WORLD_REGIME: same geography-not-calibration contract as REGIME, prepared
+# BEFORE any world market launches so day one arrives with mechanism context.
+WORLD_REGIME = {
+    "LON": dict(regime="maritime_temperate",  water_km=50,  elev_ft=80,   bust_modes=["frontal", "stratocumulus"]),
+    "PAR": dict(regime="continental_mod",     water_km=180, elev_ft=390,  bust_modes=["frontal"]),
+    "BER": dict(regime="continental",         water_km=180, elev_ft=160,  bust_modes=["frontal"]),
+    "FRA": dict(regime="continental",         water_km=400, elev_ft=365,  bust_modes=["frontal", "convective"]),
+    "AMS": dict(regime="maritime",            water_km=10,  elev_ft=-11,  bust_modes=["sea_breeze_cap", "stratus"]),
+    "BRU": dict(regime="maritime_mod",        water_km=60,  elev_ft=180,  bust_modes=["frontal"]),
+    "GVA": dict(regime="lake_alpine",         water_km=4,   elev_ft=1410, bust_modes=["lake_breeze_cap", "foehn_warm", "bise"]),
+    "IST": dict(regime="strait_maritime",     water_km=10,  elev_ft=325,  bust_modes=["sea_breeze_cap", "poyraz"]),
+    "TYO": dict(regime="bay_urban",           water_km=1,   elev_ft=20,   bust_modes=["sea_breeze_cap", "frontal"]),
+    "SEL": dict(regime="tidal_coastal",       water_km=5,   elev_ft=20,   bust_modes=["sea_breeze_cap", "monsoon"]),
+    "PEK": dict(regime="continental_monsoon", water_km=150, elev_ft=115,  bust_modes=["monsoon", "frontal"]),
+    "SHA": dict(regime="coastal_delta",       water_km=20,  elev_ft=15,   bust_modes=["sea_breeze_cap", "typhoon"]),
+    "HKG": dict(regime="subtropical_island",  water_km=0,   elev_ft=20,   bust_modes=["maritime_cap", "typhoon"]),
+    "SIN": dict(regime="equatorial_maritime", water_km=2,   elev_ft=20,   bust_modes=["convective", "sumatra_squall"]),
+    "BOM": dict(regime="tropical_coastal",    water_km=2,   elev_ft=25,   bust_modes=["monsoon", "sea_breeze_cap"]),
+    "DXB": dict(regime="desert_coastal",      water_km=3,   elev_ft=20,   bust_modes=["sea_breeze_cap", "shamal"]),
+    "SYD": dict(regime="coastal",             water_km=1,   elev_ft=20,   bust_modes=["southerly_buster", "sea_breeze_cap"]),
+    "YYZ": dict(regime="lake_mod",            water_km=15,  elev_ft=570,  bust_modes=["lake_breeze_cap", "frontal"]),
+    "MEX": dict(regime="highland_basin",      water_km=250, elev_ft=7350, bust_modes=["convective", "altitude_cap"]),
+    "GRU": dict(regime="plateau_subtropical", water_km=60,  elev_ft=2460, bust_modes=["frontal", "sea_breeze_cap"]),
+}
+
 # Station quirk library, calibrated Jul 29-Aug 4 2026. Used by the scorer's
 # attribution step, and as entry cautions in scan output.
 QUIRKS = {

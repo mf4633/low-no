@@ -245,6 +245,53 @@ def orderbook_depth(ticker, max_price=98, probe_path=None):
                 levels=buyable[:8], **yes_side)
 
 
+def buoy_sst(buoy_id):
+    """Latest water temperature from an NDBC buoy, F. The ocean/lake half of
+    the land-sea delta-T that drives sea-breeze / lake-breeze / stratus caps.
+    Telemetry only; degrades to None. NDBC serves plain text; WTMP is Celsius,
+    'MM' means missing."""
+    try:
+        req = urllib.request.Request(
+            f"https://www.ndbc.noaa.gov/data/realtime2/{buoy_id}.txt",
+            headers={"User-Agent": "lowno/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as f:
+            lines = f.read().decode("utf-8", "replace").splitlines()
+        hdr = lines[0].split()
+        if "WTMP" not in hdr:
+            return None
+        wi = hdr.index("WTMP")
+        for ln in lines[2:12]:          # newest rows first; skip units row
+            parts = ln.split()
+            if len(parts) > wi and parts[wi] not in ("MM", "999.0"):
+                return dict(buoy=buoy_id,
+                            sst_f=round(float(parts[wi]) * 9 / 5 + 32, 1),
+                            obs_utc="-".join(parts[0:3]) + "T" + ":".join(parts[3:5]))
+        return None
+    except Exception:
+        return None
+
+
+def metar_now(icaos):
+    """Latest METAR for a list of ICAO ids -- GLOBAL coverage via
+    aviationweather.gov (api.weather.gov is US-only, and the world-series
+    launch watch needs obs the day a market appears). Live-verified
+    2026-08-26 on EGLL/RJTT/YSSY/MMMX. Returns {icao: {...}}, {} on failure."""
+    try:
+        j = _get(f"https://aviationweather.gov/api/data/metar"
+                 f"?ids={','.join(icaos)}&format=json")
+        out = {}
+        for m in j or []:
+            t, d = m.get("temp"), m.get("dewp")
+            out[m.get("icaoId")] = dict(
+                temp_f=None if t is None else round(t * 9 / 5 + 32, 1),
+                dew_f=None if d is None else round(d * 9 / 5 + 32, 1),
+                wdir=m.get("wdir"), wspd_kt=m.get("wspd"),
+                ts=m.get("reportTime"))
+        return out
+    except Exception:
+        return {}
+
+
 def asos_1min_max(station4, date=None):
     """True 1-minute ASOS maximum -- the settlement premium the CLI rounds away.
 

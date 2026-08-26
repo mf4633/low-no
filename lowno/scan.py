@@ -61,6 +61,21 @@ def scan_once():
                 detail["run_max_detail"] = gate.running_max_f(obs_today, return_detail=True)
             except Exception as _se:
                 print("sky/run_max_detail: skipped -", str(_se)[:100])
+            # Water temperature for the water-adjacent stations: the ocean/lake
+            # half of the land-sea delta-T behind every sea-breeze, lake-breeze,
+            # and stratus cap. Telemetry; one NDBC fetch per buoy per cycle
+            # (NYC/EWR share 44065 -- cached).
+            try:
+                from .config import BUOYS
+                if key in BUOYS:
+                    if "_sst_cache" not in dir():
+                        _sst_cache = {}
+                    b = BUOYS[key]
+                    if b not in _sst_cache:
+                        _sst_cache[b] = sources.buoy_sst(b)
+                    detail["sst"] = _sst_cache[b]
+            except Exception as _se2:
+                print("sst: skipped -", str(_se2)[:80])
             # Competing forecasts for the same station-day. Recorded so their
             # skill can be scored against CLI -- the ledger previously held only
             # NBM `guide`, making "which forecaster is best" unanswerable.
@@ -126,6 +141,7 @@ def scan_once():
                 detail=dict(guide=guide, pop=pop, run_max=rmax,
                     sky=(detail.get("sky") if isinstance(detail, dict) else None),
                     airmass=(detail.get("airmass") if isinstance(detail, dict) else None),
+                    sst=(detail.get("sst") if isinstance(detail, dict) else None),
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
@@ -151,17 +167,24 @@ def scan_once():
     # and unreconstructable. No obs/gate/settlement for these yet -- rows are
     # marked world=True so the edge board and live tracker skip them.
     try:
-        from .config import WORLD
+        from .config import WORLD, WORLD_REGIME
+        live_world = []
         for wkey, w in WORLD.items():
             try:
                 wr = sources.kalshi_ladder(w["series"], None, probe_path=None)
             except Exception:
                 continue
-            if not wr:
-                continue
+            if wr:
+                live_world.append((wkey, w, wr))
+        # One batched global-METAR call for every live world city: day-one
+        # ladders arrive with obs and regime context attached, not naked.
+        wx_obs = sources.metar_now([w["icao"] for _, w, _ in live_world]) if live_world else {}
+        for wkey, w, wr in live_world:
             print(f"WORLD MARKET LIVE: {wkey} ({w['name']}) {w['series']} -- {len(wr)} open rungs")
             results.append(dict(city=wkey, station=w["icao"], verdict="LADDER",
                 detail=dict(world=True, guide=None, pop=None, run_max=None,
+                    obs=wx_obs.get(w["icao"]),
+                    regime=WORLD_REGIME.get(wkey),
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
