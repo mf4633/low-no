@@ -1,13 +1,13 @@
 {
- "at": "2026-08-26T16:32:55.877312Z",
+ "at": "2026-08-26T19:21:30.280023Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 78,
-   "price": 49,
-   "p_model": 0.5789,
-   "p_market": 0.49,
-   "edge_pts": 8.9,
+   "price": 28,
+   "p_model": 1.0,
+   "p_market": 0.28,
+   "edge_pts": 72.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,39 +15,62 @@
      "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 72 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "NO_HISTORY",
      "why": "n_eff=5.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
      "code": "GRAVEYARD",
-     "why": "49c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "28c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "DAL",
    "ceiling": 99,
-   "price": 65,
-   "p_model": 0.6679,
-   "p_market": 0.65,
-   "edge_pts": 1.8,
+   "price": 26,
+   "p_model": 0.4944,
+   "p_market": 0.26,
+   "edge_pts": 23.4,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 23 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=2.5 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "code": "GRAVEYARD",
+     "why": "26c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "AUS",
+   "ceiling": 100,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "GRAVEYARD",
-     "why": "65c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "code": "NO_HISTORY",
+     "why": "n_eff=15.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
