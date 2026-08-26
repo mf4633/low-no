@@ -1,5 +1,78 @@
 {
- "at": "2026-08-26T14:06:30.642957Z",
- "tracked": [],
+ "at": "2026-08-26T15:03:18.856876Z",
+ "tracked": [
+  {
+   "city": "DC",
+   "station": "KDCA",
+   "ticker": "KXHIGHTDC-26AUG26-T85",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 84,
+   "run_max": 80.6,
+   "gap_to_clear": 3.4,
+   "already_cleared": false,
+   "guide": 88,
+   "pop": 2,
+   "no_ask": 0.96,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-08-26T14:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T14:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-08-26T13:55:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 5.6,
+    "q50": 6.2,
+    "q90": 6.4
+   },
+   "projected_max": {
+    "q10": 86.2,
+    "q50": 86.8,
+    "q90": 87.0
+   },
+   "p_exceed_empirical": 0.3857,
+   "emp_n": 68,
+   "convergence_hour": null,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
