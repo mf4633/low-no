@@ -102,16 +102,13 @@ def scan_once():
                             break
                 except Exception as _e:
                     detail["model"] = {"error": str(_e)[:80]}
-            # Also attach to the LADDER record's bottom rung: shadow dedup prefers
-            # LADDER rows for any cycle that has one, so depth stored only on the
-            # gate row never reaches the observations (found 2026-08-16, n=0 on
-            # the depth variant). Store it where the analysis actually reads.
-            if depth is not None and br is not None:
-                for _lr in results:
-                    if _lr.get("verdict") == "LADDER" and _lr.get("city") == key:
-                        for _rg in _lr["detail"].get("rungs", []):
-                            if _rg.get("t") == br["ticker"]:
-                                _rg["depth"] = depth
+            # Depth must ride ON the LADDER rung: shadow dedup prefers LADDER
+            # rows, so depth stored only on the gate row never reaches the
+            # observations (found 2026-08-16, n=0 on the depth variant). The
+            # 2026-08-16 fix looped over `results` looking for THIS city's
+            # LADDER row BEFORE that row was appended -- a silent no-op for ten
+            # days (0 of 7,710 rungs carried depth). Attach at build time
+            # instead, in the rung comprehension below (found 2026-08-26).
             # Full-ladder record: every rung's quotes, not just the bottom one
             # the gate evaluates. The gate stays frozen -- this is telemetry.
             # ~6x the settled observations per day at zero marginal fetch cost.
@@ -127,7 +124,11 @@ def scan_once():
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
                                 oi=r.get("oi"), vol=r.get("vol"),
-                                src=r.get("quote_src")) for r in rungs]),
+                                src=r.get("quote_src"),
+                                **({"depth": depth}
+                                   if (depth is not None and br is not None
+                                       and r["ticker"] == br["ticker"]) else {}))
+                           for r in rungs]),
                 at=dt.datetime.utcnow().isoformat()))
             row = dict(city=key, station=c["station"], verdict=verdict,
                        detail=detail, at=dt.datetime.utcnow().isoformat())

@@ -67,6 +67,13 @@ def _legacy(v):
     """Pre-2026 integer-cent fields, kept as a fallback."""
     return None if v in (None, "") else int(v)
 
+def _fp_int(v):
+    """2026 *_fp count fields arrive as decimal STRINGS ("152.00")."""
+    try:
+        return None if v in (None, "") else int(float(v))
+    except (TypeError, ValueError):
+        return None
+
 def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
     """Public market quotes for one event day. Returns list of
     dict(ticker, cap, floor, yes_bid, yes_ask, no_ask, no_bid, quote_src).
@@ -125,11 +132,20 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
         cap_raw = m.get("cap_strike")
         floor = m.get("floor_strike")
         cap = cap_raw - 1 if (floor is None and cap_raw is not None) else cap_raw
+        # 2026 schema renamed the count fields to *_fp decimal strings; the
+        # legacy integers are gone (they logged as None for weeks unnoticed).
+        # Explicit None checks, never `or` -- 0 is a real value (gotcha #6).
+        oi = m.get("open_interest")
+        if oi is None:
+            oi = _fp_int(m.get("open_interest_fp"))
+        vol = m.get("volume")
+        if vol is None:
+            vol = _fp_int(m.get("volume_fp"))
         rungs.append(dict(ticker=m["ticker"],
                           cap=cap, floor=floor, cap_strike_raw=cap_raw,
                           yes_bid=yes_bid, yes_ask=yes_ask,
                           no_ask=no_ask, no_bid=no_bid, quote_src=src,
-                          oi=m.get("open_interest"), vol=m.get("volume")))
+                          oi=oi, vol=vol))
     return rungs
 
 
