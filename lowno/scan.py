@@ -168,22 +168,35 @@ def scan_once():
     # marked world=True so the edge board and live tracker skip them.
     try:
         from .config import WORLD, WORLD_REGIME
+        # Probing 20 dormant series every cycle costs 20 calls to learn the
+        # same "still asleep" -- and scan time is now the scarce resource
+        # (GitHub drops cron fires under load). Probe once per UTC day while
+        # everything is dormant; the moment ANY series is live, resume probing
+        # every cycle so a live market's book is sampled at full rate.
+        _wprev, _wtoday = None, dt.datetime.utcnow().date().isoformat()
+        try:
+            _wprev = json.load(open("docs/world.json"))
+        except Exception:
+            pass
+        _probe_world = not (_wprev and not _wprev.get("live")
+                            and (_wprev.get("at") or "")[:10] == _wtoday)
         live_world = []
-        for wkey, w in WORLD.items():
+        for wkey, w in (WORLD.items() if _probe_world else []):
             try:
                 wr = sources.kalshi_ladder(w["series"], None, probe_path=None)
             except Exception:
                 continue
             if wr:
                 live_world.append((wkey, w, wr))
-        # Status feed for the site: which world series are live right now.
-        # Written every cycle (even all-dormant) so staleness is detectable.
-        os.makedirs("docs", exist_ok=True)
-        json.dump(dict(at=dt.datetime.utcnow().isoformat() + "Z",
-                       n_series=len(WORLD),
-                       live=[dict(key=k, name=w["name"], series=w["series"],
-                                  n_rungs=len(wr)) for k, w, wr in live_world]),
-                  open("docs/world.json", "w"), indent=1)
+        # Status feed for the site. Rewritten whenever we probed; on a skipped
+        # cycle the previous file stands (its `at` shows when it was true).
+        if _probe_world:
+            os.makedirs("docs", exist_ok=True)
+            json.dump(dict(at=dt.datetime.utcnow().isoformat() + "Z",
+                           n_series=len(WORLD), probe="full",
+                           live=[dict(key=k, name=w["name"], series=w["series"],
+                                      n_rungs=len(wr)) for k, w, wr in live_world]),
+                      open("docs/world.json", "w"), indent=1)
         # One batched global-METAR call for every live world city: day-one
         # ladders arrive with obs and regime context attached, not naked.
         wx_obs = sources.metar_now([w["icao"] for _, w, _ in live_world]) if live_world else {}

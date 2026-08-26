@@ -82,6 +82,26 @@ def main():
                           proven=bool(lo_ > need)))
     yspreads = [o["yes_spread"] for o in obs if o.get("yes_spread") is not None]
 
+    # SCAN COVERAGE: how many distinct hourly cycles each day actually got.
+    # GitHub's scheduled cron is best-effort and drops fires under load
+    # (2026-08-26: 5 of 11 hours). This matters to interpretation, not just
+    # ops -- the pilot and the prereg variant both take a city's FIRST
+    # qualifying cycle, so a sparse day samples a different, later price than
+    # a full day. Any cross-day comparison should check this first.
+    import glob as _glob
+    coverage = {}
+    for _f in sorted(_glob.glob("logs/2*.jsonl")):
+        _day = _f.replace("\\", "/").split("/")[-1][:-6]
+        _hrs = set()
+        try:
+            for _line in open(_f):
+                _r = json.loads(_line)
+                if _r.get("verdict") == "LADDER":
+                    _hrs.add(_r["at"][11:13])
+        except Exception:
+            continue
+        coverage[_day] = len(_hrs)
+
     # Per-station guide bias from settled days: mean(guide - CLI). This is the
     # transfer-function candidate (same shape as the EWR-3.5 KNYC correction).
     bias_acc = defaultdict(list)
@@ -235,7 +255,7 @@ def main():
                                      adaptive.bias_sigma(c)))
                          for c in {o["city"] for o in obs}},
                diurnal=adaptive.diurnal_climb({k: v["tz"] for k, v in CITIES.items()}),
-               station_profiles=profiles,
+               station_profiles=profiles, scan_coverage=coverage,
                convergence=convergence.build(),
                boundary_cases=convergence.boundary_report(),
                variants=variants, brier=_brier())
@@ -281,6 +301,12 @@ def main():
     # The quit lines and promotion criteria live in CANDIDATE.md ("YES Pilot
     # v1"), pre-committed 2026-08-25 with $0 at risk and n=0. This print exists
     # so the review date is set by the data, not by anyone remembering to look.
+    _short = {d: n for d, n in coverage.items() if n < 8}
+    if _short:
+        print(f"\nscan coverage BELOW 8 cycles on {len(_short)} day(s): "
+              f"{dict(sorted(_short.items())[-5:])} (of 11 scheduled) -- "
+              f"first-qualifying-cycle entries on these days sample later prices")
+
     pr = next((v for v in variants if v["rule"] == "PREREG_yes10_hotbias3"), None)
     if pr is not None:
         if pr["n"] < 60:

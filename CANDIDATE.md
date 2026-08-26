@@ -47,6 +47,27 @@ this section after money exists is itself a kill signal.
 Execution stays manual: the scanner flags, the human places orders.
 scan.py grows no order code, per its own header. Ever.
 
+## KNOWN FIDELITY GAPS (measured 2026-08-26, before any capital)
+* **Settlement source differs from our grader.** Kalshi's rules read: "the
+  maximum temperature recorded at San Antonio (CLISAT) ... according to
+  **The Weather Company**". We grade on the NWS CLI product directly. They
+  usually agree (TWC reads the same climate report) but they are not the same
+  authority, and a divergence on a boundary day means the paper ledger records
+  a win a real account did not get. Before any seed, spot-check TWC against
+  CLI on the boundary days this pilot actually trades.
+* **The threshold is `< cap_strike`, not `<= cap`.** Same arithmetic as the
+  cap-1 fix (T101 = "less than 101" = "at most 100"), and the API rules text
+  independently confirms that fix. Boundary days are decided by the TENTHS and
+  by how the source rounds: an observed 100.4 max reports as 100 and WINS;
+  100.5 reports as 101 and LOSES.
+* **Fills are assumed full at the logged ask.** No queue, no partials. This is
+  the optimism the FILL REALITY quit line exists to test.
+* **Scan coverage is not guaranteed.** GitHub drops scheduled cron fires under
+  load (2026-08-26: 5 of 11 hours). Both the pilot and the prereg variant take
+  a city's FIRST qualifying cycle, so a sparse day samples a later price than
+  a full day. `scan_coverage` in shadow_summary.json records this per day;
+  check it before comparing across days.
+
 ## Sizing
 Half-Kelly on the LCB hit rate (not the point estimate), hard cap 5% of
 bankroll per unit -- the same seatbelt as the frozen gate. No martingale,

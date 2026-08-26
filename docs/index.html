@@ -451,7 +451,9 @@ fetch("spend.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(s=>{
       if(!r.at) return `<tr><td>${r.label}</td><td class="muted">${r.f}</td>
         <td class="code PENDING">MISSING</td><td class="num">&mdash;</td></tr>`;
       const age=(now-new Date(r.at).getTime())/3.6e6;
-      const limit=(r.f==="edge.json"||r.f==="active.json"||r.f==="world.json")?3:26;
+      // world.json is deliberately probed once per day while every series is
+      // dormant, so it belongs on the nightly clock, not the hourly one.
+      const limit=(r.f==="edge.json"||r.f==="active.json")?3:26;
       const bad=age>limit;
       return `<tr><td>${r.label}</td><td class="muted">${r.f}</td>
         <td class="code ${bad?"FORECAST_BUST":"WIN"}">${bad?"STALE":"ok"}</td>

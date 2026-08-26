@@ -1,7 +1,15 @@
 name: low-no scan
 on:
   schedule:
-    - cron: "5 13-23 * * *"   # hourly, 9:05a-7:05p ET (13:05-23:05 UTC)
+    # TWO fires per hour, 9a-7p ET. GitHub's scheduled cron is best-effort and
+    # silently DROPS fires under load: 2026-08-26 delivered 5 of 11 hours
+    # (13:59, 14:56, 16:26, 19:14 for nominal :05 slots) while every prior day
+    # got all 11. Runs take ~7 min and the concurrency group serializes them,
+    # so a second slot costs little and gives each hour a second chance.
+    # Duplicate fires in one hour are harmless: the scan is idempotent
+    # telemetry and shadow dedups to one unit per city-day.
+    - cron: "5 13-23 * * *"    # :05 - 9:05a-7:05p ET
+    - cron: "35 13-23 * * *"   # :35 - backup slot
   workflow_dispatch: {}
 permissions: { contents: write, pages: write, issues: write }
 concurrency:
