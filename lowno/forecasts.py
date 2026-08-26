@@ -71,6 +71,36 @@ FORECASTERS = {
 }
 
 
+def airmass(lat, lon, local_date):
+    """Heat-dome / airmass-scale telemetry for one station-day.
+
+    t850_max_f: today's max 850hPa temperature -- the airmass ceiling the
+    surface can mix toward; a surface forecast busting HOT usually has the
+    warmth aloft first, and one busting COOL often shows a surface forecast
+    the 850 temp cannot support.
+    z500_max_m: today's max 500hPa geopotential height -- ridge amplitude;
+    sustained ~5900m+ is heat-dome territory, and day-over-day height falls
+    flag the ridge breaking down before surface guidance reacts.
+
+    Telemetry only (logged for future variant scoring, feeds nothing).
+    Degrades to None on any failure."""
+    try:
+        url = (f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+               f"&hourly=temperature_850hPa,geopotential_height_500hPa"
+               f"&temperature_unit=fahrenheit&timezone=auto"
+               f"&start_date={local_date}&end_date={local_date}")
+        j = _get(url)
+        h = j.get("hourly") or {}
+        t850 = [v for v in (h.get("temperature_850hPa") or []) if v is not None]
+        z500 = [v for v in (h.get("geopotential_height_500hPa") or []) if v is not None]
+        if not t850 and not z500:
+            return None
+        return dict(t850_max_f=(round(max(t850), 1) if t850 else None),
+                    z500_max_m=(int(round(max(z500))) if z500 else None))
+    except Exception:
+        return None
+
+
 def collect(city_cfg, local_date):
     """All competing forecasts for one station-day. NBM `guide` is added by
     scan.py, which already fetches it -- no point calling twice."""

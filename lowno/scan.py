@@ -67,6 +67,11 @@ def scan_once():
             try:
                 from . import forecasts
                 detail["forecasts"] = forecasts.collect(c, today.isoformat())
+                # Airmass-scale context (850hPa temp, 500hPa height): the
+                # heat-dome / ridge telemetry a surface-only scanner is blind
+                # to. Logged for variant scoring; feeds nothing.
+                detail["airmass"] = forecasts.airmass(c["lat"], c["lon"],
+                                                      today.isoformat())
             except Exception as _fe:
                 print("forecasts: skipped -", str(_fe)[:100])
             if depth is not None and isinstance(detail, dict):
@@ -120,6 +125,7 @@ def scan_once():
             results.append(dict(city=key, station=c["station"], verdict="LADDER",
                 detail=dict(guide=guide, pop=pop, run_max=rmax,
                     sky=(detail.get("sky") if isinstance(detail, dict) else None),
+                    airmass=(detail.get("airmass") if isinstance(detail, dict) else None),
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),

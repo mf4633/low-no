@@ -95,6 +95,42 @@ WORLD = {
     "GRU": dict(name="Sao Paulo",   icao="SBGR", tz="America/Sao_Paulo",   series="KXHIGHTSBGR"),
 }
 
+# Static regime classification, all 23 stations (2026-08-26). GEOGRAPHY, not
+# calibration: these are verifiable facts (what water is nearby, how high, which
+# mechanistic bust modes the geography permits) for attribution slicing and
+# future variants. They are deliberately separate from QUIRKS below, which are
+# EARNED from observed behavior -- do not promote a regime hypothesis into
+# QUIRKS without data. Feeds nothing today; prob.MARINE is intentionally NOT
+# expanded from this (changing it mid-measurement would redefine the
+# exclude_marine variant population).
+#   regime: primary label   water_km: nearest significant water (approx)
+#   elev_ft: station elevation (approx)   bust_modes: mechanisms to watch
+REGIME = {
+    "AUS": dict(regime="continental",    water_km=250, elev_ft=540,  bust_modes=["frontal", "outflow"]),
+    "CHI": dict(regime="lake_breeze",    water_km=15,  elev_ft=620,  bust_modes=["lake_breeze_cap"]),
+    "DEN": dict(regime="high_plains",    water_km=999, elev_ft=5430, bust_modes=["outflow", "downslope_warm"]),
+    "LAX": dict(regime="marine_stratus", water_km=5,   elev_ft=125,  bust_modes=["stratus", "sea_breeze_cap"]),
+    "MIA": dict(regime="sea_breeze",     water_km=15,  elev_ft=10,   bust_modes=["sea_breeze_cap", "convective"]),
+    "NYC": dict(regime="urban_park",     water_km=8,   elev_ft=130,  bust_modes=["sea_breeze_cap", "park_cool"]),
+    "PHL": dict(regime="riverine",       water_km=80,  elev_ft=35,   bust_modes=["frontal"]),
+    "PHX": dict(regime="desert",         water_km=999, elev_ft=1110, bust_modes=["monsoon", "outflow"]),
+    "SEA": dict(regime="marine_mod",     water_km=3,   elev_ft=430,  bust_modes=["marine_push", "onshore_switch"]),
+    "SFO": dict(regime="marine_stratus", water_km=1,   elev_ft=10,   bust_modes=["stratus", "gap_reversal"]),
+    "ATL": dict(regime="continental",    water_km=350, elev_ft=1000, bust_modes=["convective", "frontal"]),
+    "BOS": dict(regime="sea_breeze",     water_km=1,   elev_ft=20,   bust_modes=["sea_breeze_cap", "backdoor_front"]),
+    "DAL": dict(regime="continental",    water_km=400, elev_ft=600,  bust_modes=["frontal", "outflow"]),
+    "DC":  dict(regime="riverine",       water_km=50,  elev_ft=15,   bust_modes=["frontal", "convective"]),
+    "HOU": dict(regime="gulf_breeze",    water_km=8,   elev_ft=45,   bust_modes=["sea_breeze_cap", "convective"]),
+    "LAS": dict(regime="desert",         water_km=999, elev_ft=2180, bust_modes=["monsoon", "outflow"]),
+    "MSP": dict(regime="continental",    water_km=999, elev_ft=840,  bust_modes=["frontal"]),
+    "MSY": dict(regime="gulf_lake",      water_km=5,   elev_ft=5,    bust_modes=["lake_breeze_cap", "convective"]),
+    "OKC": dict(regime="plains",         water_km=999, elev_ft=1290, bust_modes=["frontal", "outflow"]),
+    "SAN": dict(regime="marine_stratus", water_km=2,   elev_ft=15,   bust_modes=["stratus", "sea_breeze_cap"]),
+    "SAT": dict(regime="continental",    water_km=200, elev_ft=810,  bust_modes=["frontal", "convective"]),
+    "EWR": dict(regime="harbor_urban",   water_km=3,   elev_ft=10,   bust_modes=["sea_breeze_cap", "frontal"]),
+    "TTN": dict(regime="riverine",       water_km=80,  elev_ft=210,  bust_modes=["frontal"]),
+}
+
 # Station quirk library, calibrated Jul 29-Aug 4 2026. Used by the scorer's
 # attribution step, and as entry cautions in scan output.
 QUIRKS = {
