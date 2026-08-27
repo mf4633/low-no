@@ -88,9 +88,13 @@ def airmass(lat, lon, local_date):
         # NOTE the layer name: the FORECAST API serves soil_moisture_3_to_9cm;
         # soil_moisture_0_to_7cm is the ARCHIVE API's naming and returns a
         # silent null here (same trap as the decommissioned ifs04 model).
+        # temperature_2m rides along free: it is the PREDICTED DIURNAL CURVE for
+        # the day, which is what makes an intraday deviation measurable. A day
+        # running 4F above its own forecast curve at 13:00 is a different animal
+        # from one tracking it exactly, even when both show the same running max.
         url = (f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
                f"&hourly=temperature_850hPa,geopotential_height_500hPa,"
-               f"soil_moisture_3_to_9cm"
+               f"soil_moisture_3_to_9cm,temperature_2m"
                f"&temperature_unit=fahrenheit&timezone=auto"
                f"&start_date={local_date}&end_date={local_date}")
         j = _get(url)
@@ -102,9 +106,23 @@ def airmass(lat, lon, local_date):
             return None
         # soil moisture m3/m3: dry ground pushes the Bowen ratio toward
         # sensible heat -- a drought surface amplifies hot busts.
+        # Keep the curve keyed by LOCAL hour (timezone=auto), so a deviation can
+        # be computed at scan time without re-deriving the timebase.
+        times = (h.get("time") or [])
+        t2m = (h.get("temperature_2m") or [])
+        curve = {}
+        for ts, v in zip(times, t2m):
+            if v is None:
+                continue
+            try:
+                curve[int(ts[11:13])] = round(v, 1)
+            except Exception:
+                continue
         return dict(t850_max_f=(round(max(t850), 1) if t850 else None),
                     z500_max_m=(int(round(max(z500))) if z500 else None),
-                    soil_m3m3=(round(sum(soil) / len(soil), 3) if soil else None))
+                    soil_m3m3=(round(sum(soil) / len(soil), 3) if soil else None),
+                    curve=curve or None,
+                    curve_max_f=(max(curve.values()) if curve else None))
     except Exception:
         return None
 

@@ -27,6 +27,78 @@ be negotiated with; only the flag rate moves it.
 
 ---
 
+# HYPOTHESIS 4 -- DIURNAL-CURVE DEVIATION (SHAPE, NOT LEVEL)
+# (registered 2026-08-27, BEFORE any test. This text does not change.)
+
+## Where it comes from
+An observation from the trading desk, not from a table: markets reprice midday
+when the temperature trajectory departs from the day's expected diurnal curve.
+
+## Mechanism
+Every probability in this repo conditions on LEVEL and TIME:
+`p_exceed(city, local_hour, run_max, cap)`. But `run_max` is a MAXIMUM, so it
+is monotone and shape-blind. A day sitting at 85F because it stalled at 10:00
+and a day sitting at 85F while still climbing 3F/hr are the same input to the
+model and wildly different days. The information the model discards is exactly
+the information a human trader watches.
+
+Two separable claims:
+  (a) SHAPE ADDS INFORMATION. Deviation from the day's own predicted curve --
+      or, as a proxy, the recent climb RATE -- predicts the remaining climb
+      beyond what (level, hour) already says.
+  (b) THE MARKET LAGS IT. Repricing follows the deviation rather than leading
+      it, leaving a window.
+
+## Why this is not just H2 again
+H2 failed because its exit signal (`p_exceed`) only fires once the day is
+plainly lost, by which time the bid has collapsed -- failure mode 2, confirmed
+with DEN's late bids running 19c, 3c, 3c. A deviation signal is different in
+KIND: a stall is visible at 13:00, hours before the level-based model concedes
+anything. If an exit is ever worth making, this is the signal that could make
+it in time. So H4 subsumes the exit question rather than repeating it.
+
+## What is testable NOW vs LATER
+* NOW (proxy): recent climb rate, reconstructed from consecutive `run_max`
+  readings. 1,911 usable rate samples exist across 227 city-days, and the
+  distribution is not degenerate (44% stalled <=0.2F/hr, 44% climbing
+  >=1.5F/hr, median 1.10).
+* LATER (direct): `curve_dev` = temp_now - predicted_curve(hour), logged from
+  2026-08-27 onward. Neither the instantaneous temperature nor the forecast
+  curve as it stood at scan time can be reconstructed after the fact, which is
+  why logging starts before the test.
+
+## The test to be run (fixed now)
+H4a, the information claim, on existing data:
+  * rate = d(run_max)/dt over a 0.5-2.5h gap between consecutive cycles
+  * buckets: STALLED <=0.2 F/hr | MID 0.2-1.5 | CLIMBING >=1.5 -- these three
+    only, no others
+  * control for what the model already knows: compare within HOUR BANDS
+    (pre-peak <13, peak 13-16, post-peak >16) and within NEEDED-CLIMB bands
+  * outcome measured: realized remaining climb (settle - run_max)
+  * CLAIM PASSES only if mean remaining climb differs by >= 0.5F between
+    STALLED and CLIMBING within the same band, with non-overlapping standard
+    errors
+H4b, the market-lag claim, is DEFERRED until >= 200 logged `curve_dev` cycles
+exist. It is not tested today and no result may be claimed for it.
+
+## How it fails (named in advance)
+1. Rate is a proxy for hour, and hour is already in the model -- the banding
+   is there to catch this; if the effect vanishes within bands, it was time.
+2. Rate is noise at hourly sampling: 5-minute obs are quantized from whole
+   degrees C, and dropped cron fires widen the gaps.
+3. Shape adds information but the market already has it -- the H3 outcome, and
+   the base case in this ledger (market wins 7 of 8 disputes).
+4. The effect is real but smaller than the fee drag at 96-98c, where breakeven
+   needs 98.2%.
+5. Survivorship in the banding: conditioning on a large needed-climb late in
+   the day may select doomed days regardless of rate.
+
+## Bar for promotion
+Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee
+breakeven, out-of-sample confirmation on post-registration days.
+
+---
+
 # HYPOTHESIS 3 -- THE SETTLEMENT GAP ON BOUNDARY DAYS
 # (registered 2026-08-27, BEFORE any test. This text does not change.)
 

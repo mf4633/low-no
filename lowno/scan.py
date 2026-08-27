@@ -87,6 +87,22 @@ def scan_once():
                 # to. Logged for variant scoring; feeds nothing.
                 detail["airmass"] = forecasts.airmass(c["lat"], c["lon"],
                                                       today.isoformat())
+                # DIURNAL-CURVE DEVIATION. run_max is a MAX -- monotone, and it
+                # cannot distinguish a day that stalled hours ago from one still
+                # climbing hard through the same number. temp_now vs the day's
+                # own predicted curve at this hour is the shape signal the level
+                # is blind to, and it is ephemeral: neither the instantaneous
+                # temperature nor the forecast curve as it stood at scan time
+                # can be reconstructed later. Telemetry only.
+                _tnow = None
+                if obs_today and obs_today[0].get("tC") is not None:
+                    _tnow = round(obs_today[0]["tC"] * 9 / 5 + 32, 1)
+                detail["temp_now"] = _tnow
+                _crv = (detail.get("airmass") or {}).get("curve") or {}
+                _pred = _crv.get(str(now_l.hour), _crv.get(now_l.hour))
+                detail["curve_pred_now"] = _pred
+                detail["curve_dev"] = (None if (_tnow is None or _pred is None)
+                                       else round(_tnow - _pred, 1))
             except Exception as _fe:
                 print("forecasts: skipped -", str(_fe)[:100])
             if depth is not None and isinstance(detail, dict):
@@ -142,6 +158,9 @@ def scan_once():
                     sky=(detail.get("sky") if isinstance(detail, dict) else None),
                     airmass=(detail.get("airmass") if isinstance(detail, dict) else None),
                     sst=(detail.get("sst") if isinstance(detail, dict) else None),
+                    temp_now=(detail.get("temp_now") if isinstance(detail, dict) else None),
+                    curve_pred_now=(detail.get("curve_pred_now") if isinstance(detail, dict) else None),
+                    curve_dev=(detail.get("curve_dev") if isinstance(detail, dict) else None),
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
