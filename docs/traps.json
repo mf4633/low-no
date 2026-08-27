@@ -1,26 +1,224 @@
 {
- "at": "2026-08-26T23:30:30.082307Z",
+ "at": "2026-08-27T01:06:58.580147Z",
  "traps": [
   {
-   "city": "BOS",
-   "ceiling": 78,
-   "price": 1,
-   "p_model": 0.649,
-   "p_market": 0.01,
-   "edge_pts": 63.9,
+   "city": "MSY",
+   "ceiling": 85,
+   "price": 60,
+   "p_model": 0.9905,
+   "p_market": 0.6,
+   "edge_pts": 39.1,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 64 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 39 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=5.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (13:00) with the running max still 1.0F short. The climb window has closed."
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "HOU",
+   "ceiling": 95,
+   "price": 49,
+   "p_model": 0.7291,
+   "p_market": 0.49,
+   "edge_pts": 23.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=4.4 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "49c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "PHX",
+   "ceiling": 111,
+   "price": 79,
+   "p_model": 1.0,
+   "p_market": 0.79,
+   "edge_pts": 21.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 21 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=13.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "79c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SFO",
+   "ceiling": 70,
+   "price": 82,
+   "p_model": 0.9673,
+   "p_market": 0.82,
+   "edge_pts": 14.7,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=15.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "DC",
+   "ceiling": 86,
+   "price": 91,
+   "p_model": 0.9796,
+   "p_market": 0.91,
+   "edge_pts": 7.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=5.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "SEA",
+   "ceiling": 69,
+   "price": 94,
+   "p_model": 0.9997,
+   "p_market": 0.94,
+   "edge_pts": 6.0,
+   "size_lcb": 0.4949,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=15.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
+  {
+   "city": "ATL",
+   "ceiling": 85,
+   "price": 94,
+   "p_model": 0.9997,
+   "p_market": 0.94,
+   "edge_pts": 6.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=5.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "PHL",
+   "ceiling": 83,
+   "price": 93,
+   "p_model": 0.9728,
+   "p_market": 0.93,
+   "edge_pts": 4.3,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=15.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "BOS",
+   "ceiling": 79,
+   "price": 97,
+   "p_model": 0.9904,
+   "p_market": 0.97,
+   "edge_pts": 2.0,
+   "size_lcb": 0.0614,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=5.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
+  {
+   "city": "CHI",
+   "ceiling": 77,
+   "price": 98,
+   "p_model": 0.9968,
+   "p_market": 0.98,
+   "edge_pts": 1.7,
+   "size_lcb": 0.3382,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=15.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
+  {
+   "city": "LAS",
+   "ceiling": 105,
+   "price": 99,
+   "p_model": 0.999,
+   "p_market": 0.99,
+   "edge_pts": 0.9,
+   "size_lcb": 0.3243,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=4.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
