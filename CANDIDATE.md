@@ -96,6 +96,54 @@ below is worth running.
 Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee
 breakeven, plus out-of-sample confirmation per failure 5.
 
+## RESULT (2026-08-27, `boundary_backtest.py`) -- NOT SUPPORTED
+**Precondition PASSED.** On 127 clean post-parser-fix city-days:
+
+    pooled G = +0.21F  (median +0.08, sd 0.64, SE 0.057 -> t ~ 3.7)
+    CLI above our observed max 57% of days, below 32%
+    per station: SEA +0.87, DEN +0.72, NYC +0.71 ... SFO -0.29, SAN -0.22
+
+So the settlement gap is REAL: CLI does read above the coarser obs, reliably.
+But +0.21F is worth only ~3 points of probability on a boundary day, and the
+rest of the test says the market already has it.
+
+**Failure mode 2 confirmed -- no exploitable disagreement.** In the boundary
+zone the model and the market broadly agree: mean(p_emp - p_mkt) = **-0.056**,
+with the model higher on only 48% of cycles. There is no systematic direction
+to trade.
+
+**The rule, as registered:** D>=0.05 -> 7 units, 0 wins, -4.71c/unit.
+D>=0.10 and D>=0.15 -> 5 units, 0 wins, -6.00c. Losing, but n=5-7 proves
+nothing: 0 wins in 7 tries at an implied ~10% is a 48% likely outcome. This is
+absence of evidence, not evidence of absence.
+
+**Failure mode 4 is the decisive one.** The boundary zone yields just 29
+TRADEABLE cycles in 20 days, and after one-per-city-day dedup the rule fires
+~0.35 times per day. Reaching the 60-unit bar would take **~170 days**. Even
+if the edge were real, it cannot be demonstrated to this project's standard
+within any horizon that matters. Out-of-sample cycles available today: 0.
+
+**A measurement error in the first run, recorded because it is the same class
+of bug this repo keeps finding:** `na == 100` is not a price -- Kalshi returns
+it when NO ask exists, and buying NO at 100c cannot profit. Treating it as
+"market implies 100%" put 46 phantom cycles into the calibration table and
+made the market look catastrophically miscalibrated (99-100c bucket: implied
+100%, realized 41%). With the artifact removed the zone holds 29 real cycles
+and the apparent mispricing disappears. The registered rule was not changed;
+only the price filter was corrected.
+
+## Verdict
+Three hypotheses, three nulls, and the reasons differ -- which is itself the
+finding:
+  H1 hot-bias      REFUTED   -- premise was a parser artifact
+  H2 early exit    REFUTED   -- expectancy is set at entry; exits redistribute
+  H3 settlement gap NOT SUPPORTED -- gap is real (+0.21F) but priced, and the
+                                    universe is too thin to ever prove it
+
+The through-line: at 96-98c the market is well calibrated, the forecasts are
+unbiased, and the residual uncertainty is genuinely irreducible tenths of a
+degree. Nothing found so far survives contact with fees.
+
 ---
 
 # HYPOTHESIS 2 -- EARLY EXIT (registered 2026-08-27, BEFORE any test)
