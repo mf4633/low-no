@@ -1,13 +1,13 @@
 {
- "at": "2026-08-27T20:59:08.119487Z",
+ "at": "2026-08-27T22:00:25.940874Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 79,
-   "price": 32,
+   "price": 3,
    "p_model": 1.0,
-   "p_market": 0.32,
-   "edge_pts": 68.0,
+   "p_market": 0.03,
+   "edge_pts": 97.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 97 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -25,37 +25,6 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SAN",
-   "ceiling": 83,
-   "price": 39,
-   "p_model": 0.6272,
-   "p_market": 0.39,
-   "edge_pts": 23.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=6.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "39c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -63,9 +32,9 @@
    "city": "PHL",
    "ceiling": 83,
    "price": 1,
-   "p_model": 0.1938,
+   "p_model": 0.1853,
    "p_market": 0.01,
-   "edge_pts": 18.4,
+   "edge_pts": 17.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -86,7 +55,34 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 9.1F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 9.1F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "SAN",
+   "ceiling": 83,
+   "price": 39,
+   "p_model": 0.5342,
+   "p_market": 0.39,
+   "edge_pts": 14.4,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=6.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "39c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 0.6F short. The climb window has closed."
     }
    ]
   }
