@@ -78,8 +78,23 @@ H4a, the information claim, on existing data:
   * CLAIM PASSES only if mean remaining climb differs by >= 0.5F between
     STALLED and CLIMBING within the same band, with non-overlapping standard
     errors
-H4b, the market-lag claim, is DEFERRED until >= 200 logged `curve_dev` cycles
-exist. It is not tested today and no result may be claimed for it.
+H4b, the market-lag claim, is DEFERRED until the data bar below is met. It is
+not tested today and no result may be claimed for it.
+
+**Threshold correction, 2026-08-27, made BEFORE any H4b test and in the
+TIGHTENING direction.** As first written the bar was ">= 200 logged
+`curve_dev` cycles". That unit is wrong: 23 cities x ~11 scans is ~250 cycles
+per DAY, so the bar could be cleared by a single day's weather -- 200
+observations that are almost entirely one synoptic event. Corrected bar:
+
+    >= 200 (city, cycle) events AND >= 20 DISTINCT DAYS
+
+The event is per-cycle because the test is an event study -- a material change
+in `curve_dev` followed by the price change in the NEXT cycle -- but the day
+count is what stops a single hot afternoon from masquerading as a sample. This
+is the same class of correction as the `na == 100` price filter: fixing a
+mis-specified measurement, not moving a bar to obtain a result. It makes the
+requirement strictly harder.
 
 ## How it fails (named in advance)
 1. Rate is a proxy for hour, and hour is already in the model -- the banding
