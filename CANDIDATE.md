@@ -27,6 +27,65 @@ be negotiated with; only the flag rate moves it.
 
 ---
 
+# HYPOTHESIS 2 -- EARLY EXIT (registered 2026-08-27, BEFORE any test)
+
+Registered under the reopening rules above: the mechanism is written here in
+full, and the test is run only afterwards. Whatever the numbers say, this text
+does not change.
+
+## Mechanism (structural, not fitted)
+Everything in this repo scores HOLD-TO-SETTLEMENT P&L. But these contracts
+trade continuously, and the bottom-rung NO position is unusually asymmetric in
+time:
+
+* **The win locks early.** A daily maximum is monotone non-decreasing, so the
+  instant the observed running max exceeds the cap, the outcome is arithmetic,
+  not probabilistic. The contract should mark ~100c immediately and carries no
+  residual risk. (`gate.py` already names this state DEAD_SCAVENGE.)
+* **The loss does NOT lock.** A position that is nearly certain to lose still
+  has bid-side value hours before settlement, because the market prices
+  residual probability, not certainty. Holding surrenders that value.
+
+Buying at 96-98c makes the payoff profile brutally asymmetric: +2 to +4c when
+right, -96 to -98c when wrong. Hold-to-settlement forces the full left tail on
+every miss. If a doomed position can be sold for materially more than zero,
+expectancy improves WITHOUT any claim about forecast skill -- this is a claim
+about the instrument and about time, not about the weather.
+
+This is why it is worth testing after Hypothesis 1 died: it does not depend on
+guidance being biased. It survives the fact that guidance is unbiased.
+
+## Prediction (falsifiable)
+For historical bottom-rung NO units that LOST, the best no_bid available after
+entry, at or after the station's measured convergence hour, is materially
+above 0; and a fixed exit rule yields higher mean P&L than holding, on the
+same units, after fees and at the BID (never the ask).
+
+## The rule to be tested (fixed now)
+Exit at the first scan cycle where the empirical P(exceed cap) falls below a
+threshold T, using the existing station/hour remaining-climb distribution.
+T is swept over {0.05, 0.10, 0.20} ONLY -- three values, declared in advance --
+plus one naive baseline (exit at a fixed 16:00 local) for comparison.
+Exits execute at the logged `nb` (NO bid), entries at `na` (NO ask). Winners
+that would have been exited early count as losses of the exit price. No
+lookahead: the exit decision uses only data available at that cycle.
+
+## How it fails (named in advance, so a null result is legible)
+1. No bid exists exactly when it is needed (one-sided book on doomed days).
+2. The bid is already ~0 once the day is clearly decided -- the market
+   reprices faster than an hourly scanner can act.
+3. Exiting also cuts eventual WINNERS that cross late; those must be counted.
+4. Hourly granularity plus dropped cron fires means the modelled exit cycle
+   may not have existed in reality (check `scan_coverage`).
+5. Salvage is real but smaller than the fee drag, leaving expectancy negative.
+
+## Bar for promotion
+Same as always: >= 60 independent city-day units, Wilson 95% LCB above fee
+breakeven, and the improvement must hold on post-2026-08-27 settlements alone,
+not only on the repaired history.
+
+---
+
 # YES Pilot v1 -- REFUTED 2026-08-27. DO NOT SEED. DO NOT REVIVE AS WRITTEN.
 
 The rule below is preserved verbatim as the record of a pre-registration that
