@@ -25,10 +25,22 @@ Design constraints, deliberate:
 """
 import math
 
+# HYPOTHESIS REFUTED 2026-08-27 (see CANDIDATE.md). The bias gate below no
+# longer selects any station -- the "hot stations" were an artifact of the CLI
+# parser reading record days as partial days -- and the p_hyp rate itself was
+# inflated by the same defect (measured on repaired settlements: 3.1%, against
+# a 2.6% breakeven, Wilson LCB 1.5%). The machinery is kept intact and running
+# because it is the instrument that will test the NEXT hypothesis; it now
+# correctly trades nothing. p_hyp is deliberately LEFT at the registered value
+# rather than re-tuned to 3.1%: this config is a record of what was committed
+# to, and a sizing constant fitted after the fact is how the last premise died.
+REFUTED = dict(on="2026-08-27", reason="hot-bias premise was a CLI parser artifact",
+               measured_rate=0.031, breakeven=0.026, lcb=0.015)
+
 CONFIG = dict(
     start_day="2026-08-26",       # first day of cap-corrected scans
     bankroll0=100.0,
-    p_hyp=0.068,                  # hypothesis under test: post-hoc 1-10c hit rate
+    p_hyp=0.068,                  # AS REGISTERED (refuted; true rate ~3.1%)
     kelly_mult=0.5,               # half-Kelly
     cap_frac=0.05,                # hard cap per unit, same seatbelt as the gate
     max_price_c=10,               # YES <= 10c
@@ -163,7 +175,7 @@ def run(obs):
     trades = [r for r in rows if r["action"] == "trade"]
     skips = [r for r in rows if r["action"] in ("skip_kelly", "skip_size")]
     peak = max([cfg["bankroll0"]] + [r["bankroll"] for r in rows if "bankroll" in r])
-    return dict(config=cfg, status=status,
+    return dict(config=cfg, refuted=REFUTED, status=status,
                 bankroll=round(bankroll, 2),
                 n_trades=len(trades),
                 wins=sum(1 for r in trades if r["won"]),

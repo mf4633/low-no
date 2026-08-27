@@ -357,6 +357,12 @@ def main():
               f"quit lines ${c['quit_down']:.0f} / ${c['quit_up']:.0f}")
         if pp["status"] != "ACTIVE":
             print(f"PAPER PILOT HALTED: {pp['status']} -- see CANDIDATE.md YES Pilot v1")
+        rf = pp.get("refuted")
+        if rf:
+            print(f"  HYPOTHESIS REFUTED {rf['on']}: {rf['reason']}. Measured rate "
+                  f"{rf['measured_rate']:.1%} vs breakeven {rf['breakeven']:.1%} "
+                  f"(LCB {rf['lcb']:.1%}). No station clears the bias gate, so the "
+                  f"pilot correctly trades nothing. NO SEED. See CANDIDATE.md.")
     except Exception as e:
         print("paper pilot: skipped -", str(e)[:100])
 

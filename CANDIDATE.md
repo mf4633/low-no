@@ -27,6 +27,44 @@ be negotiated with; only the flag rate moves it.
 
 ---
 
+# YES Pilot v1 -- REFUTED 2026-08-27. DO NOT SEED. DO NOT REVIVE AS WRITTEN.
+
+The rule below is preserved verbatim as the record of a pre-registration that
+was honoured and then killed by its own data. Its premise -- "some stations'
+guidance runs >3F hot, so the cheap YES side is underpriced there" -- was an
+artifact of the CLI parser defect documented above. Both legs failed:
+
+    hot-bias stations   SAT +5.5 -> +0.8   OKC +3.67 -> +1.8
+                        HOU +3.5  -> +1.4  DAL +4.0  -> +0.4
+      => NO station clears +3F. The rule selects nothing, on any day.
+
+    cheap YES 1-10c     6.8% -> 3.1% hit (7/224), breakeven 2.6%,
+                        Wilson LCB 1.5% -- BELOW breakeven.
+      => no edge; the old rate was inflated because corrupted settlements
+         read too LOW and YES is the bet on low.
+
+    forecaster bias     nbm +0.80 -> +0.08 over n=785 (mae 2.83 -> 1.57)
+      => guidance is not warm-biased. It never was.
+
+Nothing is registered to replace it. The clean bias table above is exactly the
+kind of thing that invites a fresh rule fitted to whatever now looks large
+(TTN +2.0 on a handful of days); doing that would repeat the original error
+with better data. A replacement hypothesis needs a MECHANISM argued in advance
+and then tested, not a threshold chosen to fit the current leaderboard.
+
+To reopen the question, ALL of these must hold, and they must be observed on
+post-2026-08-27 settlements (everything older than the 7-day CLI window may
+still carry the parser's low bias and cannot be re-derived):
+  1. a stated mechanism, written down BEFORE looking at whether it pays
+  2. >= 20 settled days per candidate station under the fixed parser
+  3. the effect visible in a held-out period, not only in the fitting one
+  4. the cheap-YES band's Wilson LCB above breakeven on clean data alone
+
+Until then this system is a measurement instrument with no live hypothesis,
+which is an honest state to be in and is not the same as being broken.
+
+---
+
 # YES Pilot v1 -- pre-committed 2026-08-25, BEFORE any live capital exists
 
 Instrument: `PREREG_yes10_hotbias3` (shadow_run.py). YES <= 10c on bottom

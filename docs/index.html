@@ -267,7 +267,18 @@ fetch("paper_pilot.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(pp=>{
     <td class="num">${x.pnl>0?"+":""}$${x.pnl.toFixed(2)}</td>
     <td class="num">$${x.bankroll.toFixed(2)}</td></tr>`).join("");
   const statusCls=pp.status==="ACTIVE"?"PENDING":(pp.status==="QUIT_UP"?"WIN":"FORECAST_BUST");
+  const rf=pp.refuted;
   box.innerHTML=`<h2>PAPER PILOT &mdash; $${c.bankroll0.toFixed(0)} SHADOW BANKROLL</h2>
+    ${rf?`<div style="border:2px solid var(--miss);padding:12px 14px;margin:0 0 14px">
+      <b class="FORECAST_BUST">HYPOTHESIS REFUTED ${rf.on}</b> &mdash; ${rf.reason}.
+      Measured hit rate <b>${(100*rf.measured_rate).toFixed(1)}%</b> against a
+      ${(100*rf.breakeven).toFixed(1)}% breakeven (Wilson LCB
+      ${(100*rf.lcb).toFixed(1)}%, below the bar). Corrected station bias clears
+      +3&deg;F <b>nowhere</b>, so the rule selects nothing and the pilot correctly
+      trades $0. The premise &mdash; "guidance runs hot at some stations" &mdash; was an
+      artifact of a CLI parser that failed on RECORD days and settled them from
+      a partial morning bulletin. Kept running as the instrument for the next
+      hypothesis. <b>No seed.</b></div>`:""}
     <p>Deterministic nightly replay of the <b>YES Pilot v1</b> rules
     (CANDIDATE.md): buy YES &le;${c.max_price_c}c on bottom rungs at stations whose
     measured guide bias exceeds +${c.bias_gate_f}&deg;F, sized at half-Kelly under a fixed
