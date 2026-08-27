@@ -58,18 +58,111 @@ def _raw_climbs():
     return out
 
 
-def p_exceed(city, local_hour, run_max, cap, samples=None):
+# --- shape conditioning (H4a, 2026-08-27) -------------------------------
+# run_max is a MAXIMUM, so it is monotone and cannot distinguish a day that
+# stalled hours ago from one still climbing through the same value. Measured
+# on 1,877 samples: inside the peak window a STALLED day delivers +1.05F more
+# and a CLIMBING day +2.53F (gap +1.48F); at the boundary, +1.49 vs +3.06.
+# CRITICALLY the effect INVERTS before peak (-2.66) -- a 09:00 stall means the
+# day has not begun climbing -- so conditioning is gated to PEAK_WINDOW and
+# must never be applied all day.
+PEAK_WINDOW = (13, 16)
+STALL_RATE, CLIMB_RATE = 0.2, 1.5
+MIN_N_RATE = 12        # per (city, hour, bucket) before the conditioned cell is trusted
+
+
+def rate_bucket(rate):
+    if rate is None:
+        return None
+    return "stalled" if rate <= STALL_RATE else (
+        "climbing" if rate >= CLIMB_RATE else "mid")
+
+
+def _raw_climbs_rated():
+    """{(city, hour, bucket): [remaining_climb, ...]}.
+
+    Same construction as _raw_climbs, but each sample is tagged with the climb
+    RATE observed over the preceding 0.5-2.5h gap, so the distribution can be
+    conditioned on trajectory shape rather than level alone.
+    """
+    import glob, datetime as dt, zoneinfo
+    from collections import defaultdict
+    try:
+        settles = {tuple(k.split("|")): v
+                   for k, v in json.load(open("docs/settlements.json")).items()}
+    except Exception:
+        return {}
+    paths = defaultdict(list)
+    for path in sorted(glob.glob("logs/2*.jsonl")):
+        day = os.path.basename(path)[:-6]
+        for line in open(path):
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            d = r.get("detail")
+            if not isinstance(d, dict) or d.get("world"):
+                continue
+            rm, city = d.get("run_max"), r.get("city")
+            if rm is None or city not in CITIES:
+                continue
+            try:
+                lt = (dt.datetime.fromisoformat(r["at"]).replace(tzinfo=dt.timezone.utc)
+                        .astimezone(zoneinfo.ZoneInfo(CITIES[city]["tz"])))
+            except Exception:
+                continue
+            paths[(day, city)].append((lt.hour + lt.minute / 60.0, lt.hour, rm))
+    out = defaultdict(list)
+    for (day, city), v in paths.items():
+        s = settles.get((day, city))
+        if s is None:
+            continue
+        v.sort()
+        for i in range(1, len(v)):
+            dh = v[i][0] - v[i - 1][0]
+            if not (0.5 <= dh <= 2.5):
+                continue
+            b = rate_bucket((v[i][2] - v[i - 1][2]) / dh)
+            out[(city, v[i][1], b)].append(s - v[i][2])
+    return out
+
+
+def p_exceed(city, local_hour, run_max, cap, samples=None,
+             rate=None, rated_samples=None):
     """P(daily max > cap) from observed remaining climb. None if unearned.
 
     Returns dict(p, n, source, needed) or None. `needed` is the climb still
     required (cap - run_max); if already negative the day has cleared the cap
     and p = 1.0 regardless of history.
+
+    `rate` (F/hr over the preceding cycle) is OPTIONAL and changes nothing
+    unless supplied: callers that omit it get byte-identical behaviour, which
+    keeps every recorded H2/H3 result reproducible. When supplied AND the hour
+    falls inside PEAK_WINDOW, the sample is conditioned on trajectory shape
+    (H4a). Outside the peak window the rate is deliberately IGNORED -- the
+    measured effect inverts there.
     """
     if run_max is None or cap is None:
         return None
     needed = cap - run_max
     if needed < 0:
         return dict(p=1.0, n=None, source="already_exceeded", needed=round(needed, 1))
+
+    # Shape-conditioned path: peak window only, and only when the conditioned
+    # cell has enough samples to be worth more than the pooled one.
+    b = rate_bucket(rate)
+    if b is not None and PEAK_WINDOW[0] <= local_hour <= PEAK_WINDOW[1]:
+        R = rated_samples if rated_samples is not None else _raw_climbs_rated()
+        rv = R.get((city, local_hour, b), [])
+        if len(rv) >= MIN_N_RATE:
+            n = len(rv)
+            k = sum(1 for x in rv if x > needed)
+            p = (k + 1) / (n + 2)
+            return dict(p=round(p, 4), n=n,
+                        source=f"shape:{city}|{local_hour:02d}|{b}",
+                        needed=round(needed, 1), raw_hits=k, rate_bucket=b)
+        # not enough shape-conditioned history yet -> fall through unchanged
+
     S = samples if samples is not None else _raw_climbs()
     v = S.get((city, local_hour), [])
     src = f"cell:{city}|{local_hour:02d}"

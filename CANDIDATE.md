@@ -141,6 +141,33 @@ peak window is a model improvement worth making on its own merits, since better
 probabilities improve every downstream measurement whether or not anything is
 ever traded.
 
+### Shape conditioning: BUILT, GATED, AND NOT YET VALIDATED (2026-08-27)
+`empirical.p_exceed` now accepts an optional `rate`. Properties, deliberate:
+* **Dormant by default.** Callers that omit `rate` get byte-identical results
+  (verified: 120 identical, 0 differing), so every recorded H2/H3 number stays
+  reproducible. No production caller passes it -- `live.py` and `prob.py` are
+  untouched.
+* **Peak-gated.** Conditioning applies only inside 13:00-16:00 local, because
+  the measured effect INVERTS pre-peak. Outside the window `rate` is ignored.
+* **Sample-gated.** A conditioned cell is used only at n >= 12; otherwise it
+  falls through to the existing behaviour.
+
+**Out-of-sample validation is NOT yet possible, and it was attempted.**
+`shape_eval.py` splits days by parity, builds samples from TRAIN only and
+scores Brier on TEST only. With 22 logged days a half-split leaves at most 9
+samples per (city, hour, bucket) against the threshold of 12, so zero cells
+qualify and the harness correctly reports "no comparable cycles".
+
+Lowering `MIN_N_RATE` to force a number would be fitting a constant to obtain
+a result -- the exact move that produced H1. It is not being done. Roughly
+28-30 logged days are needed before a half-split can earn cells; at current
+coverage that is about a week away, and the harness is already written and
+will run unchanged.
+
+Until then: the effect is measured (H4a), the mechanism is implemented, and
+the improvement is UNPROVEN. It must not be switched on in `prob.py` or
+`live.py` before `shape_eval.py` reports a Brier improvement on held-out days.
+
 ---
 
 # HYPOTHESIS 3 -- THE SETTLEMENT GAP ON BOUNDARY DAYS
