@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-08-26
+# low-no scorecard -- 2026-08-27
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -8,9 +8,9 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **MSP** QUALIFIED @ 0.89 ceil 82 guide 87 -> CLI None :: **UNGRADED**
-- **SEA** QUALIFIED @ 0.97 ceil 82 guide 86 -> CLI 84 :: **WIN**
-- **SFO** QUALIFIED @ 0.97 ceil 67 guide 72 -> CLI 68 :: **WIN**
-- **DEN** DEAD_SCAVENGE @ 0.98 ceil 82 guide 87 -> CLI 85 :: **WIN**
+- **DC** QUALIFIED @ 0.96 ceil 84 guide 88 -> CLI 86 :: **WIN**
+- **SEA** QUALIFIED @ 0.9 ceil 74 guide 78 -> CLI 77 :: **WIN**
+- **SFO** QUALIFIED @ 0.94 ceil 71 guide 79 -> CLI 77 :: **WIN**
+- **BOS** DEAD_SCAVENGE @ 0.28 ceil 78 guide 78 -> CLI 78 :: **BOUNDARY**
 
-**3/3 hit** (100%) vs 98.2% breakeven at 0.98
+**3/4 hit** (75%) vs 98.2% breakeven at 0.98

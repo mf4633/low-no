@@ -63,10 +63,48 @@ scan.py grows no order code, per its own header. Ever.
 * **Fills are assumed full at the logged ask.** No queue, no partials. This is
   the optimism the FILL REALITY quit line exists to test.
 * **Scan coverage is not guaranteed.** GitHub drops scheduled cron fires under
-  load (2026-08-26: 5 of 11 hours). Both the pilot and the prereg variant take
-  a city's FIRST qualifying cycle, so a sparse day samples a later price than
-  a full day. `scan_coverage` in shadow_summary.json records this per day;
+  load (2026-08-26: 5 of 11 hours; the nightly scorecard itself was dropped on
+  2026-08-27, the first miss in 31 runs). Both the pilot and the prereg variant
+  take a city's FIRST qualifying cycle, so a sparse day samples a later price
+  than a full day. `scan_coverage` in shadow_summary.json records this per day;
   check it before comparing across days.
+* **The pilot and the prereg variant gate on DIFFERENT bias estimators.**
+  The variant uses `adaptive.bias_sigma` evaluated at SCORING time (contains
+  lookahead -- acknowledged at registration). `paper_pilot` uses a
+  point-in-time mean over settled days strictly BEFORE each trade, minimum 3
+  days, because a followed bankroll cannot borrow tomorrow's refit. They will
+  disagree on which stations qualify and their n will diverge (2026-08-26:
+  variant 1 unit, pilot 2). The pilot is the honest live simulation; the
+  variant is the pre-registered statistic. Do not pool them.
+
+## THE SETTLEMENT-CACHE INCIDENT (2026-08-27) -- read before trusting any bias
+`docs/settlements.json` never re-fetched a non-null value, so any settlement
+written by an INTRADAY run froze that day's max-SO-FAR as permanent truth.
+Seven entries were provably wrong; the worst read 71F on a Denver day we
+watched reach 98F. The damage was not academic:
+
+    SAT bias as cached : +5.0F  -> passed the +3F gate, was traded 2026-08-26
+    SAT bias corrected : +0.25F -> never qualified at all
+
+One frozen mid-morning reading manufactured a "hot-biased station" and put a
+real (paper) position on it. Three defenses now exist, in order of strength:
+
+1. **Never write a settlement for a day that is not over** (same-day guard).
+2. **Re-verify inside the window.** api.weather.gov serves CLI for exactly
+   **7 days back, then the product is gone** (measured 2026-08-27). An error
+   not caught inside that window is permanent, because nothing can re-derive
+   it. Entries are now re-fetched until confirmed post-close, then recorded in
+   `settlements_verified.json` and never fetched again. This also picks up
+   NWS's own corrected climate reports.
+3. **Quarantine the impossible.** A poisoned value is a max-so-far, therefore
+   always too LOW, and our own observations are a valid lower bound on the
+   true max. Any cached settlement below what we observed is dropped. This is
+   arithmetic, not judgment, so it works even outside the 7-day window.
+
+The general lesson, which outlives this bug: **a cache of values that can only
+be verified for a limited time needs provenance, not trust.** Anything derived
+from settled data -- station bias, the empirical climb tables, every variant --
+inherits the errors silently and gives no sign that it has.
 
 ## Sizing
 Half-Kelly on the LCB hit rate (not the point estimate), hard cap 5% of

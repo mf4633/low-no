@@ -93,6 +93,21 @@ Earliest ~mid-October. The date is set by flag rate, not by cleverness.
     2026-08-22, paired at matched timestamps: -0.17F over 26 pairs. An earlier
     max-over-mismatched-windows comparison suggested -1.74F; that was a sampling
     artifact, not a bias.
+11. **CLI is available for exactly 7 DAYS, then it is gone** (measured
+    2026-08-27). Every settlement must be correct within a week of the day it
+    describes, because after that nothing can re-derive it. Settlement errors
+    do not decay -- they fossilize.
+12. **A settlement fetched intraday is a max-SO-FAR, and the cache used to
+    freeze it forever.** This manufactured a fake +5.0F "hot bias" at SAT
+    (true: +0.25F) out of one 09:00-local reading, and that fake bias is what
+    qualified SAT for the paper pilot. Three defenses now: never fetch the
+    current ET date; re-verify until confirmed post-close (inside the 7-day
+    window) and record it in `settlements_verified.json`; and quarantine any
+    cached value BELOW our own observed max for that day -- a max-so-far is
+    always too low, and our obs are a valid lower bound, so that test is
+    arithmetic rather than judgment and survives outside the window.
+    Generalize it: **anything derived from settled data inherits its errors
+    silently.** Station bias, climb tables, and every variant sit downstream.
 
 ## THE METHODOLOGICAL POINT
 

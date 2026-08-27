@@ -1,7 +1,17 @@
 name: low-no nightly scorecard
 on:
   schedule:
-    - cron: "5 2 * * *"       # 10:05p ET nightly
+    # THREE slots. This job is the one that grades settlements, updates the
+    # paper pilot and writes every report -- if it misses, nothing settles and
+    # the site silently serves yesterday. GitHub delivers this ~1h late by
+    # habit (02:05 nominal -> 03:0x-03:1x actual) and DROPPED it outright on
+    # 2026-08-27, the first miss in 31 runs. Re-running is harmless and
+    # self-healing by design: score_run skips days already fully settled and
+    # shadow_run is a deterministic rebuild, so a later slot that fires after
+    # an earlier success is a cheap no-op.
+    - cron: "5 2 * * *"       # 10:05p ET
+    - cron: "40 4 * * *"      # 12:40a ET backup
+    - cron: "20 7 * * *"      # 3:20a ET last chance
   workflow_dispatch: {}
 permissions: { contents: write, pages: write }
 concurrency:

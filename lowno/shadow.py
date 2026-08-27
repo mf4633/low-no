@@ -95,6 +95,11 @@ def load_day(day):
 
 
 CACHE = "docs/settlements.json"
+VERIFIED = "docs/settlements_verified.json"   # keys confirmed AFTER the day closed
+CLI_WINDOW_DAYS = 7   # measured 2026-08-27: api.weather.gov serves CLI for
+                      # exactly 7 days back, then the product is GONE. Any
+                      # settlement error not caught inside that window is
+                      # permanent, because nothing can ever re-derive it.
 
 def settle_map(days):
     """(day, city) -> CLI max, persisted to disk.
@@ -110,29 +115,93 @@ def settle_map(days):
             cache = json.load(open(CACHE))
         except Exception:
             cache = {}
-    fetched = 0
+    verified = set()
+    if os.path.exists(VERIFIED):
+        try:
+            verified = set(json.load(open(VERIFIED)))
+        except Exception:
+            verified = set()
+
+    fetched = repaired = 0
     # Never fetch the CURRENT ET trading date. A CLI product fetched intraday
     # reports the max SO FAR, not the final max, and non-null cache entries are
     # immutable -- a midday run on 2026-08-25 froze AUS=82/DEN=67/SAT=81 hours
     # before peak heat and graded three phantom YES wins. Today settles tomorrow.
     today_et = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date().isoformat()
+    horizon = (dt.date.fromisoformat(today_et)
+               - dt.timedelta(days=CLI_WINDOW_DAYS)).isoformat()
     for day in days:
         if day >= today_et:
             continue
         for city, cfg in CITIES.items():
             k = f"{day}|{city}"
-            if cache.get(k) is not None:
+            have = cache.get(k) is not None
+            # Re-fetch when we have nothing, OR when the value has never been
+            # CONFIRMED after the day closed and is still inside the 7-day
+            # window. That second case is what repairs the legacy poisoning
+            # (2026-08-22 SAT was frozen at 84, an ~09:00 local max-so-far;
+            # the true CLI is 103) and it also picks up NWS's own corrected
+            # climate reports. Once confirmed, a key is never fetched again.
+            if have and (k in verified or day < horizon):
                 continue
             try:
                 m, _ = sources.cli_max(cfg["station"], None, date=day)
             except Exception:
                 m = None
-            if m is not None:
-                cache[k] = m
+            if m is None:
+                continue
+            if have and cache[k] != m:
+                print(f"  settlement REPAIRED {k}: {cache[k]} -> {m}")
+                repaired += 1
+            elif not have:
                 fetched += 1
+            cache[k] = m
+            verified.add(k)
+
+    # QUARANTINE the provably impossible. A poisoned entry is a max-SO-FAR, so
+    # it is always too LOW -- and our own observations are a valid lower bound
+    # on the true max. A settlement below what we watched happen cannot be
+    # right, whatever the reason. This is an arithmetic test, not a judgment
+    # call, so it works even OUTSIDE the 7-day window where nothing can be
+    # re-fetched. Dropping such a day costs one observation; keeping it
+    # silently corrupts station bias, grading, and every variant downstream.
+    # (1F tolerance absorbs station/rounding differences.)
+    dropped = 0
+    for day in days:
+        try:
+            lines = open(f"logs/{day}.jsonl")
+        except OSError:
+            continue
+        seen_max = {}
+        for line in lines:
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            if r.get("verdict") != "LADDER":
+                continue
+            d = r.get("detail") or {}
+            if d.get("world") or d.get("run_max") is None:
+                continue
+            c = r["city"]
+            seen_max[c] = max(seen_max.get(c, -999), d["run_max"])
+        for c, obs in seen_max.items():
+            k = f"{day}|{c}"
+            v = cache.get(k)
+            if v is not None and v < round(obs) - 1:
+                print(f"  settlement QUARANTINED {k}: cached {v} but we observed "
+                      f"{round(obs)} -- impossible, dropping")
+                cache.pop(k, None)
+                verified.discard(k)
+                dropped += 1
+
     os.makedirs("docs", exist_ok=True)
     json.dump(cache, open(CACHE, "w"), indent=0, sort_keys=True)
-    print(f"settlements: {len(cache)} cached, {fetched} newly fetched")
+    json.dump(sorted(verified), open(VERIFIED, "w"), indent=0)
+    stale = sum(1 for k in cache if k not in verified)
+    print(f"settlements: {len(cache)} cached, {fetched} new, {repaired} repaired, "
+          f"{dropped} quarantined, {stale} unconfirmable "
+          f"(older than the {CLI_WINDOW_DAYS}-day CLI window)")
     return {(d, c): v for k, v in cache.items() for d, c in [k.split("|")]}
 
 
