@@ -354,9 +354,18 @@ def _parse_cli(text):
     for line in text.splitlines():
         if line.strip().startswith("MAXIMUM"):
             parts = line.split()
-            if len(parts) >= 2 and re.fullmatch(r"-?\d+", parts[1]):
-                maxf = int(parts[1])
-                break
+            # CLI flags the value in place: "107R" (RECORD), "104E" (estimated),
+            # "MM" (missing). The old pattern required pure digits, so it failed
+            # on exactly the RECORD-BREAKING days -- the hottest days of the
+            # sample, the ones a temperature market cares about most -- and
+            # cli_max then fell through to an earlier, PARTIAL issuance of the
+            # same date. Austin 2026-08-22 settled at 82 (a 07:36 local
+            # max-so-far) when the true max was 107R.
+            if len(parts) >= 2:
+                mm = re.fullmatch(r"(-?\d+)([A-Z])?", parts[1])
+                if mm:
+                    maxf = int(mm.group(1))
+                    break
     return awips, summary, maxf
 
 def cli_max(station4, wfo, date=None):
@@ -384,6 +393,12 @@ def cli_max(station4, wfo, date=None):
             graph = []
         if graph:
             break
+    # NWS issues SEVERAL CLI products for one date: intraday updates carrying
+    # the max SO FAR, then a final after local midnight. Taking the first
+    # parseable match makes the answer depend on listing order and on which
+    # products happen to parse -- that is how a 07:36-local partial became a
+    # settlement. Collect every match, then demand a FINAL one.
+    cands = []
     for item in graph:
         try:
             text = _get(item["@id"]).get("productText", "") or ""
@@ -391,8 +406,20 @@ def cli_max(station4, wfo, date=None):
             continue
         awips, summary, maxf = _parse_cli(text)
         if awips == want_awips and summary == date and maxf is not None:
-            return maxf, item.get("issuanceTime")
-    return None, None
+            cands.append((item.get("issuanceTime") or "", maxf))
+    if not cands:
+        return None, None
+    # A product issued after the summary date has necessarily seen the whole
+    # local day (local midnight falls at 05:00-08:00Z the NEXT day for CONUS),
+    # so its UTC issuance date is strictly greater. Anything else is intraday.
+    final = [(t, m) for t, m in cands if t[:10] > date]
+    if not final:
+        # Only partial issuances exist -- the day is not settled yet. Return
+        # PENDING rather than a plausible-looking max-so-far, and let the
+        # caller retry tomorrow. Nulls are deliberately not cached.
+        return None, None
+    t, m = max(final)      # latest final issuance wins (CLI corrections happen)
+    return m, t
 
 
 def _obs_stream(o):
