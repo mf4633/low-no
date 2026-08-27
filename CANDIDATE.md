@@ -27,6 +27,77 @@ be negotiated with; only the flag rate moves it.
 
 ---
 
+# HYPOTHESIS 3 -- THE SETTLEMENT GAP ON BOUNDARY DAYS
+# (registered 2026-08-27, BEFORE any test. This text does not change.)
+
+## Where it comes from
+Not from scanning a table. From a structural fact plus an observation:
+every loss in the 96-98c band was a BOUNDARY day, settling within 1F of the
+cap (H2 result: margins -1, 0, -1). This strategy is never blown out; it loses
+only to the final degree. So the only question that matters is what decides
+that degree.
+
+## Mechanism
+Settlement is the NWS CLI maximum, which is derived from **1-minute** data.
+The intraday signal every participant watches -- METAR and the 5-minute
+automated obs -- is coarser and cannot see a brief peak between samples.
+The two are not interchangeable: gotcha 10 establishes 5-minute obs and :53
+METARs agree with each other (-0.17F over 26 pairs), while the settlement
+product is a different, finer instrument that can only ever be >= what those
+samples caught.
+
+So there is a real, per-station quantity:
+
+    G = CLI_settle - (our final observed max for that city-day)
+
+If G is systematically positive, then a day whose visible max sits just BELOW
+a cap still settles ABOVE it more often than the visible number implies. On a
+boundary day that is the entire outcome.
+
+Note what this hypothesis does NOT need: any claim that forecasts are biased
+(they are not -- nbm +0.08F over n=785), and any claim about exit timing
+(refuted in H2). It needs only that settlement is measured on a finer
+instrument than the one the market watches.
+
+## Why an edge could survive
+Our empirical remaining-climb tables are built as (CLI settle - observed
+run_max), so they ALREADY carry G implicitly. A participant reasoning from
+visible obs alone would under-estimate exceedance on boundary days. The edge
+exists only if enough of the market does that. It may not -- see failure 2.
+
+## Precondition (if this fails, the hypothesis is dead on arrival)
+Measure G on CLEAN post-parser-fix settlements, per station and pooled. If the
+pooled mean G is not materially positive, stop and record the null. No rule
+below is worth running.
+
+## The rule to be tested (fixed now)
+* Universe: bottom-rung cycles at/after the station's measured convergence
+  hour with 0 <= (cap - run_max) <= 3 -- the boundary zone.
+* p_emp = `empirical.p_exceed(...)` (gap-aware by construction).
+  p_mkt = no_ask / 100 (what the NO buyer is charged is the market's implied
+  P(exceed)).
+* Enter NO when p_emp - p_mkt >= D, for D in {0.05, 0.10, 0.15} ONLY.
+* One unit per city-day, first qualifying cycle. Entry at the ASK, held to
+  settlement, Kalshi fees applied. Compare against the same universe untraded.
+
+## How it fails (named in advance)
+1. G is ~0 on clean data -> dead on arrival, no edge to have.
+2. The market already prices the finer instrument -> no systematic
+   disagreement in the boundary zone.
+3. Disagreement exists and the MARKET is right. This is the base case in this
+   ledger: the market has won 7 of 8 model-market disputes.
+4. Boundary cycles are too rare to reach 60 units this season.
+5. IN-SAMPLE CONTAMINATION: the empirical tables are built from the same
+   settled days being tested. Any positive result MUST be re-confirmed on
+   post-2026-08-27 days alone before it means anything.
+6. The rungs are not fillable at the prices used (check yes/no depth).
+
+## Bar for promotion
+Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee
+breakeven, plus out-of-sample confirmation per failure 5.
+
+---
+
 # HYPOTHESIS 2 -- EARLY EXIT (registered 2026-08-27, BEFORE any test)
 
 Registered under the reopening rules above: the mechanism is written here in
