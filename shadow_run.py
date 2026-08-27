@@ -345,6 +345,7 @@ def main():
 
     # PAPER $100 pilot: deterministic nightly replay of the YES Pilot v1 rules
     # (CANDIDATE.md) against the fixed 6.8% hypothesis. Paper only, no orders.
+    pp = {}     # defined up front so status.json is still written if this fails
     try:
         pp = paper_pilot.run(obs)
         pp["generated"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
@@ -373,6 +374,14 @@ def main():
     try:
         prog = _hypothesis_progress(obs)
         json.dump(prog, open("docs/hypotheses.json", "w"), indent=1)
+        try:
+            st = _status(obs, roll, yroll, units, coverage, profiles, pp, prog)
+            json.dump(st, open("docs/status.json", "w"), indent=1)
+            print(f"  status.json written ({st['schema']}): "
+                  f"{st['data']['logged_days']} days, "
+                  f"{len(st['blocking'])} hypothesis bar(s) still short")
+        except Exception as _se:
+            print("  status.json: skipped -", str(_se)[:90])
         print("\nHYPOTHESIS PROGRESS (data bars, not results)")
         for h in prog["hypotheses"]:
             bar = h["have"] / h["need"] if h["need"] else 1.0
@@ -386,6 +395,81 @@ def main():
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
 
+
+
+STATUS_SCHEMA = "lowno.status/1"
+
+
+def _status(obs, roll, yroll, units, coverage, profiles, pilot, prog):
+    """Consolidated MACHINE-READABLE project state -> docs/status.json.
+
+    One document, stable keys, versioned schema, so a script or an agent can
+    answer "where is this project" without parsing prose out of a README or a
+    terminal dump. Everything here is a fact or a count; interpretation stays
+    in CANDIDATE.md.
+    """
+    try:
+        cache = json.load(open("docs/settlements.json"))
+    except Exception:
+        cache = {}
+    try:
+        verified = set(json.load(open("docs/settlements_verified.json")))
+    except Exception:
+        verified = set()
+    try:
+        world = json.load(open("docs/world.json"))
+    except Exception:
+        world = {}
+
+    days = sorted({o["day"] for o in obs})
+    proven_no = [b["band"] for b in roll if b.get("proven")]
+    proven_yes = [b["band"] for b in (yroll or []) if b.get("proven")]
+
+    hyp = []
+    for h in prog["hypotheses"]:
+        closed = not h["need"]
+        hyp.append(dict(
+            id=h["id"], name=h["name"],
+            status="closed" if closed else "open",
+            bar=None if closed else dict(have=h["have"], need=h["need"],
+                                         unit=h["unit"],
+                                         ready=bool(h["have"] >= h["need"])),
+            note=h.get("note")))
+
+    return dict(
+        schema=STATUS_SCHEMA,
+        generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+        repo="mf4633/low-no",
+        constitution=dict(
+            paper_only=True, gate_frozen=True, live_capital_usd=0.0,
+            orders_placed=0,
+            seed_preconditions_met=False,
+            interlock_line_printed=not any(b.get("proven") for b in roll)),
+        data=dict(
+            logged_days=len(days), first_day=(days[0] if days else None),
+            last_day=(days[-1] if days else None),
+            rung_observations=len(obs), independent_units=len(units),
+            stations_us=len(CITIES),
+            stations_world_listed=world.get("n_series"),
+            stations_world_live=len(world.get("live") or []),
+            scan_coverage=coverage),
+        integrity=dict(
+            cli_window_days=shadow.CLI_WINDOW_DAYS,
+            settlements_cached=len(cache),
+            settlements_verified=len(verified),
+            settlements_unconfirmable=sum(1 for k in cache if k not in verified),
+            note="unconfirmable = older than the CLI window; cannot be re-derived"),
+        results=dict(
+            no_bands_proven=proven_no, yes_bands_proven_nominal=proven_yes,
+            nothing_proven=not proven_no),
+        hypotheses=hyp,
+        pilot=dict(
+            status=pilot.get("status"), bankroll_usd=pilot.get("bankroll"),
+            trades=pilot.get("n_trades"), wins=pilot.get("wins"),
+            refuted=pilot.get("refuted")),
+        blocking=[h for h in hyp if h["status"] == "open"
+                  and not (h["bar"] or {}).get("ready")],
+    )
 
 
 def _hypothesis_progress(obs):

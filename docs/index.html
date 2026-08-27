@@ -254,6 +254,36 @@ fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
    <table><tr><th>station</th><th>convergence (local)</th></tr>${conv}</table>`;
 });
 
+/* ---- MACHINE-READABLE STATUS ---------------------------------------- */
+fetch("status.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(st=>{
+  const box=document.getElementById("statusbox"); if(!box||!st) return;
+  const k=st.constitution||{}, d=st.data||{}, ig=st.integrity||{}, p=st.pilot||{};
+  const yn=v=>v?'<span class="code WIN">yes</span>':'<span class="code FORECAST_BUST">no</span>';
+  box.innerHTML=`<h2>MACHINE-READABLE STATUS</h2>
+   <p>One document, stable keys, versioned schema
+   (<code>${st.schema}</code>): <a href="status.json">status.json</a>. Built so a
+   script or an agent can answer "where is this project" without parsing prose.
+   Facts and counts only &mdash; interpretation lives in CANDIDATE.md.
+   Generated ${(st.generated||"").slice(0,16).replace("T"," ")}Z.</p>
+   <table>
+     <tr><th>constitution</th><td>paper only ${yn(k.paper_only)} &middot;
+         gate frozen ${yn(k.gate_frozen)} &middot; orders ${k.orders_placed} &middot;
+         live capital $${(k.live_capital_usd||0).toFixed(2)} &middot;
+         seed preconditions met ${yn(k.seed_preconditions_met)}</td></tr>
+     <tr><th>data</th><td>${d.logged_days} days (${d.first_day} &rarr; ${d.last_day}) &middot;
+         ${d.rung_observations} rung-obs &middot; ${d.independent_units} units &middot;
+         ${d.stations_us} US stations &middot; ${d.stations_world_live}/${d.stations_world_listed} world live</td></tr>
+     <tr><th>integrity</th><td>${ig.settlements_verified}/${ig.settlements_cached} settlements
+         verified post-close &middot; ${ig.settlements_unconfirmable} unconfirmable
+         (older than the ${ig.cli_window_days}-day CLI window &mdash; cannot be re-derived)</td></tr>
+     <tr><th>pilot</th><td>$${(p.bankroll_usd??0).toFixed(2)} &middot; ${p.status} &middot;
+         ${p.trades} trades${p.refuted?` &middot; <span class="code FORECAST_BUST">hypothesis refuted ${p.refuted.on}</span>`:""}</td></tr>
+     <tr><th>blocking</th><td>${(st.blocking||[]).length
+         ? st.blocking.map(b=>`${b.id} ${b.bar.have}/${b.bar.need} ${b.bar.unit}`).join(" &middot; ")
+         : "nothing &mdash; a test is ready to run"}</td></tr>
+   </table>`;
+});
+
 /* ---- HYPOTHESIS PROGRESS -------------------------------------------- */
 fetch("hypotheses.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(hp=>{
   const box=document.getElementById("hypbox"); if(!box||!hp||!hp.hypotheses) return;
@@ -535,6 +565,7 @@ fetch("traps.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(t=>{
 });
 
 </script>
+<div id="statusbox"></div>
 <div id="hypbox"></div>
 <div id="pilotbox"></div>
 <div id="livebox"></div>

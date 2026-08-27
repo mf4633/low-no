@@ -1,0 +1,45 @@
+{
+ "generated": "2026-08-27T13:19:07.928629Z",
+ "hypotheses": [
+  {
+   "id": "H4a",
+   "name": "shape validation (held-out)",
+   "have": 20,
+   "need": 28,
+   "unit": "logged days",
+   "note": "shape_eval.py runs unchanged when met"
+  },
+  {
+   "id": "H4b",
+   "name": "market lag on curve_dev",
+   "have": 0,
+   "need": 200,
+   "unit": "events",
+   "note": "0/20 distinct days"
+  },
+  {
+   "id": "H1",
+   "name": "hot-bias (REFUTED 2026-08-27)",
+   "have": 0,
+   "need": 0,
+   "unit": "closed",
+   "note": "do not revive"
+  },
+  {
+   "id": "H2",
+   "name": "early exit (REFUTED 2026-08-27)",
+   "have": 0,
+   "need": 0,
+   "unit": "closed",
+   "note": "expectancy set at entry"
+  },
+  {
+   "id": "H3",
+   "name": "settlement gap (NOT SUPPORTED)",
+   "have": 0,
+   "need": 0,
+   "unit": "closed",
+   "note": "real but priced"
+  }
+ ]
+}
