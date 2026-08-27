@@ -1,44 +1,92 @@
 name: low-no scan
 on:
   schedule:
-    # TWO fires per hour, 9a-7p ET. GitHub's scheduled cron is best-effort and
-    # silently DROPS fires under load: 2026-08-26 delivered 5 of 11 hours
-    # (13:59, 14:56, 16:26, 19:14 for nominal :05 slots) while every prior day
-    # got all 11. Runs take ~7 min and the concurrency group serializes them,
-    # so a second slot costs little and gives each hour a second chance.
-    # Duplicate fires in one hour are harmless: the scan is idempotent
-    # telemetry and shadow dedups to one unit per city-day.
+    # ONE delivered fire is enough. Each run is a LOOP that keeps scanning on
+    # ~55min centres until the window closes, so coverage no longer depends on
+    # GitHub delivering every slot.
+    #
+    # Why: GitHub's scheduled cron is best-effort and silently DROPS fires.
+    # 2026-08-26 delivered 5 of 11 nominal slots; 2026-08-27 delivered 0 of 14
+    # after the :35 backup was already in place -- non-delivery, not lateness,
+    # so adding slots does not help. Both days produced ZERO usable H4a rate
+    # samples, because shape_eval.cycles() needs consecutive observations
+    # 0.5-2.5h apart and the surviving fires were 2.8h apart.
+    #
+    # CADENCE IS LOAD-BEARING, do not "improve" it: below 0.5h spacing every
+    # pair fails the same gap test and the day silently yields nothing. 55min
+    # sits mid-band with margin either side.
     - cron: "5 13-23 * * *"    # :05 - 9:05a-7:05p ET
     - cron: "35 13-23 * * *"   # :35 - backup slot
   workflow_dispatch: {}
 permissions: { contents: write, pages: write, issues: write }
 concurrency:
-  group: lowno-commit
+  # DELIBERATELY NOT the scorecard's group. These jobs now run for hours, and a
+  # shared group would let a queued scan evict the pending nightly scorecard --
+  # only one run may sit pending per group. Push races are handled by retry in
+  # the commit step instead of by serialising whole jobs.
+  group: lowno-scan
   cancel-in-progress: false
 jobs:
   scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 345          # under GitHub's 360min job ceiling
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: hourly scan
+      - name: scan loop
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python -m lowno.scan
-      - name: commit logs
-        if: always()
         run: |
-          git config user.name lowno-bot && git config user.email bot@lowno
-          git add -A
-          git diff --cached --quiet || git commit -m "scan $(date -u +%FT%H:%MZ)"
-          git pull --rebase --autostash && git push
-      - name: request pages rebuild
-        if: always()
-        run: |
-          curl -sS -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/pages/builds
+          STEP=3300                                   # 55 min between centres
+          DAY_END=$(date -u -d "today 23:40" +%s)     # stop before the day rolls
+          HARD=$(( $(date -u +%s) + 330 * 60 ))       # stay inside the job cap
+          END=$DAY_END
+          # NB: default shell is `bash -e`, so a bare `[ test ] && act` that
+          # evaluates false returns 1 and aborts the step. Always if/fi here.
+          if [ "$HARD" -lt "$END" ]; then END=$HARD; fi
+          fail=0
+          i=0
+          while :; do
+            i=$((i+1))
+            echo "=== cycle $i  $(date -u +%FT%H:%MZ) ==="
+
+            # NOT masked (see CLAUDE.md #9): a failed cycle is printed as an
+            # annotation and fails the JOB at the end. It just must not cost
+            # the remaining hours of collection.
+            if python -m lowno.scan; then
+              echo "cycle $i ok"
+            else
+              rc=$?
+              fail=1
+              echo "::error::scan cycle $i exited $rc"
+            fi
+
+            # Commit EVERY cycle. If the runner is killed mid-window, only the
+            # cycle in flight is lost, never the whole day.
+            git config user.name lowno-bot && git config user.email bot@lowno
+            git add -A
+            git diff --cached --quiet || git commit -m "scan $(date -u +%FT%H:%MZ)"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              if git pull --rebase --autostash && git push; then pushed=1; break; fi
+              echo "push attempt $attempt lost a race, retrying"
+              sleep 10
+            done
+            if [ "$pushed" -eq 0 ]; then
+              fail=1
+              echo "::error::cycle $i could not push after 5 attempts"
+            fi
+
+            curl -sS -X POST \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"
+
+            if [ $(( $(date -u +%s) + STEP )) -ge "$END" ]; then break; fi
+            sleep $STEP
+          done
+          echo "=== $i cycles, exit $fail ==="
+          exit $fail
