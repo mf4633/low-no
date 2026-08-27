@@ -392,6 +392,44 @@ def main():
     except Exception as e:
         print("hypothesis progress: skipped -", str(e)[:100])
 
+    # AUTONOMOUS PILOT ACTIVATION (CANDIDATE.md, registered 2026-08-27).
+    # Run each registered test whose data bar is met, record the verdict, and
+    # activate the matching pilot ONLY on a pass. Both branches are automatic.
+    try:
+        from lowno import pilots
+        gates = {}
+        for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b")):
+            try:
+                m = __import__(mod)
+                gates[hid] = m.verdict()
+            except Exception as e:
+                gates[hid] = dict(id=hid, ready=False, passed=False,
+                                  error=str(e)[:120])
+        gates["generated"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        json.dump(gates, open("docs/gates.json", "w"), indent=1)
+
+        ev = None
+        try:
+            import curve_lag as _cl
+            ev = _cl._events(_cl.series())
+        except Exception:
+            ev = None
+        res = pilots.run_all(obs, gates, events=ev)
+        json.dump(dict(generated=gates["generated"], pilots=res),
+                  open("docs/pilots.json", "w"), indent=1)
+        print("\nAUTONOMOUS PILOTS (activate on a PASSED test, not a met bar)")
+        for r in res:
+            g = r["gate"]
+            state = ("ACTIVE" if r["active"] else
+                     ("ready, FAILED test" if g["ready"] else "dormant"))
+            line = (f"  {r['id']} <- {r['hypothesis']}  {state:22} "
+                    f"${r.get('bankroll', 0):.2f} {r.get('n_trades', 0)} trades")
+            if not r["active"] and g.get("reason"):
+                line += f"  ({g['reason'][:52]})"
+            print(line)
+    except Exception as e:
+        print("autonomous pilots: skipped -", str(e)[:110])
+
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
 

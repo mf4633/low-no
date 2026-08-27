@@ -264,6 +264,38 @@ def build(days=None):
                 depth=d.get("depth"),
                 guide_err=(guide - s) if guide is not None else None,
             ))
+
+    # Local hour and recent climb RATE on every observation. PILOT-A cannot see
+    # its universe without them (H4a is a shape claim, and shape is invisible in
+    # a running maximum), and they are cheap to derive here rather than being
+    # recomputed from raw logs by every consumer.
+    by_cd = {}
+    for o in obs:
+        try:
+            u = dt.datetime.fromisoformat(o["at"]).replace(tzinfo=dt.timezone.utc)
+            lt = u.astimezone(zoneinfo.ZoneInfo(CITIES[o["city"]]["tz"]))
+            o["local_hour"] = lt.hour
+            o["_hf"] = lt.hour + lt.minute / 60.0
+        except Exception:
+            o["local_hour"] = None
+            o["_hf"] = None
+        by_cd.setdefault((o["day"], o["city"]), []).append(o)
+    for k, group in by_cd.items():
+        g = [x for x in group if x["_hf"] is not None and x.get("run_max") is not None]
+        g.sort(key=lambda x: x["_hf"])
+        prev = None
+        for o in g:
+            if prev is not None:
+                dh = o["_hf"] - prev["_hf"]
+                if 0.5 <= dh <= 2.5:
+                    o["rate"] = round((o["run_max"] - prev["run_max"]) / dh, 3)
+            # advance only on a distinct cycle, so multiple rungs sharing one
+            # scan do not produce a zero-gap rate
+            if prev is None or o["_hf"] > prev["_hf"]:
+                prev = o
+    for o in obs:
+        o.pop("_hf", None)
+        o.setdefault("rate", None)
     return obs
 
 

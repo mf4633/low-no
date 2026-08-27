@@ -27,6 +27,52 @@ be negotiated with; only the flag rate moves it.
 
 ---
 
+# AUTONOMOUS PILOT ACTIVATION (registered 2026-08-27, BEFORE either test ran)
+
+Michael's instruction: start paper trading without further input once H4a or
+H4b is ready; if both, run two distinct paper traders. Implemented with one
+deliberate reading, stated here so it is not a silent choice:
+
+**"READY" IS THE DATA BAR. THE TRIGGER IS "PASSED".** A bar being met only
+means a test can finally run. Activating a trader on a hypothesis whose test
+has not PASSED is precisely the H1 failure -- SAT took a real position on an
+unvalidated premise. So the nightly runs the registered test when its bar is
+met, and the pilot activates only on a pass. A failed test is recorded and the
+pilot stays dark. No human step is required in either branch.
+
+Both rules are fixed HERE, before either test has produced a number, so that
+nothing can be invented to fit whatever the data turns out to say.
+
+## PILOT-A (activates iff H4a PASSES: held-out Brier improvement)
+What H4a would establish: the shape-conditioned model produces BETTER
+probabilities than level+hour alone. That is a model claim, so the rule trades
+model-vs-market disagreement using the validated model.
+  * Universe: bottom rungs, peak window 13:00-16:00 local only (the effect
+    inverts outside it), real ask 1-98c, shape cell earned (n >= 12).
+  * Enter NO when p_shape - (no_ask/100) >= 0.10.
+  * One unit per city-day, first qualifying cycle, entry at the ASK, held to
+    settlement, Kalshi fees. Bankroll $100, half-Kelly on p_shape, 5% cap.
+
+## PILOT-B (activates iff H4b PASSES: lag correlation CI excludes zero)
+What H4b would establish: the market reprices AFTER the deviation, not with it.
+  * Universe: bottom rungs, real ask 1-98c, consecutive cycles 0.5-2.5h apart.
+  * Event: d(curve_dev) >= +1.0F (day running hotter than its own forecast).
+  * Enter NO at that cycle's ask, one unit per city-day, held to settlement.
+  * Bankroll $100, half-Kelly on the realized event hit rate, 5% cap.
+
+## Rules binding BOTH pilots
+* Paper only. No orders. The constitution is unchanged and unchangeable here.
+* Separate bankrolls, separately reported. They are different hypotheses and
+  must never be pooled -- including if both activate.
+* Same quit lines as YES Pilot v1: $40 down (stop, no reseed), $5,000 up.
+* Same promotion bar: >= 60 units, Wilson LCB > fee breakeven, out-of-sample.
+* p_hyp equivalents are NOT re-tuned after activation. A sizing constant
+  fitted post hoc is how H1 died.
+* Activation, deactivation and every trade are written to `docs/pilots.json`
+  and printed nightly, so an autonomous start is never a silent one.
+
+---
+
 # HYPOTHESIS 4 -- DIURNAL-CURVE DEVIATION (SHAPE, NOT LEVEL)
 # (registered 2026-08-27, BEFORE any test. This text does not change.)
 

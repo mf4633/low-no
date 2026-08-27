@@ -105,6 +105,56 @@ def cycles(days_keep):
     return out
 
 
+MIN_SCORED = 50   # decisions needed before a Brier comparison means anything
+
+
+def verdict():
+    """Machine-readable gate for autonomous pilot activation.
+
+    PASSES only on a strict held-out Brier improvement over >= MIN_SCORED
+    decisions. Both conditions were fixed before any comparison was run.
+    """
+    try:
+        r = evaluate()
+    except Exception as e:
+        return dict(id="H4a", ready=False, passed=False, error=str(e)[:120])
+    if r is None or r["n"] < MIN_SCORED:
+        return dict(id="H4a", ready=False, passed=False,
+                    n=(r or {}).get("n", 0), need=MIN_SCORED,
+                    reason="not enough held-out decisions with an earned shape cell")
+    return dict(id="H4a", ready=True, passed=bool(r["shape"] < r["base"]),
+                n=r["n"], brier_base=round(r["base"], 4),
+                brier_shape=round(r["shape"], 4),
+                improvement_pct=round(100 * (r["base"] - r["shape"]) / r["base"], 2)
+                if r["base"] else 0.0)
+
+
+def evaluate():
+    """Shared core: returns dict(n, base, shape) or None."""
+    days = sorted(os.path.basename(p)[:-6] for p in glob.glob("logs/2*.jsonl"))
+    train = {d for d in days if int(d[-1]) % 2 == 0}
+    test = {d for d in days if int(d[-1]) % 2 == 1}
+    S, R = build(train)
+    base, shape, n = [], [], 0
+    for c in cycles(test):
+        for off in (1, 2, 3):
+            cap = c["run_max"] + off
+            a = E.p_exceed(c["city"], c["hour"], c["run_max"], cap, samples=S)
+            b = E.p_exceed(c["city"], c["hour"], c["run_max"], cap, samples=S,
+                           rate=c["rate"], rated_samples=R)
+            if a is None or b is None:
+                continue
+            if not b.get("source", "").startswith("shape"):
+                continue
+            y = 1.0 if c["settle"] > cap else 0.0
+            base.append((a["p"] - y) ** 2)
+            shape.append((b["p"] - y) ** 2)
+            n += 1
+    if not n:
+        return dict(n=0, base=None, shape=None)
+    return dict(n=n, base=sum(base) / n, shape=sum(shape) / n)
+
+
 def main():
     days = sorted(os.path.basename(p)[:-6] for p in glob.glob("logs/2*.jsonl"))
     train = {d for d in days if int(d[-1]) % 2 == 0}
