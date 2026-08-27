@@ -254,6 +254,30 @@ fetch("shadow_summary.json").then(r=>r.ok?r.json():null).then(sh=>{
    <table><tr><th>station</th><th>convergence (local)</th></tr>${conv}</table>`;
 });
 
+/* ---- HYPOTHESIS PROGRESS -------------------------------------------- */
+fetch("hypotheses.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(hp=>{
+  const box=document.getElementById("hypbox"); if(!box||!hp||!hp.hypotheses) return;
+  const rows=hp.hypotheses.map(h=>{
+    const closed=!h.need;
+    const pct=closed?100:Math.min(100,100*h.have/h.need);
+    const bar=closed?"":`<div style="height:6px;background:var(--band);border:1px solid var(--rule)">
+        <div style="height:100%;width:${pct.toFixed(0)}%;background:var(--hold)"></div></div>`;
+    return `<tr><td class="code">${h.id}</td><td>${h.name}</td>
+      <td class="num">${closed?"&mdash;":h.have+" / "+h.need+" "+h.unit}</td>
+      <td style="min-width:120px">${bar}</td>
+      <td class="muted small">${h.note||""}</td></tr>`;}).join("");
+  box.innerHTML=`<h2>HYPOTHESIS PROGRESS &mdash; DATA BARS, NOT RESULTS</h2>
+    <p>Each open hypothesis was registered in CANDIDATE.md <b>before</b> it was
+    tested, with its data bar fixed in advance. This table reports only how much
+    data has accumulated toward those bars &mdash; deliberately never whether
+    anything is working, because a progress meter that leaks an outcome invites
+    exactly the peeking the registrations exist to prevent. Closed rows stay
+    listed so refutations remain visible instead of quietly disappearing.
+    Updated ${(hp.generated||"").slice(0,16).replace("T"," ")}Z.</p>
+    <table><tr><th>id</th><th>hypothesis</th><th>data</th><th></th>
+    <th>note</th></tr>${rows}</table>`;
+});
+
 /* ---- PAPER PILOT ---------------------------------------------------- */
 fetch("paper_pilot.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(pp=>{
   const box=document.getElementById("pilotbox"); if(!box||!pp||!pp.config) return;
@@ -511,6 +535,7 @@ fetch("traps.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(t=>{
 });
 
 </script>
+<div id="hypbox"></div>
 <div id="pilotbox"></div>
 <div id="livebox"></div>
 <div id="variantbox"></div>

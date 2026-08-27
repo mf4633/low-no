@@ -4,7 +4,7 @@ Writes docs/shadow.json (row-level) and docs/shadow_summary.json (band rollup
 with Wilson bounds vs. fee breakeven). Deduplicates to one entry per
 city-day-band so n reflects independent observations, not scan cycles.
 """
-import json, math, datetime as dt, zoneinfo
+import json, math, os, datetime as dt, zoneinfo
 from collections import defaultdict
 from lowno import shadow, adaptive, convergence, spend, skill, paper_pilot
 from lowno.config import CITIES
@@ -366,9 +366,77 @@ def main():
     except Exception as e:
         print("paper pilot: skipped -", str(e)[:100])
 
+    # HYPOTHESIS PROGRESS. Every open hypothesis has a registered data bar; the
+    # point of this block is that checking on the project means reading one
+    # line, not asking someone to interpret a directory. Counts only, no
+    # results -- a progress meter must never leak an outcome.
+    try:
+        prog = _hypothesis_progress(obs)
+        json.dump(prog, open("docs/hypotheses.json", "w"), indent=1)
+        print("\nHYPOTHESIS PROGRESS (data bars, not results)")
+        for h in prog["hypotheses"]:
+            bar = h["have"] / h["need"] if h["need"] else 1.0
+            blocks = int(min(1.0, bar) * 20)
+            print(f"  {h['id']:5} {h['name']:26} [{'#'*blocks}{'.'*(20-blocks)}] "
+                  f"{h['have']}/{h['need']} {h['unit']}"
+                  + (f"  +{h['note']}" if h.get("note") else ""))
+    except Exception as e:
+        print("hypothesis progress: skipped -", str(e)[:100])
+
     if not any(r.get("proven") for r in roll):
         print("\nNo band's 95% lower bound clears its fee breakeven. Nothing proven.")
 
+
+
+def _hypothesis_progress(obs):
+    """Data accumulated toward each open hypothesis's REGISTERED bar.
+
+    Counts only. This must never report whether anything is working -- that is
+    what the tests are for, and a progress meter that leaks an outcome invites
+    exactly the peeking the registrations exist to prevent.
+    """
+    import glob as _g
+    days = sorted(os.path.basename(p)[:-6] for p in _g.glob("logs/2*.jsonl")) \
+        if False else sorted({o["day"] for o in obs})
+
+    # H4a: out-of-sample shape validation needs a half-split where each half
+    # earns cells at n>=12 per (city, hour, bucket); measured to need ~28 days.
+    n_days = len(days)
+
+    # H4b: curve_dev events and the distinct days they span.
+    ev, ev_days = 0, set()
+    for path in sorted(_g.glob("logs/2*.jsonl")):
+        day = os.path.basename(path)[:-6]
+        for line in open(path):
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            d = r.get("detail")
+            if not isinstance(d, dict) or d.get("world"):
+                continue
+            if d.get("curve_dev") is not None:
+                ev += 1
+                ev_days.add(day)
+
+    # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
+    # the live ones rather than quietly dropped.
+    return dict(
+        generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+        hypotheses=[
+            dict(id="H4a", name="shape validation (held-out)",
+                 have=n_days, need=28, unit="logged days",
+                 note="shape_eval.py runs unchanged when met"),
+            dict(id="H4b", name="market lag on curve_dev",
+                 have=ev, need=200, unit="events",
+                 note=f"{len(ev_days)}/20 distinct days"),
+            dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
+                 have=0, need=0, unit="closed", note="do not revive"),
+            dict(id="H2", name="early exit (REFUTED 2026-08-27)",
+                 have=0, need=0, unit="closed", note="expectancy set at entry"),
+            dict(id="H3", name="settlement gap (NOT SUPPORTED)",
+                 have=0, need=0, unit="closed", note="real but priced"),
+        ])
 
 
 def _brier():
