@@ -84,6 +84,51 @@ Same as always: >= 60 independent city-day units, Wilson 95% LCB above fee
 breakeven, and the improvement must hold on post-2026-08-27 settlements alone,
 not only on the repaired history.
 
+## RESULT (2026-08-27, `exit_backtest.py`) -- NOT SUPPORTED
+65 units, 62 eventual wins (95%), mean entry ask 97.2c.
+
+    strategy              exits  mean P&L   total   winners cut
+    hold_to_settlement        0    -2.77c    -180c        0
+    exit_p<0.05               0    -2.77c    -180c        0   (never fires)
+    exit_p<0.10               3    -2.89c    -188c        2   WORSE than holding
+    exit_p<0.20               4    -1.95c    -127c        3
+    exit_hour>=16             7    -0.82c     -53c        4   best, still negative
+
+No variant reaches positive expectancy. Failure modes 2 and 3, both named in
+advance, are what killed it: the information-based rules fire only once the
+day is obviously lost, by which time the bid has collapsed (DEN's late bids ran
+19c, 3c, 3c), and they pay for those late exits by cutting eventual winners --
+p<0.10 cut two winners to salvage one loser and finished WORSE than doing
+nothing.
+
+The arithmetic says it could never have been close. At a 97.2c entry, fee
+breakeven needs ~98.2% and the band delivers 95%. That 3-point calibration gap
+costs ~180c across 65 units; the most aggressive exit harvested 127c of it, and
+most of that came from clipping winners' upside rather than from salvage.
+
+**The honest read: an exit rule cannot repair a calibration gap.** Expectancy
+is set at entry. Selling earlier only redistributes the same edge.
+
+## What the losers actually showed (worth its own hypothesis, NOT tested here)
+All three losses were BOUNDARY days -- settle within 1F of the cap:
+
+    2026-08-18 DEN  cap 89  settle 88  (-1)   best bid after entry 95c
+    2026-08-19 NYC  cap 85  settle 85  ( 0)   best bid after entry 99c
+    2026-08-25 MSP  cap 83  settle 82  (-1)   best bid after entry 96c
+
+At 96-98c this strategy does not suffer blowouts; it loses only to the tenths.
+And on NYC the market bid 99c all afternoon and was simply WRONG -- salvage
+existed, but no rule built on our own P(exceed) can find it, because a boundary
+day is indistinguishable from a winner until it settles.
+
+That points somewhere specific: the losses live entirely in a subset where the
+deciding quantity is the FINAL DEGREE, and where this repo already knows
+something the market may not -- CLI runs ~+1F above the hourly METAR max
+(gotcha 6), and 1-minute ASOS data is available via `sources.asos_1min_max`.
+Any such rule must be registered in advance, with a mechanism, before it is
+tested. It is NOT registered yet, and nothing above should be read as evidence
+for it -- three boundary days is an observation, not a sample.
+
 ---
 
 # YES Pilot v1 -- REFUTED 2026-08-27. DO NOT SEED. DO NOT REVIVE AS WRITTEN.
