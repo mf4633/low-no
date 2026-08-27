@@ -97,6 +97,50 @@ exist. It is not tested today and no result may be claimed for it.
 Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee
 breakeven, out-of-sample confirmation on post-registration days.
 
+## RESULT H4a (2026-08-27, `shape_backtest.py`) -- INFORMATION CLAIM PASSES,
+## in the peak window only. 1,877 rate observations with settled outcomes.
+
+Mean REALIZED remaining climb (F) by rate bucket, within hour band:
+
+    band        STALLED          MID              CLIMBING          gap
+    pre<13     +11.50 n=181     +6.96 n=87       +8.84  n=533      -2.66
+    peak13-16   +1.05 n=217     +1.69 n=102      +2.53  n=261      +1.48
+    post>16     +0.39 n=430     +0.62 n=24       +0.24  n=42       -0.15
+
+Controlling ALSO for needed climb -- the model's other input -- the two cells
+that clear the registered bar (>=0.5F apart, non-overlapping SEs):
+
+    peak13-16  need 0-2F   STALLED +1.49+-0.40 (n=17)   CLIMBING +3.06+-0.26 (n=46)
+    peak13-16  need 5F+    STALLED +3.70+-0.99 (n=8)    CLIMBING +6.38+-0.78 (n=14)
+
+**Shape carries information that level+hour does not.** During peak heating a
+stalled day delivers ~1.5F more; a day still climbing delivers ~3.1F. At the
+boundary (0-2F needed) that difference is the whole outcome -- and the boundary
+is precisely where every loss in this ledger lives (H2 result).
+
+**Failure mode 1/5 also confirmed, and it bounds the claim.** Pre-peak the
+effect INVERTS (-2.66): a "stall" at 09:00 usually means the day has not begun
+climbing, which selects days with the most climb remaining. The signal is
+therefore NOT general -- it is specific to the peak window, and any use of it
+must be time-gated. A rule applied all day would trade the inversion.
+
+**What this does NOT establish.** Information is not edge. The market may hold
+the same signal -- that is exactly how H3 died, and this ledger's base case is
+that the market wins 7 of 8 disputes. Whether repricing LAGS the deviation is
+H4b, which stays DEFERRED until >=200 `curve_dev` cycles are logged. Nothing
+here may be traded on.
+
+Caveats on the numbers themselves: in-sample; the separated cells are small
+(n=17/46 and n=8/14); six cells were examined, so two separations are partly a
+multiple-comparisons artifact. The peak-window aggregate (+1.48 over n=217 vs
+n=261) is the durable part and does not depend on the needed-climb banding.
+
+**Immediate use that requires no trading claim:** `p_exceed` conditions on
+(city, hour, run_max) and is shape-blind. Conditioning it on rate inside the
+peak window is a model improvement worth making on its own merits, since better
+probabilities improve every downstream measurement whether or not anything is
+ever traded.
+
 ---
 
 # HYPOTHESIS 3 -- THE SETTLEMENT GAP ON BOUNDARY DAYS
