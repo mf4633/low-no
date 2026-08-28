@@ -132,6 +132,22 @@ jobs:
           echo "=== $i cycles, exit $fail ==="
           exit $fail
 
+      - name: pipeline health check
+        # Runs at the END of the run on purpose. "ensure yesterday was graded"
+        # may have dispatched the scorecard hours earlier at the start; checking
+        # here gives that time to finish, so a grading race cannot raise a false
+        # alarm.
+        #
+        # Opens a GitHub Issue only when yesterday failed to collect or grade.
+        # Nothing alerted on the pipeline before this: 2026-08-26 and 08-27 each
+        # produced ZERO H4a rate samples and looked entirely normal, and both
+        # were found only because a human happened to ask.
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python -m lowno.health
+
       - name: hand off to the next run
         # GitHub's scheduler is the binding constraint on this project, not the
         # code: 5/11 scan fires delivered 2026-08-26, 0/14 on 2026-08-27, and on
