@@ -1,18 +1,22 @@
 {
- "at": "2026-08-28T19:37:33.124780Z",
+ "at": "2026-08-28T20:38:35.486280Z",
  "traps": [
   {
-   "city": "SAT",
-   "ceiling": 96,
-   "price": 91,
-   "p_model": 1.0,
-   "p_market": 0.91,
-   "edge_pts": 9.0,
+   "city": "SAN",
+   "ceiling": 85,
+   "price": 53,
+   "p_model": 0.6853,
+   "p_market": 0.53,
+   "edge_pts": 15.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -20,7 +24,11 @@
     },
     {
      "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "53c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
