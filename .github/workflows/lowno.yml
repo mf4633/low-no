@@ -34,6 +34,35 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+      - name: ensure yesterday was graded
+        # The scorecard has three cron slots and GitHub dropped ALL of them on
+        # 2026-08-28, leaving 8/27 unsettled and its whole day of observations
+        # ungraded (44 rate samples, invisible until a manual dispatch). Grading
+        # is what turns collection into H4a samples, so do not leave it to the
+        # scheduler: any scan run that notices yesterday is unsettled kicks the
+        # scorecard itself. score_run is idempotent and skips days already
+        # settled, so a redundant kick is a cheap no-op.
+        #
+        # This also bounds the damage from gotcha #11: CLI is fetchable for
+        # exactly 7 days, so an ungraded day is on a clock, not merely late.
+        env:
+          DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          Y=$(TZ=America/New_York date -d yesterday +%F)
+          N=$(python -c "import json;s=json.load(open('docs/settlements.json'));print(len([k for k in s if k.startswith('$Y')]))")
+          echo "settlement keys for $Y: $N"
+          if [ "$N" -gt 0 ]; then echo "already graded"; exit 0; fi
+          if [ -z "$DISPATCH_PAT" ]; then
+            echo "::warning::$Y is ungraded and DISPATCH_PAT is unset - cannot self-heal, waiting on GitHub's cron"
+            exit 0
+          fi
+          echo "$Y ungraded - dispatching the scorecard"
+          curl -sS -X POST \
+            -H "Authorization: Bearer $DISPATCH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/workflows/lowno-score.yml/dispatches" \
+            -d '{"ref":"main"}'
       - name: scan loop
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -87,13 +116,53 @@ jobs:
               echo "::error::cycle $i could not push after 5 attempts"
             fi
 
-            curl -sS -X POST \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"
+            # Cosmetic only: a failed site rebuild must not end collection.
+            # Under `bash -e` a bare failing curl aborts the STEP, which would
+            # kill the rest of the day's cycles over a stale web page.
+            if ! curl -sS -X POST \
+                 -H "Authorization: Bearer $GITHUB_TOKEN" \
+                 -H "Accept: application/vnd.github+json" \
+                 "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"; then
+              echo "::warning::pages rebuild request failed on cycle $i"
+            fi
 
             if [ $(( $(date -u +%s) + STEP )) -ge "$END" ]; then break; fi
             sleep $STEP
           done
           echo "=== $i cycles, exit $fail ==="
           exit $fail
+
+      - name: hand off to the next run
+        # GitHub's scheduler is the binding constraint on this project, not the
+        # code: 5/11 scan fires delivered 2026-08-26, 0/14 on 2026-08-27, and on
+        # 2026-08-28 two fires at 06:52/07:03Z against a 13-23Z cron plus zero
+        # scorecard slots. The loop made ONE delivered fire cover a day; this
+        # makes each run start the next, so the crons are only a cold start.
+        #
+        # Self-limiting by design: chains only inside the collection window, so
+        # it stops on its own each night and the morning cron restarts it. That
+        # bound is what keeps a bug here from becoming a runaway.
+        #
+        # `if: always()` so a failed scan still hands off - otherwise one bad
+        # cycle silently ends the day, which is the failure this whole change
+        # exists to prevent.
+        if: always()
+        env:
+          DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          H=$(date -u +%-H)
+          if [ "$H" -ge 23 ] || [ "$H" -lt 11 ]; then
+            echo "hour ${H}Z is outside the chain window; the morning cron cold-starts"
+            exit 0
+          fi
+          if [ -z "$DISPATCH_PAT" ]; then
+            echo "::warning::DISPATCH_PAT unset - cannot chain; the next run depends on GitHub's cron, which drops fires"
+            exit 0
+          fi
+          echo "chaining the next run"
+          curl -sS -X POST \
+            -H "Authorization: Bearer $DISPATCH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/workflows/lowno.yml/dispatches" \
+            -d '{"ref":"main"}'
