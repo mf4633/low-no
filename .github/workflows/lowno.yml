@@ -72,6 +72,13 @@ jobs:
             pushed=0
             for attempt in 1 2 3 4 5; do
               if git pull --rebase --autostash && git push; then pushed=1; break; fi
+              # A conflicted rebase leaves unmerged files behind. Without this
+              # abort, every later attempt dies instantly on "Pulling is not
+              # possible because you have unmerged files" and the retry is
+              # theatre -- observed 2026-08-27T23:07Z, 5 attempts, 5 identical
+              # failures. logs/*.jsonl union-merge (see .gitattributes) removes
+              # the common cause; this handles whatever is left.
+              if git rebase --abort; then echo "aborted a conflicted rebase"; fi
               echo "push attempt $attempt lost a race, retrying"
               sleep 10
             done

@@ -1,0 +1,10 @@
+# Append-only telemetry. Concurrent scan cycles (and the nightly scorecard)
+# append to the same day's log, and the correct resolution is the UNION of
+# both sides -- never one side winning, which silently drops observations.
+# Without this, a rebase conflict on 2026-08-27T23:07Z wedged the retry loop
+# and cost the tail of that day's collection.
+#
+# Deliberately NOT applied to docs/*.json: a union merge of JSON produces a
+# broken file. Those are deterministic regenerations from logs/, so losing a
+# race there is repaired by the next cycle.
+logs/*.jsonl merge=union
