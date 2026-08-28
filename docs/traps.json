@@ -1,13 +1,13 @@
 {
- "at": "2026-08-28T18:36:38.877830Z",
+ "at": "2026-08-28T19:37:33.124780Z",
  "traps": [
   {
    "city": "SAT",
    "ceiling": 96,
-   "price": 74,
-   "p_model": 0.8246,
-   "p_market": 0.74,
-   "edge_pts": 8.5,
+   "price": 91,
+   "p_model": 1.0,
+   "p_market": 0.91,
+   "edge_pts": 9.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -21,10 +21,6 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "74c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
