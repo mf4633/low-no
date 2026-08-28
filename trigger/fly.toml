@@ -1,0 +1,15 @@
+# Deployed as a SCHEDULED Machine, not a service - it has no ports and exits
+# after each run. Create/refresh it with:
+#   fly deploy --config trigger/fly.toml --build-only --push
+#   fly machine run <image> -a lowno-trigger --schedule hourly --restart no
+app = "lowno-trigger"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Machine created 2026-08-28 with:
+#   fly machine run registry.fly.io/lowno-trigger:deployment-01M14HQ0XSS01BXS99QQG3QJEG \
+#     -a lowno-trigger -r iad --schedule hourly --restart no \
+#     --vm-memory 256 --name lowno-dispatch
+# Needs: fly secrets set DISPATCH_PAT=<fine-grained PAT> -a lowno-trigger
