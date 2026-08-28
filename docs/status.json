@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-08-27T13:52:06.923282Z",
+ "generated": "2026-08-28T13:44:34.287448Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 20,
+  "logged_days": 21,
   "first_day": "2026-08-07",
-  "last_day": "2026-08-26",
-  "rung_observations": 14148,
-  "independent_units": 272,
+  "last_day": "2026-08-27",
+  "rung_observations": 14940,
+  "independent_units": 298,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -41,13 +41,14 @@
    "2026-08-24": 11,
    "2026-08-25": 11,
    "2026-08-26": 6,
-   "2026-08-27": 1
+   "2026-08-27": 5,
+   "2026-08-28": 7
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 343,
-  "settlements_verified": 161,
+  "settlements_cached": 365,
+  "settlements_verified": 183,
   "settlements_unconfirmable": 182,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -62,7 +63,7 @@
    "name": "shape validation (held-out)",
    "status": "open",
    "bar": {
-    "have": 20,
+    "have": 21,
     "need": 28,
     "unit": "logged days",
     "ready": false
@@ -74,12 +75,12 @@
    "name": "market lag on curve_dev",
    "status": "open",
    "bar": {
-    "have": 0,
+    "have": 462,
     "need": 200,
     "unit": "events",
-    "ready": false
+    "ready": true
    },
-   "note": "0/20 distinct days"
+   "note": "2/20 distinct days"
   },
   {
    "id": "H1",
@@ -122,24 +123,12 @@
    "name": "shape validation (held-out)",
    "status": "open",
    "bar": {
-    "have": 20,
+    "have": 21,
     "need": 28,
     "unit": "logged days",
     "ready": false
    },
    "note": "shape_eval.py runs unchanged when met"
-  },
-  {
-   "id": "H4b",
-   "name": "market lag on curve_dev",
-   "status": "open",
-   "bar": {
-    "have": 0,
-    "need": 200,
-    "unit": "events",
-    "ready": false
-   },
-   "note": "0/20 distinct days"
   }
  ]
 }
