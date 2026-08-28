@@ -8,3 +8,9 @@
 # broken file. Those are deterministic regenerations from logs/, so losing a
 # race there is repaired by the next cycle.
 logs/*.jsonl merge=union
+
+# Windows checkout turns these into CRLF, and busybox sh dies on the :
+# "syntax error: unexpected word (expecting in)" from a bare `case ... in`.
+# Shipped a broken trigger image this way on 2026-08-28.
+*.sh text eol=lf
+Dockerfile text eol=lf

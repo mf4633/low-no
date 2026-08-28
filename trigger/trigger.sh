@@ -16,13 +16,28 @@ if [ -z "$DISPATCH_PAT" ]; then
   exit 1
 fi
 
+FAIL=0
+
 dispatch() {
   echo "dispatching $1 at ${H}Z"
-  curl -sS -X POST \
+  # Check the HTTP STATUS, do not trust curl's exit code: `curl -sS` exits 0
+  # on a 403 because it received a valid response. Observed 2026-08-28 -- a
+  # token missing Actions:write 403'd every hourly fire while the Machine
+  # reported "exited normally with code: 0". A trigger that cannot dispatch
+  # must look broken, not healthy (CLAUDE.md #9).
+  code=$(curl -sS -o /tmp/resp -w "%{http_code}" -X POST \
     -H "Authorization: Bearer $DISPATCH_PAT" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/$R/actions/workflows/$1/dispatches" \
-    -d "{\"ref\":\"main\"}"
+    -d "{\"ref\":\"main\"}")
+  if [ "$code" = "204" ]; then
+    echo "  $1 dispatched (204)"
+  else
+    echo "  FAILED: $1 returned HTTP $code"
+    cat /tmp/resp
+    echo
+    FAIL=1
+  fi
 }
 
 # Case rather than arithmetic: busybox sh treats 08/09 as invalid octal in
@@ -37,3 +52,5 @@ esac
 case "$H" in
   03|05) dispatch lowno-score.yml ;;
 esac
+
+exit $FAIL
