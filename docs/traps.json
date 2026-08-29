@@ -1,32 +1,44 @@
 {
- "at": "2026-08-29T17:05:28.980104Z",
+ "at": "2026-08-29T18:09:13.329447Z",
  "traps": [
   {
-   "city": "NYC",
-   "ceiling": 78,
-   "price": 14,
-   "p_model": 0.1814,
-   "p_market": 0.14,
-   "edge_pts": 4.1,
+   "city": "BOS",
+   "ceiling": 75,
+   "price": 20,
+   "p_model": 0.386,
+   "p_market": 0.2,
+   "edge_pts": 18.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "n_eff=6.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (13:00) with the running max still 1.6F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "MIA",
    "ceiling": 87,
-   "price": 24,
+   "price": 17,
    "p_model": 0.2626,
-   "p_market": 0.24,
-   "edge_pts": 2.3,
+   "p_market": 0.17,
+   "edge_pts": 9.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -38,12 +50,27 @@
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "GRAVEYARD",
-     "why": "24c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (13:00) with the running max still 6.4F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "DC",
+   "ceiling": 82,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 13:00 is past this station's measured convergence hour (13:00) with the running max still 6.4F short. The climb window has closed."
+     "code": "NO_HISTORY",
+     "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
