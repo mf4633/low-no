@@ -1,5 +1,5 @@
 {
- "at": "2026-08-29T06:18:59.346121Z",
+ "at": "2026-08-29T07:21:25.040660Z",
  "traps": [
   {
    "city": "EWR",
@@ -25,59 +25,6 @@
     {
      "code": "GRAVEYARD",
      "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 65,
-   "price": 92,
-   "p_model": 0.9567,
-   "p_market": 0.92,
-   "edge_pts": 3.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "DEN",
-   "ceiling": 89,
-   "price": 95,
-   "p_model": 0.9795,
-   "p_market": 0.95,
-   "edge_pts": 2.9,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "PHX",
-   "ceiling": 105,
-   "price": 98,
-   "p_model": 0.999,
-   "p_market": 0.98,
-   "edge_pts": 1.9,
-   "size_lcb": 0.4478,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
