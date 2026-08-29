@@ -1,5 +1,5 @@
 {
- "at": "2026-08-29T05:16:50.132458Z",
+ "at": "2026-08-29T06:18:59.346121Z",
  "traps": [
   {
    "city": "EWR",
@@ -25,29 +25,6 @@
     {
      "code": "GRAVEYARD",
      "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "NYC",
-   "ceiling": 78,
-   "price": 47,
-   "p_model": 0.518,
-   "p_market": 0.47,
-   "edge_pts": 4.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=15.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "47c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -98,25 +75,6 @@
    "edge_pts": 1.9,
    "size_lcb": 0.4478,
    "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
-  {
-   "city": "AUS",
-   "ceiling": 96,
-   "price": 98,
-   "p_model": 0.997,
-   "p_market": 0.98,
-   "edge_pts": 1.7,
-   "size_lcb": 0.3506,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
