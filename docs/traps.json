@@ -1,13 +1,13 @@
 {
- "at": "2026-08-29T19:12:20.656747Z",
+ "at": "2026-08-29T20:15:28.380453Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 75,
-   "price": 4,
-   "p_model": 0.345,
-   "p_market": 0.04,
-   "edge_pts": 30.5,
+   "price": 2,
+   "p_model": 0.3117,
+   "p_market": 0.02,
+   "edge_pts": 29.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,19 +24,23 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (13:00) with the running max still 1.6F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 1.6F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "MIA",
    "ceiling": 87,
-   "price": 9,
+   "price": 1,
    "p_model": 0.2181,
-   "p_market": 0.09,
-   "edge_pts": 12.8,
+   "p_market": 0.01,
+   "edge_pts": 20.8,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 21 pts. In this ledger the market won 7 of 8 such disputes."
+    },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=14.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
@@ -47,26 +51,49 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (13:00) with the running max still 6.0F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 6.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "DEN",
-   "ceiling": 89,
-   "price": 94,
-   "p_model": 0.9548,
-   "p_market": 0.94,
-   "edge_pts": 1.5,
+   "city": "NYC",
+   "ceiling": 78,
+   "price": 9,
+   "p_model": 0.1246,
+   "p_market": 0.09,
+   "edge_pts": 3.5,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "code": "NO_HISTORY",
+     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 3.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "TTN",
+   "ceiling": 78,
+   "price": 97,
+   "p_model": 1.0,
+   "p_market": 0.97,
+   "edge_pts": 3.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=4.4 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
