@@ -9,6 +9,6 @@ attribution codes:
   UNGRADED       no CLI found yet
 
 - **SFO** QUALIFIED @ 0.86 ceil 65 guide 69 -> CLI 65 :: **BOUNDARY**  _gap station: flips offshore a day before LAX. Weak NE drainage collapses to W reversal - timing city._
-- **SAT** DEAD_SCAVENGE @ 0.91 ceil 96 guide 98 -> CLI None :: **UNGRADED**
+- **SAT** DEAD_SCAVENGE @ 0.91 ceil 96 guide 98 -> CLI 100 :: **WIN**
 
-**0/1 hit** (0%) vs 98.2% breakeven at 0.98
+**1/2 hit** (50%) vs 98.2% breakeven at 0.98
