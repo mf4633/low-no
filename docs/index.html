@@ -279,7 +279,9 @@ fetch("status.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(st=>{
      <tr><th>pilot</th><td>$${(p.bankroll_usd??0).toFixed(2)} &middot; ${p.status} &middot;
          ${p.trades} trades${p.refuted?` &middot; <span class="code FORECAST_BUST">hypothesis refuted ${p.refuted.on}</span>`:""}</td></tr>
      <tr><th>blocking</th><td>${(st.blocking||[]).length
-         ? st.blocking.map(b=>`${b.id} ${b.bar.have}/${b.bar.need} ${b.bar.unit}`).join(" &middot; ")
+         ? st.blocking.map(b=>`${b.id} ${b.bar.have}/${b.bar.need} ${b.bar.unit}`
+             + (b.bar.also?` + ${b.bar.also.have}/${b.bar.also.need} ${b.bar.also.unit}`:"")
+           ).join(" &middot; ")
          : "nothing &mdash; a test is ready to run"}</td></tr>
    </table>`;
 });
@@ -289,7 +291,11 @@ fetch("hypotheses.json?cb="+Date.now()).then(r=>r.ok?r.json():null).then(hp=>{
   const box=document.getElementById("hypbox"); if(!box||!hp||!hp.hypotheses) return;
   const rows=hp.hypotheses.map(h=>{
     const closed=!h.need;
-    const pct=closed?100:Math.min(100,100*h.have/h.need);
+    /* A bar can have more than one leg (H4b: events AND distinct days); it
+       fills to the SHORTEST one, or it reads full on an unmet bar. */
+    const legs=[h].concat(h.also?[h.also]:[]);
+    const pct=closed?100:Math.min(100,100*Math.min.apply(null,
+      legs.map(l=>l.need?l.have/l.need:1)));
     const bar=closed?"":`<div style="height:6px;background:var(--band);border:1px solid var(--rule)">
         <div style="height:100%;width:${pct.toFixed(0)}%;background:var(--hold)"></div></div>`;
     return `<tr><td class="code">${h.id}</td><td>${h.name}</td>

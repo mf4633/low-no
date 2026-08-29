@@ -384,7 +384,8 @@ def main():
             print("  status.json: skipped -", str(_se)[:90])
         print("\nHYPOTHESIS PROGRESS (data bars, not results)")
         for h in prog["hypotheses"]:
-            bar = h["have"] / h["need"] if h["need"] else 1.0
+            legs = [h] + ([h["also"]] if h.get("also") else [])
+            bar = min((l["have"] / l["need"] if l["need"] else 1.0) for l in legs)
             blocks = int(min(1.0, bar) * 20)
             print(f"  {h['id']:5} {h['name']:26} [{'#'*blocks}{'.'*(20-blocks)}] "
                   f"{h['have']}/{h['need']} {h['unit']}"
@@ -469,9 +470,13 @@ def _status(obs, roll, yroll, units, coverage, profiles, pilot, prog):
         hyp.append(dict(
             id=h["id"], name=h["name"],
             status="closed" if closed else "open",
-            bar=None if closed else dict(have=h["have"], need=h["need"],
-                                         unit=h["unit"],
-                                         ready=bool(h["have"] >= h["need"])),
+            bar=None if closed else dict(
+                have=h["have"], need=h["need"], unit=h["unit"],
+                # A bar may have more than one constraint (H4b: events AND
+                # days). `ready` comes from the progress record when it says so,
+                # because `blocking` is contracted to mean "a test can run".
+                ready=bool(h.get("ready", h["have"] >= h["need"])),
+                **({"also": h["also"]} if h.get("also") else {})),
             note=h.get("note")))
 
     return dict(
@@ -525,21 +530,21 @@ def _hypothesis_progress(obs):
     # earns cells at n>=12 per (city, hour, bucket); measured to need ~28 days.
     n_days = len(days)
 
-    # H4b: curve_dev events and the distinct days they span.
-    ev, ev_days = 0, set()
-    for path in sorted(_g.glob("logs/2*.jsonl")):
-        day = os.path.basename(path)[:-6]
-        for line in open(path):
-            try:
-                r = json.loads(line)
-            except Exception:
-                continue
-            d = r.get("detail")
-            if not isinstance(d, dict) or d.get("world"):
-                continue
-            if d.get("curve_dev") is not None:
-                ev += 1
-                ev_days.add(day)
+    # H4b: EVENTS as curve_lag defines them -- a material |d(curve_dev)| on a
+    # valid cycle gap with a real bottom-rung price -- not "cycles that logged
+    # a curve_dev". Counting raw telemetry rows here read 984/200 while the
+    # gate read 52/200, so the meter showed a full bar on an unmet bar. A
+    # progress number that disagrees with its own test is worse than none.
+    # Delegating to the test keeps them from drifting apart again.
+    ev_need, day_need = 200, 20
+    try:
+        import curve_lag as _cl
+        _ev = _cl._events(_cl.series())
+        ev, ev_days = len(_ev), {e["day"] for e in _ev}
+        ev_need, day_need = _cl.MIN_EVENTS, _cl.MIN_DAYS
+    except Exception:
+        # Unknown counts as not-there. Never let a failed count read as progress.
+        ev, ev_days = 0, set()
 
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
@@ -550,8 +555,11 @@ def _hypothesis_progress(obs):
                  have=n_days, need=28, unit="logged days",
                  note="shape_eval.py runs unchanged when met"),
             dict(id="H4b", name="market lag on curve_dev",
-                 have=ev, need=200, unit="events",
-                 note=f"{len(ev_days)}/20 distinct days"),
+                 have=ev, need=ev_need, unit="events",
+                 also=dict(have=len(ev_days), need=day_need,
+                           unit="distinct days"),
+                 ready=bool(ev >= ev_need and len(ev_days) >= day_need),
+                 note=f"{len(ev_days)}/{day_need} distinct days"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",

@@ -76,10 +76,15 @@
    "name": "market lag on curve_dev",
    "status": "open",
    "bar": {
-    "have": 984,
+    "have": 52,
     "need": 200,
     "unit": "events",
-    "ready": true
+    "ready": false,
+    "also": {
+     "have": 3,
+     "need": 20,
+     "unit": "distinct days"
+    }
    },
    "note": "3/20 distinct days"
   },
@@ -130,6 +135,23 @@
     "ready": false
    },
    "note": "shape_eval.py runs unchanged when met"
+  },
+  {
+   "id": "H4b",
+   "name": "market lag on curve_dev",
+   "status": "open",
+   "bar": {
+    "have": 52,
+    "need": 200,
+    "unit": "events",
+    "ready": false,
+    "also": {
+     "have": 3,
+     "need": 20,
+     "unit": "distinct days"
+    }
+   },
+   "note": "3/20 distinct days"
   }
  ]
 }

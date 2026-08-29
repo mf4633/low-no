@@ -142,6 +142,20 @@ is the same class of correction as the `na == 100` price filter: fixing a
 mis-specified measurement, not moving a bar to obtain a result. It makes the
 requirement strictly harder.
 
+**Meter correction, 2026-08-29 (display only; the bar above is unchanged).**
+The threshold correction landed in `curve_lag.py` but NOT in the progress meter
+`shadow_run._hypothesis_progress`, which kept counting the retired unit --
+every cycle with a non-null `curve_dev`. It read **984/200 events, ready:
+true** with a full bar on the site and in the nightly line, while the gate read
+**52/200 events, 3/20 days, "data bar not met"**. `docs/status.json.blocking`
+therefore omitted H4b, contradicting its own documented contract that an empty
+`blocking` means a test is ready. No test, gate or bar was touched and the
+activation interlock was never affected -- pilots key off `verdict()`, not the
+meter -- but a status feed that reports a bar as met is exactly the kind of
+number a future session would act on. Fixed by having the meter call
+`curve_lag._events()` so it cannot drift from the test again; a two-leg bar now
+fills to its shortest leg and carries `also` + an explicit `ready`.
+
 ## How it fails (named in advance)
 1. Rate is a proxy for hour, and hour is already in the model -- the banding
    is there to catch this; if the effect vanishes within bands, it was time.
