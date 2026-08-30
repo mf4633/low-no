@@ -3022,8 +3022,8 @@
       "verdict": "ABSTAIN",
       "reasoning": "advisor error: The read operation timed out"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 100,
+     "attribution": "WIN"
     },
     {
      "date": "2026-08-29",
@@ -3272,8 +3272,8 @@
       "reasoning": "Current temp 73.4F at ~7:25PM local (23:25Z). Ceiling 78F, guide 85F, G=+7. Diurnal curve peaks 77F at hour 16-17 local \u2014 but today's obs are tracking +0.1F above the model curve already, and tomorrow is a fresh heating day. Sky CLR, NNW 5-7kt light wind, no cloud lid. Run_max already 78.8F (already exceeds cap). NWS grid 80F, all model ensemble 77-80F, all above cap. Ladder shows 79-80F and 81-82F buckets at 99c NO \u2014 market fully prices high above 80F. The daily max has already printed 78.8F per run_max, definitively exceeding the 78F cap.",
       "watch": "Settlement decode from 23:53Z METAR \u2014 run_max 78.8F should confirm cap bust at boundary"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 78,
+     "attribution": "BOUNDARY"
     }
    ]
   },
@@ -3282,7 +3282,7 @@
    "flags": []
   }
  ],
- "generated": "2026-08-30T05:16:17.491519Z",
+ "generated": "2026-08-30T08:15:09.873503Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24"
