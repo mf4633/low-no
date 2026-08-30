@@ -1,13 +1,13 @@
 {
- "at": "2026-08-30T14:29:04.758792Z",
+ "at": "2026-08-30T15:31:01.675684Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 81,
-   "price": 20,
-   "p_model": 0.4045,
-   "p_market": 0.2,
-   "edge_pts": 20.4,
+   "price": 15,
+   "p_model": 0.5063,
+   "p_market": 0.15,
+   "edge_pts": 35.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -25,20 +25,16 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "PHX",
    "ceiling": 101,
-   "price": 91,
-   "p_model": 0.9448,
-   "p_market": 0.91,
-   "edge_pts": 3.5,
+   "price": 94,
+   "p_model": 0.9711,
+   "p_market": 0.94,
+   "edge_pts": 3.1,
    "size_lcb": 0.0,
    "signals": [
     {
