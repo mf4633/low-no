@@ -1,5 +1,5 @@
 {
- "at": "2026-08-30T01:42:33.575434Z",
+ "at": "2026-08-30T02:43:59.942861Z",
  "traps": [
   {
    "city": "CHI",
@@ -35,10 +35,10 @@
   {
    "city": "NYC",
    "ceiling": 81,
-   "price": 43,
+   "price": 46,
    "p_model": 0.7155,
-   "p_market": 0.43,
-   "edge_pts": 28.5,
+   "p_market": 0.46,
+   "edge_pts": 25.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -47,7 +47,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 26 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -59,7 +59,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "43c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "46c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -83,12 +83,31 @@
    ]
   },
   {
+   "city": "DEN",
+   "ceiling": 84,
+   "price": 95,
+   "p_model": 0.9831,
+   "p_market": 0.95,
+   "edge_pts": 3.3,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=17.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
    "city": "MIA",
    "ceiling": 86,
-   "price": 96,
+   "price": 98,
    "p_model": 1.0,
-   "p_market": 0.96,
-   "edge_pts": 4.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -98,21 +117,6 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "MSP",
-   "ceiling": 83,
-   "price": 96,
-   "p_model": 0.9821,
-   "p_market": 0.96,
-   "edge_pts": 2.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   },
@@ -136,17 +140,17 @@
    ]
   },
   {
-   "city": "DEN",
-   "ceiling": 84,
-   "price": 97,
-   "p_model": 0.9831,
-   "p_market": 0.97,
+   "city": "DC",
+   "ceiling": 86,
+   "price": 98,
+   "p_model": 0.9933,
+   "p_market": 0.98,
    "edge_pts": 1.3,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=17.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
      "code": "UNFIT_DIST",
@@ -155,32 +159,17 @@
    ]
   },
   {
-   "city": "ATL",
-   "ceiling": 86,
-   "price": 98,
-   "p_model": 0.9921,
-   "p_market": 0.98,
+   "city": "MSP",
+   "ceiling": 83,
+   "price": 97,
+   "p_model": 0.9821,
+   "p_market": 0.97,
    "edge_pts": 1.2,
-   "size_lcb": 0.0256,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "NO_HISTORY",
      "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
-  {
-   "city": "AUS",
-   "ceiling": 95,
-   "price": 99,
-   "p_model": 0.9999,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.484,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   },
@@ -257,21 +246,17 @@
    ]
   },
   {
-   "city": "DC",
+   "city": "ATL",
    "ceiling": 86,
    "price": 99,
-   "p_model": 0.9933,
+   "p_model": 0.9921,
    "p_market": 0.99,
-   "edge_pts": 0.3,
+   "edge_pts": 0.2,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "NO_HISTORY",
      "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   },
