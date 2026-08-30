@@ -1,5 +1,5 @@
   settlement QUARANTINED 2026-08-27|NYC: cached 77 but we observed 80 -- impossible, dropping
-settlements: 410 cached, 2 new, 0 repaired, 1 quarantined, 182 unconfirmable (older than the 7-day CLI window)
+settlements: 410 cached, 1 new, 0 repaired, 1 quarantined, 182 unconfirmable (older than the 7-day CLI window)
 forecaster      n   bias   mae  rmse   <=2F
 mean           42  -0.49  1.45  1.64    71%
 median         42  -0.66  1.44  1.64    76%
@@ -56,7 +56,7 @@ station guide bias (guide - CLI): {'LAX': -2.48, 'TTN': 2.25, 'SFO': 1.91, 'NYC'
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 7 day(s): {'2026-08-08': 0, '2026-08-09': 0, '2026-08-26': 6, '2026-08-27': 5, '2026-08-30': 6} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 6 day(s): {'2026-08-07': 0, '2026-08-08': 0, '2026-08-09': 0, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
