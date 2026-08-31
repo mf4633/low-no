@@ -77,6 +77,23 @@ jobs:
         run: |
           . .github/push_retry.sh
 
+          # Alert on the FIRST rejected push, not when the job finally goes red.
+          # On 2026-08-30 the first push failed at 16:41Z and the run did not go
+          # red until 21:50Z -- five hours later, with the peak window already
+          # gone. Deliberately over the REST API and not via git, because git is
+          # exactly what is broken when this fires. One issue per day, reused.
+          alert_unpushed() {
+            local cycle="$1" title
+            title="scan pushes failing: $(date -u +%F)"
+            if [ -z "${GITHUB_TOKEN:-}" ]; then return 0; fi
+            if curl -sS -H "Authorization: Bearer $GITHUB_TOKEN"                  "https://api.github.com/repos/$GITHUB_REPOSITORY/issues?state=open&labels=health&per_page=100"                | TITLE="$title" python -c "import json,os,sys;print(any(i.get('title')==os.environ['TITLE'] for i in json.load(sys.stdin)))"                | grep -q True; then
+              echo "unpushed alert already open for today"
+              return 0
+            fi
+            CYCLE="$cycle" TITLE="$title" python .github/unpushed_issue.py > /tmp/issue.json
+            curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN"               -H "Accept: application/vnd.github+json"               "https://api.github.com/repos/$GITHUB_REPOSITORY/issues"               -d @/tmp/issue.json > /dev/null && echo "opened an unpushed-cycles issue"
+          }
+
           # Start from the CURRENT tip, not from whatever checkout@v4 grabbed.
           # The previous run pushes its final cycle as it exits, and a chained
           # run that checked out moments earlier begins one commit behind --
@@ -119,6 +136,7 @@ jobs:
             if ! push_retry "scan $(date -u +%FT%H:%MZ)"; then
               fail=1
               pushfail=$((pushfail+1))
+              if [ "$pushfail" -eq 1 ]; then alert_unpushed "$i"; fi
             fi
 
             # Cosmetic only: a failed site rebuild must not end collection.
@@ -140,7 +158,27 @@ jobs:
           # it ever happened is this number, so it must escape the step.
           echo "SCAN_PUSH_FAILURES=$pushfail" >> "$GITHUB_ENV"
           echo "SCAN_CYCLES=$i" >> "$GITHUB_ENV"
+
+          # Anything still sitting in local commits is otherwise lost with the
+          # runner. A bundle makes it fetchable and pushable by hand instead.
+          if [ "$pushfail" -gt 0 ]; then
+            git fetch -q origin main || true
+            if git bundle create unpushed.bundle origin/main..HEAD 2>/dev/null; then
+              echo "bundled $(git rev-list --count origin/main..HEAD) unpushed commit(s)"
+            else
+              echo "nothing left unpushed to bundle"
+            fi
+          fi
           exit $fail
+
+      - name: preserve unpushed commits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unpushed-commits
+          path: unpushed.bundle
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: pipeline health check
         # Runs at the END of the run on purpose. "ensure yesterday was graded"

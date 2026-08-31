@@ -556,6 +556,11 @@ Three things were wrong at once, and all three are now fixed:
    comparable across the roster growth from 10 to 23 stations, and separately on
    any cycle that scanned but could not commit -- that data leaves no trace in
    the logs, so the count has to be handed out of the scan step's environment.
+   It also alerts on the FIRST rejected push over the REST API rather than at
+   the end of the run (08-30's first rejection was 16:41Z; the job did not go
+   red until 21:50Z), and any commits still unpushed when a run ends are kept
+   as a git bundle in the run's `unpushed-commits` artifact, so the data is
+   recoverable instead of dying with the runner.
 3. **Too many writers.** Two crons per hour, an hourly external trigger and the
    end-of-run chain all fed one concurrency group where only one run may sit
    pending, so runs cancelled each other -- 12 on 2026-08-30 -- and overlapped at
