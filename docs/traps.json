@@ -1,13 +1,13 @@
 {
- "at": "2026-08-31T21:38:11.381398Z",
+ "at": "2026-08-31T21:44:43.147770Z",
  "traps": [
   {
    "city": "PHL",
    "ceiling": 82,
-   "price": 16,
+   "price": 23,
    "p_model": 1.0,
-   "p_market": 0.16,
-   "edge_pts": 84.0,
+   "p_market": 0.23,
+   "edge_pts": 77.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,11 +16,15 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 84 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 77 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=18.2 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "23c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
