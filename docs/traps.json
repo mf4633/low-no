@@ -1,80 +1,22 @@
 {
- "at": "2026-08-30T23:54:33.131334Z",
+ "at": "2026-08-31T11:21:44.574371Z",
  "traps": [
   {
-   "city": "CHI",
-   "ceiling": 85,
-   "price": 1,
-   "p_model": 0.174,
-   "p_market": 0.01,
-   "edge_pts": 16.4,
+   "city": "BOS",
+   "ceiling": 76,
+   "price": 14,
+   "p_model": 0.1553,
+   "p_market": 0.14,
+   "edge_pts": 1.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=17.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 4.4F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "EWR",
-   "ceiling": 82,
-   "price": 39,
-   "p_model": 0.476,
-   "p_market": 0.39,
-   "edge_pts": 8.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=5.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "39c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (19:00) with the running max still 1.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "NYC",
-   "ceiling": 81,
-   "price": 1,
-   "p_model": 0.0634,
-   "p_market": 0.01,
-   "edge_pts": 5.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=16.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (16:00) with the running max still 2.9F short. The climb window has closed."
+     "why": "n_eff=8.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
