@@ -191,6 +191,91 @@ What H4b would establish: the market reprices AFTER the deviation, not with it.
 
 ---
 
+# THE UNCONSTRAINED SWEEP (2026-08-31) -- 300 slices, nothing survives
+
+Asked to find the edge anywhere, with any entry and any exit. So: every
+instrument (NO and YES), every contract type (bottom, range, top), all eleven
+price bands, crossed with every conditioner in the data -- hour bucket, rate
+bucket, coast, PoP, G -- one unit per city-day, real logged asks only.
+
+**300 slices with n >= 20.** A sweep this wide manufactures winners: at a
+nominal one-sided 95%, one slice in twenty clears by chance, so ~15 hits are
+the null expectation. The only number worth reading is the one corrected for
+how many slices were actually run (Bonferroni, 0.05/300, z = 3.59).
+
+## First pass: 13 nominal hits, and they were not scattered
+
+Thirteen slices cleared at nominal 95% -- fewer than the ~15 chance predicts,
+so as a group they were already indistinguishable from noise. But noise
+scatters, and these did not: **all thirteen were the same instrument**, cheap
+YES on TOP rungs, and one survived the Bonferroni correction.
+
+Concentration is not confirmation. It is a fingerprint. A single systematic
+error reproduces across every slice of the population it touches, which is
+exactly what "13 of 13 in one instrument" looks like.
+
+## The boundary check, which has now caught three bugs
+
+63% of those "wins" settled EXACTLY at the floor.
+
+Kalshi's rules text, fetched live: `KXHIGHAUS-26AUG31-T104` reads "is **greater
+than** 104 degrees". The inclusive floor is therefore 105. We were grading YES
+as `settle >= 104`, counting every boundary day as a win.
+
+This is the 2026-08-24 cap fix, at the other end, never applied. The comment in
+`sources.py` asserted "range and top rungs' strikes are already inclusive and
+correct" -- half right. The identical proof it used for the bottom applies:
+
+* Bottom: raw `cap_strike` == the FIRST range bucket's floor. Overlap.
+* Top: raw `floor_strike` == the LAST range bucket's inclusive cap. Overlap.
+  Checked on **23 of 23** stations. AUS is typical: a "103-104" bucket and a
+  top rung we labelled ">=104", both containing 104.
+
+Corrected, that population wins **3.2%** (10 of 314) against an 8.8c mean ask
+and a ~9.5% breakeven -- a heavy loss, not an edge.
+
+## Second pass, after the fix
+
+```
+slices with n >= 20                        300
+clearing breakeven at NOMINAL 95%            0     (chance alone predicts ~15)
+clearing breakeven AFTER correction          0
+```
+
+**Zero.** Not "nothing significant after correction" -- nothing clears even the
+uncorrected threshold, on any instrument, at any price, under any conditioner
+available, on 405 units and 26 days.
+
+Getting fewer nominal hits than chance predicts is itself informative. It is
+what a systematically overpriced book looks like from the buy side: the errors
+do not straddle breakeven, they sit below it everywhere.
+
+## What this does and does not settle
+
+**Settles:** there is no simple slice-defined edge in this data. Any rule of the
+form "buy instrument X in band Y when condition Z" has been tested across the
+enumerable space and none clears. Adding more slices of the same kind is not
+research, it is sampling until something looks good.
+
+**Does not settle:** conditional rules that use information the slices do not
+contain -- H4a's trajectory shape, H4b's repricing lag, H5's cell-level lower
+bound. Those are not in this space because they are not slices; they condition
+on a model. They remain the only live avenues, and now the only ones that were
+ever going to be live.
+
+**Does not settle exits.** "Any exit" was in the brief, and H2 already answered
+it: expectancy is set at entry, and the best exit rule tested still lost. A
+sweep over exits on top of a sweep over entries would only multiply the
+correction against a population where no entry clears.
+
+## The rule this earns
+
+An unconstrained sweep may be RUN at any time -- `hunt.py` is committed for
+exactly that -- but its output is never a registration. A slice that clears is
+a candidate for a mechanism, and the mechanism has to be written before the
+slice is tested again on new days. This paragraph exists because the sweep did
+produce a survivor, and the survivor was a bug.
+
 # THE FEE TAX (measured 2026-08-31) -- a structural fact, not a hypothesis
 
 Kalshi charges `ceil(0.07 * C * P * (1-P))` cents per contract. In absolute

@@ -125,17 +125,36 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
             src = "synthetic" if no_ask is not None else "absent"
         if no_bid is None and yes_ask is not None:
             no_bid = 100 - yes_ask
-        # Kalshi T-tickers name a THRESHOLD, not an inclusive cap: KXHIGHTSATX-T101
-        # is the contract "100 or below", yet the API's cap_strike says 101.
-        # Verified across all 21 stations (2026-08-25): the bottom rung's raw
-        # cap_strike always equals the FIRST RANGE bucket's floor_strike, which is
-        # impossible for inclusive buckets -- they would overlap. So subtract 1,
-        # for the BOTTOM rung ONLY (floor_strike is None); range and top rungs'
-        # strikes are already inclusive and correct. Do NOT "fix" this back to the
-        # raw API value -- the raw value is preserved in cap_strike_raw.
+        # Kalshi T-tickers name a THRESHOLD, not an inclusive bound, at BOTH ends.
+        #
+        # BOTTOM (2026-08-25): KXHIGHTSATX-T101 is "100 or below" while the API's
+        # cap_strike says 101. Proof: the bottom rung's raw cap_strike always
+        # equals the FIRST RANGE bucket's floor_strike, impossible for inclusive
+        # buckets -- they would overlap. So cap = cap_strike - 1.
+        #
+        # TOP (2026-08-31): the SAME error at the other end, missed because the
+        # comment here asserted "range and top rungs' strikes are already
+        # inclusive and correct". They are not. Identical proof, checked on 23 of
+        # 23 stations: the top rung's raw floor_strike always equals the LAST
+        # RANGE bucket's inclusive cap. AUS is typical -- a "103-104" bucket and a
+        # top rung we labelled ">=104", both containing 104.
+        #
+        # Kalshi's own rules text settles it independently: T104 reads "is
+        # GREATER THAN 104 degrees", so the inclusive floor is 105, and T97 reads
+        # "is LESS THAN 97", confirming the bottom fix. So floor = floor_strike + 1.
+        #
+        # Found by an unconstrained edge sweep, which reported cheap YES on top
+        # rungs winning at twice its priced rate. 63% of those "wins" settled
+        # EXACTLY at the floor. The edge was this bug. Corrected, the same
+        # population wins 3.2% against a 8.8c mean ask -- a heavy loss.
+        #
+        # Raw values are preserved in cap_strike_raw / floor_strike_raw. Do NOT
+        # "fix" either back to the API value.
         cap_raw = m.get("cap_strike")
-        floor = m.get("floor_strike")
-        cap = cap_raw - 1 if (floor is None and cap_raw is not None) else cap_raw
+        floor_raw = m.get("floor_strike")
+        cap = cap_raw - 1 if (floor_raw is None and cap_raw is not None) else cap_raw
+        floor = (floor_raw + 1 if (cap_raw is None and floor_raw is not None)
+                 else floor_raw)
         # 2026 schema renamed the count fields to *_fp decimal strings; the
         # legacy integers are gone (they logged as None for weeks unnoticed).
         # Explicit None checks, never `or` -- 0 is a real value (gotcha #6).
@@ -147,6 +166,7 @@ def kalshi_ladder(series, date_yymmdd, probe_path="logs/_kalshi_probe.json"):
             vol = _fp_int(m.get("volume_fp"))
         rungs.append(dict(ticker=m["ticker"],
                           cap=cap, floor=floor, cap_strike_raw=cap_raw,
+                          floor_strike_raw=floor_raw,
                           yes_bid=yes_bid, yes_ask=yes_ask,
                           no_ask=no_ask, no_bid=no_bid, quote_src=src,
                           oi=oi, vol=vol))

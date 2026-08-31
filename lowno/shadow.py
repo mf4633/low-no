@@ -13,6 +13,10 @@ import json, glob, os, math, datetime as dt, zoneinfo
 from . import sources
 from .config import CITIES
 
+# Top-rung floor_strike was parsed as an inclusive floor until 2026-08-31;
+# from this date the logs carry the corrected (threshold + 1) value.
+FLOOR_FIX_SINCE = "2026-09-01"
+
 FEE_RATE = 0.07  # Kalshi: ceil(0.07 * C * P * (1-P)) cents per contract
 
 # When the bottom-rung cap off-by-one fix (sources.py) deployed. Logs written
@@ -245,6 +249,14 @@ def build(days=None):
                 yes_cap = cap - 1 if d.get("cap_is_raw") else cap
             elif kind == "top":
                 if fl is None: continue
+                # Rows logged before FLOOR_FIX_SINCE carry the RAW floor_strike,
+                # which is a threshold: the contract is "greater than fl", so the
+                # inclusive floor is fl + 1. Corrected here rather than left to
+                # rot, because unlike the bottom-rung cap this end has never fed
+                # a scored population -- there is no band or variant table to
+                # rewrite, so there is nothing to protect by leaving it wrong.
+                if day < FLOOR_FIX_SINCE:
+                    fl = fl + 1
                 won = s < fl
             else:                               # range: NO wins strictly outside
                 if fl is None or cap is None: continue
