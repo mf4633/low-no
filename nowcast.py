@@ -1,0 +1,197 @@
+"""Nowcast the next print of an HOURLY settlement station from 5-minute neighbours.
+
+WHY THIS EXISTS. Two of the 23 settlement stations publish hourly -- KNYC and
+KDEN -- while the other 21 publish every 4-5 minutes. Measured 2026-08-31 at
+17:35Z: KNYC's most recent observation was 16:51Z, 44 minutes stale, while KLGA
+(13km east) and KEWR (16km west) were current. The station the market settles on
+is the slow one, and its next print is partly knowable before it appears.
+
+MECHANISM, stated before testing. Central Park sits between KLGA on Flushing Bay
+to the east and KEWR/KTEB in New Jersey to the west. An onshore easterly cools
+LGA first and reaches Manhattan later, leaving the western stations warm. So the
+EAST-WEST gradient is a directional front detector, not a spatial average, and
+its movement should lead KNYC. Denver has no sea breeze; its single 5-minute
+neighbour (KAPA) reflects upslope/downslope flow instead, which is different
+physics -- the two stations are reported separately and MUST NOT be pooled.
+
+THE ESTIMATOR HAS NO FITTED PARAMETERS. Predicted next print =
+last print + the MEAN change of the neighbours over the same interval. No
+weights, no regression, nothing to tune later. If a parameter-free estimator
+cannot beat persistence, a fitted one beating it would be a fitting result.
+
+BACKTEST WINDOW. api.weather.gov serves observations for about 7 days, the same
+window as CLI. So the backtest is 7 days today. Every run archives what it
+fetched under logs/nowcast/, so the window GROWS instead of rolling -- run it
+daily and the sample accumulates.
+
+This is an INFORMATION claim only. It measures whether the next print is
+predictable. Whether that predictability is tradeable is a separate question
+that has to be registered before it is scored -- see CANDIDATE.md.
+"""
+import argparse
+import datetime as dt
+import json
+import math
+import os
+import statistics
+from collections import defaultdict
+
+from lowno import sources
+
+ARCHIVE = "logs/nowcast"
+
+# Verified 2026-08-31: cadence checked live, only these two settlement stations
+# publish hourly. Neighbours are the 5-minute stations around each, tagged with
+# the side they sit on so the gradient can be built.
+HOURLY = {
+    "NYC": dict(station="KNYC", tz="America/New_York",
+                neighbours={"KLGA": "east", "KEWR": "west",
+                            "KTEB": "west", "KHPN": "north"}),
+    # DEN first scored with KAPA alone and showed nothing. That was an
+    # under-specified input, not a result: KGXY is also 5-minute, and
+    # KEIK/KLMO/KBDU publish every 20 minutes, still three times faster than
+    # the host. Widened once, deliberately and on record -- a second
+    # configuration is a second look, so anything it finds needs confirmation
+    # on days after 2026-08-31 before it counts.
+    "DEN": dict(station="KDEN", tz="America/Denver",
+                neighbours={"KAPA": "south", "KGXY": "northeast",
+                            "KEIK": "north", "KLMO": "north", "KBDU": "northwest"}),
+}
+
+C2F = lambda c: None if c is None else c * 9 / 5 + 32
+
+
+def fetch(station, start, end):
+    """Observations in [start, end), newest first. Chunked by day: the API caps
+    a single response and silently truncates rather than paginating."""
+    out = {}
+    cur = start
+    while cur < end:
+        nxt = min(cur + dt.timedelta(days=1), end)
+        u = (f"https://api.weather.gov/stations/{station}/observations"
+             f"?start={cur.isoformat().replace('+00:00','Z')}"
+             f"&end={nxt.isoformat().replace('+00:00','Z')}&limit=500")
+        try:
+            j = sources._get(u, timeout=45)
+        except Exception as e:
+            print(f"    {station} {cur:%m-%d}: fetch failed ({str(e)[:40]})")
+            cur = nxt
+            continue
+        for f in j.get("features", []):
+            p = f.get("properties") or {}
+            t = p.get("timestamp")
+            v = (p.get("temperature") or {}).get("value")
+            if t and v is not None:
+                out[t[:16] + "Z"] = round(C2F(v), 2)
+        cur = nxt
+    return out
+
+
+def archive_path(station, day):
+    return os.path.join(ARCHIVE, station, f"{day}.json")
+
+
+def load_or_fetch(station, days):
+    """Archive-first. Only days we have never stored are fetched, so the record
+    outlives the API's 7-day window."""
+    series = {}
+    for day in days:
+        p = archive_path(station, day)
+        if os.path.exists(p):
+            series.update(json.load(open(p)))
+            continue
+        d0 = dt.datetime.fromisoformat(day + "T00:00:00+00:00")
+        got = fetch(station, d0, d0 + dt.timedelta(days=1))
+        if got:
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            json.dump(got, open(p, "w"), sort_keys=True)
+            series.update(got)
+            print(f"    archived {station} {day}: {len(got)} obs")
+    return series
+
+
+def at_or_before(series_sorted, ts):
+    """Latest observation at or before ts. Returns (timestamp, value) or None."""
+    lo, hi, best = 0, len(series_sorted) - 1, None
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if series_sorted[mid][0] <= ts:
+            best = series_sorted[mid]
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return best
+
+
+def backtest(city, days, leads=(10, 20, 30, 40, 50)):
+    cfg = HOURLY[city]
+    print(f"\n{'='*74}\n{city} ({cfg['station']}) -- hourly settlement station")
+    host = load_or_fetch(cfg["station"], days)
+    nbrs = {st: load_or_fetch(st, days) for st in cfg["neighbours"]}
+    hs = sorted(host.items())
+    ns = {st: sorted(v.items()) for st, v in nbrs.items()}
+    print(f"  host prints: {len(hs)}   neighbours: "
+          + ", ".join(f"{st}={len(v)}" for st, v in ns.items()))
+    if len(hs) < 10:
+        print("  not enough host prints to score")
+        return
+
+    rows = defaultdict(list)
+    gaps = []
+    for i in range(1, len(hs)):
+        t0, v0 = hs[i - 1]
+        t1, v1 = hs[i]
+        d0 = dt.datetime.fromisoformat(t0.replace("Z", "+00:00"))
+        d1 = dt.datetime.fromisoformat(t1.replace("Z", "+00:00"))
+        gap = (d1 - d0).total_seconds() / 60
+        if not (40 <= gap <= 80):
+            continue                      # consecutive hourly prints only
+        gaps.append(gap)
+        for L in leads:
+            cut = (d1 - dt.timedelta(minutes=L)).isoformat().replace("+00:00", "Z")[:16] + "Z"
+            deltas = []
+            for st, s in ns.items():
+                a = at_or_before(s, t0)
+                b = at_or_before(s, cut)
+                if not a or not b or b[0] <= a[0]:
+                    continue
+                deltas.append(b[1] - a[1])
+            if not deltas:
+                continue
+            rows[L].append((abs(v0 - v1),                       # persistence error
+                            abs((v0 + statistics.fmean(deltas)) - v1)))  # nowcast error
+    if gaps:
+        print(f"  usable transitions: {len(gaps)}  (median gap {statistics.median(gaps):.0f} min)")
+    print(f"\n  {'lead':>6}{'n':>6}{'persistence MAE':>18}{'nowcast MAE':>14}"
+          f"{'improvement':>13}")
+    for L in leads:
+        v = rows.get(L) or []
+        if len(v) < 10:
+            continue
+        pm = statistics.fmean(x for x, _ in v)
+        nm = statistics.fmean(y for _, y in v)
+        # paired difference, so the CI accounts for the shared weather
+        diffs = [x - y for x, y in v]
+        se = statistics.stdev(diffs) / math.sqrt(len(diffs)) if len(diffs) > 1 else 0
+        star = "  significant" if (statistics.fmean(diffs) - 1.96 * se) > 0 else ""
+        print(f"  {L:>4}m{len(v):>6}{pm:>17.2f}F{nm:>13.2f}F"
+              f"{100*(pm-nm)/pm:>12.0f}%{star}")
+    return rows
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--days", type=int, default=7,
+                    help="how far back to look; the API only serves ~7")
+    a = ap.parse_args()
+    today = dt.datetime.now(dt.timezone.utc).date()
+    days = [(today - dt.timedelta(days=i)).isoformat() for i in range(a.days, 0, -1)]
+    print(f"nowcast backtest over {days[0]} .. {days[-1]}")
+    print(f"archive: {ARCHIVE}/ (fetched days are stored so the window grows)")
+    for city in HOURLY:
+        backtest(city, days)
+    print("\nInformation claim only. Tradeability is a separate, registered question.")
+
+
+if __name__ == "__main__":
+    main()

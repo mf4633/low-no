@@ -208,6 +208,122 @@ What H4b would establish: the market reprices AFTER the deviation, not with it.
 
 ---
 
+# THE STALE-STATION LEAD (measured 2026-08-31) -- a fact, and a hypothesis
+
+## The fact: two settlement stations publish an hour behind their neighbours
+
+Cadence checked live on all 23 stations. **21 publish every 4-5 minutes. Two do
+not: KNYC and KDEN, both hourly.** At 17:35Z on 2026-08-31, KNYC's most recent
+observation was 16:51Z -- 44 minutes stale -- while KLGA 13km east and KEWR 16km
+west were current. The station the market settles on is the slow one.
+
+`nowcast.py` predicts the host's NEXT print from its neighbours' movement since
+its last print. The estimator has **no fitted parameters**: predicted next print
+= last print + the MEAN change of the neighbours over the same interval. If a
+parameter-free estimator cannot beat persistence, a fitted one beating it would
+be a fitting result.
+
+Backtested on 140-142 hourly transitions over 7 days, paired against
+persistence, Bonferroni-corrected over the 10 comparisons run:
+
+```
+city  lead    n   persistence  nowcast   gain    corrected 95% CI   verdict
+NYC    10m  140      1.12F      0.82F   +0.30F   [+0.08, +0.51]     SURVIVES
+NYC    20m  140      1.12F      0.83F   +0.29F   [+0.09, +0.49]     SURVIVES
+NYC    30m  140      1.12F      0.89F   +0.23F   [+0.05, +0.41]     SURVIVES
+NYC    40m  140      1.12F      0.95F   +0.17F   [+0.03, +0.31]     SURVIVES
+NYC    50m  138      1.12F      1.11F   +0.01F   [-0.10, +0.12]     no
+DEN    10m  142      2.55F      1.85F   +0.70F   [+0.24, +1.15]     SURVIVES
+DEN    20m  142      2.55F      1.89F   +0.66F   [+0.32, +1.00]     SURVIVES
+DEN    30m  142      2.55F      1.97F   +0.58F   [+0.27, +0.90]     SURVIVES
+DEN    40m  140      2.56F      2.24F   +0.32F   [+0.13, +0.52]     SURVIVES
+DEN    50m  134      2.61F      2.37F   +0.24F   [+0.06, +0.41]     SURVIVES
+```
+
+This is the first thing in this project to beat its baseline and survive a
+correction. It is an INFORMATION claim: the next print is predictable. It is not
+a trading claim.
+
+## The stated mechanism was FALSIFIED, and that matters
+
+`nowcast.py` was written with a specific mechanism: Central Park sits between
+KLGA on Flushing Bay and KEWR/KTEB in New Jersey, so an onshore easterly should
+cool LGA first and the EAST-WEST gradient should lead KNYC. Written before the
+test, so it could be wrong -- and it is.
+
+Splitting NYC's 20-minute cases by whether the E-W differential moved:
+
+```
+gradient MOVING   n=71   gain +0.19F   [-0.03, +0.42]
+gradient still    n=69   gain +0.40F   [+0.20, +0.60]
+difference        -0.21F [-0.51, +0.10]
+```
+
+Skill does not concentrate on gradient movement. If anything it is higher when
+the gradient is still. **The sea breeze is not what is doing the work.**
+
+What is doing the work is duller and more robust: KNYC is stale and its
+neighbours are not, so averaging four current stations estimates Central Park's
+unpublished present better than assuming it has not moved. That is a
+publication-latency effect, not a weather-regime effect, which means it should
+hold year-round rather than only on sea-breeze days -- and it explains DEN, a
+thousand miles from any ocean, showing a LARGER gain than NYC.
+
+DEN also demonstrates the cost of a bad input: scored with KAPA alone it showed
+nothing, and adding KGXY (5-minute) plus KEIK/KLMO/KBDU (20-minute) took it from
+null to the strongest result in the table. The neighbour set was
+under-specified, not the physics. Recorded because it was a second look, so
+DEN's numbers need confirmation on days after 2026-08-31 before they count.
+
+## HYPOTHESIS 6 -- does the market price off the stale print?
+## (registered 2026-08-31, BEFORE any test. This text does not change.)
+
+n = 0 at registration.
+
+**Mechanism.** Between prints at KNYC and KDEN, the true current temperature is
+knowable to within ~0.8F and ~1.9F from neighbours, while the last published
+value can be up to an hour old. If the market prices off the stale print, a
+predictable revision arrives WITH the print, and the 40 minutes before it are
+mispriced. If the market already nowcasts -- and any participant can, from the
+same free API -- there is nothing there and the price will have moved first.
+
+**Why this is not H4b.** H4b asks whether the market lags a deviation from the
+diurnal curve, at all 23 stations, from our own scan trace. This asks whether
+the market lags a PUBLICATION SCHEDULE, at the only two stations that have one,
+against an external data source. Different signal, different population,
+different failure mode.
+
+**The rule to be tested (fixed now).** At KNYC and KDEN only. In the 40 minutes
+before an expected host print, compute the nowcast. Enter when the nowcast
+implies a bottom-rung outcome the current price does not, by a margin exceeding
+the nowcast's own measured MAE at that lead. Exit at the print. One unit per
+city-day. Real logged asks only.
+
+**Prediction, falsifiable.** Price movement across the print correlates with
+(nowcast - last print). If it does not, the market already knows.
+
+**How it fails, named in advance.**
+1. The market nowcasts too. The data is free and the asymmetry is obvious once
+   seen; the most likely outcome is that this is priced.
+2. 0.3F at NYC is small against a 1.12F baseline error, and most contracts are
+   not decided within 0.3F.
+3. Two stations, ~1 unit/day each. The 60-unit bar needs ~30 days of BOTH
+   firing, which runs past the 2026-12-31 stop.
+4. The gain decays to nothing by 50 minutes at NYC, so the tradeable window is
+   narrow and depends on knowing when the next print is due.
+
+**BLOCKED ON INSTRUMENTATION, and this is the honest obstacle.** The scan
+samples every ~55 minutes. The effect lives inside a 40-minute window, so the
+current price series CANNOT see it: we would be sampling the market at the same
+frequency as the thing we claim is mispriced. Testing H6 requires denser price
+sampling at two stations around the top of the hour, and that must NOT be done
+by speeding up the main scan -- cadence is load-bearing for H4a's 0.5-2.5h
+pairing band, and compressing it would zero the day exactly as 2026-08-26 did.
+It needs a separate poller writing to a separate file.
+
+Until that exists, H6 is registered and unscored. The information claim above
+stands on its own and needs nothing further.
+
 # THE UNCONSTRAINED SWEEP (2026-08-31) -- 300 slices, nothing survives
 
 Asked to find the edge anywhere, with any entry and any exit. So: every

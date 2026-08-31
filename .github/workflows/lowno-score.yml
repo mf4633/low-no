@@ -31,6 +31,23 @@ jobs:
       - name: shadow grade all bands
         if: always()
         run: python shadow_run.py 2>&1 | tee shadow_out.txt
+      - name: archive nowcast traces
+        if: always()
+        # api.weather.gov serves observations for ~7 days, so the nowcast
+        # backtest window ROLLS unless the traces are stored. This step archives
+        # yesterday's 5-minute neighbour data under logs/nowcast/ so the sample
+        # accumulates instead. ~6 stations x 1 day per run.
+        #
+        # Not masked with `|| true` (CLAUDE.md #9): a failure is printed as a
+        # warning and visible, it just must not fail the grading run.
+        run: |
+          if python nowcast.py --days 2 > /tmp/nowcast.log 2>&1; then
+            tail -5 /tmp/nowcast.log
+          else
+            echo "::warning::nowcast archive failed"
+            tail -20 /tmp/nowcast.log || true
+          fi
+
       - name: commit ledger + shadow
         if: always()
         # Uses the same helper as the scan loop. This job had NO retry at all
