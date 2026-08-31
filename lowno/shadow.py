@@ -178,13 +178,24 @@ def settle_map(days):
                 r = json.loads(line)
             except Exception:
                 continue
-            if r.get("verdict") != "LADDER":
-                continue
+            # Row filter must match what the GRADERS read, not a verdict
+            # label. It used to require verdict == "LADDER", which the early
+            # collector never wrote: 2026-08-06 through 08-09 have 360 rows
+            # carrying run_max and ZERO ladder rows, so the one integrity check
+            # that protects those days could not see them at all -- while
+            # build(), shape_eval and the bias tables all consumed them. That
+            # let SFO 2026-08-07 stand at CLI 68 against an observed 72.0.
+            # Those days are also the oldest, hence outside the CLI window and
+            # unrepairable, so the blind spot was worst exactly where it was
+            # permanent. run_max is the station's running max and does not
+            # depend on the verdict.
             d = r.get("detail") or {}
-            if d.get("world") or d.get("run_max") is None:
+            if not isinstance(d, dict) or d.get("world"):
                 continue
-            c = r["city"]
-            seen_max[c] = max(seen_max.get(c, -999), d["run_max"])
+            rm, c = d.get("run_max"), r.get("city")
+            if rm is None or not c:
+                continue
+            seen_max[c] = max(seen_max.get(c, -999), rm)
         for c, obs in seen_max.items():
             k = f"{day}|{c}"
             v = cache.get(k)

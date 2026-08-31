@@ -526,6 +526,49 @@ this section after money exists is itself a kill signal.
 Execution stays manual: the scanner flags, the human places orders.
 scan.py grows no order code, per its own header. Ever.
 
+## LAX CLEARED, AND A SECOND BLIND SPOT (2026-08-31)
+
+**LAX is not a station mismatch.** It carries the largest guide bias in the
+record (-2.42F over 24 days, cool-busting >=3F on 13 of them) and is the only
+one of the eight full-history stations where the bias exceeds its own error
+spread, so the Houston-style question had to be asked. Two independent checks
+say the plumbing is right:
+
+* Kalshi's own rules text for `KXHIGHLAX` reads "the maximum temperature
+  recorded at Los Angeles (**CLILAX**) ... according to The Weather Company" --
+  the same product `sources.cli_max` fetches (KLAX -> site LAX -> CLILAX).
+* CLI minus our OWN observed max at LAX averages **-0.12F** over 24 days, dead
+  centre of the 23-station spread. A downtown-vs-airport mismatch would show as
+  a large positive gap; it does not exist.
+
+So the -2.42F is a real NBM cool bias in the LA marine regime, not a grading
+error. It still gets no special treatment: reopening it needs a mechanism
+written down BEFORE testing, like everything else.
+
+**The check that cleared LAX found a hole in the quarantine.** Comparing every
+settlement against our own observed max -- our obs are a lower bound, so CLI
+below them is arithmetically impossible -- turned up four suspects. Two are
+inside the documented 1F tolerance and correctly left alone. The other two,
+SFO and SEA on 2026-08-07, are real and should have been quarantined.
+
+Cause: the quarantine loop filtered rows on `verdict == "LADDER"`, a label the
+early collector never wrote. **2026-08-06 through 08-09 carry 360 rows with
+`run_max` and ZERO ladder rows**, so the one integrity check protecting those
+days could not see them -- while `build()`, `shape_eval` and the bias tables
+all consumed them happily. Worse, those are the OLDEST days, hence outside the
+7-day CLI window and unrepairable: the blind spot was total exactly where the
+damage is permanent. SFO 2026-08-07 stood at CLI 68 against an observed 72.0,
+at the marine station that supplies most of the loss column.
+
+Fixed by making the quarantine read the same rows the graders read -- any row
+with a numeric `detail.run_max` that is not a world market. The next nightly
+run drops both entries. Effect on the station most exposed: SFO guide bias
++1.50 -> +1.30 over 23 clean days.
+
+Same lesson as the H4b meter and the coverage count, a third time: **an
+integrity check that reads a different slice of the data than the consumers do
+is not protecting them.** Match the consumer's filter, not a convenient label.
+
 ## THE UNPUSHED-CYCLE INCIDENT (2026-08-30) -- read before trusting a coverage number
 
 The 16:16Z scan run started at 16:33 and scanned six cycles straight through the
