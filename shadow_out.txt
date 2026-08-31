@@ -1,58 +1,58 @@
   settlement QUARANTINED 2026-08-27|NYC: cached 77 but we observed 80 -- impossible, dropping
-settlements: 419 cached, 10 new, 0 repaired, 1 quarantined, 182 unconfirmable (older than the 7-day CLI window)
+settlements: 432 cached, 14 new, 0 repaired, 1 quarantined, 182 unconfirmable (older than the 7-day CLI window)
 forecaster      n   bias   mae  rmse   <=2F
 mean           42  -0.49  1.45  1.64    71%
 median         42  -0.66  1.44  1.64    76%
-nbm_guide    1777  -0.23  1.66  2.21    78%
-nws_grid     1734  +0.01  1.69  2.28    78%
-om_gfs       1661  -0.35  1.78  2.36    68%
-om_best      1372  -0.34  1.81  2.40    67%
-om_metno     1597  -1.39  2.05  2.60    58%
-om_icon      1598  -1.14  2.22  2.82    54%
-om_ecmwf     1651  -0.47  3.25  4.55    47%
+nbm_guide    1998  -0.15  1.72  2.34    76%
+nws_grid     1955  +0.10  1.74  2.36    76%
+om_gfs       1874  -0.42  1.80  2.36    67%
+om_best      1549  -0.41  1.83  2.40    66%
+om_metno     1806  -1.24  2.09  2.63    57%
+om_icon      1803  -1.03  2.17  2.77    56%
+om_ecmwf     1862  -0.45  3.15  4.39    47%
 n              42 -84.10 84.10 85.11     0%
 spread         42 -85.06 85.06 86.33     0%
 spend: 34 calls, est $0.4845 spent, $4.52 left (~316 calls)
-rung-obs 19482 -> 377 independent units over 24 days
+rung-obs 20808 -> 404 independent units over 24 days
   band   n   w    hit   need    LCB     pnl  proven
-  1-10  24   0     0%   5.8%     0%    -5.8   False
- 11-20  19   1     5%  16.0%     1%   -10.6   False
- 21-30  15   2    13%  27.2%     4%   -13.6   False
- 31-40  18   1     6%  37.1%     1%   -30.9   False
- 41-50  17   4    24%  47.8%    10%   -23.8   False
+  1-10  26   0     0%   5.7%     0%    -5.6   False
+ 11-20  21   1     5%  16.3%     1%   -11.4   False
+ 21-30  17   2    12%  27.1%     3%   -15.0   False
+ 31-40  21   1     5%  37.4%     1%   -31.9   False
+ 41-50  19   4    21%  47.3%     9%   -25.7   False
  51-60  17   6    35%  56.4%    17%   -20.7   False
- 61-70  20   8    40%  66.9%    22%   -26.4   False
- 71-80  23  11    48%  78.3%    29%   -29.8   False
- 81-90  50  38    76%  88.0%    63%   -11.9   False
- 91-95  71  61    86%  94.4%    76%    -8.4   False
- 96-98 103  96    93%  98.2%    87%    -5.0   False
+ 61-70  22   9    41%  67.0%    23%   -25.6   False
+ 71-80  24  12    50%  78.2%    31%   -27.6   False
+ 81-90  52  40    77%  88.1%    64%   -11.1   False
+ 91-95  75  64    85%  94.4%    76%    -9.0   False
+ 96-98 110 102    93%  98.2%    86%    -5.4   False
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 292   9     3%   2.9%     2%     0.1      277   False
- 11-20  56  10    18%  14.4%    10%     3.5       52   False
+  1-10 302   9     3%   2.9%     2%     0.0      287   False
+ 11-20  58  10    17%  14.2%    10%     3.0       54   False
  21-30  28   9    32%  25.0%    18%     7.0       27   False
  31-40  22  11    50%  36.1%    31%    13.6       19   False
  41-50  16   6    38%  46.4%    18%    -8.7       13   False
- 51-60  20  11    55%  55.5%    34%    -0.5       19   False
- 61-70  19  12    63%  66.7%    41%    -3.5       15   False
- 71-80  21  11    52%  78.1%    32%   -25.2       20   False
- 81-90  24  19    79%  86.1%    60%    -7.0       21   False
- 91-95  21  18    86%  94.1%    65%    -8.3       17   False
- 96-98  18  15    83%  98.0%    61%   -14.5       15   False
-yes_spread over 19182 real-ask obs: mean 4.68c, max 100c
+ 51-60  22  13    59%  55.8%    39%     3.3       21   False
+ 61-70  22  14    64%  66.6%    43%    -2.9       18   False
+ 71-80  25  14    56%  77.8%    37%   -21.4       24   False
+ 81-90  28  22    79%  86.2%    60%    -7.8       25   False
+ 91-95  24  20    83%  93.9%    64%   -10.5       20   False
+ 96-98  20  16    80%  98.0%    58%   -17.9       17   False
+yes_spread over 20508 real-ask obs: mean 5.22c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.42, 'TTN': 2.25, 'SFO': 1.75, 'NYC': 1.45, 'AUS': -1.0, 'HOU': 0.88, 'BOS': -0.86, 'CHI': -0.83, 'EWR': 0.75, 'LAS': -0.56, 'SAN': 0.56, 'PHX': -0.42, 'OKC': 0.38, 'DAL': 0.33, 'MIA': -0.32, 'MSY': -0.25, 'MSP': 0.22, 'SEA': -0.17, 'DEN': -0.13, 'DC': -0.12, 'ATL': -0.11, 'PHL': -0.04, 'SAT': 0.0}
+station guide bias (guide - CLI): {'LAX': -2.42, 'TTN': 2.0, 'EWR': 1.8, 'SFO': 1.75, 'NYC': 1.61, 'BOS': -1.12, 'AUS': -1.0, 'HOU': 0.56, 'LAS': -0.56, 'SAN': 0.56, 'CHI': -0.54, 'PHX': -0.42, 'DAL': 0.33, 'MSY': -0.33, 'MIA': -0.32, 'MSP': 0.22, 'SEA': -0.17, 'ATL': -0.11, 'DC': 0.11, 'DEN': 0.04, 'PHL': 0.0, 'OKC': 0.0, 'SAT': 0.0}
 
                   rule   n   w    hit   LCB  meanP&L
-             frozen_G4  75  62    83%   73%     -3.6
-        exclude_marine  60  51    85%   74%    -0.92
-     floor96_ex_marine  86  82    95%   89%    -2.83
-     conv_window_96_98   2   2   100%   34%      2.0
-       floor96_depth25  32  30    94%   80%    -4.25
-          corrected_G4  59  51    86%   76%    -0.27
-  corrected_G4_floor90  47  46    98%   89%     1.51
-          floor96_only 103  96    93%   87%    -4.96
+             frozen_G4  81  67    83%   73%    -4.42
+        exclude_marine  66  56    85%   74%    -2.17
+     floor96_ex_marine  93  88    95%   88%    -3.53
+     conv_window_96_98   3   2    67%   21%    -31.0
+       floor96_depth25  37  35    95%   82%    -3.35
+          corrected_G4  59  52    88%   78%     0.75
+  corrected_G4_floor90  49  49   100%   93%     3.14
+          floor96_only 110 102    93%   86%    -5.42
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
