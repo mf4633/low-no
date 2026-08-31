@@ -27,6 +27,124 @@ be negotiated with; only the flag rate moves it.
 
 ---
 
+# WHEN THIS PROJECT STOPS (written 2026-08-31, while nothing is at stake)
+
+The $100 pilot has quit lines. The research programme has never had one. That
+asymmetry is how a measurement project turns into a hobby: every null result
+suggests one more slice, and there is no number at which the answer is "no."
+
+This section supplies the number. It is written now, before H4a has run, for
+the same reason the quit lines were written at $0: a stopping rule authored
+after a drawdown is not a stopping rule.
+
+## The test: futility is promotion, inverted
+
+Promotion requires the Wilson 95% LOWER bound to clear fee breakeven -- the
+data must rule OUT a true rate too low to profit.
+
+**Retirement requires the Wilson 95% UPPER bound to fall BELOW fee breakeven**
+-- the data has ruled OUT any true rate high enough to profit. Same interval,
+same confidence, other end. Nothing new to argue about, and it is already the
+project's vocabulary: the live pilot retires on "UCB < breakeven after 30 live
+units."
+
+A retired avenue is not "unproven." It is refuted at 95%. It does not come back
+by adding days, because more days narrow the interval further in the same
+direction.
+
+## Applied to the record as it stands, 2026-08-31, 405 units
+
+**Eight of eleven NO bands are already retired**, including the one this
+strategy was built on:
+
+```
+band     n    hit      breakeven   UCB      verdict
+1-10    25    0.0%       5.5%     13.3%    open (lottery end; not traded)
+11-20   21    4.8%      16.3%     22.7%    open (lottery end; not traded)
+21-30   17   11.8%      27.1%     34.3%    open (lottery end; not traded)
+31-40   21    4.8%      37.4%     22.7%    RETIRED
+41-50   19   21.1%      47.3%     43.3%    RETIRED
+51-60   16   31.2%      56.5%     55.6%    RETIRED
+61-70   21   38.1%      67.2%     59.1%    RETIRED
+71-80   24   50.0%      78.2%     68.6%    RETIRED
+81-90   51   76.5%      88.2%     86.0%    RETIRED
+91-95   76   85.5%      94.4%     91.7%    RETIRED
+96-98  110   92.7%      98.2%     96.3%    RETIRED
+```
+
+Read the last line slowly. **At 96-98c the 95% upper bound is 96.3% against a
+98.2% breakeven.** The band the constitution is built around is not merely
+unproven -- buying it unconditionally is refuted at 95% confidence.
+
+The only three still open are 1-30c, the lottery end the constitution already
+forbids trading, and they are open only because n is 17-25 and the interval is
+correspondingly wide.
+
+Three scored variants go the same way: `floor96_only` (UCB 96.3% vs 98.1%),
+`floor96_ex_marine` (97.7% vs 98.2%) and `conv_window_96_98` (93.9% vs 97.7%).
+
+## What retirement does NOT mean -- read this before applying the rule
+
+A band's UCB retires the band **unconditionally traded**. It does not retire
+every conditional rule inside it. A subset selected on information the band
+average does not contain can have a higher true rate, and the interval above is
+computed on the pooled population precisely to say nothing about subsets.
+
+This is the whole reason H4a, H4b, H5 and the two pilots remain alive after the
+table above. It is also the reason they are the LAST avenues: the unconditional
+strategy is finished, and what remains is the claim that conditioning helps.
+
+Anyone applying this rule to kill a conditional hypothesis using a band-level
+interval has misread it.
+
+## When the programme stops
+
+It stops at the FIRST of:
+
+1. **Every registered avenue retired or promoted.** As of today the live list
+   is H4a, H4b, H5, PILOT-A, PILOT-B, and the five variants not yet retired.
+   No new avenue may be added after 2026-10-31 -- an open-ended registration
+   queue defeats the whole point of a stopping rule.
+
+2. **2026-12-31.** This is the one judgement call here, and it is derived, not
+   picked: H4a resolves within days, H4b around 09-15, and H5's universe supplies
+   **1.00 city-day per day**, so its 60-unit bar needs at least 60 days of
+   collection and cannot start until H4a passes. December 31 gives the last and
+   slowest registered hypothesis roughly two months of margin beyond its floor.
+   Change this date now if it is wrong. It cannot be changed once passed.
+
+## What "stops" means
+
+Collection stops. The nightly runs are disabled. The repository stays, the data
+stays, CANDIDATE.md stays -- the negative result is the product and it is worth
+more intact than deleted. What ends is the search.
+
+It does not mean the $0 stays $0 by accident. It means the standing commitment
+holds by default: **no seed ever happens** unless something clears its
+promotion bar before the programme stops.
+
+## Anti-gaming, in the same spirit as the quit lines
+
+* The futility test may not be weakened after an avenue fails it. Moving to 99%
+  to keep something alive is the same act as widening a gate after a drawdown.
+* A retired avenue may not be revived by re-slicing the same days. Reopening
+  requires a mechanism written down BEFORE testing and out-of-sample days, the
+  same bar H1 has to clear and has not.
+* The 2026-12-31 date may be shortened at any time. Extending it requires a
+  hypothesis that has actually PASSED and needs live confirmation -- not one
+  that is merely still pending.
+* Editing this section after a promising interim result is itself a kill signal,
+  exactly as it is for the pilot quit lines.
+
+## The honest expectation
+
+Nothing has cleared a promotion bar in 24 days and 405 units, the unconditional
+strategy is now refuted at 95%, and the remaining hypotheses are three
+conditional claims of which one has passed an information test and none has
+passed a trading test. The most likely outcome of this programme is a
+well-documented no. That was always the most likely outcome; writing the date
+down just means it will be recognised when it arrives.
+
 # AUTONOMOUS PILOT ACTIVATION (registered 2026-08-27, BEFORE either test ran)
 
 Michael's instruction: start paper trading without further input once H4a or

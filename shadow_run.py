@@ -49,7 +49,15 @@ def main():
         roll.append(dict(band=b, n=n, wins=k, hit=k/n, mean_price=round(mp,1),
                          breakeven=round(need,4), lcb=round(lo_,4), ucb=round(hi_,4),
                          mean_pnl_c=round(sum(x["pnl"] for x in g)/n,2),
-                         proven=bool(lo_ > need)))
+                         proven=bool(lo_ > need),
+                         # Futility is promotion inverted, same interval, other
+                         # end: the 95% UPPER bound below breakeven means the
+                         # data has ruled OUT any true rate that could profit.
+                         # See "WHEN THIS PROJECT STOPS" in CANDIDATE.md.
+                         # NB this retires the band traded UNCONDITIONALLY. It
+                         # says nothing about a conditional rule inside it --
+                         # which is the only reason H4a/H4b/H5 are still alive.
+                         retired=bool(hi_ < need)))
     # YES side of the same bottom rungs: same bands, same one-entry-per-
     # city-day-band dedup, same fee model and Wilson bounds. CAUTION: where no
     # real yes_ask was logged, yes_price is derived as 100 - no_ask, which
@@ -333,11 +341,20 @@ def main():
         print("spend: skipped -", str(e)[:100])
 
     print(f"rung-obs {len(obs)} -> {len(units)} independent units over {len(out['days'])} days")
-    print(f"{'band':>6} {'n':>3} {'w':>3} {'hit':>6} {'need':>6} {'LCB':>6} {'pnl':>7} {'proven':>7}")
+    print(f"{'band':>6} {'n':>3} {'w':>3} {'hit':>6} {'need':>6} {'LCB':>6} {'UCB':>6} "
+          f"{'pnl':>7} {'verdict':>9}")
     for r in roll:
         if not r["n"]: continue
+        verdict = ("PROVEN" if r["proven"] else "RETIRED" if r.get("retired") else "open")
         print(f"{r['band']:>6} {r['n']:>3} {r['wins']:>3} {r['hit']:>6.0%} "
-              f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r['mean_pnl_c']:>7.1f} {str(r['proven']):>7}")
+              f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r.get('ucb', 0):>6.0%} "
+              f"{r['mean_pnl_c']:>7.1f} {verdict:>9}")
+    _dead = [r["band"] for r in roll if r.get("retired")]
+    if _dead:
+        print(f"  RETIRED at 95% ({len(_dead)} of {sum(1 for r in roll if r['n'])} bands): "
+              f"{', '.join(_dead)}")
+        print("  Retirement applies to the band traded UNCONDITIONALLY. Conditional "
+              "rules inside a retired band are NOT retired by it.")
     # YES-side sweep. Reminder: derived prices (100 - no_ask) ignore the spread
     # and flatter the YES buyer -- read the real_ask column before believing a band.
     print(f"\nYES bands (real_ask = units priced from a logged yes_ask; the rest "
@@ -554,6 +571,7 @@ def _status(obs, roll, yroll, units, coverage, profiles, pilot, prog):
             note="unconfirmable = older than the CLI window; cannot be re-derived"),
         results=dict(
             no_bands_proven=proven_no, yes_bands_proven_nominal=proven_yes,
+            no_bands_retired=[b["band"] for b in roll if b.get("retired")],
             nothing_proven=not proven_no),
         hypotheses=hyp,
         pilot=dict(
