@@ -1,19 +1,19 @@
   settlement QUARANTINED 2026-08-27|NYC: cached 77 but we observed 80 -- impossible, dropping
-settlements: 433 cached, 2 new, 0 repaired, 1 quarantined, 182 unconfirmable (older than the 7-day CLI window)
+settlements: 434 cached, 2 new, 0 repaired, 1 quarantined, 182 unconfirmable (older than the 7-day CLI window)
 forecaster      n   bias   mae  rmse   <=2F
 mean           42  -0.49  1.45  1.64    71%
 median         42  -0.66  1.44  1.64    76%
-nbm_guide    2015  -0.14  1.71  2.33    76%
-nws_grid     1972  +0.10  1.73  2.36    76%
-om_gfs       1889  -0.43  1.80  2.36    67%
-om_best      1562  -0.42  1.82  2.39    66%
-om_metno     1822  -1.27  2.11  2.66    56%
-om_icon      1820  -1.05  2.18  2.77    55%
-om_ecmwf     1878  -0.49  3.17  4.41    46%
+nbm_guide    2029  -0.16  1.72  2.34    76%
+nws_grid     1986  +0.09  1.73  2.35    77%
+om_gfs       1903  -0.42  1.79  2.36    67%
+om_best      1574  -0.41  1.82  2.39    66%
+om_metno     1836  -1.25  2.11  2.66    56%
+om_icon      1833  -1.05  2.17  2.77    55%
+om_ecmwf     1892  -0.48  3.16  4.40    47%
 n              42 -84.10 84.10 85.11     0%
 spread         42 -85.06 85.06 86.33     0%
 spend: 34 calls, est $0.4845 spent, $4.52 left (~316 calls)
-rung-obs 20910 -> 405 independent units over 24 days
+rung-obs 20994 -> 406 independent units over 24 days
   band   n   w    hit   need    LCB     pnl  proven
   1-10  26   0     0%   5.7%     0%    -5.6   False
  11-20  21   1     5%  16.3%     1%   -11.4   False
@@ -24,12 +24,12 @@ rung-obs 20910 -> 405 independent units over 24 days
  61-70  22   9    41%  67.0%    23%   -25.6   False
  71-80  24  12    50%  78.2%    31%   -27.6   False
  81-90  52  40    77%  88.1%    64%   -11.1   False
- 91-95  75  64    85%  94.4%    76%    -9.0   False
+ 91-95  76  65    86%  94.4%    76%    -8.8   False
  96-98 111 103    93%  98.2%    86%    -5.3   False
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 303   9     3%   3.0%     2%     0.0      288   False
+  1-10 304   9     3%   3.0%     2%    -0.0      289   False
  11-20  58  10    17%  14.2%    10%     3.0       54   False
  21-30  28   9    32%  25.0%    18%     7.0       27   False
  31-40  22  11    50%  36.1%    31%    13.6       19   False
@@ -40,9 +40,9 @@ YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_
  81-90  28  22    79%  86.2%    60%    -7.8       25   False
  91-95  24  20    83%  93.9%    64%   -10.5       20   False
  96-98  20  16    80%  98.0%    58%   -17.9       17   False
-yes_spread over 20610 real-ask obs: mean 5.20c, max 100c
+yes_spread over 20694 real-ask obs: mean 5.19c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.42, 'TTN': 2.0, 'EWR': 1.8, 'SFO': 1.75, 'NYC': 1.61, 'BOS': -1.12, 'AUS': -1.0, 'HOU': 0.56, 'LAS': -0.56, 'SAN': 0.56, 'CHI': -0.54, 'PHX': -0.42, 'DAL': 0.33, 'MSY': -0.33, 'MIA': -0.25, 'MSP': 0.22, 'SEA': -0.17, 'ATL': -0.11, 'DC': 0.11, 'DEN': 0.04, 'PHL': 0.0, 'OKC': 0.0, 'SAT': 0.0}
+station guide bias (guide - CLI): {'LAX': -2.42, 'TTN': 2.0, 'EWR': 1.8, 'SFO': 1.75, 'NYC': 1.61, 'BOS': -1.22, 'AUS': -1.0, 'HOU': 0.56, 'LAS': -0.56, 'SAN': 0.56, 'CHI': -0.54, 'PHX': -0.42, 'DAL': 0.33, 'MSY': -0.33, 'MIA': -0.25, 'MSP': 0.22, 'SEA': -0.17, 'ATL': -0.11, 'DC': 0.11, 'DEN': 0.04, 'PHL': 0.0, 'OKC': 0.0, 'SAT': 0.0}
 
                   rule   n   w    hit   LCB  meanP&L
              frozen_G4  82  68    83%   73%    -4.33
@@ -50,13 +50,13 @@ station guide bias (guide - CLI): {'LAX': -2.42, 'TTN': 2.0, 'EWR': 1.8, 'SFO': 
      floor96_ex_marine  94  89    95%   88%    -3.46
      conv_window_96_98   3   2    67%   21%    -31.0
        floor96_depth25  38  36    95%   83%    -3.18
-          corrected_G4  60  53    88%   78%     0.78
-  corrected_G4_floor90  50  50   100%   93%     3.14
+          corrected_G4  61  54    89%   78%     0.85
+  corrected_G4_floor90  51  51   100%   93%     3.18
           floor96_only 111 103    93%   86%    -5.34
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 6 day(s): {'2026-08-07': 0, '2026-08-08': 0, '2026-08-09': 0, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 7 day(s): {'2026-08-08': 0, '2026-08-09': 0, '2026-08-26': 6, '2026-08-27': 5, '2026-08-31': 2} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
