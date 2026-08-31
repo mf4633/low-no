@@ -54,35 +54,52 @@ direction.
 
 ## Applied to the record as it stands, 2026-08-31, 405 units
 
-**Eight of eleven NO bands are already retired**, including the one this
-strategy was built on:
-
-```
-band     n    hit      breakeven   UCB      verdict
-1-10    25    0.0%       5.5%     13.3%    open (lottery end; not traded)
-11-20   21    4.8%      16.3%     22.7%    open (lottery end; not traded)
-21-30   17   11.8%      27.1%     34.3%    open (lottery end; not traded)
-31-40   21    4.8%      37.4%     22.7%    RETIRED
-41-50   19   21.1%      47.3%     43.3%    RETIRED
-51-60   16   31.2%      56.5%     55.6%    RETIRED
-61-70   21   38.1%      67.2%     59.1%    RETIRED
-71-80   24   50.0%      78.2%     68.6%    RETIRED
-81-90   51   76.5%      88.2%     86.0%    RETIRED
-91-95   76   85.5%      94.4%     91.7%    RETIRED
-96-98  110   92.7%      98.2%     96.3%    RETIRED
-```
-
-Read the last line slowly. **At 96-98c the 95% upper bound is 96.3% against a
-98.2% breakeven.** The band the constitution is built around is not merely
-unproven -- buying it unconditionally is refuted at 95% confidence.
-
-The only three still open are 1-30c, the lottery end the constitution already
-forbids trading, and they are open only because n is 17-25 and the interval is
-correspondingly wide.
-
-Three scored variants go the same way: `floor96_only` (UCB 96.3% vs 98.1%),
-`floor96_ex_marine` (97.7% vs 98.2%) and `conv_window_96_98` (93.9% vs 97.7%).
-
+**CORRECTED THE SAME DAY.** This section first reported EIGHT of eleven bands
+retired. That was wrong, and the way it was wrong matters more than the number.
+
+NO-side grading deliberately stays on the LOGGED cap so history is not
+rewritten mid-measurement. For pre-fix rows that cap is the raw threshold, so a
+settle exactly AT it reads as a NO-loss when it was truly a NO-win. The grading
+is pessimistic at the boundary BY DESIGN -- and **18 of the 26 days in this
+record are pre-fix**, with 87 rung-observations sitting exactly on that
+boundary.
+
+Pessimism is harmless for "not proven": it can only delay a promotion. It is
+NOT harmless for "refuted", which is permanent and one-way. Judging futility on
+a knowingly pessimistic number retires bands that are merely unproven, which is
+exactly what happened. Retirement is now computed on cap-corrected outcomes
+(`ucb_capfix` in the nightly), and the table is:
+
+```
+band     n    hit    breakeven   UCB(raw)  UCB(capfix)   verdict
+1-10    25    0.0%      5.5%       13.3%      13.3%      open
+11-20   21    4.8%     16.3%       22.7%      22.7%      open
+21-30   17   11.8%     27.1%       34.3%      47.3%      open
+31-40   21    4.8%     37.4%       22.7%      40.0%      open
+41-50   19   21.1%     47.3%       43.3%      54.0%      open
+51-60   16   31.2%     56.5%       55.6%      76.9%      open
+61-70   21   38.1%     67.2%       59.1%      71.7%      open
+71-80   24   50.0%     78.2%       68.6%      82.0%      open
+81-90   51   76.5%     88.2%       86.0%      90.4%      open
+91-95   76   85.5%     94.4%       91.7%      94.6%      open
+96-98  110   92.7%     98.2%       96.3%      96.9%      RETIRED
+```
+
+**One band is retired, not eight: 96-98c.** Its 95% upper bound is 96.9%
+against a 98.2% breakeven even after the correction, on the largest sample in
+the record. Buying the band this strategy is built around, unconditionally, is
+still refuted at 95%.
+
+The other seven were never refuted. They are unproven -- which is what they
+were before this section existed, and the difference between "the strategy is
+dead" and "the strategy is dead at the top of the book" is the whole finding.
+
+The lesson generalises past this table, and it is the fourth instance this
+week: **a measurement chosen to be conservative in one direction cannot be
+reused for a decision that runs the other way.** The pessimistic grading was a
+good choice for protecting the promotion bar and a bad one for driving a
+retirement, and nothing flagged the switch because both used the word "win".
+
 ## What retirement does NOT mean -- read this before applying the rule
 
 A band's UCB retires the band **unconditionally traded**. It does not retire

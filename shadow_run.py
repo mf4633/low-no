@@ -46,6 +46,25 @@ def main():
         fee = math.ceil(0.07*100*(mp/100)*(1-mp/100))
         need = mp/(100-fee)
         lo_, hi_ = wilson(k, n)
+        # RETIREMENT IS JUDGED ON CAP-CORRECTED OUTCOMES, on purpose.
+        #
+        # NO-side grading deliberately stays on the LOGGED cap so that history
+        # is not rewritten mid-measurement (see shadow.build). For pre-fix rows
+        # that cap is the raw threshold, so a settle exactly AT it reads as a
+        # NO-loss when it was truly a NO-win -- pessimistic at the boundary, by
+        # design, and 18 of 26 days in this record are pre-fix.
+        #
+        # Pessimism is harmless for "not proven": it can only delay a promotion.
+        # It is NOT harmless for "refuted", which is permanent and one-way.
+        # Judging futility on a knowingly pessimistic number retires bands that
+        # are merely unproven. Measured 2026-08-31: on the as-graded numbers
+        # 8 of 11 bands retired; on cap-corrected outcomes only 96-98c does.
+        # That is the difference between "the strategy is dead" and "the strategy
+        # is dead at the top of the book", and the second one is what is true.
+        kc = sum(1 for x in g
+                 if x["settle"] > ((x["ceiling"] - 1) if x.get("cap_is_raw")
+                                   else x["ceiling"]))
+        _, hi_corr = wilson(kc, n)
         roll.append(dict(band=b, n=n, wins=k, hit=k/n, mean_price=round(mp,1),
                          breakeven=round(need,4), lcb=round(lo_,4), ucb=round(hi_,4),
                          mean_pnl_c=round(sum(x["pnl"] for x in g)/n,2),
@@ -57,7 +76,8 @@ def main():
                          # NB this retires the band traded UNCONDITIONALLY. It
                          # says nothing about a conditional rule inside it --
                          # which is the only reason H4a/H4b/H5 are still alive.
-                         retired=bool(hi_ < need)))
+                         wins_capfix=kc, ucb_capfix=round(hi_corr, 4),
+                         retired=bool(hi_corr < need)))
     # YES side of the same bottom rungs: same bands, same one-entry-per-
     # city-day-band dedup, same fee model and Wilson bounds. CAUTION: where no
     # real yes_ask was logged, yes_price is derived as 100 - no_ask, which
@@ -341,13 +361,13 @@ def main():
         print("spend: skipped -", str(e)[:100])
 
     print(f"rung-obs {len(obs)} -> {len(units)} independent units over {len(out['days'])} days")
-    print(f"{'band':>6} {'n':>3} {'w':>3} {'hit':>6} {'need':>6} {'LCB':>6} {'UCB':>6} "
+    print(f"{'band':>6} {'n':>3} {'w':>3} {'hit':>6} {'need':>6} {'LCB':>6} {'UCBfix':>6} "
           f"{'pnl':>7} {'verdict':>9}")
     for r in roll:
         if not r["n"]: continue
         verdict = ("PROVEN" if r["proven"] else "RETIRED" if r.get("retired") else "open")
         print(f"{r['band']:>6} {r['n']:>3} {r['wins']:>3} {r['hit']:>6.0%} "
-              f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r.get('ucb', 0):>6.0%} "
+              f"{r['breakeven']:>6.1%} {r['lcb']:>6.0%} {r.get('ucb_capfix', 0):>6.0%} "
               f"{r['mean_pnl_c']:>7.1f} {verdict:>9}")
     _dead = [r["band"] for r in roll if r.get("retired")]
     if _dead:
