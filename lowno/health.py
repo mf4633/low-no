@@ -27,6 +27,11 @@ from . import notify
 # missing fire, so ordinary scheduler flakiness does not cry wolf.
 MIN_CYCLES = 5
 
+# Share of live stations that must produce a pairable peak-window observation.
+# A healthy day is 100%; 2026-08-30 was 30% and passed the old zero-only test.
+# Set well below 1.0 so one flaky station does not cry wolf.
+MIN_PEAK_STATION_FRAC = 0.6
+
 
 def _yesterday_et():
     now = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York"))
@@ -74,6 +79,43 @@ def _rate_samples(day):
         return None
 
 
+def _peak_stations(day):
+    """(stations with a usable peak pair, stations observed) for `day`.
+
+    A COUNT of samples is the wrong alarm on its own: it moves with the station
+    roster, which went 10 -> 21 -> 23 during August, so no fixed number means
+    the same thing across the month. The share of live stations that produced
+    at least one pairable peak-window observation is comparable across the
+    whole record.
+
+    Why this exists: 2026-08-30 logged 15 scan cycles -- the HIGHEST count of
+    the month -- and produced 7 usable pairs against a normal 78-84, with 16 of
+    23 stations contributing nothing. The old zero-only test passed it in
+    silence and no issue was ever opened.
+    """
+    try:
+        import shape_eval
+        with_pair = len({c["city"] for c in shape_eval.cycles({day})})
+    except Exception as e:
+        print("health: could not count peak stations -", str(e)[:120])
+        return None, None
+    observed = set()
+    path = f"logs/{day}.jsonl"
+    if not os.path.exists(path):
+        return with_pair, 0
+    with open(path) as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            d = r.get("detail")
+            if isinstance(d, dict) and not d.get("world") and d.get("run_max") is not None:
+                if r.get("city"):
+                    observed.add(r["city"])
+    return with_pair, len(observed)
+
+
 def check(day=None):
     """Return a list of problem strings for `day` (default: yesterday ET)."""
     day = day or _yesterday_et()
@@ -98,6 +140,35 @@ def check(day=None):
             f"ZERO SAMPLES: {day} settled but produced 0 peak-window rate "
             f"samples. Observations were probably spaced outside the 0.5-2.5h "
             f"pairing band, so the day looks collected but counts for nothing.")
+    elif settled > 0:
+        # PARTIAL collapse: the day collected, graded, and still starved H4a.
+        with_pair, observed = _peak_stations(day)
+        if with_pair is not None and observed:
+            frac = with_pair / observed
+            if frac < MIN_PEAK_STATION_FRAC:
+                problems.append(
+                    f"PARTIAL PEAK COVERAGE: only {with_pair} of {observed} "
+                    f"stations ({frac:.0%}) produced a pairable peak-window "
+                    f"observation on {day}, against ~100% on a healthy day "
+                    f"({samples} rate samples). Cycle COUNT can look normal "
+                    f"while this is broken -- 2026-08-30 logged the month's "
+                    f"highest count and scored 30%.")
+
+    # Cycles that scanned but never pushed leave NO trace in the committed
+    # logs, so the count has to be handed in from the scan step's environment.
+    # This is the 2026-08-30 failure: six cycles collected across the whole
+    # eastern peak window, six pushes rejected, and the only surviving evidence
+    # was a red run nobody was watching.
+    try:
+        unpushed = int(os.environ.get("SCAN_PUSH_FAILURES", "0") or 0)
+    except ValueError:
+        unpushed = 0
+    if unpushed:
+        problems.append(
+            f"UNPUSHED CYCLES: {unpushed} cycle(s) in this run scanned "
+            f"successfully but could not be committed. That data is gone and "
+            f"does not appear in any log. Check for a conflict outside the "
+            f"regenerable set in .github/push_retry.sh.")
 
     return day, problems
 

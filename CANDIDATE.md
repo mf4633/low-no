@@ -526,6 +526,49 @@ this section after money exists is itself a kill signal.
 Execution stays manual: the scanner flags, the human places orders.
 scan.py grows no order code, per its own header. Ever.
 
+## THE UNPUSHED-CYCLE INCIDENT (2026-08-30) -- read before trusting a coverage number
+
+The 16:16Z scan run started at 16:33 and scanned six cycles straight through the
+eastern peak window: 16:33, 17:36, 18:38, 19:40, 20:42, 21:44. Every cycle
+collected correctly. **Every cycle failed to push.** The day yielded 7 usable
+peak-window rate samples against a normal 78-84, and 16 of 23 stations
+contributed nothing to H4a.
+
+Mechanism: the run checked out one commit behind the previous run's final push,
+so its own commit had to rebase and conflicted on the whole-file snapshots
+(`docs/active.json`, `docs/edge.json`, `docs/traps.json`, `logs/_kalshi_probe.json`,
+`logs/_ob_probe.json`). The recovery was `git rebase --abort` then retry -- which
+restores the IDENTICAL state, so five retries produced five identical failures,
+and every later cycle inherited the same doomed base. The run burned its full
+5.3 hours and only failed at the end.
+
+Three things were wrong at once, and all three are now fixed:
+
+1. **The retry could not resolve, only abort.** `.github/push_retry.sh` now takes
+   the freshest side for exactly the regenerable snapshots (they are
+   deterministic regenerations, so newest-wins is arithmetic, not judgement) and
+   still refuses to guess on anything else. Verified both ways against a
+   synthetic diverged remote, including that `logs/*.jsonl` union-merge still
+   preserves BOTH sides' observations.
+2. **Nothing alarmed.** `health.py` only tested for ZERO samples, so 7-of-84
+   passed in silence and no issue was opened. It now alarms on the SHARE of live
+   stations producing a pairable peak observation (below 60%), which is
+   comparable across the roster growth from 10 to 23 stations, and separately on
+   any cycle that scanned but could not commit -- that data leaves no trace in
+   the logs, so the count has to be handed out of the scan step's environment.
+3. **Too many writers.** Two crons per hour, an hourly external trigger and the
+   end-of-run chain all fed one concurrency group where only one run may sit
+   pending, so runs cancelled each other -- 12 on 2026-08-30 -- and overlapped at
+   the edges, which is what manufactured the divergence. The `:35` backup cron is
+   removed; the scan loop now also hard-resets to `origin/main` before its first
+   cycle so a chained run never starts from a stale base.
+
+The generalisable lesson, and the reason this sits next to the settlement-cache
+incident: **a coverage number that counts attempts is not a measure of data.**
+08-30 logged the highest cycle count of the month while starving the only
+hypothesis still alive. Count the thing the test consumes, not the thing the
+scheduler produces.
+
 ## KNOWN FIDELITY GAPS (measured 2026-08-26, before any capital)
 * **Settlement source differs from our grader.** Kalshi's rules read: "the
   maximum temperature recorded at San Antonio (CLISAT) ... according to

@@ -15,8 +15,14 @@ on:
     # CADENCE IS LOAD-BEARING, do not "improve" it: below 0.5h spacing every
     # pair fails the same gap test and the day silently yields nothing. 55min
     # sits mid-band with margin either side.
-    - cron: "5 13-23 * * *"    # :05 - 9:05a-7:05p ET
-    - cron: "35 13-23 * * *"   # :35 - backup slot
+    #
+    # ONE cron slot, deliberately. The :35 backup was removed 2026-08-31: it was
+    # already live on the 0-of-14 day so it never bought coverage, and every
+    # extra dispatch feeds the pending-slot churn below -- 12 runs were queued
+    # and cancelled on 2026-08-30 without executing. Between this cron, the
+    # end-of-run chain and the hourly external trigger there are already three
+    # ways to start a run; the loop only needs one to land.
+    - cron: "5 13 * * *"       # 9:05a ET cold start
   workflow_dispatch: {}
 permissions: { contents: write, pages: write, issues: write }
 concurrency:
@@ -69,6 +75,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
+          . .github/push_retry.sh
+
+          # Start from the CURRENT tip, not from whatever checkout@v4 grabbed.
+          # The previous run pushes its final cycle as it exits, and a chained
+          # run that checked out moments earlier begins one commit behind --
+          # which is exactly the divergence that cost 2026-08-30 six cycles.
+          # Nothing local exists to lose at this point in the job.
+          git fetch --quiet origin main && git reset --quiet --hard origin/main
+          echo "base: $(git rev-parse --short HEAD)"
+
           STEP=3300                                   # 55 min between centres
           DAY_END=$(date -u -d "today 23:40" +%s)     # stop before the day rolls
           HARD=$(( $(date -u +%s) + 330 * 60 ))       # stay inside the job cap
@@ -77,6 +93,7 @@ jobs:
           # evaluates false returns 1 and aborts the step. Always if/fi here.
           if [ "$HARD" -lt "$END" ]; then END=$HARD; fi
           fail=0
+          pushfail=0
           i=0
           while :; do
             i=$((i+1))
@@ -94,26 +111,14 @@ jobs:
             fi
 
             # Commit EVERY cycle. If the runner is killed mid-window, only the
-            # cycle in flight is lost, never the whole day.
+            # cycle in flight is lost, never the whole day. push_retry resolves
+            # a conflict on the regenerable snapshots instead of aborting into
+            # an unrecoverable retry loop -- see .github/push_retry.sh for the
+            # 2026-08-30 failure this replaced.
             git config user.name lowno-bot && git config user.email bot@lowno
-            git add -A
-            git diff --cached --quiet || git commit -m "scan $(date -u +%FT%H:%MZ)"
-            pushed=0
-            for attempt in 1 2 3 4 5; do
-              if git pull --rebase --autostash && git push; then pushed=1; break; fi
-              # A conflicted rebase leaves unmerged files behind. Without this
-              # abort, every later attempt dies instantly on "Pulling is not
-              # possible because you have unmerged files" and the retry is
-              # theatre -- observed 2026-08-27T23:07Z, 5 attempts, 5 identical
-              # failures. logs/*.jsonl union-merge (see .gitattributes) removes
-              # the common cause; this handles whatever is left.
-              if git rebase --abort; then echo "aborted a conflicted rebase"; fi
-              echo "push attempt $attempt lost a race, retrying"
-              sleep 10
-            done
-            if [ "$pushed" -eq 0 ]; then
+            if ! push_retry "scan $(date -u +%FT%H:%MZ)"; then
               fail=1
-              echo "::error::cycle $i could not push after 5 attempts"
+              pushfail=$((pushfail+1))
             fi
 
             # Cosmetic only: a failed site rebuild must not end collection.
@@ -129,7 +134,12 @@ jobs:
             if [ $(( $(date -u +%s) + STEP )) -ge "$END" ]; then break; fi
             sleep $STEP
           done
-          echo "=== $i cycles, exit $fail ==="
+          echo "=== $i cycles, $pushfail unpushed, exit $fail ==="
+          # Hand the count to the health step. A cycle that scanned but could
+          # not push is INVISIBLE in the committed logs -- the only record that
+          # it ever happened is this number, so it must escape the step.
+          echo "SCAN_PUSH_FAILURES=$pushfail" >> "$GITHUB_ENV"
+          echo "SCAN_CYCLES=$i" >> "$GITHUB_ENV"
           exit $fail
 
       - name: pipeline health check

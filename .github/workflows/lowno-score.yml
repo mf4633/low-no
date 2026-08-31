@@ -33,11 +33,15 @@ jobs:
         run: python shadow_run.py 2>&1 | tee shadow_out.txt
       - name: commit ledger + shadow
         if: always()
+        # Uses the same helper as the scan loop. This job had NO retry at all
+        # until 2026-08-31 and lost a whole grading run to a rebase race on
+        # 2026-08-27 12:43Z ("could not apply 29396a3"). It writes the same
+        # docs/*.json snapshots the scan loop writes, from a DIFFERENT
+        # concurrency group, so the two can and do collide by design.
         run: |
+          . .github/push_retry.sh
           git config user.name lowno-bot && git config user.email bot@lowno
-          git add -A
-          git diff --cached --quiet || git commit -m "scorecard + shadow $(date -u +%F)"
-          git pull --rebase --autostash && git push
+          push_retry "scorecard + shadow $(date -u +%F)"
       - name: request pages rebuild
         if: always()
         run: |

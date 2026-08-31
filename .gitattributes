@@ -5,8 +5,15 @@
 # and cost the tail of that day's collection.
 #
 # Deliberately NOT applied to docs/*.json: a union merge of JSON produces a
-# broken file. Those are deterministic regenerations from logs/, so losing a
-# race there is repaired by the next cycle.
+# broken file. Those are deterministic regenerations from logs/.
+#
+# CORRECTION 2026-08-31: this used to claim a lost race there "is repaired by
+# the next cycle". It is NOT. A content conflict on those files wedges the
+# whole RUN -- git rebase --abort restores the identical state, so every retry
+# reproduces it and every later cycle inherits the same base. That cost six
+# cycles and a day of peak coverage on 2026-08-30. Resolution now lives in
+# .github/push_retry.sh, which takes the freshest side for exactly these
+# regenerable paths and still refuses to guess on anything else.
 logs/*.jsonl merge=union
 
 # Windows checkout turns these into CRLF, and busybox sh dies on the :
