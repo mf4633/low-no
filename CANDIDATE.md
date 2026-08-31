@@ -526,6 +526,38 @@ this section after money exists is itself a kill signal.
 Execution stays manual: the scanner flags, the human places orders.
 scan.py grows no order code, per its own header. Ever.
 
+## THE TWC-VS-CLI GAP, MEASURED (2026-08-31) -- NO DIVERGENCE ON RECORD
+
+The KNOWN FIDELITY GAPS section below says Kalshi settles on The Weather
+Company while we grade on the NWS CLI product, and that a divergence on a
+boundary day means the paper ledger records a win a real account did not get.
+That was written as a risk. It is now measured.
+
+Rather than scrape TWC, ask Kalshi: those markets are SETTLED, and the settled
+result IS TWC's answer. Every boundary day in the record, checked against the
+market we would actually have traded:
+
+```
+day        city cap  ticker                   CLI  our NO  kalshi  agree
+2026-08-19 SFO   69  KXHIGHTSFO-26AUG19-T69    68   loses    yes    yes
+2026-08-25 MSP   82  KXHIGHTMIN-26AUG25-T83    82   loses    yes    yes
+2026-08-25 SFO   67  KXHIGHTSFO-26AUG25-T68    68    wins     no    yes
+2026-08-26 BOS   78  KXHIGHTBOS-26AUG26-T79    78   loses    yes    yes
+2026-08-28 SFO   65  KXHIGHTSFO-26AUG28-T66    65   loses    yes    yes
+2026-08-29 TTN   78  KXHIGHTTTN-26AUG29-T79    78   loses    yes    yes
+```
+
+**Six for six, including the four that settled EXACTLY at the cap.** The two
+authorities have not diverged on a single day where it could have mattered.
+This does not retire the gap -- one divergence is still possible and the
+pre-seed spot-check stays in the promotion list -- but the ledger's loss column
+is not an artefact of reading the wrong thermometer.
+
+Bonus confirmation of the cap-1 fix, from the market itself: 2026-08-25 SFO
+settled at 68, ticker T68 ("max < 68") resolved NO, and our grading called it a
+NO-side WIN at cap 67. The threshold really is `< cap_strike`, and the boundary
+lands where the fix says it lands.
+
 ## LAX CLEARED, AND A SECOND BLIND SPOT (2026-08-31)
 
 **LAX is not a station mismatch.** It carries the largest guide bias in the

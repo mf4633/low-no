@@ -16,6 +16,20 @@ gets an unfair look at a later, easier update.
 import json, glob, os, math
 from collections import defaultdict
 
+# Keys that live in the forecasts dict but are NOT temperature forecasts. The
+# 2026-08-22 interim collector wrote a consensus block whose `n` (member count)
+# and `spread` (degrees F) are numeric, and scoring every numeric value as a
+# forecast graded them against CLI: they appear in the nightly table with a
+# -84F bias. Nothing consumes those rows, but the table is read every night.
+NOT_A_FORECAST = {"n", "spread", "sources"}
+
+# A forecaster must span this many distinct settled DAYS before it can be
+# ranked. Observation count alone is not enough: `mean` and `median` carry 42
+# observations from a SINGLE day (2026-08-22) and were ranking first and second
+# by RMSE, above nbm_guide's 2,000+ observations across the whole record. One
+# calm day is not a skill result.
+MIN_DAYS_TO_RANK = 5
+
 
 def _settlements():
     try:
@@ -30,6 +44,7 @@ def build(min_n=3):
     # (forecaster, city) -> [errors]; also pooled per forecaster
     err = defaultdict(list)
     pooled = defaultdict(list)
+    days_seen = defaultdict(set)
     seen = set()
 
     for path in sorted(glob.glob("logs/2*.jsonl")):
@@ -55,6 +70,8 @@ def build(min_n=3):
                 continue
             seen.add(key)
             for name, val in list(fc.items()) + [("nbm_guide", d.get("guide"))]:
+                if name in NOT_A_FORECAST:
+                    continue
                 # not just None-guarding: rows logged 2026-08-22 by the interim
                 # collector carry a nested dict under this key, and one such row
                 # would TypeError the whole build once that day settles
@@ -63,7 +80,8 @@ def build(min_n=3):
                 e = val - actual
                 err[(name, city)].append(e)
                 pooled[name].append(e)
-    return err, pooled
+                days_seen[name].add(day)
+    return err, pooled, days_seen
 
 
 def _stats(errs):
@@ -79,17 +97,25 @@ def _stats(errs):
 
 
 def report(min_n=3):
-    err, pooled = build()
-    out = {"pooled": {}, "by_station": {}, "min_n": min_n}
+    err, pooled, days_seen = build()
+    out = {"pooled": {}, "by_station": {}, "min_n": min_n,
+           "min_days_to_rank": MIN_DAYS_TO_RANK}
     for name, e in pooled.items():
-        s = _stats(e)
-        if s:
-            out["pooled"][name] = s
+        st = _stats(e)
+        if st:
+            st["days"] = len(days_seen[name])
+            out["pooled"][name] = st
     for (name, city), e in err.items():
         if len(e) >= min_n:
             out["by_station"].setdefault(city, {})[name] = _stats(e)
-    ranked = sorted(out["pooled"].items(), key=lambda kv: kv[1]["rmse"])
-    out["ranking_by_rmse"] = [k for k, _ in ranked]
+    # Rank only forecasters with enough DAYS. The others still appear in
+    # `pooled` -- hiding them would be its own kind of lie -- but they cannot
+    # top a ranking on one day's weather.
+    rankable = {k: v for k, v in out["pooled"].items()
+                if v["days"] >= MIN_DAYS_TO_RANK and v["n"] >= min_n}
+    out["ranking_by_rmse"] = [k for k, _ in
+                              sorted(rankable.items(), key=lambda kv: kv[1]["rmse"])]
+    out["unranked"] = sorted(set(out["pooled"]) - set(rankable))
     out["note"] = ("Started 2026-08-22. Earlier history has only NBM guide -- "
                    "competing forecasts were never archived and cannot be "
                    "reconstructed. Needs ~3 weeks before a ranking means anything.")
@@ -103,11 +129,17 @@ def write(path="docs/skill.json"):
     out["generated"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
     json.dump(out, open(path, "w"), indent=1)
     if out["pooled"]:
-        print(f"{'forecaster':12} {'n':>4} {'bias':>6} {'mae':>5} {'rmse':>5} {'<=2F':>6}")
+        print(f"{'forecaster':12} {'n':>5} {'days':>5} {'bias':>6} {'mae':>5} "
+              f"{'rmse':>5} {'<=2F':>6}")
         for name in out["ranking_by_rmse"]:
-            s = out["pooled"][name]
-            print(f"{name:12} {s['n']:>4} {s['bias']:>+6.2f} {s['mae']:>5.2f} "
-                  f"{s['rmse']:>5.2f} {100*s['p_within_2F']:>5.0f}%")
+            st = out["pooled"][name]
+            print(f"{name:12} {st['n']:>5} {st['days']:>5} {st['bias']:>+6.2f} "
+                  f"{st['mae']:>5.2f} {st['rmse']:>5.2f} {100*st['p_within_2F']:>5.0f}%")
+        for name in out.get("unranked", []):
+            st = out["pooled"][name]
+            print(f"{name:12} {st['n']:>5} {st['days']:>5} {st['bias']:>+6.2f} "
+                  f"{st['mae']:>5.2f} {st['rmse']:>5.2f} {100*st['p_within_2F']:>5.0f}%"
+                  f"   unranked (<{MIN_DAYS_TO_RANK} days)")
     else:
         print("skill: no settled forecasts yet (expected until tomorrow's grade)")
     return out
