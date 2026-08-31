@@ -454,6 +454,9 @@ def main():
 
 
 
+# H5 was registered 2026-08-31; only later days count as evidence for it.
+H5_SINCE = "2026-09-01"
+
 STATUS_SCHEMA = "lowno.status/1"
 
 
@@ -564,6 +567,43 @@ def _hypothesis_progress(obs):
         # Unknown counts as not-there. Never let a failed count read as progress.
         ev, ev_days = 0, set()
 
+    # H5: SUPPLY of the contested-band instrument on post-registration days.
+    # Counts city-days carrying a real 81-95c bottom-rung ask inside the peak
+    # window -- the universe the registered rule draws from, not the units it
+    # would take, because the entry condition needs validated shape cells and
+    # H4a has not passed. Same filter the eventual test uses, as far as it can
+    # go without the cells: a meter that reads a different slice than its test
+    # is the mistake this file has now made three times.
+    h5_units, h5_days = set(), 0
+    for path in sorted(_g.glob("logs/2*.jsonl")):
+        day = os.path.basename(path)[:-6]
+        if day < H5_SINCE:
+            continue
+        h5_days += 1
+        for line in open(path):
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            d = r.get("detail")
+            city = r.get("city")
+            if not isinstance(d, dict) or d.get("world") or city not in CITIES:
+                continue
+            try:
+                lt = (dt.datetime.fromisoformat(r["at"])
+                      .replace(tzinfo=dt.timezone.utc)
+                      .astimezone(zoneinfo.ZoneInfo(CITIES[city]["tz"])))
+            except Exception:
+                continue
+            if not (13 <= lt.hour <= 16):
+                continue
+            for g in (d.get("rungs") or []):
+                if g.get("fl") is not None or g.get("cap") is None:
+                    continue
+                na = g.get("na")
+                if na is not None and 81 <= na <= 95:
+                    h5_units.add((day, city))
+
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
@@ -578,6 +618,12 @@ def _hypothesis_progress(obs):
                            unit="distinct days"),
                  ready=bool(ev >= ev_need and len(ev_days) >= day_need),
                  note=f"{len(ev_days)}/{day_need} distinct days"),
+            dict(id="H5", name="contested band 81-95c (blocked on H4a)",
+                 have=len(h5_units), need=60, unit="city-day units",
+                 also=dict(have=0, need=1, unit="H4a passed"),
+                 ready=False,
+                 note=f"supply only; scoring waits on H4a ({h5_days} days since "
+                      f"{H5_SINCE})"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",

@@ -73,6 +73,143 @@ What H4b would establish: the market reprices AFTER the deviation, not with it.
 
 ---
 
+# HYPOTHESIS 5 -- THE CONTESTED BAND, PRICED AGAINST BREAKEVEN
+# (registered 2026-08-31, BEFORE any test. This text does not change.)
+
+n = 0 at registration. No variant, no pilot, no capital.
+
+## Where it comes from
+
+Michael asked whether optimal entry and exit timing had been determined per
+city. Exit is closed (H2, refuted: expectancy is set at entry). Entry was still
+one global 10:30-13:30 window for all 23 stations.
+
+The first framing was checked and DISCARDED before registration, and the reason
+is recorded here so it is not proposed again: "enter before the station's
+earned convergence hour, while the price is still under 98c" keeps **98 of 109**
+qualifying city-days. It is 90% of the population `floor96_only` already scores
+at n=111, 92.8% hit, LCB 86.4% against a 98.1% breakeven -- short by 11.7
+points. A filter that removes eleven days is not a hypothesis, it is a rounding
+error on an existing negative result.
+
+Two facts survived that check and motivate this one.
+
+## What was already known when this was written -- DISCLOSURE
+
+This hypothesis is written after a full review of 24 days of data, so it cannot
+claim the innocence of H4, which was written before its telemetry existed.
+Every number that informed it is listed so the contamination is auditable
+rather than hidden:
+
+* NO bands, realised hit vs breakeven: 81-90c 76.9% vs 88.1%; 91-95c 85.3% vs
+  94.4%; 96-98c 92.8% vs 98.2%. Every band short, shortfall smallest at the
+  extremes.
+* The frozen gate's 18 flags: all 7 at 96-98c won (+15c). The 8 at 86-95c went
+  5W-3L for **-238c**, which is 91% of the -261c total. The 3 at <=85c lost 38c.
+* H4a's information claim: in the peak window 13-16 local, STALLED days carry
+  +1.05F remaining vs CLIMBING +2.53F, a **1.48F** separation; at the boundary
+  (0-2F needed) +1.49+/-0.40 vs +3.06+/-0.26. The effect INVERTS pre-peak.
+* H3: the settlement gap is real (+0.21F pooled) but worth ~3 probability
+  points and already priced.
+* Minimum n for a PERFECT record to clear its own breakeven: 96-98c needs 210
+  units, 90-95c needs 62, 81-90c needs 29.
+
+No threshold below is fitted to any of these. Where a constant would have been
+needed, the rule uses a bound the data computes for itself instead.
+
+## Mechanism
+
+`p_exceed` conditions on (city, hour, run_max). run_max is a MAXIMUM, so it is
+monotone and shape-blind: a day stalled since 10:00 and a day still climbing
+3F/hr present identically. H4a measured what that blindness costs -- 1.48F of
+remaining climb inside the peak window.
+
+**A 1.48F shift matters only where 1.48F can change the answer.** At 96-98c the
+needed climb is already essentially zero and the outcome is all but settled;
+the market is 5.4 points from correct and a signal worth a few probability
+points cannot close that (H3 established exactly this, with a real effect that
+was nonetheless priced). In the 81-95c band the needed climb is the same order
+as the signal, and the market is pricing a genuinely open question. That is the
+only place a shape signal of the measured magnitude can move a decision.
+
+So the band is not chosen because it looks good in a table -- it looks *bad* in
+the table, and it is where the frozen gate loses 91% of its money. It is chosen
+because it is the only band where the mechanism has room to operate.
+
+## Why this is not PILOT-A, and a property of PILOT-A worth recording
+
+PILOT-A (registered 2026-08-27) enters when `p_shape - no_ask/100 >= 0.10`.
+That is a FLAT ABSOLUTE edge, and it has a structural consequence nobody noted
+at registration: at an ask of 90c it requires p_shape >= 1.00, and above 90c it
+requires a probability greater than one. **PILOT-A can never fire above 89c.**
+It is already a de-facto 81-89c rule.
+
+PILOT-A is registered and stays exactly as written -- its constants are not to
+be re-tuned. This records the property, it does not change it.
+
+The consequence is that the 90-95c slice is unreachable by any flat absolute
+edge and is genuinely unclaimed. The reason is that the required edge SCALES
+WITH PRICE: at 85c a position must beat 86.2% including fees, at 94c it must
+beat 94.4%. Measuring edge against the ask instead of against breakeven is a
+unit error, and it is what confines PILOT-A to the cheap end.
+
+## The rule to be tested (fixed now)
+
+* **Universe.** Bottom rungs. Real logged `no_ask` in **81-95c** inclusive --
+  never derived from `100 - yes_ask`. Local hour inside PEAK_WINDOW 13-16, the
+  only range where H4a's effect has the sign it claims. Shape cell earned at
+  `n >= MIN_N_RATE`.
+* **Entry.** Enter NO when the shape cell's **Wilson 95% LOWER bound** on
+  P(exceed) exceeds the breakeven implied by the ask, `(no_ask + fee)/100`.
+  Not the point estimate -- the lower bound. This has **no fitted constant**:
+  the required margin is whatever the cell's own sample size demands, so a thin
+  cell must show a larger effect than a deep one to qualify.
+* **One unit per city-day**, first qualifying cycle, entry at the ask, held to
+  settlement, Kalshi fees. No exit rule -- H2 settled that.
+* **Subordinate to H4a.** This may not be scored until H4a PASSES. It rests on
+  the shape cells being validated out of sample; scoring it first would be
+  building on the unvalidated premise that killed H1.
+* **Days from registration only.** Scored on days >= 2026-09-01. The 24 days
+  above informed the framing and are disqualified as evidence.
+
+## Prediction (falsifiable, and the cross-band form is the real test)
+
+If the mechanism is right, the shape edge is **concentrated in 81-95c and
+absent at 96-98c**. Scoring the same rule at 96-98c must show no improvement
+over the market. A result that looks equally good in both bands falsifies the
+mechanism even if it makes money, because it would mean something other than
+"1.48F matters where 1.48F is decisive" is driving it.
+
+## How it fails (named in advance, so a null is legible)
+
+1. **The gap is too wide.** 81-90c must move 76.9% -> 88.1%, over eleven points.
+   A 1.48F shift is unlikely to be worth eleven points. This is the most likely
+   failure and it is an honest one.
+2. **The band is contested for a reason.** The market prices 81-95c as open
+   because it IS open; the residual may be irreducible weather, not a blind
+   spot. The base rate is that the market wins ~7 of 8 model-market disputes.
+3. **Shape is a proxy for hour**, and hour is already in the model. The cell
+   banding is there to catch this.
+4. **The LCB gate is too strict to ever fire.** Requiring the cell's lower bound
+   to clear breakeven may yield n=0 for months. If so this is not a null result,
+   it is an untested hypothesis, and it must be reported as such.
+5. **Survivorship.** Conditioning on a large needed climb late in the day may
+   select doomed days regardless of rate.
+
+## Bar for promotion
+
+Unchanged from everything else here: **>= 60 independent city-day units**,
+Wilson 95% LCB above fee breakeven at mean entry price, >= 90% of units priced
+from a real logged ask, and out-of-sample confirmation on post-registration
+days. Note the arithmetic that makes this band worth the attempt at all: 62
+units at a perfect record clears 90-95c, and 29 clears 81-90c, against the 210
+that 96-98c would demand.
+
+No pilot activates on this. If it proves, it comes back here for a separate
+pilot registration with its own $100 and the same quit lines -- $40 down, no
+reseed. Nothing about this hypothesis changes the standing commitment that no
+new money moves until the paper trader works.
+
 # HYPOTHESIS 4 -- DIURNAL-CURVE DEVIATION (SHAPE, NOT LEVEL)
 # (registered 2026-08-27, BEFORE any test. This text does not change.)
 
