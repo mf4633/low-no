@@ -213,6 +213,27 @@ def main():
         d = o.get("depth") or {}
         return (d.get("depth_le_max") or 0) >= need
 
+    # Is there a MARKET here, or only an ask? Every P&L figure assumes a fill at
+    # the logged ask, and depth25 tests the ask side. Nothing tested whether a
+    # bid exists at all. Measured 2026-08-31 on the 96-98c bottom rungs: the
+    # median NO spread is 1c, but 18% of rungs sit at 79-93c -- an ask of 97
+    # against a bid of 4 is not a two-sided market, and a unit priced off one is
+    # a fill that does not exist. (The mean spread of 15.7c is that tail, not a
+    # typical condition; it briefly looked like an execution opportunity worth
+    # more than the whole 5.34c shortfall, which is why the median is the number
+    # that matters.)
+    #
+    # `yes_spread` IS the NO spread: price == 100 - yes_bid and
+    # yes_spread == yes_ask - yes_bid, verified on every bottom obs.
+    #
+    # The threshold is DERIVED, not chosen: require the spread to be no wider
+    # than the position's own upside (100 - price). Wider than that and you can
+    # never exit at the bid for less than you stood to win, which is the
+    # definition of an untradeable quote. No free parameter to drift.
+    def two_sided(o):
+        sp = o.get("yes_spread")
+        return sp is not None and o.get("price") is not None and sp <= (100 - o["price"])
+
     variants = [
         score_rule("frozen_G4",            lambda o: o["G"] >= 4),
         # Marine-layer stations are bimodal (burn-off vs. cap); a Gaussian cannot
@@ -226,6 +247,11 @@ def main():
         score_rule("corrected_G4",         lambda o: gcorr(o) >= 4),
         score_rule("corrected_G4_floor90", lambda o: gcorr(o) >= 4 and o["price"] >= 90),
         score_rule("floor96_only",         lambda o: 96 <= o["price"] <= 98),
+        # Same populations, restricted to rungs that actually have two sides.
+        # Scored, never enforced: the point is to measure how much of the
+        # existing P&L rests on quotes nobody could have traded against.
+        score_rule("floor96_twosided",     lambda o: 96 <= o["price"] <= 98 and two_sided(o)),
+        score_rule("frozen_G4_twosided",   lambda o: o["G"] >= 4 and two_sided(o)),
     ]
 
     # PRE-REGISTERED 2026-08-25, before any qualifying data existed -- so this

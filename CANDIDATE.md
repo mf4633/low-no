@@ -73,6 +73,76 @@ What H4b would establish: the market reprices AFTER the deviation, not with it.
 
 ---
 
+# THE FEE TAX (measured 2026-08-31) -- a structural fact, not a hypothesis
+
+Kalshi charges `ceil(0.07 * C * P * (1-P))` cents per contract. In absolute
+terms that is small and roughly flat across the book. As a share of what the
+position can actually WIN, it is not flat at all:
+
+```
+band      fee   upside   fee as % of upside
+96-98c     1c      3c            33%
+91-95c     1c      7c            14%
+81-90c     1c     15c             7%
+61-80c     2c     30c             7%
+```
+
+At 97c you risk 97 to win 3, and Kalshi takes a third of the gross. **The
+band this strategy was built around pays five times the fee tax of the band
+H5 targets.** That is arithmetic, not a weather claim: an identical
+forecasting skill earns far more at 85c than at 97c, and a skill that is
+merely good is taxed out of existence at the top of the book.
+
+Two consequences worth keeping.
+
+**It is a second, independent argument for H5's band.** H5 chose 81-95c because
+a 1.48F shape signal can only move a decision where 1.48F is decisive. The fee
+table says the same thing from a different direction, with no reference to
+weather at all. Two unrelated mechanisms pointing at the same band is the
+closest this project has come to a prior.
+
+**It puts a cost on the constitution's own premise.** CLAUDE.md says "the
+strategy buys near-certainties at 96-98c" and "no lottery scanner." The first
+half of that is the most expensive place on the board to be right. The rule
+stays -- the gate is frozen and the lottery end is genuinely a different,
+losing instrument (1-10c: 26 units, 0 wins) -- but "near-certainty" should be
+read as a constraint the strategy pays for, not a free good.
+
+## What this does NOT say
+
+It does not say the 81-95c band has an edge. Every band's realised rate is
+below its own breakeven, and 81-90c is short by 11.2 points against 96-98c's
+5.4. A cheaper tax on a worse hit rate is not obviously a better trade, which
+is exactly why H5 is registered as a hypothesis rather than adopted as a rule.
+
+## An execution idea, checked and DISCARDED (recorded so it is not re-proposed)
+
+The mean NO spread at 96-98c is 15.7c. Half of that is 7.85c, which exceeds the
+5.34c mean shortfall -- so entering at the mid rather than the ask looked like
+it could close the entire gap on its own, with no forecasting edge at all.
+
+It is a fat-tail artifact. The distribution:
+
+```
+p10 1c   p25 1c   p50 1c   p75 3c   p90 79c   p95 88c   p99 93c
+72% of rungs sit at <= 2c;  18% sit at >= 20c
+```
+
+The typical rung has a **1c** spread, so the realistic half-spread is 0.5c and
+execution recovers about 9% of the shortfall. The mean is entirely the 18% tail
+of rungs where an ask of 97 faces a bid of 4 -- quotes nobody could trade
+against in either direction.
+
+That tail is not an opportunity, it is a **fidelity problem**: KNOWN FIDELITY
+GAPS already records that fills are assumed full at the logged ask, and this
+quantifies which slice of the ledger is fantasy. Scored as the `*_twosided`
+variants (spread <= the position's own upside, a derived threshold with no free
+parameter), which keep 77% of 96-98c rung-obs and 96 city-day units.
+
+The general lesson, and the third time it has cost something this week: **a mean
+over a distribution with an untradeable tail is not a measure of what you can
+trade.** Look at the median before believing an opportunity.
+
 # HYPOTHESIS 5 -- THE CONTESTED BAND, PRICED AGAINST BREAKEVEN
 # (registered 2026-08-31, BEFORE any test. This text does not change.)
 
