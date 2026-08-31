@@ -16,13 +16,20 @@ on:
     # pair fails the same gap test and the day silently yields nothing. 55min
     # sits mid-band with margin either side.
     #
-    # ONE cron slot, deliberately. The :35 backup was removed 2026-08-31: it was
-    # already live on the 0-of-14 day so it never bought coverage, and every
-    # extra dispatch feeds the pending-slot churn below -- 12 runs were queued
-    # and cancelled on 2026-08-30 without executing. Between this cron, the
-    # end-of-run chain and the hourly external trigger there are already three
-    # ways to start a run; the loop only needs one to land.
+    # TWO cold starts, one per block the day actually needs -- not the 22 slots
+    # this had on 2026-08-30. The old :05+:35 grid never bought coverage (it was
+    # already live on the 0-of-14 day) and every extra dispatch feeds the
+    # pending-slot churn: 12 runs queued and cancelled that day without ever
+    # executing. But dropping to a SINGLE slot made the cold start a single
+    # point of failure, and GitHub demonstrably drops fires.
+    #
+    # Each run covers ~5.5h. 13:05Z covers the morning and hands off to a run
+    # that reaches the Pacific peak; 17:05Z is insurance that lands INSIDE the
+    # 17:00-23:00Z window where every station's 13-16 local peak lives, so a
+    # dropped morning fire costs cadence but not the peak. If the morning run
+    # is still going, the 17:05 fire just queues and starts when it ends.
     - cron: "5 13 * * *"       # 9:05a ET cold start
+    - cron: "5 17 * * *"       # 1:05p ET peak-window backstop
   workflow_dispatch: {}
 permissions: { contents: write, pages: write, issues: write }
 concurrency:
