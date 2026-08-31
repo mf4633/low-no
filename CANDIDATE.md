@@ -275,6 +275,42 @@ null to the strongest result in the table. The neighbour set was
 under-specified, not the physics. Recorded because it was a second look, so
 DEN's numbers need confirmation on days after 2026-08-31 before they count.
 
+## The max-recovery route: TRIED AND FAILED (2026-08-31)
+
+Obvious next step, and it does not work. A NO position wins on the settled MAX,
+not the current temperature, so the tempting move is to use the neighbours to
+reconstruct the peaks an hourly station hides between prints.
+
+The gap is real and remarkably steady -- CLI minus our hourly-print max is
+**+1.16F at NYC (sd 0.45, n=5)** and **+1.01F at DEN (sd 0.54, n=7)**, so our
+running max is systematically about a degree low at exactly these two stations,
+and our p_exceed with it.
+
+But reconstructing it from neighbours OVERSHOOTS badly. First attempt took a max
+over each neighbour's own reconstruction and landed 6-7F high. Averaging across
+neighbours first -- which is what `nowcast.py` does, and which I should have done
+from the start -- halves the error and still overshoots: **+1.16F becomes -3.22F
+at NYC, +1.01F becomes -3.06F at DEN.** Worse than doing nothing.
+
+Two reasons, and both are structural rather than fixable by tuning:
+
+1. **A max over noisy estimates is biased upward by construction.** Roughly 280
+   reconstructed ticks a day means the max selects the largest positive error,
+   not the true peak. The short-horizon nowcast avoids this because it predicts
+   ONE value, not the extreme of many.
+2. **Neighbours have different diurnal amplitudes.** KGXY on the plains climbs
+   far more than KDEN; assuming equal deltas is fine over one hour and wrong
+   over a day. DEN 08-25 reconstructed to 98.7F against a CLI of 85F.
+
+**The nowcast's validated use is short-horizon next-print prediction. It does NOT
+transfer to daily-max reconstruction.** Different problem, different error
+structure, and the transfer was assumed rather than tested until it was tested.
+
+The simpler candidate -- a flat +1.0F offset at these two stations, leaving a
+~0.5F residual instead of a ~1.0F bias -- is NOT adopted. n=5 and n=7 days, and
+a station-level constant fitted on a handful of days is precisely the shape of
+the H1 failure. It needs the archive to grow and a registration first.
+
 ## HYPOTHESIS 6 -- does the market price off the stale print?
 ## (registered 2026-08-31, BEFORE any test. This text does not change.)
 

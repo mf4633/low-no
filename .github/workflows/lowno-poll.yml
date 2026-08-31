@@ -1,0 +1,52 @@
+name: low-no dense poll (H6)
+on:
+  schedule:
+    # Two cold starts, same reasoning as the scan: one guaranteed slot is a
+    # single point of failure and GitHub drops fires.
+    - cron: "2 13 * * *"       # 9:02a ET
+    - cron: "2 18 * * *"       # 2:02p ET, inside the peak window
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  # ITS OWN GROUP. Sharing lowno-scan would let this evict a pending scan, and
+  # the scan is what feeds every registered hypothesis. This one feeds only H6.
+  group: lowno-poll
+  cancel-in-progress: false
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: poll loop
+        run: |
+          . .github/push_retry.sh
+          git fetch --quiet origin main && git reset --quiet --hard origin/main
+          git config user.name lowno-bot && git config user.email bot@lowno
+
+          STEP=300                                    # 5 min: H6 lives in a 40min window
+          DAY_END=$(date -u -d "today 23:40" +%s)
+          HARD=$(( $(date -u +%s) + 330 * 60 ))
+          END=$DAY_END
+          if [ "$HARD" -lt "$END" ]; then END=$HARD; fi
+
+          # Commit every 6th cycle, not every cycle. At 5-minute cadence a
+          # commit per pass would fight the scan loop for the branch all day;
+          # the poll rows are append-only and union-merged, so batching them
+          # costs nothing but a little recency.
+          i=0
+          fail=0
+          while :; do
+            i=$((i+1))
+            if python poll.py; then :; else fail=1; echo "::error::poll cycle $i failed"; fi
+            if [ $(( i % 6 )) -eq 0 ]; then
+              if ! push_retry "poll $(date -u +%FT%H:%MZ)"; then fail=1; fi
+            fi
+            if [ $(( $(date -u +%s) + STEP )) -ge "$END" ]; then break; fi
+            sleep $STEP
+          done
+          push_retry "poll $(date -u +%FT%H:%MZ) (final)" || fail=1
+          echo "=== $i poll cycles, exit $fail ==="
+          exit $fail

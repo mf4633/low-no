@@ -16,6 +16,11 @@
 # regenerable paths and still refuses to guess on anything else.
 logs/*.jsonl merge=union
 
+# Same reasoning one level down. The H6 poller appends every 5 minutes from a
+# different concurrency group than the scan, so the two WILL interleave on the
+# branch; union is the correct resolution for append-only telemetry there too.
+logs/poll/*.jsonl merge=union
+
 # Windows checkout turns these into CRLF, and busybox sh dies on the :
 # "syntax error: unexpected word (expecting in)" from a bare `case ... in`.
 # Shipped a broken trigger image this way on 2026-08-28.
