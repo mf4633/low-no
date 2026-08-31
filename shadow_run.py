@@ -92,12 +92,30 @@ def main():
     coverage = {}
     for _f in sorted(_glob.glob("logs/2*.jsonl")):
         _day = _f.replace("\\", "/").split("/")[-1][:-6]
+        # An hour counts if a scan cycle HAPPENED in it -- either it wrote a
+        # ladder row or it recorded a station's running max. Ladder-only was
+        # wrong in both directions: the early collector never wrote that label,
+        # so 2026-08-06..08-09 reported 0 cycles against 11 real ones and cried
+        # wolf permanently; and an hour whose scan errored before producing an
+        # observation still wrote ladder rows, so 2026-08-30 counted 15 hours
+        # against 12 that yielded data.
+        #
+        # This stays a count of ATTEMPTS on purpose. Whether the attempts
+        # produced anything the tests can eat is a different question, and it
+        # now has its own alarm in lowno.health -- see the 2026-08-30 entry in
+        # CANDIDATE.md for why conflating the two hid a whole lost day.
         _hrs = set()
         try:
             for _line in open(_f):
                 _r = json.loads(_line)
-                if _r.get("verdict") == "LADDER":
-                    _hrs.add(_r["at"][11:13])
+                _at = _r.get("at")
+                if not _at:
+                    continue
+                _d = _r.get("detail")
+                if _r.get("verdict") == "LADDER" or (
+                        isinstance(_d, dict) and not _d.get("world")
+                        and _d.get("run_max") is not None):
+                    _hrs.add(_at[11:13])
         except Exception:
             continue
         coverage[_day] = len(_hrs)
