@@ -4,6 +4,7 @@ The human (or nothing) executes. Run: python -m lowno.scan"""
 import datetime as dt, json, os, zoneinfo
 from .config import CITIES, GATE
 from . import sources, gate, advisor, prob
+from . import hourly_nowcast
 
 def scan_once():
     today = dt.date.today()
@@ -103,6 +104,24 @@ def scan_once():
                 detail["curve_pred_now"] = _pred
                 detail["curve_dev"] = (None if (_tnow is None or _pred is None)
                                        else round(_tnow - _pred, 1))
+                # RUN_MAX CORRECTION for the two hourly settlement stations.
+                # KNYC and KDEN print once an hour while the other 21 print
+                # every 4-5 minutes, so run_max there is a max over hourly
+                # samples and runs ~1F below CLI. needed = cap - run_max feeds
+                # every p_exceed, so those two stations have been under-rating
+                # NO for the whole record.
+                #
+                # TELEMETRY ONLY -- logged beside run_max, feeding nothing.
+                # Using it would rewrite every historical NYC/DEN probability
+                # mid-measurement, and n=5/n=7 days is far too thin. It gets a
+                # dated cutoff like cap_fix_since when the archive supports one.
+                if key in hourly_nowcast.HOSTS:
+                    try:
+                        _rmnc, _nd = hourly_nowcast.estimate(key, rmax)
+                        detail["run_max_nowcast"] = _rmnc
+                        detail["nowcast_detail"] = _nd if isinstance(_nd, dict) else None
+                    except Exception as _ne:
+                        print("run_max_nowcast: skipped -", str(_ne)[:80])
             except Exception as _fe:
                 print("forecasts: skipped -", str(_fe)[:100])
             if depth is not None and isinstance(detail, dict):
@@ -161,6 +180,8 @@ def scan_once():
                     temp_now=(detail.get("temp_now") if isinstance(detail, dict) else None),
                     curve_pred_now=(detail.get("curve_pred_now") if isinstance(detail, dict) else None),
                     curve_dev=(detail.get("curve_dev") if isinstance(detail, dict) else None),
+                    run_max_nowcast=(detail.get("run_max_nowcast") if isinstance(detail, dict) else None),
+                    nowcast_detail=(detail.get("nowcast_detail") if isinstance(detail, dict) else None),
                     rungs=[dict(t=r["ticker"], cap=r.get("cap"), fl=r.get("floor"),
                                 na=r.get("no_ask"), yb=r.get("yes_bid"),
                                 ya=r.get("yes_ask"), nb=r.get("no_bid"),
