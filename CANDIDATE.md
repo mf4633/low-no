@@ -208,6 +208,92 @@ What H4b would establish: the market reprices AFTER the deviation, not with it.
 
 ---
 
+# HYPOTHESIS 7 -- SHAPE ON TEMPERATURE, NOT ON THE MAXIMUM
+# (registered 2026-08-31, BEFORE any test. This text does not change.)
+
+n = 0 at registration. The hybrid of H4a and H6 that Michael asked for, and it
+turns out to be a correction to H4a rather than an extension of it.
+
+## What was found
+
+H4a buckets a day by rate = delta(run_max) / delta(hours). run_max is a MAXIMUM,
+so it moves only when a new high is set. Measured over the peak window:
+**47% of all intervals have delta(run_max) = 0 and are therefore labelled
+STALLED**, at every station equally -- the hourly pair KNYC/KDEN sit at 48% and
+51% against a 5-minute-station range of 18% to 87%, so this is NOT the
+publication-timing artifact that was suspected first and tested.
+
+It is the monotonicity. Among those 111 flat-run_max intervals the ACTUAL
+temperature tendency, from the `temp_now` already logged, runs:
+
+```
+p10 -3.18   p25 -1.74   p50 +0.00   p75 +0.00   p90 +1.77   F/hr
+mean -0.55, sd 2.54
+
+re-bucketed on temp_now:   stalled 79%   mid 3%   climbing 18%
+```
+
+**One interval in five that H4a calls stalled is actually climbing**, and a
+large share are actively COOLING -- which run_max cannot distinguish from flat-
+at-peak although they mean opposite things for whether the day clears a cap.
+
+Since H4a measures stalled at +1.05F remaining against climbing at +2.53F,
+contaminating the stalled bucket with genuinely climbing days pulls those two
+numbers TOGETHER. So H4a is most likely UNDERSTATING its own effect.
+
+## Mechanism
+
+`temp_now` is not monotone, so a tendency computed from it separates three
+states run_max collapses into one: cooling (the day is over), flat at the peak
+(the day is over, differently), and flat but about to resume (the day is not
+over). The third is the only one where remaining climb is large, and it is
+currently pooled with the other two.
+
+Where H6 enters: at KNYC and KDEN the logged `temp_now` is up to an hour stale,
+so their tendency is the worst-measured of the 23. `run_max_nowcast` and its
+`nowcast_detail` (logged from 2026-08-31) give a fresher and less quantized
+temperature at exactly those two, which should repair the tendency there
+specifically. That is the hybrid: H4a's mechanism, H6's data.
+
+## The rule to be tested (fixed now)
+
+Identical to H4a in every respect -- peak window 13-16 local, same rate_bucket
+thresholds, same MIN_N_RATE, same held-out Brier comparison -- with ONE change:
+the rate is computed from `temp_now` instead of `run_max`. At KNYC and KDEN,
+and only there, `nowcast_detail.nowcast_f` substitutes for `temp_now` on days
+from 2026-09-01, since that is when it starts being logged.
+
+**H4a IS NOT MODIFIED.** shape_eval.py stays exactly as written and keeps
+scoring on run_max. H7 gets its own harness. Changing a registered test's signal
+definition mid-flight would invalidate every day already collected, and the
+whole point of registering it was that the measurement does not move.
+
+## Prediction (falsifiable)
+
+H7's held-out Brier beats H4a's on the same days. If it does not, monotonicity
+was not costing anything and run_max is an adequate shape proxy. Separately, the
+stalled/climbing separation should be WIDER than H4a's +1.48F once the
+mislabelled climbing days are removed from the stalled cell -- if it is not, the
+18% contamination is not where the loss is.
+
+## How it fails (named in advance)
+
+1. `temp_now` is a single instantaneous reading and run_max is an extremum, so
+   the tendency may simply be noisier than the thing it replaces.
+2. Only ~234 usable intervals exist -- `temp_now` has been logged since
+   2026-08-27. Accrual is ~47/day, which is fast, but the cells still need
+   MIN_N_RATE per (city, hour, bucket) and that is the bar that has H4a stuck.
+3. A three-way split on a noisier variable may populate cells more evenly and
+   still predict worse.
+4. The nowcast substitution touches 2 of 23 stations, so it cannot move a
+   pooled result much even if it is right.
+
+## Bar for promotion
+
+Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee breakeven,
+out-of-sample confirmation on post-registration days. As an information claim it
+reports the Brier comparison first, like H4a, and no pilot activates on it.
+
 # THE STALE-STATION LEAD (measured 2026-08-31) -- a fact, and a hypothesis
 
 ## The fact: two settlement stations publish an hour behind their neighbours
