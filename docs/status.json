@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-08-31T15:09:33.272098Z",
+ "generated": "2026-08-31T19:48:09.656261Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -45,7 +45,7 @@
    "2026-08-28": 14,
    "2026-08-29": 14,
    "2026-08-30": 15,
-   "2026-08-31": 4
+   "2026-08-31": 9
   }
  },
  "integrity": {
@@ -58,6 +58,9 @@
  "results": {
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
+  "no_bands_retired": [
+   "96-98"
+  ],
   "nothing_proven": true
  },
  "hypotheses": [
@@ -78,7 +81,7 @@
    "name": "market lag on curve_dev",
    "status": "open",
    "bar": {
-    "have": 117,
+    "have": 142,
     "need": 200,
     "unit": "events",
     "ready": false,
@@ -89,6 +92,23 @@
     }
    },
    "note": "5/20 distinct days"
+  },
+  {
+   "id": "H5",
+   "name": "contested band 81-95c (blocked on H4a)",
+   "status": "open",
+   "bar": {
+    "have": 0,
+    "need": 60,
+    "unit": "city-day units",
+    "ready": false,
+    "also": {
+     "have": 0,
+     "need": 1,
+     "unit": "H4a passed"
+    }
+   },
+   "note": "supply only; scoring waits on H4a (0 days since 2026-09-01)"
   },
   {
    "id": "H1",
@@ -143,7 +163,7 @@
    "name": "market lag on curve_dev",
    "status": "open",
    "bar": {
-    "have": 117,
+    "have": 142,
     "need": 200,
     "unit": "events",
     "ready": false,
@@ -154,6 +174,23 @@
     }
    },
    "note": "5/20 distinct days"
+  },
+  {
+   "id": "H5",
+   "name": "contested band 81-95c (blocked on H4a)",
+   "status": "open",
+   "bar": {
+    "have": 0,
+    "need": 60,
+    "unit": "city-day units",
+    "ready": false,
+    "also": {
+     "have": 0,
+     "need": 1,
+     "unit": "H4a passed"
+    }
+   },
+   "note": "supply only; scoring waits on H4a (0 days since 2026-09-01)"
   }
  ]
 }

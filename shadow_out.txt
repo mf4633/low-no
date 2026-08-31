@@ -10,20 +10,22 @@ om_icon       1833     9  -1.05  2.17  2.77    55%
 om_ecmwf      1892     9  -0.48  3.16  4.40    47%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 34 calls, est $0.4845 spent, $4.52 left (~316 calls)
+spend: 36 calls, est $0.5130 spent, $4.49 left (~314 calls)
 rung-obs 20984 -> 401 independent units over 24 days
-  band   n   w    hit   need    LCB     pnl  proven
-  1-10  25   0     0%   5.5%     0%    -5.5   False
- 11-20  21   1     5%  16.3%     1%   -11.4   False
- 21-30  17   2    12%  27.1%     3%   -15.0   False
- 31-40  21   1     5%  37.4%     1%   -31.9   False
- 41-50  19   4    21%  47.3%     9%   -25.7   False
- 51-60  16   5    31%  56.5%    14%   -24.8   False
- 61-70  21   8    38%  67.2%    21%   -28.5   False
- 71-80  24  12    50%  78.2%    31%   -27.6   False
- 81-90  51  39    76%  88.2%    63%   -11.7   False
- 91-95  76  65    86%  94.4%    76%    -8.8   False
- 96-98 110 102    93%  98.2%    86%    -5.4   False
+  band   n   w    hit   need    LCB UCBfix     pnl   verdict
+  1-10  25   0     0%   5.5%     0%    13%    -5.5      open
+ 11-20  21   1     5%  16.3%     1%    23%   -11.4      open
+ 21-30  17   2    12%  27.1%     3%    47%   -15.0      open
+ 31-40  21   1     5%  37.4%     1%    40%   -31.9      open
+ 41-50  19   4    21%  47.3%     9%    54%   -25.7      open
+ 51-60  16   5    31%  56.5%    14%    77%   -24.8      open
+ 61-70  21   8    38%  67.2%    21%    72%   -28.5      open
+ 71-80  24  12    50%  78.2%    31%    82%   -27.6      open
+ 81-90  51  39    76%  88.2%    63%    90%   -11.7      open
+ 91-95  76  65    86%  94.4%    76%    95%    -8.8      open
+ 96-98 110 102    93%  98.2%    86%    97%    -5.4   RETIRED
+  RETIRED at 95% (1 of 11 bands): 96-98
+  Retirement applies to the band traded UNCONDITIONALLY. Conditional rules inside a retired band are NOT retired by it.
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
@@ -51,20 +53,23 @@ station guide bias (guide - CLI): {'LAX': -2.42, 'TTN': 2.0, 'EWR': 1.8, 'NYC': 
           corrected_G4  61  54    89%   78%     0.85
   corrected_G4_floor90  51  51   100%   93%     3.18
           floor96_only 110 102    93%   86%    -5.42
+      floor96_twosided  92  88    96%   89%    -2.45
+    frozen_G4_twosided  77  64    83%   73%    -3.68
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-08-31': 4} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
 PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
   HYPOTHESIS REFUTED 2026-08-27: hot-bias premise was a CLI parser artifact. Measured rate 3.1% vs breakeven 2.6% (LCB 1.5%). No station clears the bias gate, so the pilot correctly trades nothing. NO SEED. See CANDIDATE.md.
-  status.json written (lowno.status/1): 24 days, 2 hypothesis bar(s) still short
+  status.json written (lowno.status/1): 24 days, 3 hypothesis bar(s) still short
 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [#################...] 24/28 logged days  +shape_eval.py runs unchanged when met
-  H4b   market lag on curve_dev    [#####...............] 117/200 events  +5/20 distinct days
+  H4b   market lag on curve_dev    [#####...............] 142/200 events  +5/20 distinct days
+  H5    contested band 81-95c (blocked on H4a) [....................] 0/60 city-day units  +supply only; scoring waits on H4a (0 days since 2026-09-01)
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced

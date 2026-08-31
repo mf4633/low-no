@@ -3283,10 +3283,267 @@
   },
   {
    "date": "2026-08-31",
-   "flags": []
+   "flags": [
+    {
+     "date": "2026-08-31",
+     "city": "EWR",
+     "station": "KEWR",
+     "verdict": "DEAD_SCAVENGE",
+     "detail": {
+      "ticker": "KXHIGHTEWR-26AUG31-T79",
+      "ceiling": 78,
+      "no_ask": 0.98,
+      "quote_src": "native",
+      "yes_bid": 2,
+      "run_max": 78.8,
+      "guide": 81,
+      "pop": 13,
+      "upstream": {
+       "city": "EWR",
+       "status": "ok",
+       "upwind_bearing": 130,
+       "target_temp_f": 78.8,
+       "target_dew_f": 62.6,
+       "wind_mps": 7.416,
+       "upstream": [
+        {
+         "station": "KJFK",
+         "ts": "2026-08-31T15:51:00+00:00",
+         "temp_f": 75.0,
+         "dew_f": 63.0,
+         "wind_dir": 130,
+         "wind_mps": 9.36,
+         "km": 34.7,
+         "bearing": 99.7,
+         "name": "New York, Kennedy International Airport"
+        },
+        {
+         "station": "KFRG",
+         "ts": "2026-08-30T00:59:00+00:00",
+         "temp_f": 69.8,
+         "dew_f": 55.4,
+         "wind_dir": 190,
+         "wind_mps": 5.4,
+         "km": 63.6,
+         "bearing": 85.5,
+         "name": "Farmingdale - Republic Airport"
+        },
+        {
+         "station": "KBLM",
+         "ts": "2026-08-31T16:10:00+00:00",
+         "temp_f": 73.4,
+         "dew_f": 73.4,
+         "wind_dir": 60,
+         "wind_mps": 5.544,
+         "km": 56.7,
+         "bearing": 177.0,
+         "name": "Monmouth Executive Airport"
+        }
+       ],
+       "max_upstream_temp_f": 75.0,
+       "advection_potential_f": -3.8,
+       "dew_differential_f": 10.8,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "BKN",
+       "base_ft": 12000,
+       "layers": [
+        {
+         "amount": "FEW",
+         "base_ft": 6000
+        },
+        {
+         "amount": "SCT",
+         "base_ft": 8500
+        },
+        {
+         "amount": "BKN",
+         "base_ft": 12000
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 78.8,
+       "source": "fivemin",
+       "n_metar": 4,
+       "n_obs": 60
+      },
+      "sst": {
+       "buoy": "44065",
+       "sst_f": 73.4,
+       "obs_utc": "2026-08-31T16:00"
+      },
+      "forecasts": {
+       "nws_grid": 81.0,
+       "om_best": 81.2,
+       "om_ecmwf": 81.4,
+       "om_gfs": 81.2,
+       "om_icon": 76.7,
+       "om_metno": 80.7
+      },
+      "airmass": {
+       "t850_max_f": 59.8,
+       "z500_max_m": 5873,
+       "soil_m3m3": 0.327,
+       "curve": {
+        "0": 73.1,
+        "1": 72.7,
+        "2": 73.6,
+        "3": 71.7,
+        "4": 70.9,
+        "5": 70.4,
+        "6": 69.5,
+        "7": 70.0,
+        "8": 71.0,
+        "9": 72.8,
+        "10": 74.1,
+        "11": 75.4,
+        "12": 76.7,
+        "13": 78.5,
+        "14": 80.9,
+        "15": 81.2,
+        "16": 80.5,
+        "17": 79.9,
+        "18": 78.9,
+        "19": 75.8,
+        "20": 73.1,
+        "21": 72.2,
+        "22": 71.8,
+        "23": 71.3
+       },
+       "curve_max_f": 81.2
+      },
+      "temp_now": 78.8,
+      "curve_pred_now": 76.7,
+      "curve_dev": 2.1,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 98,
+       "depth_at_best": 68,
+       "depth_le_max": 68,
+       "notional_le_max": 66.64,
+       "levels": [
+        [
+         98,
+         68
+        ]
+       ],
+       "yes_best_ask": 72,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-08-31T16:10:00+00:00",
+         "tC": 26
+        },
+        {
+         "ts": "2026-08-31T16:05:00+00:00",
+         "tC": 26
+        },
+        {
+         "ts": "2026-08-31T16:00:00+00:00",
+         "tC": 26
+        },
+        {
+         "ts": "2026-08-31T15:55:00+00:00",
+         "tC": 26
+        },
+        {
+         "ts": "2026-08-31T15:51:00+00:00",
+         "tC": 25
+        },
+        {
+         "ts": "2026-08-31T15:50:00+00:00",
+         "tC": 25
+        },
+        {
+         "ts": "2026-08-31T15:45:00+00:00",
+         "tC": 25
+        },
+        {
+         "ts": "2026-08-31T15:40:00+00:00",
+         "tC": 25
+        },
+        {
+         "ts": "2026-08-31T15:35:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-08-31T15:30:00+00:00",
+         "tC": 25
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTEWR-26AUG31-T86",
+         "cap": null,
+         "floor": 86,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTEWR-26AUG31-T79",
+         "cap": 78,
+         "floor": null,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHTEWR-26AUG31-B85.5",
+         "cap": 86,
+         "floor": 85,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTEWR-26AUG31-B83.5",
+         "cap": 84,
+         "floor": 83,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTEWR-26AUG31-B81.5",
+         "cap": 82,
+         "floor": 81,
+         "no_ask": 88,
+         "yes_bid": 12
+        },
+        {
+         "ticker": "KXHIGHTEWR-26AUG31-B79.5",
+         "cap": 80,
+         "floor": 79,
+         "no_ask": 78,
+         "yes_bid": 22
+        }
+       ],
+       "wx": "Mostly Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 1.0,
+       "p_source": "blend(w_emp=0.0)",
+       "p_empirical": 1.0,
+       "emp_n": null,
+       "sigma": 2.16,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor error: substring not found"
+     },
+     "settle": null,
+     "attribution": "UNGRADED"
+    }
+   ]
   }
  ],
- "generated": "2026-08-31T15:06:49.026670Z",
+ "generated": "2026-08-31T19:43:22.728415Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24"
