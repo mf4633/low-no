@@ -17,7 +17,7 @@ import os
 import statistics
 from collections import defaultdict
 
-from nowcast import HOURLY, ARCHIVE, at_or_before
+from nowcast import HOURLY, ARCHIVE, at_or_before, temp_of
 
 NORM = statistics.NormalDist()
 
@@ -34,8 +34,12 @@ def load(station):
 
 def paired(city, leads=(10, 20, 30, 40, 50)):
     cfg = HOURLY[city]
-    hs = sorted(load(cfg["station"]).items())
-    ns = {st: sorted(load(st).items()) for st in cfg["neighbours"]}
+    # Archive rows are floats before 2026-08-31 and dicts after; temp_of
+    # hides that from every consumer.
+    hs = [(k, temp_of(v)) for k, v in sorted(load(cfg["station"]).items())
+          if temp_of(v) is not None]
+    ns = {st: [(k, temp_of(v)) for k, v in sorted(load(st).items())
+               if temp_of(v) is not None] for st in cfg["neighbours"]}
     ns = {k: v for k, v in ns.items() if v}
     res = {}
     for L in leads:

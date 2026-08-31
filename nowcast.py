@@ -44,18 +44,34 @@ ARCHIVE = "logs/nowcast"
 # publish hourly. Neighbours are the 5-minute stations around each, tagged with
 # the side they sit on so the gradient can be built.
 HOURLY = {
+    # Neighbour sets are the MEASURED optimum from interp_curve.py, which scores
+    # the delta correlation as a function of how many 5-minute stations are
+    # averaged, sorted by distance. Two findings drove this:
+    #
+    #   * Wind-direction weighting made it WORSE at every city and lead
+    #     (NYC r 0.728 -> 0.682). Upwind weighting discards neighbours, and
+    #     against 1-degree-C quantized predictors the noise reduction lost
+    #     exceeds the physical routing gained. Averaging is the mechanism.
+    #   * So averaging MORE helps -- but the optimum is per-city, not universal.
+    #
+    # NYC plateaus by ~38km: r@20m runs 0.531 / 0.626 / 0.680 / 0.705 / 0.710
+    # for N=1..5, then FALLS away as 68km+ stations are added. The Atlantic and
+    # the urban heat island make distant stations poor proxies.
+    #
+    # DEN never plateaus in range: r@20m climbs monotonically 0.466 -> 0.731
+    # out to KPUB at 174km. Plains airmass is spatially coherent, so every extra
+    # station still buys noise reduction.
+    #
+    # Both shapes are broad, not spikes, which is why an N is picked at all.
+    # Re-check as the archive grows -- this is 7 days.
     "NYC": dict(station="KNYC", tz="America/New_York",
-                neighbours={"KLGA": "east", "KEWR": "west",
-                            "KTEB": "west", "KHPN": "north"}),
-    # DEN first scored with KAPA alone and showed nothing. That was an
-    # under-specified input, not a result: KGXY is also 5-minute, and
-    # KEIK/KLMO/KBDU publish every 20 minutes, still three times faster than
-    # the host. Widened once, deliberately and on record -- a second
-    # configuration is a second look, so anything it finds needs confirmation
-    # on days after 2026-08-31 before it counts.
+                neighbours={"KLGA": "east", "KTEB": "west", "KEWR": "west",
+                            "KCDW": "west", "KHPN": "north"}),
     "DEN": dict(station="KDEN", tz="America/Denver",
-                neighbours={"KAPA": "south", "KGXY": "northeast",
-                            "KEIK": "north", "KLMO": "north", "KBDU": "northwest"}),
+                neighbours={"KAPA": "south", "KEIK": "north", "KBDU": "northwest",
+                            "KLMO": "north", "KGXY": "northeast", "KFNL": "north",
+                            "KLIC": "east", "KCOS": "south", "KAKO": "east",
+                            "KPUB": "south"}),
 }
 
 C2F = lambda c: None if c is None else c * 9 / 5 + 32
@@ -82,9 +98,29 @@ def fetch(station, start, end):
             t = p.get("timestamp")
             v = (p.get("temperature") or {}).get("value")
             if t and v is not None:
-                out[t[:16] + "Z"] = round(C2F(v), 2)
+                # Wind, pressure and precipitation ride along so a
+                # wind-direction hypothesis can be tested at all. Temperature
+                # alone cannot distinguish an upwind neighbour from a downwind
+                # one, and that is the first thing worth trying.
+                g = lambda k: (p.get(k) or {}).get("value")
+                out[t[:16] + "Z"] = dict(
+                    t=round(C2F(v), 2),
+                    wd=g("windDirection"),
+                    ws=g("windSpeed"),
+                    pa=g("barometricPressure"),
+                    pr=g("precipitationLastHour"))
         cur = nxt
     return out
+
+
+def temp_of(rec):
+    """Archive rows are floats in files written before 2026-08-31 and dicts
+    after. One accessor so no caller has to know which."""
+    return rec if isinstance(rec, (int, float)) else (rec or {}).get("t")
+
+
+def field_of(rec, key):
+    return None if isinstance(rec, (int, float)) else (rec or {}).get(key)
 
 
 def archive_path(station, day):
@@ -128,8 +164,9 @@ def backtest(city, days, leads=(10, 20, 30, 40, 50)):
     print(f"\n{'='*74}\n{city} ({cfg['station']}) -- hourly settlement station")
     host = load_or_fetch(cfg["station"], days)
     nbrs = {st: load_or_fetch(st, days) for st in cfg["neighbours"]}
-    hs = sorted(host.items())
-    ns = {st: sorted(v.items()) for st, v in nbrs.items()}
+    hs = [(k, temp_of(v)) for k, v in sorted(host.items()) if temp_of(v) is not None]
+    ns = {st: [(k, temp_of(v)) for k, v in sorted(sr.items()) if temp_of(v) is not None]
+          for st, sr in nbrs.items()}
     print(f"  host prints: {len(hs)}   neighbours: "
           + ", ".join(f"{st}={len(v)}" for st, v in ns.items()))
     if len(hs) < 10:

@@ -23,7 +23,7 @@ import os
 import statistics
 from collections import defaultdict
 
-from nowcast import HOURLY, ARCHIVE, at_or_before
+from nowcast import HOURLY, ARCHIVE, at_or_before, temp_of
 
 
 def load(station):
@@ -48,8 +48,10 @@ def main():
           f"{'gap now':>9}{'gap fixed':>11}")
     agg = defaultdict(lambda: ([], []))
     for city, cfg in HOURLY.items():
-        host = sorted(load(cfg["station"]).items())
-        nbrs = {st: sorted(load(st).items()) for st in cfg["neighbours"]}
+        host = [(k, temp_of(v)) for k, v in sorted(load(cfg["station"]).items())
+                if temp_of(v) is not None]
+        nbrs = {st: [(k, temp_of(v)) for k, v in sorted(load(st).items())
+                     if temp_of(v) is not None] for st in cfg["neighbours"]}
         nbrs = {k: v for k, v in nbrs.items() if v}
         by_day = defaultdict(list)
         for ts, v in host:
