@@ -417,7 +417,10 @@ def main():
     try:
         from lowno import pilots
         gates = {}
-        for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b")):
+        # H5 has no pilot; it is listed so its refusal is visible next to the
+        # ones that can activate, rather than silently absent.
+        for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
+                         ("band_eval", "H5")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
