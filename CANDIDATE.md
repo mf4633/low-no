@@ -268,6 +268,39 @@ scoring on run_max. H7 gets its own harness. Changing a registered test's signal
 definition mid-flight would invalidate every day already collected, and the
 whole point of registering it was that the measurement does not move.
 
+## STRATIFIED: KNYC and KDEN broken out, the other 21 as control
+
+Michael's design point, and it upgrades H7 from a pooled result to a
+difference-in-differences. Two effects are in play and pooling them would make
+the answer uninterpretable:
+
+```
+effect A   temp_now instead of run_max          all 23 stations
+effect B   nowcast instead of a stale temp_now  KNYC and KDEN only
+```
+
+The 21 five-minute stations already carry a fresh `temp_now`, so **effect B is
+zero there by construction**. That makes them a genuine control rather than a
+convenience grouping: the hourly pair gets A + B, the control gets A alone, and
+the difference isolates B.
+
+`verdict()` therefore reports the two strata SEPARATELY and requires
+MIN_SCORED in EACH before it will report at all. Pooled n is printed for
+context and is explicitly not the verdict.
+
+Three outcomes, all informative:
+
+* **Both strata improve, hourly by more.** Monotonicity was costing something
+  everywhere, and the nowcast adds on top at the two stale stations. The
+  difference-in-differences is the size of the nowcast's contribution.
+* **Both improve equally.** The nowcast added nothing; only monotonicity
+  mattered. A real answer, and it would retire the H6 line of work as far as
+  p_exceed is concerned.
+* **Only the hourly pair improves.** Suspicious rather than encouraging -- with
+  two stations against twenty-one, that pattern is more likely small-sample
+  noise than a real effect, and it should not be promoted without the control
+  moving too.
+
 ## Prediction (falsifiable)
 
 H7's held-out Brier beats H4a's on the same days. If it does not, monotonicity

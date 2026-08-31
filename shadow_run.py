@@ -483,7 +483,7 @@ def main():
         # H5 has no pilot; it is listed so its refusal is visible next to the
         # ones that can activate, rather than silently absent.
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
-                         ("band_eval", "H5")):
+                         ("band_eval", "H5"), ("shape_temp_eval", "H7")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
