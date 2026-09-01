@@ -47,6 +47,25 @@ Four defences, each with its threshold derived rather than chosen:
 
 Every return carries `quality` and the numbers behind it, so a consumer can
 filter instead of trusting a bare float.
+
+EXTRAPOLATION WAS TESTED AND REJECTED (stale_test.py, 2026-09-01). The obvious
+refinement is to project a stale neighbour forward from its own recent rate
+rather than dropping it, weighted by how stale it is. Simulated on the archive,
+where complete 5-minute data lets staleness be imposed exactly so every
+strategy sees identical inputs:
+
+    DEN, 60% of neighbours stale by 30 min
+      perfect 1.80   drop 1.82   naive 2.02   extrap 1.93   extrap+conf 1.85
+
+DROPPING COSTS 0.02-0.03F against perfect data even with 60% of the ensemble
+gone, so there is almost nothing available to recover -- the neighbours are
+near-exchangeable and the survivors already carry the signal. Extrapolation is
+a hair better at 15 minutes (inside noise), WORSE at 30, and identical past 45
+where no rate history remains to project from. Do not add it.
+
+The same test confirms the alignment fix was worth making: `naive`, the
+original behaviour of treating a stale value as current, degrades to 2.02F
+where dropping holds 1.82F.
 """
 import datetime as dt
 import statistics
