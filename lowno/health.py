@@ -125,6 +125,47 @@ HOURLY_CITIES = {"NYC", "DEN"}
 MIN_NOWCAST_AVAIL = 0.40
 
 
+# A nowcast can succeed while resting on a very old host print -- KDEN logged
+# one 91 minutes stale on 2026-09-01 during an API-lag episode. Availability
+# does not catch that: the field is present, the value is just built on a
+# foundation two prints behind. Typical staleness at scan time is 24-34 min
+# (the scan lands at :16-:28 while KDEN prints at :53), so 75 flags a genuine
+# outage rather than the normal cadence offset.
+MAX_TYPICAL_STALE_MIN = 75
+
+
+def _nowcast_staleness(day):
+    """(rows over the staleness limit, rows with a staleness reading, worst)."""
+    path = f"logs/{day}.jsonl"
+    if not os.path.exists(path):
+        return 0, 0, None
+    bad = tot = 0
+    worst = None
+    with open(path) as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            d = r.get("detail")
+            if not isinstance(d, dict) or d.get("world"):
+                continue
+            if r.get("city") not in HOURLY_CITIES:
+                continue
+            nd = d.get("nowcast_detail")
+            if not isinstance(nd, dict):
+                continue
+            sm = nd.get("stale_min")
+            if sm is None:
+                continue
+            tot += 1
+            if worst is None or sm > worst:
+                worst = sm
+            if sm > MAX_TYPICAL_STALE_MIN:
+                bad += 1
+    return bad, tot, worst
+
+
 def _nowcast_availability(day):
     """(rows carrying run_max_nowcast, NYC/DEN rows) for `day`."""
     path = f"logs/{day}.jsonl"
@@ -202,6 +243,19 @@ def check(day=None):
                 f"The interpolator is refusing far more than it should -- check "
                 f"the `dropped` and refusal reasons in nowcast_detail. It has "
                 f"failed silently before on a threshold that looked reasonable.")
+
+    bad, tot_s, worst = _nowcast_staleness(day)
+    if tot_s:
+        print(f"health: nowcast host staleness {day} = worst {worst}min, "
+              f"{bad}/{tot_s} over {MAX_TYPICAL_STALE_MIN}min")
+        if bad:
+            problems.append(
+                f"NOWCAST ON STALE PRINTS: {bad} of {tot_s} KNYC/KDEN nowcasts "
+                f"on {day} rested on a host print older than "
+                f"{MAX_TYPICAL_STALE_MIN}min (worst {worst}min). The value is "
+                f"present so availability looks fine, but it is anchored two "
+                f"prints back -- an upstream publication gap, not a neighbour "
+                f"problem.")
 
     # Cycles that scanned but never pushed leave NO trace in the committed
     # logs, so the count has to be handed in from the scan step's environment.
