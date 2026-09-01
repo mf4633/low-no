@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-08-31
+# low-no scorecard -- 2026-09-01
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -9,5 +9,6 @@ attribution codes:
   UNGRADED       no CLI found yet
 
 - **EWR** DEAD_SCAVENGE @ 0.98 ceil 78 guide 81 -> CLI None :: **UNGRADED**
+- **PHL** DEAD_SCAVENGE @ 0.25 ceil 82 guide 91 -> CLI None :: **UNGRADED**
 
 no qualified flags today -- a complete and acceptable outcome
