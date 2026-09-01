@@ -1,18 +1,18 @@
 {
- "at": "2026-09-01T22:53:39.032346Z",
+ "at": "2026-09-01T23:03:57.166332Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 88,
    "price": 1,
-   "p_model": 0.5355,
+   "p_model": 0.47,
    "p_market": 0.01,
-   "edge_pts": 52.5,
+   "edge_pts": 46.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 53 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,26 +24,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 69,
-   "price": 11,
-   "p_model": 0.3944,
-   "p_market": 0.11,
-   "edge_pts": 28.4,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
     }
    ]
   },
@@ -51,9 +32,9 @@
    "city": "NYC",
    "ceiling": 82,
    "price": 1,
-   "p_model": 0.2547,
+   "p_model": 0.23,
    "p_market": 0.01,
-   "edge_pts": 24.5,
+   "edge_pts": 22.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,7 +43,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -74,7 +55,26 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (16:00) with the running max still 1.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (16:00) with the running max still 1.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "SEA",
+   "ceiling": 69,
+   "price": 7,
+   "p_model": 0.1795,
+   "p_market": 0.07,
+   "edge_pts": 10.9,
+   "size_lcb": 0.0527,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 2.8F short. The climb window has closed."
     }
    ]
   }
