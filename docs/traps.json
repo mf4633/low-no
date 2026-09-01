@@ -1,33 +1,6 @@
 {
- "at": "2026-09-01T21:45:18.782162Z",
+ "at": "2026-09-01T21:53:15.674389Z",
  "traps": [
-  {
-   "city": "HOU",
-   "ceiling": 88,
-   "price": 5,
-   "p_model": 0.5355,
-   "p_market": 0.05,
-   "edge_pts": 48.5,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 49 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=10.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
-    }
-   ]
-  },
   {
    "city": "SEA",
    "ceiling": 69,
@@ -79,6 +52,33 @@
     {
      "code": "PAST_PEAK",
      "why": "local hour 17:00 is past this station's measured convergence hour (16:00) with the running max still 1.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "HOU",
+   "ceiling": 88,
+   "price": 7,
+   "p_model": 0.3166,
+   "p_market": 0.07,
+   "edge_pts": 24.7,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 25 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=10.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   },
