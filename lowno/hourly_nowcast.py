@@ -94,6 +94,28 @@ MIN_NEIGHBOURS = 3             # below this the averaging is gone
 MAX_HOST_AGE_MIN = 120         # an hourly station two prints behind is broken
 MIN_WINDOW_MIN = 5             # a shorter window is noise, not tendency
 
+# MEASURED residual sd of (actual next print - nowcast), by lead, from the
+# archive. This is the right sigma for an interval; the ENSEMBLE SPREAD is not.
+# Spread measures neighbours disagreeing with each other, and spread_ci.py shows
+# it does NOT predict error: corr(spread, |error|) is +0.137 [-0.018, +0.285] at
+# NYC and +0.011 [-0.143, +0.164] at DEN, with residual sd flat across spread
+# bins. So the interval is fixed by lead, not widened by disagreement -- a live
+# reading with an alarming spread is no less accurate than a tidy one.
+#
+# It DOES grow with how old the estimate is, which is why the lookup is by lead.
+RESIDUAL_SD = {
+    "NYC": {10: 1.02, 20: 1.03, 30: 1.08, 40: 1.17, 50: 1.30},
+    "DEN": {10: 2.25, 20: 2.27, 30: 2.40, 40: 2.72, 50: 3.00},
+}
+
+
+def _residual_sd(city, age_min):
+    tbl = RESIDUAL_SD.get(city)
+    if not tbl:
+        return None
+    key = min(tbl, key=lambda k: abs(k - max(age_min, 0)))
+    return tbl[key]
+
 
 def _series(station, limit=60):
     """[(timestamp, degF)] oldest first, or [] on any failure."""
@@ -225,6 +247,11 @@ def estimate(city, run_max, now=None):
         # the rate comes from a short variable window and a warming curve
         # decelerates. Flat is the best estimate; only the LABEL needed fixing.
         as_of=target, age_of_estimate_min=round(_age_min(target, now)),
+        sd_f=_residual_sd(city, _age_min(target, now)),
+        ci95_lo=(round(nc - 2 * _residual_sd(city, _age_min(target, now)), 2)
+                 if _residual_sd(city, _age_min(target, now)) else None),
+        ci95_hi=(round(nc + 2 * _residual_sd(city, _age_min(target, now)), 2)
+                 if _residual_sd(city, _age_min(target, now)) else None),
         window_min=round(window), aligned_to=target,
         spread_f=(round(statistics.pstdev(deltas), 2) if len(deltas) > 1 else 0.0),
         dropped=dropped or None)

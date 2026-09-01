@@ -103,12 +103,29 @@ def fetch(station, start, end):
                 # alone cannot distinguish an upwind neighbour from a downwind
                 # one, and that is the first thing worth trying.
                 g = lambda k: (p.get(k) or {}).get("value")
+                # SKY added 2026-09-01. The cloud question -- does a deck over a
+                # neighbour but not the host degrade its delta -- was untestable
+                # because only wind/pressure/precip were stored. Kept compact:
+                # the most-covering layer and its base, since base height is what
+                # mattered at the host (BKN mid/high behaved like clear, only OVC
+                # low separated). Older rows have no `sky`; consumers must cope.
+                RANK = {"CLR": 0, "SKC": 0, "FEW": 1, "SCT": 2, "BKN": 3, "OVC": 4}
+                worst, wbase = None, None
+                for lay in (p.get("cloudLayers") or []):
+                    amt = lay.get("amount")
+                    if amt is None:
+                        continue
+                    if worst is None or RANK.get(amt, 0) > RANK.get(worst, 0):
+                        worst = amt
+                        wbase = (lay.get("base") or {}).get("value")
                 out[t[:16] + "Z"] = dict(
                     t=round(C2F(v), 2),
                     wd=g("windDirection"),
                     ws=g("windSpeed"),
                     pa=g("barometricPressure"),
-                    pr=g("precipitationLastHour"))
+                    pr=g("precipitationLastHour"),
+                    sky=worst,
+                    sky_base_m=wbase)
         cur = nxt
     return out
 
