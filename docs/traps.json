@@ -1,13 +1,13 @@
 {
- "at": "2026-09-01T12:25:53.196953Z",
+ "at": "2026-09-01T13:28:39.452672Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 88,
-   "price": 32,
+   "price": 33,
    "p_model": 0.4605,
-   "p_market": 0.32,
-   "edge_pts": 14.1,
+   "p_market": 0.33,
+   "edge_pts": 13.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -24,7 +24,72 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "LAX",
+   "ceiling": 75,
+   "price": 62,
+   "p_model": 0.6925,
+   "p_market": 0.62,
+   "edge_pts": 7.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "62c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SEA",
+   "ceiling": 69,
+   "price": 91,
+   "p_model": 0.9707,
+   "p_market": 0.91,
+   "edge_pts": 6.1,
+   "size_lcb": 0.2738,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
+  {
+   "city": "NYC",
+   "ceiling": 82,
+   "price": 36,
+   "p_model": 0.3752,
+   "p_market": 0.36,
+   "edge_pts": 1.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.4 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "36c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
