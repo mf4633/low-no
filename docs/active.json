@@ -1,5 +1,78 @@
 {
- "at": "2026-09-01T16:43:09.609550Z",
- "tracked": [],
+ "at": "2026-09-01T17:44:02.357963Z",
+ "tracked": [
+  {
+   "city": "SEA",
+   "station": "KSEA",
+   "ticker": "KXHIGHTSEA-26SEP01-T70",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 69,
+   "run_max": 62.6,
+   "gap_to_clear": 6.4,
+   "already_cleared": false,
+   "guide": 73,
+   "pop": 4,
+   "no_ask": 0.89,
+   "local_hour": 10,
+   "obs_trace": [
+    {
+     "ts": "2026-09-01T17:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T17:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T17:13:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T17:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T17:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T17:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T16:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T16:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T16:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-01T16:45:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 10.4,
+    "q50": 15.0,
+    "q90": 19.2
+   },
+   "projected_max": {
+    "q10": 73.0,
+    "q50": 77.6,
+    "q90": 81.8
+   },
+   "p_exceed_empirical": 0.9706,
+   "emp_n": 32,
+   "convergence_hour": 16,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
