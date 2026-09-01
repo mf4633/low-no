@@ -1,48 +1,48 @@
   settlement QUARANTINED 2026-08-27|NYC: cached 77 but we observed 80 -- impossible, dropping
-settlements: 454 cached, 3 new, 0 repaired, 1 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 455 cached, 2 new, 0 repaired, 1 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
-om_gfs        2247    10  -0.44  1.77  2.31    68%
-nws_grid      2338    10  +0.15  1.74  2.35    76%
-om_best       1828    10  -0.42  1.80  2.36    67%
-nbm_guide     2381    10  -0.08  1.75  2.40    75%
-om_metno      2178    10  -1.19  2.16  2.68    56%
-om_icon       2167    10  -1.10  2.17  2.75    56%
-om_ecmwf      2225    10  -0.46  3.20  4.33    44%
+om_gfs        2263    10  -0.41  1.78  2.33    68%
+om_best       1839    10  -0.40  1.81  2.37    66%
+nws_grid      2354    10  +0.18  1.76  2.38    75%
+nbm_guide     2397    10  -0.05  1.77  2.43    75%
+om_metno      2194    10  -1.17  2.17  2.69    55%
+om_icon       2182    10  -1.06  2.19  2.78    56%
+om_ecmwf      2241    10  -0.43  3.20  4.33    44%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
 spend: 41 calls, est $0.5843 spent, $4.42 left (~309 calls)
-rung-obs 23096 -> 446 independent units over 25 days
+rung-obs 23192 -> 451 independent units over 25 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
-  1-10  30   0     0%   5.8%     0%    11%    -5.7      open
- 11-20  25   1     4%  16.5%     1%    20%   -12.4      open
- 21-30  20   2    10%  26.4%     3%    42%   -16.1      open
+  1-10  31   0     0%   5.6%     0%    11%    -5.6      open
+ 11-20  26   1     4%  16.6%     1%    19%   -12.7      open
+ 21-30  21   2    10%  26.4%     3%    40%   -16.5      open
  31-40  25   2     8%  37.4%     2%    39%   -28.8      open
  41-50  20   5    25%  47.3%    11%    57%   -21.9      open
  51-60  22   7    32%  57.3%    16%    69%   -24.9      open
  61-70  27  10    37%  67.1%    22%    66%   -29.4   RETIRED
  71-80  26  13    50%  78.1%    32%    81%   -27.5      open
- 81-90  53  39    74%  87.9%    60%    88%   -14.3      open
- 91-95  82  70    85%  94.5%    76%    94%    -9.0   RETIRED
+ 81-90  54  39    72%  87.9%    59%    87%   -15.5   RETIRED
+ 91-95  83  70    84%  94.4%    75%    93%   -10.0   RETIRED
  96-98 116 107    92%  98.2%    86%    96%    -5.9   RETIRED
-  RETIRED at 95% (3 of 11 bands): 61-70, 91-95, 96-98
+  RETIRED at 95% (4 of 11 bands): 61-70, 81-90, 91-95, 96-98
   Retirement applies to the band traded UNCONDITIONALLY. Conditional rules inside a retired band are NOT retired by it.
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 320   9     3%   3.0%     1%    -0.1      306   False
- 11-20  58  11    19%  14.2%    11%     4.8       55   False
+  1-10 321  10     3%   3.0%     2%     0.1      307   False
+ 11-20  59  12    20%  14.2%    12%     6.0       56   False
  21-30  30  10    33%  25.2%    19%     8.0       29   False
  31-40  26  14    54%  36.1%    35%    17.4       24   False
  41-50  20   9    45%  46.1%    26%    -1.1       18   False
  51-60  25  14    56%  55.8%    37%     0.2       24   False
  61-70  26  16    62%  66.5%    43%    -4.9       22   False
  71-80  28  15    54%  77.7%    36%   -23.6       27   False
- 81-90  35  27    77%  86.4%    61%    -9.3       32   False
+ 81-90  36  28    78%  86.2%    62%    -8.6       33   False
  91-95  27  22    81%  94.2%    63%   -12.6       24   False
  96-98  24  20    83%  98.2%    64%   -14.7       22   False
-yes_spread over 22806 real-ask obs: mean 5.65c, max 100c
+yes_spread over 22902 real-ask obs: mean 5.63c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.36, 'TTN': 2.17, 'EWR': 1.67, 'NYC': 1.58, 'SFO': 1.46, 'AUS': -1.0, 'BOS': -1.0, 'LAS': -0.8, 'SAN': 0.7, 'CHI': -0.64, 'HOU': 0.56, 'DC': 0.5, 'DAL': 0.3, 'MSY': -0.3, 'SEA': -0.25, 'MIA': -0.24, 'ATL': -0.2, 'PHX': -0.16, 'PHL': 0.12, 'MSP': -0.1, 'SAT': 0.1, 'DEN': 0.0, 'OKC': 0.0}
+station guide bias (guide - CLI): {'LAX': -2.36, 'TTN': 2.17, 'EWR': 1.67, 'NYC': 1.58, 'SFO': 1.46, 'HOU': 1.1, 'AUS': -1.0, 'BOS': -1.0, 'LAS': -0.8, 'SAN': 0.7, 'CHI': -0.64, 'DC': 0.5, 'DAL': 0.3, 'MSY': -0.3, 'SEA': -0.25, 'MIA': -0.24, 'ATL': -0.2, 'PHX': -0.16, 'PHL': 0.12, 'MSP': -0.1, 'SAT': 0.1, 'DEN': 0.0, 'OKC': 0.0}
 
                   rule   n   w    hit   LCB  meanP&L
              frozen_G4  87  70    80%   71%    -4.15
@@ -58,7 +58,7 @@ station guide bias (guide - CLI): {'LAX': -2.36, 'TTN': 2.17, 'EWR': 1.67, 'NYC'
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-01': 2} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
@@ -69,7 +69,7 @@ PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [#################...] 25/28 logged days  +shape_eval.py runs unchanged when met
   H4b   market lag on curve_dev    [#####...............] 147/200 events  +5/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 0/60 city-day units  +supply only; scoring waits on H4a (0 days since 2026-09-01)
+  H5    contested band 81-95c (blocked on H4a) [....................] 0/60 city-day units  +supply only; scoring waits on H4a (1 days since 2026-09-01)
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced

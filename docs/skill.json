@@ -17,59 +17,59 @@
    "days": 1
   },
   "nbm_guide": {
-   "n": 2381,
-   "bias": -0.08,
-   "mae": 1.75,
-   "rmse": 2.4,
-   "p_within_2F": 0.751,
+   "n": 2397,
+   "bias": -0.05,
+   "mae": 1.77,
+   "rmse": 2.43,
+   "p_within_2F": 0.746,
    "days": 10
   },
   "nws_grid": {
-   "n": 2338,
-   "bias": 0.15,
-   "mae": 1.74,
-   "rmse": 2.35,
-   "p_within_2F": 0.755,
+   "n": 2354,
+   "bias": 0.18,
+   "mae": 1.76,
+   "rmse": 2.38,
+   "p_within_2F": 0.75,
    "days": 10
   },
   "om_best": {
-   "n": 1828,
-   "bias": -0.42,
-   "mae": 1.8,
-   "rmse": 2.36,
-   "p_within_2F": 0.666,
+   "n": 1839,
+   "bias": -0.4,
+   "mae": 1.81,
+   "rmse": 2.37,
+   "p_within_2F": 0.665,
    "days": 10
   },
   "om_ecmwf": {
-   "n": 2225,
-   "bias": -0.46,
+   "n": 2241,
+   "bias": -0.43,
    "mae": 3.2,
    "rmse": 4.33,
-   "p_within_2F": 0.438,
+   "p_within_2F": 0.435,
    "days": 10
   },
   "om_gfs": {
-   "n": 2247,
-   "bias": -0.44,
-   "mae": 1.77,
-   "rmse": 2.31,
-   "p_within_2F": 0.68,
+   "n": 2263,
+   "bias": -0.41,
+   "mae": 1.78,
+   "rmse": 2.33,
+   "p_within_2F": 0.677,
    "days": 10
   },
   "om_icon": {
-   "n": 2167,
-   "bias": -1.1,
-   "mae": 2.17,
-   "rmse": 2.75,
-   "p_within_2F": 0.56,
+   "n": 2182,
+   "bias": -1.06,
+   "mae": 2.19,
+   "rmse": 2.78,
+   "p_within_2F": 0.556,
    "days": 10
   },
   "om_metno": {
-   "n": 2178,
-   "bias": -1.19,
-   "mae": 2.16,
-   "rmse": 2.68,
-   "p_within_2F": 0.555,
+   "n": 2194,
+   "bias": -1.17,
+   "mae": 2.17,
+   "rmse": 2.69,
+   "p_within_2F": 0.554,
    "days": 10
   }
  },
@@ -790,53 +790,53 @@
   },
   "HOU": {
    "nbm_guide": {
-    "n": 92,
-    "bias": -0.04,
-    "mae": 0.96,
-    "rmse": 1.23,
-    "p_within_2F": 0.978
+    "n": 108,
+    "bias": 0.74,
+    "mae": 1.59,
+    "rmse": 2.38,
+    "p_within_2F": 0.843
    },
    "nws_grid": {
-    "n": 90,
-    "bias": 0.0,
-    "mae": 0.96,
-    "rmse": 1.22,
-    "p_within_2F": 0.989
+    "n": 106,
+    "bias": 0.84,
+    "mae": 1.65,
+    "rmse": 2.44,
+    "p_within_2F": 0.84
    },
    "om_ecmwf": {
-    "n": 87,
-    "bias": -1.36,
-    "mae": 2.27,
-    "rmse": 2.84,
-    "p_within_2F": 0.586
+    "n": 103,
+    "bias": -0.62,
+    "mae": 2.45,
+    "rmse": 2.97,
+    "p_within_2F": 0.495
    },
    "om_gfs": {
-    "n": 85,
-    "bias": 1.28,
-    "mae": 1.53,
-    "rmse": 1.81,
-    "p_within_2F": 0.671
+    "n": 101,
+    "bias": 1.67,
+    "mae": 1.89,
+    "rmse": 2.41,
+    "p_within_2F": 0.614
    },
    "om_icon": {
-    "n": 80,
-    "bias": -0.02,
-    "mae": 1.01,
-    "rmse": 1.2,
-    "p_within_2F": 0.95
+    "n": 95,
+    "bias": 0.86,
+    "mae": 1.73,
+    "rmse": 2.46,
+    "p_within_2F": 0.8
    },
    "om_metno": {
-    "n": 79,
-    "bias": -1.65,
-    "mae": 1.98,
-    "rmse": 2.71,
-    "p_within_2F": 0.633
+    "n": 95,
+    "bias": -0.9,
+    "mae": 2.12,
+    "rmse": 2.76,
+    "p_within_2F": 0.6
    },
    "om_best": {
-    "n": 65,
-    "bias": 1.17,
-    "mae": 1.44,
-    "rmse": 1.73,
-    "p_within_2F": 0.677
+    "n": 76,
+    "bias": 1.43,
+    "mae": 1.67,
+    "rmse": 2.12,
+    "p_within_2F": 0.645
    }
   },
   "LAS": {
@@ -1252,8 +1252,8 @@
  "min_days_to_rank": 5,
  "ranking_by_rmse": [
   "om_gfs",
-  "nws_grid",
   "om_best",
+  "nws_grid",
   "nbm_guide",
   "om_metno",
   "om_icon",
@@ -1264,5 +1264,5 @@
   "median"
  ],
  "note": "Started 2026-08-22. Earlier history has only NBM guide -- competing forecasts were never archived and cannot be reconstructed. Needs ~3 weeks before a ranking means anything.",
- "generated": "2026-09-01T09:37:28.071453Z"
+ "generated": "2026-09-01T12:38:15.841565Z"
 }
