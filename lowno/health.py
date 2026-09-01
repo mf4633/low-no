@@ -116,6 +116,38 @@ def _peak_stations(day):
     return with_pair, len(observed)
 
 
+HOURLY_CITIES = {"NYC", "DEN"}
+# Provisional. The nowcast legitimately refuses right after a host print (the
+# aligned window is too short to carry a tendency) and whenever quorum fails, so
+# some refusal is normal and the healthy band is not yet known -- the telemetry
+# only started 2026-09-01. Set low enough that only a real outage trips it, and
+# the observed rate is printed every run so the band can be pinned down later.
+MIN_NOWCAST_AVAIL = 0.40
+
+
+def _nowcast_availability(day):
+    """(rows carrying run_max_nowcast, NYC/DEN rows) for `day`."""
+    path = f"logs/{day}.jsonl"
+    if not os.path.exists(path):
+        return 0, 0
+    have = tot = 0
+    with open(path) as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            d = r.get("detail")
+            if not isinstance(d, dict) or d.get("world"):
+                continue
+            if r.get("city") not in HOURLY_CITIES:
+                continue
+            tot += 1
+            if d.get("run_max_nowcast") is not None:
+                have += 1
+    return have, tot
+
+
 def check(day=None):
     """Return a list of problem strings for `day` (default: yesterday ET)."""
     day = day or _yesterday_et()
@@ -153,6 +185,23 @@ def check(day=None):
                     f"({samples} rate samples). Cycle COUNT can look normal "
                     f"while this is broken -- 2026-08-30 logged the month's "
                     f"highest count and scored 30%.")
+
+    # The interpolator at KNYC/KDEN has failed silently twice on the day it was
+    # written -- once because the freshness cut rejected every neighbour during
+    # normal API lag, once because one laggy station capped the alignment window
+    # to 2 minutes and refused the whole station. Both were found only because a
+    # human asked for a live reading. This is that question, asked nightly.
+    have, tot = _nowcast_availability(day)
+    if tot:
+        frac = have / tot
+        print(f"health: nowcast availability {day} = {have}/{tot} ({frac:.0%})")
+        if frac < MIN_NOWCAST_AVAIL:
+            problems.append(
+                f"NOWCAST DARK: run_max_nowcast present on only {have} of {tot} "
+                f"KNYC/KDEN rows for {day} ({frac:.0%}, floor {MIN_NOWCAST_AVAIL:.0%}). "
+                f"The interpolator is refusing far more than it should -- check "
+                f"the `dropped` and refusal reasons in nowcast_detail. It has "
+                f"failed silently before on a threshold that looked reasonable.")
 
     # Cycles that scanned but never pushed leave NO trace in the committed
     # logs, so the count has to be handed in from the scan step's environment.

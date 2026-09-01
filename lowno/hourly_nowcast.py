@@ -166,11 +166,34 @@ def estimate(city, run_max, now=None):
         return None, (f"quorum: {len(fresh)} fresh neighbour(s) < {MIN_NEIGHBOURS} "
                       f"({'; '.join(f'{k}:{v}' for k, v in dropped.items())})")
 
-    # ALIGN: one common target time every survivor can actually reach.
-    target = min(s[-1][0] for s in fresh.values())
+    # ALIGN: one common target time. Taking the EARLIEST latest-observation
+    # keeps every neighbour but lets the laggiest one cap the window for all of
+    # them -- measured 2026-09-01 15:24Z, three DEN neighbours sat at 14:55Z
+    # while seven were current at 15:10Z, so the target collapsed to a
+    # 2-MINUTE window and the whole station was refused.
+    #
+    # A 2-minute window measures no movement, and dropping neighbours is cheap:
+    # stale_test.py puts the cost of losing 60% of the ensemble at 0.02-0.03F.
+    # So choose the LATEST target that still satisfies quorum, trading a few
+    # laggards for a window long enough to carry a tendency. Parameter-free
+    # given MIN_NEIGHBOURS.
+    cands = sorted({s[-1][0] for s in fresh.values()}, reverse=True)
+    target = None
+    for cand in cands:
+        keep = sum(1 for s in fresh.values() if s[-1][0] >= cand)
+        w = _age_min(last_ts, dt.datetime.fromisoformat(cand.replace("Z", "+00:00")))
+        if keep >= MIN_NEIGHBOURS and w >= MIN_WINDOW_MIN:
+            target = cand
+            break
+    if target is None:
+        best = _age_min(last_ts, dt.datetime.fromisoformat(cands[0].replace("Z", "+00:00")))
+        return None, (f"no target with >={MIN_NEIGHBOURS} neighbours and a "
+                      f">={MIN_WINDOW_MIN}min window (best {best:.0f}min)")
     window = _age_min(last_ts, dt.datetime.fromisoformat(target.replace("Z", "+00:00")))
-    if window < MIN_WINDOW_MIN:
-        return None, f"aligned window only {window:.0f}min (<{MIN_WINDOW_MIN})"
+    for st, s in list(fresh.items()):
+        if s[-1][0] < target:
+            dropped[st] = f"behind target by {_age_min(s[-1][0], dt.datetime.fromisoformat(target.replace('Z','+00:00'))):.0f}min"
+            del fresh[st]
 
     deltas, used = [], []
     for st, s in fresh.items():
