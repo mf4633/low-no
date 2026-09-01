@@ -217,6 +217,14 @@ def estimate(city, run_max, now=None):
         nowcast_f=nc, last_print_f=last_v, last_print_at=last_ts,
         stale_min=round(host_age), n_neighbours=len(deltas),
         n_expected=len(nbrs), quality=quality,
+        # The estimate is AS OF the aligned target, which trails real time by
+        # the API lag. Reporting it as the current temperature is wrong, and I
+        # did exactly that until Michael caught it. Do NOT project it forward:
+        # project_test.py shows a linear carry nearly DOUBLES the NYC error at
+        # a 50-minute distance (1.07 -> 2.07F) and loses at every lead, because
+        # the rate comes from a short variable window and a warming curve
+        # decelerates. Flat is the best estimate; only the LABEL needed fixing.
+        as_of=target, age_of_estimate_min=round(_age_min(target, now)),
         window_min=round(window), aligned_to=target,
         spread_f=(round(statistics.pstdev(deltas), 2) if len(deltas) > 1 else 0.0),
         dropped=dropped or None)
