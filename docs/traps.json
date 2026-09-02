@@ -1,13 +1,13 @@
 {
- "at": "2026-09-02T16:29:48.562582Z",
+ "at": "2026-09-02T16:33:19.426656Z",
  "traps": [
   {
    "city": "PHL",
    "ceiling": 81,
    "price": 8,
-   "p_model": 0.367,
+   "p_model": 0.4941,
    "p_market": 0.08,
-   "edge_pts": 28.7,
+   "edge_pts": 41.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 41 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -52,25 +52,6 @@
    ]
   },
   {
-   "city": "MSY",
-   "ceiling": 87,
-   "price": 96,
-   "p_model": 1.0,
-   "p_market": 0.96,
-   "edge_pts": 4.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=11.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
    "city": "SEA",
    "ceiling": 63,
    "price": 96,
@@ -79,6 +60,25 @@
    "edge_pts": 2.1,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "MSY",
+   "ceiling": 87,
+   "price": 98,
+   "p_model": 1.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=11.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
