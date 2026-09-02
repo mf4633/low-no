@@ -327,6 +327,87 @@ Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee breakeven,
 out-of-sample confirmation on post-registration days. As an information claim it
 reports the Brier comparison first, like H4a, and no pilot activates on it.
 
+# THE DEGREE-C QUANTIZATION (found 2026-09-02) -- a measurement fact
+# that puts impossible values in the outcome variable
+
+Found while auditing H8's group counts, which is the only reason it was found
+at all: nothing else looks at the *sign* of the thing every shape test scores.
+
+## The arithmetic that cannot hold
+
+`settle - run_max` must be `>= 0`. `settle` is the day's maximum and `run_max`
+is a running max of our own observations, so a negative value is not a large
+error, it is an impossible one. **1,074 of 8,362 settled rows are negative
+(13%), across 140 city-days.** In the peak-window shape samples specifically it
+is 78 of 365, or 21%.
+
+## The cause is a unit conversion, not a collection fault
+
+91% of the impossible rows have a `run_max` sitting exactly on the whole-degree-C
+grid, and their fractional parts cluster on .0/.2/.4/.6/.8 -- the signature of
+`C*1.8+32` for integer C. The 5-minute observations are quantized to whole
+degrees C; CLI settles in whole degrees F. 31C becomes 87.8F to us and CLI
+reports 87.
+
+**The bound is the FULL step, 1.8F, not the half-step.** Measured deficits reach
+-1.20F (AUS 2026-08-12: `run_max` 102.20 = 39.0C exactly, CLI 101), which
+round-to-nearest cannot produce. Both beyond-0.9F cases fit if CLI takes the
+whole-F value AT OR BELOW the true max: 39.0C means a true reading somewhere in
+[101.3, 103.1)F, and 101 sits inside that. MIA 2026-08-29 is the same shape
+(86.00F = 30.0C, CLI 85). Assuming symmetric rounding here is what made the
+first estimate wrong by a factor of two, and it is recorded because the same
+assumption is embedded elsewhere -- see the quarantine below.
+
+## IT DOES NOT EXPLAIN H4a, and it was checked before H4a reports
+
+The first cut looked like H1 all over again: 28% of *stalled* samples impossible
+against 13% of *climbing*, a 2:1 skew along the exact axis H4a conditions on,
+with the artifact always signed the same way. It is not that.
+
+**Exposure is near-equal: 77% of stalled samples sit on the C grid vs 84% of
+climbing.** The bound on the artifact's contribution to the measured 1.48F
+stalled-vs-climbing gap is **-0.03 to -0.07F** -- negligible, and pointed the
+wrong way to manufacture the effect.
+
+The 28%-vs-13% was a VISIBILITY difference, not an exposure difference: stalled
+days have little true climb left, so an identical inflation crosses zero more
+often and becomes *visible*. **Same measurement, two different denominators.**
+That is the fourth appearance of this project's most expensive pattern, and the
+first time it has run in our favour. H4a's premise survives into its verdict.
+
+## OPEN RISK: the quarantine's premise is false
+
+`lowno/shadow.py` drops a cached settlement when `v < round(obs) - 1`, on the
+stated premise that *"our own observations are a valid lower bound on the true
+max... an arithmetic test, not a judgment call"*. **They are not a valid lower
+bound.** A C-grid `run_max` sits up to 1.8F above what CLI can report, against a
+1.0F tolerance, so a CORRECT settlement can be quarantined -- and outside the
+7-day CLI window that loss is permanent and unrecoverable.
+
+The tolerance wants to be 2F. This has NOT been changed: it alters which days
+survive, and therefore station bias, grading and every variant, which is exactly
+the class of change deferred below. Worth re-reading SEA 2026-08-07 (cached 86
+against observed 87.8 = 31.0C) with this in mind -- under symmetric rounding it
+was impossible; under the floor behaviour above it is legitimate in a narrow
+band. SFO 2026-08-07 (cached 68 vs observed 72) was a 4F gap and remains a
+correct drop.
+
+## Decision: DEFERRED until H4a has reported (Michael, 2026-09-02)
+
+The repair is not applied now. `settle - run_max` is the outcome variable for
+H4a, H7 and H8 and it feeds the empirical P(exceed) distribution, so cleaning it
+three days before H4a scores would change the inputs of a registered test inside
+its own window. H4a runs on the data it was registered against; the correction
+applies afterwards, to everything downstream, and is recorded when it does.
+
+What ships now is the DETECTOR only: `logaudit.py` gained a CLIMB INTEGRITY
+section reporting the impossible count per day, the C-grid share, and the worst
+deficit. Its row filter matches what the shape harnesses read -- any non-world
+row with `run_max` for a known city, NOT `verdict == "LADDER"` -- because a
+check that reads a different slice than its consumers is not protecting them,
+which this repository has now learned three times. **A deficit beyond -1.8F is
+something new; one C step cannot produce it.**
+
 # HYPOTHESIS 8 -- THE GAP BETWEEN THE TWO SHAPE VARIABLES (H4a x H7)
 # (registered 2026-09-02, BEFORE any test. This text does not change.)
 
