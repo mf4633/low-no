@@ -1,5 +1,5 @@
   settlement QUARANTINED 2026-08-27|NYC: cached 77 but we observed 80 -- impossible, dropping
-settlements: 455 cached, 2 new, 0 repaired, 1 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 455 cached, 1 new, 0 repaired, 1 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
 om_gfs        2263    10  -0.41  1.78  2.33    68%
 om_best       1839    10  -0.40  1.81  2.37    66%
@@ -10,7 +10,7 @@ om_icon       2182    10  -1.06  2.19  2.78    56%
 om_ecmwf      2241    10  -0.43  3.20  4.33    44%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 41 calls, est $0.5843 spent, $4.42 left (~309 calls)
+spend: 46 calls, est $0.6555 spent, $4.34 left (~304 calls)
 rung-obs 23192 -> 451 independent units over 25 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  31   0     0%   5.6%     0%    11%    -5.6      open
@@ -58,7 +58,7 @@ station guide bias (guide - CLI): {'LAX': -2.36, 'TTN': 2.17, 'EWR': 1.67, 'NYC'
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-01': 2} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
@@ -68,8 +68,8 @@ PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 
 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [#################...] 25/28 logged days  +shape_eval.py runs unchanged when met
-  H4b   market lag on curve_dev    [#####...............] 147/200 events  +5/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 0/60 city-day units  +supply only; scoring waits on H4a (1 days since 2026-09-01)
+  H4b   market lag on curve_dev    [######..............] 184/200 events  +6/20 distinct days
+  H5    contested band 81-95c (blocked on H4a) [....................] 1/60 city-day units  +supply only; scoring waits on H4a (1 days since 2026-09-01)
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced
