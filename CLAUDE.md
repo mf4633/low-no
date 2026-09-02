@@ -113,8 +113,10 @@ Earliest ~mid-October. The date is set by flag rate, not by cleverness.
     degrees F**, so our running max sits up to **1.8F** above what a settlement
     can report and `settle - run_max` goes NEGATIVE on 13% of settled rows
     (2026-09-02). The bound is the FULL C step, not the half-step: measured
-    deficits reach -1.20F, so CLI takes the whole-F value at or below the true
-    max rather than rounding it. Two consequences. First, an impossible value
+    deficits reach -1.20F. (That looked like CLI flooring rather than rounding;
+    H9 tested it the same day and it is NOT SUPPORTED -- `prob.py`'s +0.5
+    continuity correction stands. Two rows past 0.9F remain unexplained.) Two
+    consequences. First, an impossible value
     in the outcome variable is a wrong label, not noise, and it sits in the
     empirical P(exceed) distribution. Second, **the settlement quarantine's
     premise -- "our observations are a valid lower bound" -- is false**, and its

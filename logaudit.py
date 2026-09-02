@@ -40,10 +40,11 @@ HOURLY = {"NYC", "DEN"}
 # sits above the whole-F value CLI reports, and the bound is the FULL step, not
 # the half-step: measured deficits reach -1.20F (AUS 2026-08-12, run_max 102.20
 # = 39.0C exactly, CLI 101), which a round-to-nearest cannot produce. Both
-# outliers fit if CLI takes the whole-F value AT OR BELOW the true max --
-# 39.0C means a true reading in [101.3, 103.1)F, and 101 is inside it. So the
-# engineering bound is 1.8F. Do not "tighten" this back to 0.9 on the theory
-# that rounding is symmetric; the data says otherwise.
+# outliers WOULD fit if CLI took the whole-F value at or below the true max,
+# but H9 tested that convention against the model the same day and it is NOT
+# SUPPORTED (see CANDIDATE.md); the two rows are unexplained. The bound stays
+# at the full step because it is the MEASURED deficit that sets it, whatever
+# the mechanism. Do not "tighten" this back to 0.9.
 C_STEP_F = 1.8
 MAX_C_INFLATION_F = 1.8
 

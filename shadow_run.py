@@ -484,7 +484,8 @@ def main():
         # ones that can activate, rather than silently absent.
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
                          ("band_eval", "H5"), ("h6_eval", "H6"),
-                         ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8")):
+                         ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
+                         ("settle_conv_eval", "H9")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -673,6 +674,10 @@ def _hypothesis_progress(obs):
     except Exception:
         h8_ready = False
 
+    # H9 (settlement convention) met its bar and returned NOT SUPPORTED the
+    # same day it was registered (2026-09-02); it is listed closed below. Its
+    # verdict still runs into gates.json so the numbers stay on the record.
+
     # H6: does the market price off the stale print. Delegated to the test for
     # the same reason H4b is -- a meter that counts poll rows rather than
     # usable print transitions would read full on an unmet bar.
@@ -787,6 +792,9 @@ def _hypothesis_progress(obs):
                  have=0, need=0, unit="closed", note="expectancy set at entry"),
             dict(id="H3", name="settlement gap (NOT SUPPORTED)",
                  have=0, need=0, unit="closed", note="real but priced"),
+            dict(id="H9", name="round vs floor (NOT SUPPORTED 2026-09-02)",
+                 have=0, need=0, unit="closed",
+                 note="+0.5 correction stands; boundary diff -0.0004, n=157"),
         ])
 
 

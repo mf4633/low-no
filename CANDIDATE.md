@@ -408,6 +408,125 @@ check that reads a different slice than its consumers is not protecting them,
 which this repository has now learned three times. **A deficit beyond -1.8F is
 something new; one C step cannot produce it.**
 
+# HYPOTHESIS 9 -- THE SETTLEMENT CONVENTION: DOES CLI ROUND OR FLOOR?
+# (registered 2026-09-02, BEFORE the real ledger was scored. This text does
+#  not change.)
+
+Derived from the degree-C finding above. Not a market claim.
+
+## The claim
+
+`prob.py:107` already treats settlement as discrete: `q(ceiling + 0.5)`,
+commented *"settle in whole degrees: > ceiling means >= ceiling+1"*. That is
+the ROUND convention -- `round(T) >= cap+1 iff T >= cap+0.5`. If CLI instead
+reports the whole-degree value AT OR BELOW the true max, a FLOOR, the constant
+is **+1.0**: `floor(T) >= cap+1 iff T >= cap+1`. Half a degree of threshold,
+which the Gaussian turns into **4-9 probability points at the boundary and
+~1 point at 4F of needed climb**:
+
+    need   sigma   round(+0.5)   floor(+1.0)   delta
+    0.0F    2.0      0.401         0.309       -0.093
+    0.0F    3.0      0.434         0.369       -0.064
+    1.0F    2.0      0.227         0.159       -0.068
+    2.0F    3.0      0.202         0.159       -0.044
+
+## Where it comes from, and why two rows are a test rather than a fix
+
+AUS 2026-08-12 (`run_max` 102.20 = 39.0C exactly, CLI 101) and MIA 2026-08-29
+(86.00 = 30.0C, CLI 85) exceed what symmetric rounding can produce and both fit
+a floor. Two city-days are not a convention. A different averaging window or a
+different sensor could produce the same rows. So the candidates are COMPARED,
+neither assumed. NYC/DEN cannot arbitrate either: their obs are fine-resolution
+but our ~55-minute sampling understates the true max -- the known CLI +1 gap.
+
+## The differential prediction is the whole test
+
+The two constants converge with distance from the threshold, so if the floor
+is right the improvement must be CONCENTRATED at the boundary and materially
+SMALLER in the tail. A uniform improvement falsifies the mechanism even if it
+is an improvement.
+
+## The rule to be tested (fixed now)
+
+`settle_conv_eval.py`. Unit = city-day (Brier gap averaged within each
+(day, city) first). Zones by needed climb at scoring time: BOUNDARY <= 1.0F,
+TAIL >= 3.0F, the band between undefined on purpose. Bar: >= 100 city-days in
+EACH zone. Inputs identical for both arms -- same station model, same
+C-inflated `run_max`, same truncation -- so whatever is wrong with those
+cancels in the paired difference; only the constant differs.
+
+  * PASS iff mean(brier_round - brier_floor) at the boundary > 0 with the 95%
+    CI excluding 0, AND the boundary mean >= 2x the tail mean.
+
+**Corrected once, on the synthetic test, before any real data was scored.**
+The first draft required the tail difference to be indistinguishable from
+zero. A synthetic FLOOR world failed it -- correctly: the constants still
+differ by ~1 point at 4F, and with thousands of units any nonzero gap is
+significant. "Absent in the tail" was the wrong idealisation; the mechanism
+says the gap SHRINKS, by a ratio near 5 at sigma 2.5. Requiring >= 2 is well
+inside that and a uniform improvement does not meet it. Recorded here because
+a pass rule changed after data existed is the kind of thing that must be
+visible, even when the data was synthetic.
+
+Verified on synthetic worlds (`test_settle_conv_eval.py`, 5 checks): a floor
+world passes with the effect concentrated, a ROUND world fails, it refuses
+below the bar, and a uniform improvement fails. The synthetic world took three
+drafts to get right -- the model is a Gaussian truncated at `run_max`, and the
+world must make that conditional exactly true (rejection-sample `T >= run_max`)
+or the constant that "wins" is an artefact of the mismatch. Two wrong drafts
+are recorded in the test file.
+
+## What a pass means
+
+That our model has been OVERSTATING P(NO wins) near the cap. A phantom edge
+removed, not an edge found -- consistent with the market winning ~7 of 8
+model-market disputes, and a candidate mechanism for every 96-98c loss being a
+boundary day. **If it passes, +1.0 enters as a SCORED VARIANT in
+shadow_run.py, never as an edit to prob.py**: `rung_probability` feeds the
+frozen gate, and the constitution puts every new idea in a variant.
+
+## DISCLOSURE -- known when this was written
+
+96-98c NO: n=126, realized 92.7%, breakeven 98.2%, retired. Every 96-98c loss
+is a boundary day. The two rows above and the 13% impossible-sample count. The
+correction-size table. The pooled shortfall does not imply the boundary/tail
+split, and only the split passes.
+
+## RESULT H9 (2026-09-02, same day) -- NOT SUPPORTED
+
+Bar met on the first run: 157 boundary city-days, 330 tail.
+
+    zone      city-days   brier(round) - brier(floor)      95% CI
+    boundary        157                 -0.00039   [-0.00924, +0.00846]
+    tail            330                 -0.00407   [-0.00906, +0.00092]
+
+Positive would mean the FLOOR constant scores better. It does not: the
+boundary difference is zero to four decimal places with an interval straddling
+it, and in the tail ROUND is marginally better. The differential prediction is
+absent. **`prob.py`'s `+0.5` continuity correction stands.**
+
+What this settles and what it does not:
+
+  * The 96-98c shortfall (92.7% vs 98.2%) is NOT a half-degree threshold error
+    in the Gaussian. Whatever makes boundary days lose, it is not the
+    continuity constant. That closes the most mechanical explanation and
+    leaves the fee tax and genuine boundary uncertainty as the survivors.
+  * AUS 08-12 and MIA 08-29 are still real rows with deficits beyond 0.9F.
+    They are consistent with a floor, but a floor does not survive the model
+    test, so they are more likely a sensor or averaging-window difference
+    between the 5-minute feed and the CLI instrument. Two rows, unexplained,
+    recorded.
+  * The 1.8F bound in `logaudit.py` is kept: it is justified by the MEASURED
+    deficit of 1.20F regardless of mechanism, and the quarantine risk it
+    describes does not depend on why the deficit exists.
+  * Nothing ships. No variant, no edit to `prob.py`. H9 goes to the closed
+    list beside H1/H2/H3 so the refutation stays visible.
+
+Pattern worth naming: this is the second time today a plausible mechanism for
+the boundary losses was written down and killed inside an hour (the first was
+the C-quantization explaining H4a). Both were checked before they could be
+built on. That is the constitution doing its job, and it is cheap.
+
 # HYPOTHESIS 8 -- THE GAP BETWEEN THE TWO SHAPE VARIABLES (H4a x H7)
 # (registered 2026-09-02, BEFORE any test. This text does not change.)
 
