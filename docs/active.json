@@ -1,5 +1,78 @@
 {
- "at": "2026-09-02T15:27:44.428997Z",
- "tracked": [],
+ "at": "2026-09-02T16:29:49.487966Z",
+ "tracked": [
+  {
+   "city": "MSY",
+   "station": "KMSY",
+   "ticker": "KXHIGHTNOLA-26SEP02-T88",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 87,
+   "run_max": 87.8,
+   "gap_to_clear": -0.8,
+   "already_cleared": true,
+   "guide": 92,
+   "pop": 44,
+   "no_ask": 0.96,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-02T16:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T16:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T16:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-02T15:30:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 1.0,
+    "q50": 4.0,
+    "q90": 7.4
+   },
+   "projected_max": {
+    "q10": 88.8,
+    "q50": 91.8,
+    "q90": 95.2
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
