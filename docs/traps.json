@@ -1,40 +1,13 @@
 {
- "at": "2026-09-02T17:32:54.447292Z",
+ "at": "2026-09-02T18:33:12.012214Z",
  "traps": [
-  {
-   "city": "NYC",
-   "ceiling": 74,
-   "price": 8,
-   "p_model": 0.2516,
-   "p_market": 0.08,
-   "edge_pts": 17.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
   {
    "city": "PHL",
    "ceiling": 81,
-   "price": 2,
-   "p_model": 0.1135,
-   "p_market": 0.02,
-   "edge_pts": 9.3,
+   "price": 1,
+   "p_model": 0.0309,
+   "p_market": 0.01,
+   "edge_pts": 2.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -44,21 +17,33 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 4.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "CHI",
-   "ceiling": 91,
-   "price": 98,
-   "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
-   "size_lcb": 0.0345,
+   "city": "NYC",
+   "ceiling": 74,
+   "price": 4,
+   "p_model": 0.045,
+   "p_market": 0.04,
+   "edge_pts": 0.5,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
