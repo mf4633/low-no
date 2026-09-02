@@ -1,36 +1,13 @@
 {
- "at": "2026-09-02T16:33:19.426656Z",
+ "at": "2026-09-02T17:32:54.447292Z",
  "traps": [
-  {
-   "city": "PHL",
-   "ceiling": 81,
-   "price": 8,
-   "p_model": 0.4941,
-   "p_market": 0.08,
-   "edge_pts": 41.4,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 41 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
   {
    "city": "NYC",
    "ceiling": 74,
-   "price": 12,
-   "p_model": 0.3995,
-   "p_market": 0.12,
-   "edge_pts": 28.0,
+   "price": 8,
+   "p_model": 0.2516,
+   "p_market": 0.08,
+   "edge_pts": 17.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -52,14 +29,18 @@
    ]
   },
   {
-   "city": "SEA",
-   "ceiling": 63,
-   "price": 96,
-   "p_model": 0.9815,
-   "p_market": 0.96,
-   "edge_pts": 2.1,
+   "city": "PHL",
+   "ceiling": 81,
+   "price": 2,
+   "p_model": 0.1135,
+   "p_market": 0.02,
+   "edge_pts": 9.3,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
@@ -67,21 +48,17 @@
    ]
   },
   {
-   "city": "MSY",
-   "ceiling": 87,
+   "city": "CHI",
+   "ceiling": 91,
    "price": 98,
    "p_model": 1.0,
    "p_market": 0.98,
    "edge_pts": 2.0,
-   "size_lcb": 0.0,
+   "size_lcb": 0.0345,
    "signals": [
     {
-     "code": "NO_HISTORY",
-     "why": "n_eff=11.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
