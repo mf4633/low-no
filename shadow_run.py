@@ -484,7 +484,7 @@ def main():
         # ones that can activate, rather than silently absent.
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
                          ("band_eval", "H5"), ("h6_eval", "H6"),
-                         ("shape_temp_eval", "H7")):
+                         ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -656,6 +656,23 @@ def _hypothesis_progress(obs):
     except Exception:
         h7_ready = False
 
+    # H8: the run_max/temp_now gap. Four groups must each reach MIN_PER_GROUP,
+    # so the meter fills to the THINNEST of them -- reporting the largest would
+    # read full on an unmet bar, which is the mistake this function has now
+    # made once for real (H4b) and nearly made once more (H4a).
+    h8_have, h8_need, h8_ready, h8_thin = 0, 150, False, "?"
+    try:
+        import shape_pair_eval as _sp
+        _v8 = _sp.verdict()
+        _c8 = _v8.get("counts") or {}
+        h8_need = int(_v8.get("need_per_group") or _sp.MIN_PER_GROUP)
+        if _c8:
+            h8_thin = min(_c8, key=_c8.get)
+            h8_have = int(_c8[h8_thin])
+        h8_ready = bool(_v8.get("ready"))
+    except Exception:
+        h8_ready = False
+
     # H6: does the market price off the stale print. Delegated to the test for
     # the same reason H4b is -- a meter that counts poll rows rather than
     # usable print transitions would read full on an unmet bar.
@@ -759,6 +776,11 @@ def _hypothesis_progress(obs):
                  ready=h7_ready,
                  note="the hourly pair is the binding leg; a verdict needs "
                       "both strata, pooled is context"),
+            dict(id="H8", name="run_max/temp_now gap (H4a x H7)",
+                 have=h8_have, need=h8_need, unit=f"samples in '{h8_thin}'",
+                 ready=h8_ready,
+                 note="fills to the thinnest of four groups; H8b (joint cell) "
+                      "is registered but not expected to report before the stop"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",

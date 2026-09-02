@@ -327,6 +327,119 @@ Unchanged: >= 60 independent city-day units, Wilson 95% LCB above fee breakeven,
 out-of-sample confirmation on post-registration days. As an information claim it
 reports the Brier comparison first, like H4a, and no pilot activates on it.
 
+# HYPOTHESIS 8 -- THE GAP BETWEEN THE TWO SHAPE VARIABLES (H4a x H7)
+# (registered 2026-09-02, BEFORE any test. This text does not change.)
+
+n = 0 at registration. Michael asked for a hybrid of H4a and H7.
+
+## There is only one hybrid worth building
+
+H7 is *already* H4a with a single variable swapped: H4a buckets the rate of
+`run_max`, H7 buckets the rate of `temp_now`, and everything else -- peak
+window, gap band, bucket thresholds, `MIN_N_RATE`, the date-parity split, the
+held-out Brier -- is identical. So blending the two buckets is not a hybrid. It
+is one signal averaged with a noisier copy of itself, since H7's whole premise
+is that H4a's variable is the degraded one. The only information that lives in
+the PAIR and in neither member is their difference:
+
+    off_peak_gap = run_max - temp_now
+
+H4a cannot see it. H7 cannot see it. It is precisely and only what the two
+disagree about.
+
+## Mechanism, with the direction fixed now
+
+A large gap means the day already set its high and has fallen back. Such a day
+has to recover the gap before it can set a new high at all, so for a cap ABOVE
+the running max the climb still to come is shorter than the tendency alone
+implies. H7's own finding sharpens it: of the 47% of peak-window intervals with
+`delta(run_max) = 0`, re-bucketing on `temp_now` splits 79% stalled / 3% mid /
+**18% climbing** -- days climbing *below* their own maximum. "Climbing" and
+"climbing with 4F to recover first" are one bucket to H4a and one bucket to H7.
+
+> **PREDICTION.** Within a given `temp_now` rate bucket, a FLAGGED (off-peak)
+> sample shows LESS remaining climb (`settle - run_max`) than an unflagged one.
+
+A difference the other way falsifies the mechanism rather than supporting a
+variant of it, and the harness fails on a wrong-signed effect however large.
+
+## The threshold is instrument-derived, not fitted
+
+**1.8F is one whole-degree-C step**, and the 5-minute observations are quantized
+to whole C. Below that a "gap" cannot be told from a rounding artifact. It was
+NOT chosen to balance the split -- the candidate cuts and their shares are in
+the disclosure below, and 1.8 is not the balanced one.
+
+## Two legs, and only one can be answered in time
+
+  * **H8a -- INFORMATION.** Pooled inside the peak window, stratified by
+    `temp_now` bucket so it cannot be a Simpson artifact. **Bar: >= 150 samples
+    in each of four groups** (flagged/unflagged x stalled/climbing), a
+    conventional-power figure for a ~0.2 sd difference, fixed before running.
+    Requiring BOTH buckets is deliberate: one bucket alone is a subgroup
+    finding, and the mechanism claims the gap matters wherever a day sits below
+    its own maximum.
+  * **H8b -- VALIDATION.** The flag as a fourth cell dimension, held-out Brier
+    against **both** H4a's and H7's conditioning (naming both now removes the
+    later temptation to compare against whichever looks worse). Bar: 50 held-out
+    decisions on cells at `MIN_N_RATE`. **This cannot be reached before the
+    2026-12-31 stop and that is stated here rather than discovered in
+    November** -- the joint cell splits H7's cells again, H7's own are not
+    expected to be scorable until late September, and the flagged branch carries
+    ~18% of rows. H8b is defined in advance in case the programme is ever
+    extended by something that PASSED, not because it is expected to report.
+
+This two-leg shape is H4a's own history, where the 1.48F information claim was
+established on pooled samples before the held-out validation existed.
+
+## What a pass would and would not be
+
+An information claim, the same status H4a's 1.48F held before its held-out test.
+**H3 is the standing reminder that a real signal can be entirely priced.** H8
+has no pilot and cannot promote anything; a trading claim on this gap would be a
+separate registration owing its own 60 units.
+
+## DISCLOSURE -- everything computed before these rules were fixed
+
+  * peak-window rows carrying both `run_max` and `temp_now`: **1018**
+  * `run_max - temp_now`: p10 0.00, p50 0.36, p90 3.60, max 18.00
+  * share above candidate cuts: 49% (>0.5F), 45% (>1.0F), **18% (>1.8F)**,
+    16% (>3.0F)
+  * joint-cell depth on the train half: 82 cells, deepest 2, none at 12
+
+None of those touches `settle`. No remaining-climb figure, no group mean and no
+Brier value was computed before `shape_pair_eval.py` existed. Verified on
+synthetic worlds instead (`test_shape_pair_eval.py`, 9 checks): finds a planted
+effect, nulls when the gap does nothing, **fails on a wrong-signed effect**,
+blocks when the second bucket is starved, refuses below the bar, and treats a
+1.0F gap as quantization while flagging 4.0F.
+
+## FIRST RUN, SAME DAY: the distinctive cell is nearly empty
+
+Rules fixed, harness written, tests green, *then* run. Group counts:
+
+    stalled_on 123   stalled_off 78   climbing_on 151   climbing_off 5
+
+**`climbing_off` = 5 of 357.** Climbing hard *and* sitting >= 1.8F below the
+day's max is close to a contradiction in practice: if `temp_now` is rising at
+>= 1.5F/hr the gap closes within the hour, so the state barely occurs outside a
+post-storm recovery. At ~0.2/day the 150 bar is centuries away.
+
+So the honest first answer to "can H4a and H7 be hybridised": **the two
+variables only disagree materially in a regime that almost never happens.** The
+18% of mislabelled intervals H7 found are overwhelmingly climbing *at* the max,
+not far below it. H8a as registered will refuse indefinitely on the climbing
+leg, and that is the finding, not a defect.
+
+**What must NOT happen next.** Dropping the climbing leg now -- after seeing
+that it is the one that is starved -- would be exactly the move this file
+exists to prevent, and it is the H1 failure in miniature: relaxing a
+pre-declared condition because the data made it inconvenient. If a
+stalled-only version is ever wanted it is a NEW registration, with an explicit
+disclosure that these counts were known when it was written, and it is
+Michael's call to make, not a quiet edit here. `stalled_off` is at 78/150 and
+accruing, so that version would be answerable in roughly six weeks.
+
 # THE STALE-STATION LEAD (measured 2026-08-31) -- a fact, and a hypothesis
 
 ## The fact: two settlement stations publish an hour behind their neighbours
