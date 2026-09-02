@@ -483,7 +483,8 @@ def main():
         # H5 has no pilot; it is listed so its refusal is visible next to the
         # ones that can activate, rather than silently absent.
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
-                         ("band_eval", "H5"), ("shape_temp_eval", "H7")):
+                         ("band_eval", "H5"), ("h6_eval", "H6"),
+                         ("shape_temp_eval", "H7")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -616,7 +617,57 @@ def _hypothesis_progress(obs):
 
     # H4a: out-of-sample shape validation needs a half-split where each half
     # earns cells at n>=12 per (city, hour, bucket); measured to need ~28 days.
+    #
+    # THE DAY COUNT IS NOT THE OPERATIVE GATE, and left alone it lies. The
+    # registered bar is 28 logged days and it stays 28 -- but activation gates
+    # on shape_eval.verdict() reaching MIN_SCORED held-out decisions, and the
+    # day count reaches 28 first. Without an explicit `ready`, _status falls
+    # back to have >= need, drops H4a out of `blocking`, and status.json
+    # reports "a test is ready" while gates.json still says n=0/50. That is the
+    # H4b meter bug of 414df64 with the hypotheses swapped. So: `ready` comes
+    # from the test, and the real blocker rides along as a second leg. The
+    # registered 28-day bar is UNCHANGED; MIN_SCORED was registered 2026-08-27
+    # in the same breath, so surfacing it adds no requirement.
+    #
+    # COUNTS ONLY. `ready` and `n` are taken from the verdict; `passed` and the
+    # Brier values are deliberately never read here.
     n_days = len(days)
+    h4a_scored, h4a_ready, h4a_need = 0, False, 50
+    try:
+        import shape_eval as _se
+        _v = _se.verdict()
+        h4a_scored = int(_v.get("n") or 0)
+        h4a_ready = bool(_v.get("ready"))
+        h4a_need = int(_v.get("need") or _se.MIN_SCORED)
+    except Exception:
+        h4a_ready = False       # unknown counts as not-there, never as progress
+
+    # H7: shape on temperature tendency. STRATIFIED -- the verdict needs
+    # MIN_SCORED in EACH stratum, so the bar fills to its shortest leg. The
+    # hourly pair (2 stations, nowcast from 2026-09-01) is the binding one.
+    h7_ctl, h7_hr, h7_ready, h7_need = 0, 0, False, 50
+    try:
+        import shape_temp_eval as _st
+        _v7 = _st.verdict()
+        h7_ctl = int((_v7.get("control") or {}).get("n") or 0)
+        h7_hr = int((_v7.get("hourly") or {}).get("n") or 0)
+        h7_ready = bool(_v7.get("ready"))
+        h7_need = int(_st.MIN_SCORED)
+    except Exception:
+        h7_ready = False
+
+    # H6: does the market price off the stale print. Delegated to the test for
+    # the same reason H4b is -- a meter that counts poll rows rather than
+    # usable print transitions would read full on an unmet bar.
+    h6_ev, h6_days, h6_ready, h6_need_ev, h6_need_d = 0, 0, False, 200, 20
+    try:
+        import h6_eval as _h6
+        _e6 = _h6._events(_h6.series())
+        h6_ev, h6_days = len(_e6), len({e["day"] for e in _e6})
+        h6_need_ev, h6_need_d = _h6.MIN_EVENTS, _h6.MIN_DAYS
+        h6_ready = bool(h6_ev >= h6_need_ev and h6_days >= h6_need_d)
+    except Exception:
+        h6_ready = False
 
     # H4b: EVENTS as curve_lag defines them -- a material |d(curve_dev)| on a
     # valid cycle gap with a real bottom-rung price -- not "cycles that logged
@@ -678,7 +729,11 @@ def _hypothesis_progress(obs):
         hypotheses=[
             dict(id="H4a", name="shape validation (held-out)",
                  have=n_days, need=28, unit="logged days",
-                 note="shape_eval.py runs unchanged when met"),
+                 also=dict(have=h4a_scored, need=h4a_need,
+                           unit="held-out scored decisions"),
+                 ready=h4a_ready,
+                 note="days is not the gate -- cells must reach n>=12 inside "
+                      "the peak window before a decision scores"),
             dict(id="H4b", name="market lag on curve_dev",
                  have=ev, need=ev_need, unit="events",
                  also=dict(have=len(ev_days), need=day_need,
@@ -691,6 +746,19 @@ def _hypothesis_progress(obs):
                  ready=False,
                  note=f"supply only; scoring waits on H4a ({h5_days} days since "
                       f"{H5_SINCE})"),
+            dict(id="H6", name="market prices off the stale print",
+                 have=h6_ev, need=h6_need_ev, unit="print transitions",
+                 also=dict(have=h6_days, need=h6_need_d,
+                           unit="distinct days"),
+                 ready=h6_ready,
+                 note=f"{h6_days}/{h6_need_d} distinct days; poll data starts "
+                      "2026-08-31, NYC/DEN only"),
+            dict(id="H7", name="shape on temperature (stratified)",
+                 have=h7_ctl, need=h7_need, unit="scored (control)",
+                 also=dict(have=h7_hr, need=h7_need, unit="scored (hourly)"),
+                 ready=h7_ready,
+                 note="the hourly pair is the binding leg; a verdict needs "
+                      "both strata, pooled is context"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",

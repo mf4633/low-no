@@ -54,52 +54,52 @@ direction.
 
 ## Applied to the record as it stands, 2026-08-31, 405 units
 
-**CORRECTED THE SAME DAY.** This section first reported EIGHT of eleven bands
-retired. That was wrong, and the way it was wrong matters more than the number.
-
-NO-side grading deliberately stays on the LOGGED cap so history is not
-rewritten mid-measurement. For pre-fix rows that cap is the raw threshold, so a
-settle exactly AT it reads as a NO-loss when it was truly a NO-win. The grading
-is pessimistic at the boundary BY DESIGN -- and **18 of the 26 days in this
-record are pre-fix**, with 87 rung-observations sitting exactly on that
-boundary.
-
-Pessimism is harmless for "not proven": it can only delay a promotion. It is
-NOT harmless for "refuted", which is permanent and one-way. Judging futility on
-a knowingly pessimistic number retires bands that are merely unproven, which is
-exactly what happened. Retirement is now computed on cap-corrected outcomes
-(`ucb_capfix` in the nightly), and the table is:
-
-```
-band     n    hit    breakeven   UCB(raw)  UCB(capfix)   verdict
-1-10    25    0.0%      5.5%       13.3%      13.3%      open
-11-20   21    4.8%     16.3%       22.7%      22.7%      open
-21-30   17   11.8%     27.1%       34.3%      47.3%      open
-31-40   21    4.8%     37.4%       22.7%      40.0%      open
-41-50   19   21.1%     47.3%       43.3%      54.0%      open
-51-60   16   31.2%     56.5%       55.6%      76.9%      open
-61-70   21   38.1%     67.2%       59.1%      71.7%      open
-71-80   24   50.0%     78.2%       68.6%      82.0%      open
-81-90   51   76.5%     88.2%       86.0%      90.4%      open
-91-95   76   85.5%     94.4%       91.7%      94.6%      open
-96-98  110   92.7%     98.2%       96.3%      96.9%      RETIRED
-```
-
-**One band is retired, not eight: 96-98c.** Its 95% upper bound is 96.9%
-against a 98.2% breakeven even after the correction, on the largest sample in
-the record. Buying the band this strategy is built around, unconditionally, is
-still refuted at 95%.
-
-The other seven were never refuted. They are unproven -- which is what they
-were before this section existed, and the difference between "the strategy is
-dead" and "the strategy is dead at the top of the book" is the whole finding.
-
-The lesson generalises past this table, and it is the fourth instance this
-week: **a measurement chosen to be conservative in one direction cannot be
-reused for a decision that runs the other way.** The pessimistic grading was a
-good choice for protecting the promotion bar and a bad one for driving a
-retirement, and nothing flagged the switch because both used the word "win".
-
+**CORRECTED THE SAME DAY.** This section first reported EIGHT of eleven bands
+retired. That was wrong, and the way it was wrong matters more than the number.
+
+NO-side grading deliberately stays on the LOGGED cap so history is not
+rewritten mid-measurement. For pre-fix rows that cap is the raw threshold, so a
+settle exactly AT it reads as a NO-loss when it was truly a NO-win. The grading
+is pessimistic at the boundary BY DESIGN -- and **18 of the 26 days in this
+record are pre-fix**, with 87 rung-observations sitting exactly on that
+boundary.
+
+Pessimism is harmless for "not proven": it can only delay a promotion. It is
+NOT harmless for "refuted", which is permanent and one-way. Judging futility on
+a knowingly pessimistic number retires bands that are merely unproven, which is
+exactly what happened. Retirement is now computed on cap-corrected outcomes
+(`ucb_capfix` in the nightly), and the table is:
+
+```
+band     n    hit    breakeven   UCB(raw)  UCB(capfix)   verdict
+1-10    25    0.0%      5.5%       13.3%      13.3%      open
+11-20   21    4.8%     16.3%       22.7%      22.7%      open
+21-30   17   11.8%     27.1%       34.3%      47.3%      open
+31-40   21    4.8%     37.4%       22.7%      40.0%      open
+41-50   19   21.1%     47.3%       43.3%      54.0%      open
+51-60   16   31.2%     56.5%       55.6%      76.9%      open
+61-70   21   38.1%     67.2%       59.1%      71.7%      open
+71-80   24   50.0%     78.2%       68.6%      82.0%      open
+81-90   51   76.5%     88.2%       86.0%      90.4%      open
+91-95   76   85.5%     94.4%       91.7%      94.6%      open
+96-98  110   92.7%     98.2%       96.3%      96.9%      RETIRED
+```
+
+**One band is retired, not eight: 96-98c.** Its 95% upper bound is 96.9%
+against a 98.2% breakeven even after the correction, on the largest sample in
+the record. Buying the band this strategy is built around, unconditionally, is
+still refuted at 95%.
+
+The other seven were never refuted. They are unproven -- which is what they
+were before this section existed, and the difference between "the strategy is
+dead" and "the strategy is dead at the top of the book" is the whole finding.
+
+The lesson generalises past this table, and it is the fourth instance this
+week: **a measurement chosen to be conservative in one direction cannot be
+reused for a decision that runs the other way.** The pessimistic grading was a
+good choice for protecting the promotion bar and a bad one for driving a
+retirement, and nothing flagged the switch because both used the word "win".
+
 ## What retirement does NOT mean -- read this before applying the rule
 
 A band's UCB retires the band **unconditionally traded**. It does not retire
@@ -479,6 +479,80 @@ It needs a separate poller writing to a separate file.
 Until that exists, H6 is registered and unscored. The information claim above
 stands on its own and needs nothing further.
 
+## H6 ADDENDUM -- the instrument exists, the harness now does too (2026-09-02)
+## (the registered text above is unchanged; this records what was added and
+##  the one place this registration is weaker than the others)
+
+**The poller landed 2026-08-31** (`poll.py`, workflow `lowno-poll.yml`): KNYC
+and KDEN only, every 5 minutes, its own concurrency group, writing to
+`logs/poll/<day>.jsonl` -- a subdirectory that `glob("logs/2*.jsonl")` does not
+match, so nothing it collects can reach a ladder, a band, a variant or the
+gate. The main scan's cadence was not touched.
+
+**The harness is `h6_eval.py`, written 2026-09-02, and it is the weakest
+registration in this file.** Every other harness here -- `shape_eval`,
+`curve_lag`, `band_eval`, `shape_temp_eval` -- was written before its data
+existed. This one was written after two days of poll data existed. That is a
+real difference in kind and it is not going to be dressed up: the file carries
+a DISCLOSURE block listing every single thing about the poll data that had been
+looked at when its rules were fixed (row counts, city split, field presence,
+clock coverage, and the raw schema of one row). No pairing, no price move
+across any print, and no correlation had been computed. The exposure is that
+knowledge of the *instrument* could have shaped the rules; the mitigation is
+that the exposure is enumerated rather than asserted to be zero.
+
+**The bar, fixed now: >= 200 print transitions AND >= 20 distinct days.** This
+is H4b's bar, taken deliberately rather than chosen. Same class of claim (does
+the market lag an observable we compute), same instrument (the bottom-rung NO
+price), so it inherits the bar instead of getting one calibrated to how fast H6
+events happen to accrue. The days leg binds.
+
+**The decision rule, fixed now.** An event is a PRINT TRANSITION: two
+consecutive poll cycles whose `last_print_at` differs, same ticker, <= 15
+minutes apart (the poller steps at 5, so that is two missed cycles), with a
+real NO offer on both sides and a non-null deviation on the earlier one.
+Pearson correlation between `nowcast_minus_print` on the cycle BEFORE the print
+and the NO price change ACROSS it; PASSES only if that correlation is positive
+with a Fisher 95% CI excluding zero. Pooled over the two cities is the verdict;
+the per-city split is context, and it is pre-declared here that "it works at
+DEN but not NYC" is SUSPICIOUS, not encouraging -- a one-city result on two
+cities is what a null looks like half the time. The move in the cycles BEFORE
+the print is reported beside it: if the market moved just as much with the
+information, the print resolved nothing and the correlation is a shared trend,
+not a lag.
+
+**Verified on SYNTHETIC worlds, not on real history** (`test_h6_eval.py`, 13
+checks): it must find a planted lag, report null on noise, refuse below the bar
+however large the planted effect, and drop every unclean pair -- no print
+between the rows, no real offer, a rung change, a poll outage, a null
+deviation, and a `move_before` that would reach back across a different print.
+Backtesting it on the poll data would be the peek this registration exists to
+prevent.
+
+**Two instrumentation facts found while wiring it. Both bound what H6 can ever
+say, and neither was fixed here.**
+
+1. **There is no morning.** The workflow has two cold starts, 13:02Z and
+   18:02Z. The 13:02Z fire has never delivered: 2026-08-31 ran 18:20-23:39Z,
+   2026-09-01 ran 17:15-23:36Z. Same GitHub non-delivery that cost the scan
+   5-of-11 and 0-of-14 days. The morning is where the nowcast's own measured
+   bias is largest (flat runs +0.56 to +2.33F low at 8-12 local), so the window
+   most likely to carry a mispricing is the one being missed.
+2. **The bottom rung stops carrying a price on exactly the days the claim is
+   about.** `na == 100` is "no offer", and it was 100 on every polled row for
+   DEN on both days and for NYC on 08-31 -- 3 of the first 4 city-days. DEN
+   2026-09-01: bottom rung cap 80 while the host printed up to 87.08F. The
+   bucket was dead by mid-afternoon, `yes_bid` went to nothing, and a rung that
+   cannot reprice cannot show a lag. **15 usable print transitions out of 248
+   poll rows, all of them NYC on one day.** The harness is right to drop them;
+   the input is under-specified, which is the same diagnosis as DEN's nowcast
+   before KGXY was added. Capturing a rung that still has two live sides (or
+   the whole ladder) is an instrumentation decision, not a test change, and it
+   is Michael's call -- flagged, not made.
+
+Note also that none of this changes failure mode 3 above: even a pass here
+cannot promote anything before the 2026-12-31 stop. H6 has no pilot, like H5.
+
 # THE UNCONSTRAINED SWEEP (2026-08-31) -- 300 slices, nothing survives
 
 Asked to find the edge anywhere, with any entry and any exit. So: every
@@ -853,6 +927,43 @@ meter -- but a status feed that reports a bar as met is exactly the kind of
 number a future session would act on. Fixed by having the meter call
 `curve_lag._events()` so it cannot drift from the test again; a two-leg bar now
 fills to its shortest leg and carries `also` + an explicit `ready`.
+
+**The same bug, on H4a, caught before it fired -- 2026-09-02 (display only; the
+28-day bar is unchanged).** H4a's registered bar is 28 logged days. Its meter
+had no explicit `ready`, so `_status` fell back to `have >= need`. The day count
+was about to reach 28 on the 2026-09-03 nightly while `shape_eval.verdict()`
+still reads `n=0/50`, because the operative constraint was never the day count:
+a decision only scores when its `(city, peak-hour, rate-bucket)` train cell
+reaches `MIN_N_RATE = 12`, and the deepest cell inside the 13-16 local window
+is at 10. H4a would therefore have dropped out of `docs/status.json.blocking`
+around 2026-09-03 -- reporting "a test is ready" against its own gate -- and
+stayed wrong across the 2026-09-05 check-in. Fixed the same way as H4b:
+`ready` is taken from `shape_eval.verdict()`, and the real constraint rides
+along as a second leg (`held-out scored decisions`, 0/50) so the bar fills to
+the shortest one. **No bar was moved.** The 28 days stays registered and stays
+displayed; `MIN_SCORED = 50` was registered 2026-08-27 in the same breath, so
+surfacing it adds no requirement. Counts only: `n` and `ready` are read from
+the verdict, never `passed` and never the Brier values.
+
+Measured while fixing it, and worth recording because it dates the answer: the
+leading peak-window cells fill at **exactly +1 per settled even-dated day**
+(traced 08-06 through 09-02; the only misses are 2026-08-26, the coverage-cliff
+day, which contributed 0 to every one of them). Four cells sit at 10. So 09-02
+takes them to 11 and 09-04 takes them to 12, and H4a can first score on or
+about the **2026-09-05** nightly -- the check-in date, unchanged. It will not
+trickle: at four qualifying cells the held-out count is ~126 decisions against
+a bar of 50, so H4a gets a verdict rather than another "still short", and one
+more coverage-cliff day moves that to 09-07. The cells deeper than 10
+(`PHL|18|stalled` and `NYC|18|stalled`, both at 11) are outside the peak window
+and can never score -- they are decoys in the raw table.
+
+**H6 and H7 were absent from the meter entirely** until 2026-09-02: their gates
+were computed into `docs/gates.json` and H7 refused correctly, but neither
+appeared in `hypotheses.json`, in `status.json.hypotheses`, in `blocking`, or
+in the nightly progress block. A registered hypothesis that no meter counts is
+one nobody notices becoming ready. Both now delegate to their own tests --
+H6 to `h6_eval._events()`, H7 to `shape_temp_eval.verdict()` for its two
+strata, with the hourly pair named as the binding leg.
 
 ## How it fails (named in advance)
 1. Rate is a proxy for hour, and hour is already in the model -- the banding
