@@ -8,8 +8,5 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **SEA** QUALIFIED @ 0.84 ceil 69 guide 73 -> CLI 66 :: **FORECAST_BUST**  _boundary-case city; ramp narratives run ~1 day ahead of airmass. Check dawn Td (>=58 = arrived)._
-- **LAX** DEAD_SCAVENGE @ 0.93 ceil 75 guide 73 -> CLI 76 :: **WIN**
-- **EWR** DEAD_SCAVENGE @ 0.98 ceil 84 guide 86 -> CLI 87 :: **WIN**
 
-**2/3 hit** (67%) vs 98.2% breakeven at 0.98
+no qualified flags today -- a complete and acceptable outcome
