@@ -48,7 +48,15 @@ def issuances(site, day):
     except Exception as e:
         return [], f"product list failed: {str(e)[:60]}"
     out = []
-    for item in graph[:12]:
+    # Products for `day` are issued on `day` (intraday) and the next UTC day
+    # (the final, after local midnight). Filter the listing by issuance date
+    # before fetching text: the first version took the 12 newest products,
+    # which is ~3 days of issuances, so a backtest saw nothing older.
+    nxt = (dt.date.fromisoformat(day) + dt.timedelta(days=1)).isoformat()
+    for item in graph:
+        it = (item.get("issuanceTime") or "")[:10]
+        if it not in (day, nxt):
+            continue
         try:
             text = sources._get(item["@id"], timeout=25).get("productText", "") or ""
         except Exception:
@@ -113,16 +121,127 @@ def ladder(city, day):
     return out
 
 
+def _stamp_hour(valid):
+    """'0400 PM' -> 16, 'FINAL' -> 99, unknown -> None."""
+    if valid == "FINAL":
+        return 99
+    m = re.match(r"(\d{1,2})(\d{2})\s*([AP]M)", valid or "")
+    if not m:
+        return None
+    h = int(m.group(1)) % 12 + (12 if m.group(3) == "PM" else 0)
+    return h
+
+
+def _bucket_of(rungs, value):
+    for g in rungs:
+        fl, cap = g.get("fl"), g.get("cap")
+        if (fl is None or fl <= value) and (cap is None or value <= cap):
+            return g
+    return None
+
+
+def _next_up(rungs, g):
+    if g is None or g.get("cap") is None:
+        return None
+    cands = [r for r in rungs if r.get("fl") is not None and r["fl"] > g["cap"]]
+    return min(cands, key=lambda r: r["fl"]) if cands else None
+
+
+def backtest(city, ndays):
+    """For each of the last `ndays` local days: every intraday issuance's max vs
+    the FINAL, the clock time of the final max, and -- from the scan's own
+    logged ladders -- what the market charged for the next bucket UP right
+    after the 4 PM issuance, against whether the final actually got there.
+
+    The CLI is fetchable for ~7 days (gotcha #11), so this is bounded by the
+    API, not by choice. logs/cli/ grows the record from here on.
+    """
+    cfg = CITIES[city]
+    tz = zoneinfo.ZoneInfo(cfg["tz"])
+    site = cfg["station"][1:].upper()
+    today = dt.datetime.now(tz).date()
+    print(f"{'day':11}{'4PM':>5}{'5PM':>5}{'6PM':>5}{'FINAL':>7}{'final at':>10}   "
+          f"{'4PM bucket':>11}{'next-up':>9}{'YES@next':>9}{'scan at':>8}  outcome")
+    n = hit = 0
+    resid = []
+    for i in range(ndays, 0, -1):
+        day = (today - dt.timedelta(days=i)).isoformat()
+        iss, err = issuances(site, day)
+        if not iss:
+            print(f"{day:11}  (no CLI products in the API window)")
+            continue
+        by = {}
+        for r in iss:
+            h = _stamp_hour(r["valid_as_of"])
+            if h is not None and r["max_f"] is not None:
+                by[h] = r
+        final = by.get(99)
+        m4, m5, m6 = (by.get(h, {}).get("max_f") for h in (16, 17, 18))
+        fmax = final["max_f"] if final else None
+        # market right after the 4 PM issuance, from the scan's logged ladders
+        mkt = "--"
+        scan_at = "--"
+        b4 = nxt = None
+        if m4 is not None and by.get(16):
+            t4 = by[16]["issued"]
+            try:
+                for line in open(f"logs/{day}.jsonl"):
+                    try:
+                        row = json.loads(line)
+                    except Exception:
+                        continue
+                    d = row.get("detail")
+                    if row.get("city") != city or not isinstance(d, dict) or not d.get("rungs"):
+                        continue
+                    if row["at"].replace("+00:00", "Z")[:16] < t4[:16]:
+                        continue
+                    b4 = _bucket_of(d["rungs"], m4)
+                    nxt = _next_up(d["rungs"], b4)
+                    if nxt is not None:
+                        ya = nxt.get("ya")
+                        mkt = f"{ya}" if ya is not None else "--"
+                    scan_at = row["at"][11:16] + "Z"
+                    break
+            except OSError:
+                pass
+        outcome = "--"
+        if fmax is not None and m4 is not None:
+            n += 1
+            went_up = fmax > m4
+            hit += went_up
+            outcome = f"final {'ABOVE' if went_up else '=='} 4PM max"
+            if mkt != "--" and nxt is not None:
+                resid.append((int(mkt), went_up and (nxt["fl"] <= fmax <= (nxt["cap"] or 999))))
+        lab = lambda g: ("--" if g is None else (f"<={g['cap']}" if g.get("fl") is None
+                         else (f">={g['fl']}" if g.get("cap") is None else f"{g['fl']}-{g['cap']}")))
+        fat = (final.get("max_at") if final else None) or "--"
+        print(f"{day:11}{str(m4):>5}{str(m5):>5}{str(m6):>5}{str(fmax):>7}"
+              f"{fat:>10}   {lab(b4):>11}{lab(nxt):>9}{mkt:>9}{scan_at:>8}  {outcome}")
+    if n:
+        print(f"\nfinal ABOVE the 4 PM max on {hit}/{n} days")
+    if resid:
+        print(f"market YES on the next-up bucket after the 4 PM issuance vs whether the final landed there:")
+        for price, landed in resid:
+            print(f"   priced {price}c -> {'LANDED' if landed else 'did not'}")
+        print(f"   mean price {sum(p for p, _ in resid) / len(resid):.1f}c   "
+              f"realised {100 * sum(1 for _, l in resid if l) / len(resid):.0f}%   n={len(resid)}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("city", nargs="?", default="DEN")
+    ap.add_argument("--day", help="local trading date YYYY-MM-DD (default today; tomorrow shows the board with no record yet)")
+    ap.add_argument("--backtest", type=int, metavar="NDAYS", help="walk the last NDAYS days instead")
     ap.add_argument("--no-log", action="store_true")
     a = ap.parse_args()
     cfg = CITIES[a.city]
     tz = zoneinfo.ZoneInfo(cfg["tz"])
     station = cfg["station"]
     site = station[1:].upper()
-    day = dt.datetime.now(tz).date().isoformat()
+    if a.backtest:
+        backtest(a.city, a.backtest)
+        return
+    day = a.day or dt.datetime.now(tz).date().isoformat()
     now = dt.datetime.now(dt.timezone.utc)
 
     iss, err = issuances(site, day)

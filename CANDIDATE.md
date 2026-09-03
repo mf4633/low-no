@@ -408,6 +408,38 @@ check that reads a different slice than its consumers is not protecting them,
 which this repository has now learned three times. **A deficit beyond -1.8F is
 something new; one C step cannot produce it.**
 
+# THE INTRADAY CLI IS THE SETTLEMENT, PUBLISHED EARLY (measured 2026-09-02)
+
+NWS issues intraday CLI products for the trading date carrying the 1-minute
+MAXIMUM and its clock time -- at DEN "valid as of 4 PM" (~22:35Z), "5 PM"
+(~23:31Z), then the final after local midnight. `cli_watch.py` reads them and
+marks the Kalshi ladder against the record; `cli_watch.py CITY --backtest N`
+walks the API window (~7 days, gotcha #11).
+
+**Measured, 8-day window:**
+
+    DEN  final == 4 PM max on 6/6 days (7/7 with 2026-09-02). Time of the
+         final max: 1:46 PM, 3:38, 2:36, --, --, 3:52, 3:53 -- never after 4 PM.
+    NYC  final == 4 PM max on 4/6; the two exceptions (+1F at 6:13 PM on
+         08-30, +1F on 09-01) stayed INSIDE the 4 PM bucket. One day (08-27)
+         the final came in BELOW the 4 PM issuance (81 -> 77): CLI corrections
+         happen, and the intraday product is not immune to them.
+
+**The market does not lag the issuance.** From the scan's own logged ladders,
+the first ladder after the 4 PM product priced the next bucket UP at 1-8c
+(DEN mean 3.4c, NYC 1.3c), and it landed 0/11 times. That is the market
+reading a public product within the hour -- evidence AGAINST an H6-style lag
+at the settlement step, and a direct refutation of what I said live on
+2026-09-02 ("the market's 3-5c is too low"): on the record it was, if
+anything, generous. Recorded so it is not re-proposed as an edge.
+
+**What it does change:** the settlement question is answerable from 22:35Z
+on, not estimated. On 2026-09-02 I quoted P(89+) at 27% at 23:15Z from an
+offset table while the 4 PM and 5 PM issuances both said 88; the market had
+repriced at 22:35Z. Rule: read the issuances before quoting odds. The
+containing bucket after the 4 PM issuance is a >=95% proposition and is priced
+95-99c -- correct, and no edge, per the fee tax.
+
 # HYPOTHESIS 9 -- THE SETTLEMENT CONVENTION: DOES CLI ROUND OR FLOOR?
 # (registered 2026-09-02, BEFORE the real ledger was scored. This text does
 #  not change.)
