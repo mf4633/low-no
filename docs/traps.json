@@ -1,18 +1,18 @@
 {
- "at": "2026-09-03T16:32:02.770708Z",
+ "at": "2026-09-03T16:38:08.692544Z",
  "traps": [
   {
    "city": "DAL",
    "ceiling": 90,
-   "price": 47,
+   "price": 55,
    "p_model": 0.9704,
-   "p_market": 0.47,
-   "edge_pts": 50.0,
+   "p_market": 0.55,
+   "edge_pts": 42.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 50 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 42 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,7 +24,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "47c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "55c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
