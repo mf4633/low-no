@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-02T12:10:13.538500Z",
+ "generated": "2026-09-03T03:18:42.712869Z",
  "hypotheses": [
   {
    "id": "H4a",
@@ -7,26 +7,32 @@
    "have": 26,
    "need": 28,
    "unit": "logged days",
-   "note": "shape_eval.py runs unchanged when met"
+   "also": {
+    "have": 0,
+    "need": 50,
+    "unit": "held-out scored decisions"
+   },
+   "ready": false,
+   "note": "days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores"
   },
   {
    "id": "H4b",
    "name": "market lag on curve_dev",
-   "have": 184,
+   "have": 208,
    "need": 200,
    "unit": "events",
    "also": {
-    "have": 6,
+    "have": 7,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": false,
-   "note": "6/20 distinct days"
+   "note": "7/20 distinct days"
   },
   {
    "id": "H5",
    "name": "contested band 81-95c (blocked on H4a)",
-   "have": 1,
+   "have": 2,
    "need": 60,
    "unit": "city-day units",
    "also": {
@@ -36,6 +42,43 @@
    },
    "ready": false,
    "note": "supply only; scoring waits on H4a (2 days since 2026-09-01)"
+  },
+  {
+   "id": "H6",
+   "name": "market prices off the stale print",
+   "have": 38,
+   "need": 200,
+   "unit": "print transitions",
+   "also": {
+    "have": 2,
+    "need": 20,
+    "unit": "distinct days"
+   },
+   "ready": false,
+   "note": "2/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+  },
+  {
+   "id": "H7",
+   "name": "shape on temperature (stratified)",
+   "have": 0,
+   "need": 50,
+   "unit": "scored (control)",
+   "also": {
+    "have": 0,
+    "need": 50,
+    "unit": "scored (hourly)"
+   },
+   "ready": false,
+   "note": "the hourly pair is the binding leg; a verdict needs both strata, pooled is context"
+  },
+  {
+   "id": "H8",
+   "name": "run_max/temp_now gap (H4a x H7)",
+   "have": 5,
+   "need": 150,
+   "unit": "samples in 'climbing_off'",
+   "ready": false,
+   "note": "fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop"
   },
   {
    "id": "H1",
@@ -60,6 +103,14 @@
    "need": 0,
    "unit": "closed",
    "note": "real but priced"
+  },
+  {
+   "id": "H9",
+   "name": "round vs floor (NOT SUPPORTED 2026-09-02)",
+   "have": 0,
+   "need": 0,
+   "unit": "closed",
+   "note": "+0.5 correction stands; boundary diff -0.0004, n=157"
   }
  ]
 }

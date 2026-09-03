@@ -10,7 +10,7 @@ om_icon       2512    11  -1.05  2.17  2.75    56%
 om_ecmwf      2578    11  -0.49  3.15  4.21    43%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 46 calls, est $0.6555 spent, $4.34 left (~304 calls)
+spend: 50 calls, est $0.7125 spent, $4.29 left (~300 calls)
 rung-obs 25400 -> 492 independent units over 26 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  34   0     0%   5.9%     0%    10%    -5.9      open
@@ -50,29 +50,33 @@ station guide bias (guide - CLI): {'LAX': -2.38, 'TTN': 1.86, 'NYC': 1.56, 'EWR'
      floor96_ex_marine 107 101    94%   88%    -3.78
      conv_window_96_98   6   5    83%   44%   -14.33
        floor96_depth25  50  47    94%   84%    -3.94
-          corrected_G4  62  52    84%   73%     0.21
-  corrected_G4_floor90  50  49    98%   90%      0.9
+          corrected_G4  60  50    83%   72%     0.23
+  corrected_G4_floor90  48  47    98%   89%     0.96
           floor96_only 126 117    93%   87%    -5.31
       floor96_twosided 103  99    96%   90%    -1.98
     frozen_G4_twosided  87  69    79%   70%    -4.36
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-02': 1} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
 PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
   HYPOTHESIS REFUTED 2026-08-27: hot-bias premise was a CLI parser artifact. Measured rate 3.1% vs breakeven 2.6% (LCB 1.5%). No station clears the bias gate, so the pilot correctly trades nothing. NO SEED. See CANDIDATE.md.
-  status.json written (lowno.status/1): 26 days, 3 hypothesis bar(s) still short
+  status.json written (lowno.status/1): 26 days, 6 hypothesis bar(s) still short
 
 HYPOTHESIS PROGRESS (data bars, not results)
-  H4a   shape validation (held-out) [##################..] 26/28 logged days  +shape_eval.py runs unchanged when met
-  H4b   market lag on curve_dev    [######..............] 184/200 events  +6/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 1/60 city-day units  +supply only; scoring waits on H4a (2 days since 2026-09-01)
+  H4a   shape validation (held-out) [....................] 26/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
+  H4b   market lag on curve_dev    [#######.............] 208/200 events  +7/20 distinct days
+  H5    contested band 81-95c (blocked on H4a) [....................] 2/60 city-day units  +supply only; scoring waits on H4a (2 days since 2026-09-01)
+  H6    market prices off the stale print [##..................] 38/200 print transitions  +2/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
+  H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
+  H8    run_max/temp_now gap (H4a x H7) [....................] 5/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced
+  H9    round vs floor (NOT SUPPORTED 2026-09-02) [####################] 0/0 closed  ++0.5 correction stands; boundary diff -0.0004, n=157
 
 AUTONOMOUS PILOTS (activate on a PASSED test, not a met bar)
   PILOT-A <- H4a  dormant                $100.00 0 trades  (not enough held-out decisions with an earned shape c)

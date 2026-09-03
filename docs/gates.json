@@ -11,9 +11,9 @@
   "id": "H4b",
   "ready": false,
   "passed": false,
-  "events": 184,
+  "events": 208,
   "need_events": 200,
-  "days": 6,
+  "days": 7,
   "need_days": 20,
   "reason": "data bar not met"
  },
@@ -23,6 +23,16 @@
   "passed": false,
   "units": 0,
   "reason": "blocked: H4a has not passed"
+ },
+ "H6": {
+  "id": "H6",
+  "ready": false,
+  "passed": false,
+  "events": 38,
+  "need_events": 200,
+  "days": 2,
+  "need_days": 20,
+  "reason": "data bar not met"
  },
  "H7": {
   "id": "H7",
@@ -43,5 +53,39 @@
   "passed": false,
   "reason": "need 50 scored decisions per stratum; have hourly=0, control=0"
  },
- "generated": "2026-09-02T12:10:14.731296Z"
+ "H8": {
+  "id": "H8",
+  "ready": false,
+  "passed": false,
+  "counts": {
+   "stalled_on": 123,
+   "stalled_off": 78,
+   "climbing_on": 151,
+   "climbing_off": 5
+  },
+  "need_per_group": 150,
+  "reason": "data bar not met (four groups, 150 each)"
+ },
+ "H9": {
+  "id": "H9",
+  "ready": true,
+  "passed": false,
+  "boundary": {
+   "n": 157,
+   "mean": -0.00039,
+   "ci": [
+    -0.00923,
+    0.00846
+   ]
+  },
+  "tail": {
+   "n": 330,
+   "mean": -0.00407,
+   "ci": [
+    -0.00906,
+    0.00091
+   ]
+  }
+ },
+ "generated": "2026-09-03T03:18:51.426782Z"
 }
