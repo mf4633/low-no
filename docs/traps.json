@@ -1,103 +1,91 @@
 {
- "at": "2026-09-02T23:23:58.824654Z",
+ "at": "2026-09-03T11:23:05.280412Z",
  "traps": [
   {
-   "city": "EWR",
-   "ceiling": 76,
-   "price": 1,
-   "p_model": 0.3942,
-   "p_market": 0.01,
-   "edge_pts": 38.4,
+   "city": "DAL",
+   "ceiling": 90,
+   "price": 65,
+   "p_model": 0.9493,
+   "p_market": 0.65,
+   "edge_pts": 29.9,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 38 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "n_eff=11.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (16:00) with the running max still 4.0F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "65c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "TTN",
-   "ceiling": 77,
-   "price": 3,
-   "p_model": 0.3942,
-   "p_market": 0.03,
-   "edge_pts": 36.4,
+   "city": "MSP",
+   "ceiling": 83,
+   "price": 82,
+   "p_model": 0.944,
+   "p_market": 0.82,
+   "edge_pts": 12.4,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "NO_HISTORY",
-     "why": "n_eff=7.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "n_eff=11.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 5.0F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "OKC",
+   "ceiling": 94,
+   "price": 90,
+   "p_model": 0.9392,
+   "p_market": 0.9,
+   "edge_pts": 3.9,
+   "size_lcb": 0.0492,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=11.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "PHL",
-   "ceiling": 81,
-   "price": 1,
-   "p_model": 0.1883,
-   "p_market": 0.01,
-   "edge_pts": 17.8,
+   "ceiling": 87,
+   "price": 73,
+   "p_model": 0.7582,
+   "p_market": 0.73,
+   "edge_pts": 2.8,
    "size_lcb": 0.0,
    "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 18 pts. In this ledger the market won 7 of 8 such disputes."
-    },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (14:00) with the running max still 5.1F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "NYC",
-   "ceiling": 74,
-   "price": 2,
-   "p_model": 0.147,
-   "p_market": 0.02,
-   "edge_pts": 12.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (16:00) with the running max still 4.0F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "73c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
