@@ -1,18 +1,22 @@
 {
- "at": "2026-09-03T17:39:14.137620Z",
+ "at": "2026-09-03T18:40:19.638793Z",
  "traps": [
   {
    "city": "DAL",
    "ceiling": 90,
-   "price": 68,
-   "p_model": 0.9624,
-   "p_market": 0.68,
-   "edge_pts": 28.2,
+   "price": 60,
+   "p_model": 0.7753,
+   "p_market": 0.6,
+   "edge_pts": 17.5,
    "size_lcb": 0.0,
    "signals": [
     {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 18 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,17 +28,36 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "68c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 83,
+   "price": 91,
+   "p_model": 0.9602,
+   "p_market": 0.91,
+   "edge_pts": 5.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=11.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   },
   {
    "city": "DC",
    "ceiling": 92,
-   "price": 21,
-   "p_model": 0.2847,
-   "p_market": 0.21,
-   "edge_pts": 7.5,
+   "price": 40,
+   "p_model": 0.425,
+   "p_market": 0.4,
+   "edge_pts": 2.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -51,7 +74,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "21c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "40c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
