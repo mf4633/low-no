@@ -1,5 +1,5 @@
 {
- "at": "2026-09-04T23:05:04.841199Z",
+ "at": "2026-09-04T23:23:24.232033Z",
  "traps": [
   {
    "city": "MSP",
@@ -59,14 +59,18 @@
    "city": "SAT",
    "ceiling": 94,
    "price": 1,
-   "p_model": 0.1249,
+   "p_model": 0.1823,
    "p_market": 0.01,
-   "edge_pts": 11.5,
+   "edge_pts": 17.2,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
