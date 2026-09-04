@@ -1,13 +1,13 @@
 {
- "at": "2026-09-04T20:48:01.237673Z",
+ "at": "2026-09-04T21:50:49.652528Z",
  "traps": [
   {
    "city": "DC",
    "ceiling": 90,
    "price": 1,
-   "p_model": 0.5447,
+   "p_model": 0.3643,
    "p_market": 0.01,
-   "edge_pts": 53.5,
+   "edge_pts": 35.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 53 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 35 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -28,17 +28,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SAT",
    "ceiling": 94,
-   "price": 9,
-   "p_model": 0.166,
-   "p_market": 0.09,
-   "edge_pts": 7.6,
+   "price": 4,
+   "p_model": 0.1401,
+   "p_market": 0.04,
+   "edge_pts": 10.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -48,6 +48,37 @@
     {
      "code": "NO_HISTORY",
      "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 4.4F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 87,
+   "price": 41,
+   "p_model": 0.4387,
+   "p_market": 0.41,
+   "edge_pts": 2.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "41c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   }
