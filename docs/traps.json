@@ -1,13 +1,44 @@
 {
- "at": "2026-09-04T12:23:45.657151Z",
+ "at": "2026-09-04T13:25:49.042355Z",
  "traps": [
+  {
+   "city": "MSY",
+   "ceiling": 86,
+   "price": 55,
+   "p_model": 0.9253,
+   "p_market": 0.55,
+   "edge_pts": 37.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 38 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "55c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
   {
    "city": "AUS",
    "ceiling": 92,
-   "price": 58,
-   "p_model": 0.9482,
-   "p_market": 0.58,
-   "edge_pts": 36.8,
+   "price": 60,
+   "p_model": 0.9744,
+   "p_market": 0.6,
+   "edge_pts": 37.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -24,48 +55,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "58c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "MSY",
-   "ceiling": 86,
-   "price": 58,
-   "p_model": 0.9253,
-   "p_market": 0.58,
-   "edge_pts": 34.5,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 35 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "58c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "SAT",
    "ceiling": 94,
-   "price": 65,
+   "price": 69,
    "p_model": 0.7759,
-   "p_market": 0.65,
-   "edge_pts": 12.6,
+   "p_market": 0.69,
+   "edge_pts": 8.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -78,26 +78,30 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "65c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "69c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "MIA",
-   "ceiling": 86,
-   "price": 94,
-   "p_model": 0.943,
-   "p_market": 0.94,
-   "edge_pts": 0.3,
+   "city": "BOS",
+   "ceiling": 79,
+   "price": 37,
+   "p_model": 0.4093,
+   "p_market": 0.37,
+   "edge_pts": 3.9,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "code": "NO_HISTORY",
+     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "37c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
