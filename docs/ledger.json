@@ -5557,8 +5557,8 @@
       "verdict": "ABSTAIN",
       "reasoning": "advisor error: substring not found"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 95,
+     "attribution": "WIN"
     },
     {
      "date": "2026-09-03",
@@ -5831,13 +5831,13 @@
       "reasoning": "Current run_max is 82.04F at 18:51Z \u2014 already at cap but barely. The heating curve shows peak at 86F (hrs 15-17 local), yet actual trace ran ~4F cold vs model. However, 18:51Z obs is 27.8C (82.0F) with SW 9kt and clear sky; upstream KBLM/KSMQ reading 86-88F. The tape jumped from 25.6\u219227.2\u219227.8C in two hours \u2014 still climbing. B83.5 YES at 79c implies ~80% chance max >83F, which is consistent with exceeding 82F. But the run_max nowcast quality is 'reduced' (KLGA dropped, stale 46min). The position pays only if max >82F; at 82.04 already banked and still rising with hot SW advection, p_exceed is ~0.72. However, the ask is 96c \u2014 paying 4c for 72% win is good EV, but the nowcast staleness and reduced quality introduce settlement uncertainty. EV positive but data quality concern warrants pass.",
       "watch": "Next KNYC obs temp \u2014 if 18:51Z 27.8C holds as the day's peak or the 19:51Z print exceeds 28.0C (82.4F), that determines settlement above vs at cap"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 84,
+     "attribution": "WIN"
     }
    ]
   }
  ],
- "generated": "2026-09-04T05:16:33.389250Z",
+ "generated": "2026-09-04T07:11:14.448524Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24"

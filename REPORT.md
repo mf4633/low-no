@@ -8,7 +8,7 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **OKC** QUALIFIED @ 0.95 ceil 94 guide 98 -> CLI None :: **UNGRADED**
-- **NYC** DEAD_SCAVENGE @ 0.96 ceil 82 guide 85 -> CLI None :: **UNGRADED**  _park bowl: Td throttle, -3.5F vs EWR clear days, -2 cloudy. EWR leads by 2-3h; LGA = marine sentinel._
+- **OKC** QUALIFIED @ 0.95 ceil 94 guide 98 -> CLI 95 :: **WIN**
+- **NYC** DEAD_SCAVENGE @ 0.96 ceil 82 guide 85 -> CLI 84 :: **WIN**
 
-no qualified flags today -- a complete and acceptable outcome
+**2/2 hit** (100%) vs 98.2% breakeven at 0.98
