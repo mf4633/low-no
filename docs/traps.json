@@ -1,72 +1,22 @@
 {
- "at": "2026-09-04T18:41:51.688296Z",
+ "at": "2026-09-04T19:45:11.070056Z",
  "traps": [
-  {
-   "city": "SAT",
-   "ceiling": 94,
-   "price": 22,
-   "p_model": 0.5134,
-   "p_market": 0.22,
-   "edge_pts": 29.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "22c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "MSP",
-   "ceiling": 87,
-   "price": 45,
-   "p_model": 0.6927,
-   "p_market": 0.45,
-   "edge_pts": 24.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "45c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
   {
    "city": "MSY",
    "ceiling": 86,
-   "price": 51,
-   "p_model": 0.621,
-   "p_market": 0.51,
-   "edge_pts": 11.1,
+   "price": 57,
+   "p_model": 0.8377,
+   "p_market": 0.57,
+   "edge_pts": 26.8,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 27 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -78,45 +28,46 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "51c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "57c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "AUS",
-   "ceiling": 92,
-   "price": 35,
-   "p_model": 0.4428,
-   "p_market": 0.35,
-   "edge_pts": 9.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "35c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "PHX",
-   "ceiling": 99,
-   "price": 97,
-   "p_model": 0.9733,
-   "p_market": 0.97,
-   "edge_pts": 0.3,
+   "city": "DC",
+   "ceiling": 90,
+   "price": 60,
+   "p_model": 0.8232,
+   "p_market": 0.6,
+   "edge_pts": 22.3,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   }
