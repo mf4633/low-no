@@ -1,22 +1,45 @@
 {
- "at": "2026-09-04T21:58:29.000791Z",
+ "at": "2026-09-04T23:01:46.062324Z",
  "traps": [
   {
-   "city": "DC",
-   "ceiling": 90,
+   "city": "MSP",
+   "ceiling": 87,
    "price": 1,
-   "p_model": 0.3643,
+   "p_model": 1.0,
    "p_market": 0.01,
-   "edge_pts": 35.4,
+   "edge_pts": 99.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 35 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 99 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
+  {
+   "city": "DC",
+   "ceiling": 90,
+   "price": 1,
+   "p_model": 0.3396,
+   "p_market": 0.01,
+   "edge_pts": 33.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-5F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -28,44 +51,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "MSP",
-   "ceiling": 87,
-   "price": 16,
-   "p_model": 0.4387,
-   "p_market": 0.16,
-   "edge_pts": 27.9,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=12.6 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SAT",
    "ceiling": 94,
-   "price": 3,
-   "p_model": 0.1401,
-   "p_market": 0.03,
-   "edge_pts": 11.0,
+   "price": 1,
+   "p_model": 0.1249,
+   "p_market": 0.01,
+   "edge_pts": 11.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -78,7 +74,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 4.4F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (16:00) with the running max still 2.6F short. The climb window has closed."
     }
    ]
   }
