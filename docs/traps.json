@@ -1,13 +1,13 @@
 {
- "at": "2026-09-05T21:46:56.524239Z",
+ "at": "2026-09-05T21:53:51.084186Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 87,
    "price": 10,
-   "p_model": 0.3386,
+   "p_model": 1.0,
    "p_market": 0.1,
-   "edge_pts": 23.9,
+   "edge_pts": 90.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,26 +16,22 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 90 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=13.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SEA",
    "ceiling": 67,
-   "price": 52,
+   "price": 44,
    "p_model": 0.5646,
-   "p_market": 0.52,
-   "edge_pts": 4.5,
-   "size_lcb": 0.0067,
+   "p_market": 0.44,
+   "edge_pts": 12.5,
+   "size_lcb": 0.0772,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -43,7 +39,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
