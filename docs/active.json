@@ -1,5 +1,78 @@
 {
- "at": "2026-09-05T12:27:08.956235Z",
- "tracked": [],
+ "at": "2026-09-05T13:29:52.478519Z",
+ "tracked": [
+  {
+   "city": "BOS",
+   "station": "KBOS",
+   "ticker": "KXHIGHTBOS-26SEP05-T70",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 69,
+   "run_max": 69.8,
+   "gap_to_clear": -0.8,
+   "already_cleared": true,
+   "guide": 68,
+   "pop": 27,
+   "no_ask": 0.97,
+   "local_hour": 9,
+   "obs_trace": [
+    {
+     "ts": "2026-09-05T13:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:54:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T12:15:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -0.8,
+    "q50": 4.1,
+    "q90": 15.2
+   },
+   "projected_max": {
+    "q10": 69.0,
+    "q50": 73.9,
+    "q90": 85.0
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 13,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
