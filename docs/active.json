@@ -1,74 +1,146 @@
 {
- "at": "2026-09-05T14:32:22.956147Z",
+ "at": "2026-09-05T15:35:05.192541Z",
  "tracked": [
   {
-   "city": "EWR",
-   "station": "KEWR",
-   "ticker": "KXHIGHTEWR-26SEP05-T79",
-   "verdict": "QUALIFIED",
+   "city": "CHI",
+   "station": "KMDW",
+   "ticker": "KXHIGHCHI-26SEP05-T83",
+   "verdict": "DEAD_SCAVENGE",
    "qualified": true,
-   "ceiling": 78,
-   "run_max": 77.0,
-   "gap_to_clear": 1.0,
-   "already_cleared": false,
-   "guide": 83,
-   "pop": 1,
-   "no_ask": 0.96,
+   "ceiling": 82,
+   "run_max": 82.4,
+   "gap_to_clear": -0.4,
+   "already_cleared": true,
+   "guide": 81,
+   "pop": 9,
+   "no_ask": 0.75,
    "local_hour": 10,
    "obs_trace": [
     {
-     "ts": "2026-09-05T14:15:00+00:00",
+     "ts": "2026-09-05T15:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T14:10:00+00:00",
+     "ts": "2026-09-05T15:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T14:05:00+00:00",
+     "ts": "2026-09-05T15:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T14:00:00+00:00",
+     "ts": "2026-09-05T14:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:55:00+00:00",
+     "ts": "2026-09-05T14:53:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:51:00+00:00",
+     "ts": "2026-09-05T14:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:50:00+00:00",
+     "ts": "2026-09-05T14:45:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:45:00+00:00",
+     "ts": "2026-09-05T14:40:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:40:00+00:00",
+     "ts": "2026-09-05T14:35:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:35:00+00:00",
+     "ts": "2026-09-05T14:30:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 5.0,
+    "q10": 2.8,
     "q50": 6.6,
-    "q90": 13.8
+    "q90": 10.0
    },
    "projected_max": {
-    "q10": 82.0,
-    "q50": 83.6,
-    "q90": 90.8
+    "q10": 85.2,
+    "q50": 89.0,
+    "q90": 92.4
    },
-   "p_exceed_empirical": 0.9286,
-   "emp_n": 12,
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  },
+  {
+   "city": "EWR",
+   "station": "KEWR",
+   "ticker": "KXHIGHTEWR-26SEP05-T79",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 78,
+   "run_max": 78.8,
+   "gap_to_clear": -0.8,
+   "already_cleared": true,
+   "guide": 83,
+   "pop": 1,
+   "no_ask": 0.96,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-05T15:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T15:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T15:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T15:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T15:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:40:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 1.4,
+    "q50": 4.1,
+    "q90": 10.2
+   },
+   "projected_max": {
+    "q10": 80.2,
+    "q50": 82.9,
+    "q90": 89.0
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
    "convergence_hour": 14,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
@@ -80,67 +152,67 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 77,
-   "run_max": 75.2,
-   "gap_to_clear": 1.8,
+   "run_max": 77.0,
+   "gap_to_clear": 0.0,
    "already_cleared": false,
    "guide": 81,
    "pop": 0,
    "no_ask": 0.97,
-   "local_hour": 10,
+   "local_hour": 11,
    "obs_trace": [
     {
-     "ts": "2026-09-05T14:15:00+00:00",
+     "ts": "2026-09-05T15:25:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T14:10:00+00:00",
+     "ts": "2026-09-05T15:20:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T14:05:00+00:00",
+     "ts": "2026-09-05T15:15:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T14:00:00+00:00",
+     "ts": "2026-09-05T15:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:55:00+00:00",
+     "ts": "2026-09-05T15:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:53:00+00:00",
+     "ts": "2026-09-05T15:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:50:00+00:00",
+     "ts": "2026-09-05T14:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:45:00+00:00",
+     "ts": "2026-09-05T14:53:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:40:00+00:00",
+     "ts": "2026-09-05T14:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:35:00+00:00",
+     "ts": "2026-09-05T14:45:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
     "q10": 2.2,
-    "q50": 9.2,
-    "q90": 14.2
+    "q50": 6.4,
+    "q90": 8.8
    },
    "projected_max": {
-    "q10": 77.4,
-    "q50": 84.4,
-    "q90": 89.4
+    "q10": 79.2,
+    "q50": 83.4,
+    "q90": 85.8
    },
-   "p_exceed_empirical": 0.9286,
-   "emp_n": 12,
+   "p_exceed_empirical": 0.9375,
+   "emp_n": 14,
    "convergence_hour": 15,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
