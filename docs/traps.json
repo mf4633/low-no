@@ -1,13 +1,13 @@
 {
- "at": "2026-09-05T23:02:35.711842Z",
+ "at": "2026-09-05T23:22:36.796590Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 87,
-   "price": 30,
+   "price": 32,
    "p_model": 1.0,
-   "p_market": 0.3,
-   "edge_pts": 70.0,
+   "p_market": 0.32,
+   "edge_pts": 68.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 70 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,7 +24,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "30c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
