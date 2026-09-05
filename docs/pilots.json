@@ -1,21 +1,33 @@
 {
- "generated": "2026-09-05T06:56:18.933840Z",
+ "generated": "2026-09-05T08:37:38.238366Z",
  "pilots": [
   {
    "id": "PILOT-A",
    "hypothesis": "H4a",
    "name": "shape model vs market (peak window)",
-   "active": false,
+   "active": true,
    "gate": {
-    "ready": false,
-    "passed": false,
-    "reason": "not enough held-out decisions with an earned shape cell"
+    "ready": true,
+    "passed": true,
+    "reason": null
    },
-   "status": "DORMANT",
-   "bankroll": 100.0,
-   "n_trades": 0,
+   "bankroll": 95.0,
+   "status": "ACTIVE",
+   "n_trades": 1,
    "wins": 0,
-   "rows": []
+   "rows": [
+    {
+     "day": "2026-08-08",
+     "city": "NYC",
+     "price": 5,
+     "contracts": 100,
+     "stake": 5.0,
+     "won": false,
+     "pnl": -5.0,
+     "action": "trade",
+     "bankroll": 95.0
+    }
+   ]
   },
   {
    "id": "PILOT-B",

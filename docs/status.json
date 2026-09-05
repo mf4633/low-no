@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-09-05T06:56:08.288077Z",
+ "generated": "2026-09-05T08:37:27.223684Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -14,8 +14,8 @@
   "logged_days": 29,
   "first_day": "2026-08-07",
   "last_day": "2026-09-04",
-  "rung_observations": 31544,
-  "independent_units": 594,
+  "rung_observations": 32024,
+  "independent_units": 611,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -54,8 +54,8 @@
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 542,
-  "settlements_verified": 362,
+  "settlements_cached": 547,
+  "settlements_verified": 367,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -64,7 +64,6 @@
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
    "11-20",
-   "31-40",
    "81-90",
    "91-95",
    "96-98"
@@ -80,9 +79,9 @@
     "have": 29,
     "need": 28,
     "unit": "logged days",
-    "ready": false,
+    "ready": true,
     "also": {
-     "have": 39,
+     "have": 69,
      "need": 50,
      "unit": "held-out scored decisions"
     }
@@ -212,23 +211,6 @@
   }
  },
  "blocking": [
-  {
-   "id": "H4a",
-   "name": "shape validation (held-out)",
-   "status": "open",
-   "bar": {
-    "have": 29,
-    "need": 28,
-    "unit": "logged days",
-    "ready": false,
-    "also": {
-     "have": 39,
-     "need": 50,
-     "unit": "held-out scored decisions"
-    }
-   },
-   "note": "days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores"
-  },
   {
    "id": "H4b",
    "name": "market lag on curve_dev",

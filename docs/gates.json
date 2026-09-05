@@ -1,11 +1,12 @@
 {
  "H4a": {
   "id": "H4a",
-  "ready": false,
-  "passed": false,
-  "n": 39,
-  "need": 50,
-  "reason": "not enough held-out decisions with an earned shape cell"
+  "ready": true,
+  "passed": true,
+  "n": 69,
+  "brier_base": 0.0383,
+  "brier_shape": 0.0372,
+  "improvement_pct": 2.87
  },
  "H4b": {
   "id": "H4b",
@@ -22,7 +23,8 @@
   "ready": false,
   "passed": false,
   "units": 0,
-  "reason": "blocked: H4a has not passed"
+  "need": 60,
+  "reason": "unit bar not met"
  },
  "H6": {
   "id": "H6",
@@ -58,9 +60,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 193,
-   "stalled_off": 131,
-   "climbing_on": 246,
+   "stalled_on": 200,
+   "stalled_off": 134,
+   "climbing_on": 255,
    "climbing_off": 16
   },
   "need_per_group": 150,
@@ -71,21 +73,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 191,
-   "mean": 0.00041,
+   "n": 193,
+   "mean": 6e-05,
    "ci": [
-    -0.00734,
-    0.00815
+    -0.00762,
+    0.00775
    ]
   },
   "tail": {
-   "n": 388,
-   "mean": -0.00332,
+   "n": 393,
+   "mean": -0.00344,
    "ci": [
-    -0.00775,
-    0.0011
+    -0.00787,
+    0.00099
    ]
   }
  },
- "generated": "2026-09-05T06:56:18.933840Z"
+ "generated": "2026-09-05T08:37:38.238366Z"
 }
