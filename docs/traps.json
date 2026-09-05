@@ -1,13 +1,13 @@
 {
- "at": "2026-09-05T21:53:51.084186Z",
+ "at": "2026-09-05T22:55:36.641489Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 87,
-   "price": 10,
+   "price": 45,
    "p_model": 1.0,
-   "p_market": 0.1,
-   "edge_pts": 90.0,
+   "p_market": 0.45,
+   "edge_pts": 55.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,30 +16,15 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 90 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 55 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=13.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 67,
-   "price": 44,
-   "p_model": 0.5646,
-   "p_market": 0.44,
-   "edge_pts": 12.5,
-   "size_lcb": 0.0772,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "GRAVEYARD",
-     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "45c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
