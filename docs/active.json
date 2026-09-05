@@ -1,75 +1,147 @@
 {
- "at": "2026-09-05T13:29:52.478519Z",
+ "at": "2026-09-05T14:32:22.956147Z",
  "tracked": [
   {
-   "city": "BOS",
-   "station": "KBOS",
-   "ticker": "KXHIGHTBOS-26SEP05-T70",
-   "verdict": "DEAD_SCAVENGE",
+   "city": "EWR",
+   "station": "KEWR",
+   "ticker": "KXHIGHTEWR-26SEP05-T79",
+   "verdict": "QUALIFIED",
    "qualified": true,
-   "ceiling": 69,
-   "run_max": 69.8,
-   "gap_to_clear": -0.8,
-   "already_cleared": true,
-   "guide": 68,
-   "pop": 27,
-   "no_ask": 0.97,
-   "local_hour": 9,
+   "ceiling": 78,
+   "run_max": 77.0,
+   "gap_to_clear": 1.0,
+   "already_cleared": false,
+   "guide": 83,
+   "pop": 1,
+   "no_ask": 0.96,
+   "local_hour": 10,
    "obs_trace": [
     {
-     "ts": "2026-09-05T13:05:00+00:00",
+     "ts": "2026-09-05T14:15:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T13:00:00+00:00",
+     "ts": "2026-09-05T14:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:55:00+00:00",
+     "ts": "2026-09-05T14:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:54:00+00:00",
+     "ts": "2026-09-05T14:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:50:00+00:00",
+     "ts": "2026-09-05T13:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:40:00+00:00",
+     "ts": "2026-09-05T13:51:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:35:00+00:00",
+     "ts": "2026-09-05T13:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:25:00+00:00",
+     "ts": "2026-09-05T13:45:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:20:00+00:00",
+     "ts": "2026-09-05T13:40:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-05T12:15:00+00:00",
+     "ts": "2026-09-05T13:35:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": -0.8,
-    "q50": 4.1,
-    "q90": 15.2
+    "q10": 5.0,
+    "q50": 6.6,
+    "q90": 13.8
    },
    "projected_max": {
-    "q10": 69.0,
-    "q50": 73.9,
-    "q90": 85.0
+    "q10": 82.0,
+    "q50": 83.6,
+    "q90": 90.8
    },
-   "p_exceed_empirical": 1.0,
-   "emp_n": null,
-   "convergence_hour": 13,
+   "p_exceed_empirical": 0.9286,
+   "emp_n": 12,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  },
+  {
+   "city": "TTN",
+   "station": "KTTN",
+   "ticker": "KXHIGHTTTN-26SEP05-T78",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 77,
+   "run_max": 75.2,
+   "gap_to_clear": 1.8,
+   "already_cleared": false,
+   "guide": 81,
+   "pop": 0,
+   "no_ask": 0.97,
+   "local_hour": 10,
+   "obs_trace": [
+    {
+     "ts": "2026-09-05T14:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T14:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-05T13:35:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 2.2,
+    "q50": 9.2,
+    "q90": 14.2
+   },
+   "projected_max": {
+    "q10": 77.4,
+    "q50": 84.4,
+    "q90": 89.4
+   },
+   "p_exceed_empirical": 0.9286,
+   "emp_n": 12,
+   "convergence_hour": 15,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
   }
