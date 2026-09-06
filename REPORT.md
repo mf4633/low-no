@@ -10,8 +10,8 @@ attribution codes:
 
 - **CHI** DEAD_SCAVENGE @ 0.79 ceil 82 guide 81 -> CLI 83 :: **WIN**
 - **BOS** DEAD_SCAVENGE @ 0.97 ceil 69 guide 68 -> CLI 73 :: **WIN**
-- **EWR** DEAD_SCAVENGE @ 0.96 ceil 78 guide 83 -> CLI None :: **UNGRADED**
+- **EWR** DEAD_SCAVENGE @ 0.96 ceil 78 guide 83 -> CLI 82 :: **WIN**
 - **TTN** QUALIFIED @ 0.97 ceil 77 guide 81 -> CLI 81 :: **WIN**
 - **MSP** DEAD_SCAVENGE @ 0.32 ceil 87 guide 86 -> CLI 87 :: **BOUNDARY**
 
-**3/4 hit** (75%) vs 98.2% breakeven at 0.98
+**4/5 hit** (80%) vs 98.2% breakeven at 0.98
