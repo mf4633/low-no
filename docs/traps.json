@@ -1,13 +1,13 @@
 {
- "at": "2026-09-06T15:26:04.880874Z",
+ "at": "2026-09-06T16:26:59.019287Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 89,
-   "price": 83,
-   "p_model": 0.9518,
-   "p_market": 0.83,
-   "edge_pts": 12.2,
+   "price": 69,
+   "p_model": 0.7986,
+   "p_market": 0.69,
+   "edge_pts": 10.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -24,7 +24,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "83c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "69c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -52,17 +52,17 @@
    ]
   },
   {
-   "city": "BOS",
-   "ceiling": 66,
-   "price": 91,
-   "p_model": 1.0,
-   "p_market": 0.91,
-   "edge_pts": 9.0,
+   "city": "ATL",
+   "ceiling": 93,
+   "price": 84,
+   "p_model": 0.92,
+   "p_market": 0.84,
+   "edge_pts": 8.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "NO_HISTORY",
@@ -71,16 +71,20 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "84c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "AUS",
    "ceiling": 93,
-   "price": 93,
-   "p_model": 0.968,
-   "p_market": 0.93,
-   "edge_pts": 3.8,
+   "price": 90,
+   "p_model": 0.9781,
+   "p_market": 0.9,
+   "edge_pts": 7.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -90,21 +94,10 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "TTN",
-   "ceiling": 73,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
+    },
     {
-     "code": "NO_HISTORY",
-     "why": "n_eff=11.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "code": "GRAVEYARD",
+     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
