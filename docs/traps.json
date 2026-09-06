@@ -1,25 +1,5 @@
 {
- "at": "2026-09-06T20:43:19.342164Z",
- "traps": [
-  {
-   "city": "DEN",
-   "ceiling": 88,
-   "price": 98,
-   "p_model": 0.9806,
-   "p_market": 0.98,
-   "edge_pts": 0.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  }
- ],
+ "at": "2026-09-06T21:45:53.523517Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
