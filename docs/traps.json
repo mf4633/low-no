@@ -1,18 +1,22 @@
 {
- "at": "2026-09-06T16:26:59.019287Z",
+ "at": "2026-09-06T17:28:05.750270Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 89,
-   "price": 69,
-   "p_model": 0.7986,
-   "p_market": 0.69,
-   "edge_pts": 10.9,
+   "price": 44,
+   "p_model": 0.8335,
+   "p_market": 0.44,
+   "edge_pts": 39.4,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 39 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,67 +28,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "69c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "LAX",
-   "ceiling": 75,
-   "price": 91,
-   "p_model": 1.0,
-   "p_market": 0.91,
-   "edge_pts": 9.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "ATL",
-   "ceiling": 93,
-   "price": 84,
-   "p_model": 0.92,
-   "p_market": 0.84,
-   "edge_pts": 8.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "84c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "AUS",
    "ceiling": 93,
-   "price": 90,
-   "p_model": 0.9781,
-   "p_market": 0.9,
-   "edge_pts": 7.8,
+   "price": 81,
+   "p_model": 0.9704,
+   "p_market": 0.81,
+   "edge_pts": 16.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -92,12 +46,43 @@
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "GRAVEYARD",
-     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "81c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "ATL",
+   "ceiling": 93,
+   "price": 87,
+   "p_model": 0.9513,
+   "p_market": 0.87,
+   "edge_pts": 8.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "87c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
