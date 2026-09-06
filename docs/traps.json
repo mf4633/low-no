@@ -1,78 +1,13 @@
 {
- "at": "2026-09-06T12:22:25.228305Z",
+ "at": "2026-09-06T13:23:45.226214Z",
  "traps": [
-  {
-   "city": "HOU",
-   "ceiling": 89,
-   "price": 73,
-   "p_model": 0.8548,
-   "p_market": 0.73,
-   "edge_pts": 12.5,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "73c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "AUS",
-   "ceiling": 93,
-   "price": 88,
-   "p_model": 0.9559,
-   "p_market": 0.88,
-   "edge_pts": 7.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "DEN",
-   "ceiling": 88,
-   "price": 93,
-   "p_model": 0.9578,
-   "p_market": 0.93,
-   "edge_pts": 2.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
   {
    "city": "LAX",
    "ceiling": 75,
-   "price": 98,
+   "price": 96,
    "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
+   "p_market": 0.96,
+   "edge_pts": 4.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -86,6 +21,40 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "AUS",
+   "ceiling": 93,
+   "price": 94,
+   "p_model": 0.9766,
+   "p_market": 0.94,
+   "edge_pts": 3.7,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 78,
+   "price": 95,
+   "p_model": 0.9624,
+   "p_market": 0.95,
+   "edge_pts": 1.2,
+   "size_lcb": 0.1055,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
