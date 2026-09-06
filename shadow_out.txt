@@ -9,7 +9,7 @@ om_icon       3549    14  -1.06  2.21  2.78    55%
 om_ecmwf      3619    14  -0.64  3.11  4.06    42%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 64 calls, est $0.9120 spent, $4.09 left (~286 calls)
+spend: 80 calls, est $1.1400 spent, $3.86 left (~270 calls)
 rung-obs 32024 -> 611 independent units over 29 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  42   0     0%   5.7%     0%     8%    -5.7      open
@@ -67,9 +67,9 @@ PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 
 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [####################] 29/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
-  H4b   market lag on curve_dev    [#########...........] 271/200 events  +9/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 7/60 city-day units  +supply only; scoring waits on H4a (4 days since 2026-09-01)
-  H6    market prices off the stale print [###.................] 41/200 print transitions  +3/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
+  H4b   market lag on curve_dev    [##########..........] 289/200 events  +10/20 distinct days
+  H5    contested band 81-95c (blocked on H4a) [....................] 8/60 city-day units  +supply only; scoring waits on H4a (5 days since 2026-09-01)
+  H6    market prices off the stale print [####................] 46/200 print transitions  +4/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
   H8    run_max/temp_now gap (H4a x H7) [##..................] 16/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
