@@ -1,5 +1,5 @@
 {
- "at": "2026-09-07T16:33:26.827916Z",
+ "at": "2026-09-07T16:40:22.453921Z",
  "tracked": [
   {
    "city": "ATL",
@@ -16,6 +16,14 @@
    "no_ask": 0.95,
    "local_hour": 12,
    "obs_trace": [
+    {
+     "ts": "2026-09-07T16:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-07T16:15:00+00:00",
+     "f": null
+    },
     {
      "ts": "2026-09-07T16:10:00+00:00",
      "f": null
@@ -47,14 +55,6 @@
     {
      "ts": "2026-09-07T15:40:00+00:00",
      "f": null
-    },
-    {
-     "ts": "2026-09-07T15:35:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:30:00+00:00",
-     "f": null
     }
    ],
    "remaining_climb": {
@@ -69,78 +69,6 @@
    },
    "p_exceed_empirical": 0.975,
    "emp_n": 38,
-   "convergence_hour": 15,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
-  },
-  {
-   "city": "MSP",
-   "station": "KMSP",
-   "ticker": "KXHIGHTMIN-26SEP07-T79",
-   "verdict": "DEAD_SCAVENGE",
-   "qualified": true,
-   "ceiling": 78,
-   "run_max": 78.8,
-   "gap_to_clear": -0.8,
-   "already_cleared": true,
-   "guide": 81,
-   "pop": 11,
-   "no_ask": 0.98,
-   "local_hour": 11,
-   "obs_trace": [
-    {
-     "ts": "2026-09-07T16:15:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T16:10:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T16:05:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T16:00:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:55:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:53:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:50:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:40:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-07T15:35:00+00:00",
-     "f": null
-    }
-   ],
-   "remaining_climb": {
-    "q10": 4.1,
-    "q50": 8.8,
-    "q90": 13.1
-   },
-   "projected_max": {
-    "q10": 82.9,
-    "q50": 87.6,
-    "q90": 91.9
-   },
-   "p_exceed_empirical": 1.0,
-   "emp_n": null,
    "convergence_hour": 15,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
