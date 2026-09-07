@@ -1,18 +1,41 @@
 {
- "at": "2026-09-07T17:42:24.955208Z",
+ "at": "2026-09-07T18:44:10.865195Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 82,
-   "price": 98,
+   "price": 96,
    "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
+   "p_market": 0.96,
+   "edge_pts": 4.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "NO_HISTORY",
      "why": "n_eff=14.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "MSY",
+   "ceiling": 89,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=14.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
