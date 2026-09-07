@@ -2,11 +2,11 @@
  "H4a": {
   "id": "H4a",
   "ready": true,
-  "passed": true,
+  "passed": false,
   "n": 114,
-  "brier_base": 0.0774,
-  "brier_shape": 0.0767,
-  "improvement_pct": 0.9
+  "brier_base": 0.0748,
+  "brier_shape": 0.076,
+  "improvement_pct": -1.54
  },
  "H4b": {
   "id": "H4b",
@@ -23,8 +23,7 @@
   "ready": false,
   "passed": false,
   "units": 0,
-  "need": 60,
-  "reason": "unit bar not met"
+  "reason": "blocked: H4a has not passed"
  },
  "H6": {
   "id": "H6",
@@ -60,9 +59,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 245,
-   "stalled_off": 178,
-   "climbing_on": 319,
+   "stalled_on": 248,
+   "stalled_off": 181,
+   "climbing_on": 325,
    "climbing_off": 21
   },
   "need_per_group": 150,
@@ -73,21 +72,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 214,
-   "mean": 0.00033,
+   "n": 217,
+   "mean": 0.00029,
    "ci": [
-    -0.00667,
-    0.00732
+    -0.00661,
+    0.00719
    ]
   },
   "tail": {
-   "n": 429,
-   "mean": -0.00192,
+   "n": 432,
+   "mean": -0.00191,
    "ci": [
-    -0.00592,
-    0.00208
+    -0.00588,
+    0.00206
    ]
   }
  },
- "generated": "2026-09-07T07:19:59.653536Z"
+ "generated": "2026-09-07T09:45:26.917088Z"
 }
