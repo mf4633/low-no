@@ -1,15 +1,19 @@
 {
- "at": "2026-09-07T11:23:11.652214Z",
+ "at": "2026-09-07T12:25:15.487004Z",
  "traps": [
   {
-   "city": "ATL",
-   "ceiling": 82,
-   "price": 94,
-   "p_model": 0.9527,
-   "p_market": 0.94,
-   "edge_pts": 1.3,
+   "city": "MSP",
+   "ceiling": 78,
+   "price": 93,
+   "p_model": 0.9367,
+   "p_market": 0.93,
+   "edge_pts": 0.7,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=14.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
@@ -17,18 +21,14 @@
    ]
   },
   {
-   "city": "MSP",
-   "ceiling": 78,
-   "price": 93,
-   "p_model": 0.9319,
-   "p_market": 0.93,
-   "edge_pts": 0.2,
+   "city": "ATL",
+   "ceiling": 82,
+   "price": 95,
+   "p_model": 0.9559,
+   "p_market": 0.95,
+   "edge_pts": 0.6,
    "size_lcb": 0.0,
    "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=14.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
