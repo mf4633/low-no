@@ -1,37 +1,18 @@
 {
- "at": "2026-09-07T16:40:21.863475Z",
+ "at": "2026-09-07T17:42:24.955208Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 82,
-   "price": 95,
-   "p_model": 0.9743,
-   "p_market": 0.95,
-   "edge_pts": 2.4,
+   "price": 98,
+   "p_model": 1.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "NO_HISTORY",
      "why": "n_eff=14.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
-  {
-   "city": "TTN",
-   "ceiling": 76,
-   "price": 93,
-   "p_model": 0.9454,
-   "p_market": 0.93,
-   "edge_pts": 1.5,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=11.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
