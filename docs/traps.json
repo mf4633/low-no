@@ -1,22 +1,18 @@
 {
- "at": "2026-09-08T19:30:56.235863Z",
+ "at": "2026-09-08T20:32:51.079166Z",
  "traps": [
   {
-   "city": "NYC",
-   "ceiling": 79,
-   "price": 70,
-   "p_model": 0.8504,
-   "p_market": 0.7,
-   "edge_pts": 15.0,
-   "size_lcb": 0.0,
+   "city": "CHI",
+   "ceiling": 84,
+   "price": 91,
+   "p_model": 1.0,
+   "p_market": 0.91,
+   "edge_pts": 9.0,
+   "size_lcb": 0.2271,
    "signals": [
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 15 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "70c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
