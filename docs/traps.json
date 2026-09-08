@@ -1,33 +1,5 @@
 {
- "at": "2026-09-08T11:22:15.451604Z",
- "traps": [
-  {
-   "city": "MSP",
-   "ceiling": 78,
-   "price": 90,
-   "p_model": 0.9427,
-   "p_market": 0.9,
-   "edge_pts": 4.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=15.4 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  }
- ],
+ "at": "2026-09-08T12:23:20.759334Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
