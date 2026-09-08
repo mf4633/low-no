@@ -1,16 +1,16 @@
-settlements: 613 cached, 11 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 616 cached, 3 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
-om_gfs        4591    17  -0.61  1.76  2.29    67%
-om_best       3755    17  -0.63  1.78  2.32    67%
-nws_grid      4836    17  -0.17  1.84  2.56    74%
-nbm_guide     4879    17  -0.40  1.89  2.67    73%
-om_icon       4514    17  -1.15  2.17  2.74    56%
-om_metno      4467    17  -1.36  2.19  2.76    55%
-om_ecmwf      4588    17  -0.88  3.04  3.95    42%
+om_gfs        4639    17  -0.61  1.77  2.29    67%
+om_best       3789    17  -0.63  1.79  2.32    67%
+nws_grid      4884    17  -0.16  1.84  2.56    74%
+nbm_guide     4927    17  -0.39  1.89  2.66    73%
+om_icon       4560    17  -1.15  2.18  2.74    55%
+om_metno      4514    17  -1.36  2.19  2.75    54%
+om_ecmwf      4633    17  -0.90  3.04  3.95    43%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
 spend: 100 calls, est $1.4250 spent, $3.58 left (~250 calls)
-rung-obs 38084 -> 689 independent units over 32 days
+rung-obs 38372 -> 690 independent units over 32 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  43   0     0%   5.8%     0%     8%    -5.7      open
  11-20  34   1     3%  16.3%     1%    15%   -13.2   RETIRED
@@ -22,13 +22,13 @@ rung-obs 38084 -> 689 independent units over 32 days
  71-80  43  27    63%  77.8%    48%    83%   -14.7      open
  81-90  83  63    76%  87.7%    66%    87%   -11.7   RETIRED
  91-95 121 106    88%  94.5%    81%    94%    -6.8   RETIRED
- 96-98 183 171    93%  98.2%    89%    97%    -4.7   RETIRED
+ 96-98 184 172    93%  98.2%    89%    97%    -4.7   RETIRED
   RETIRED at 95% (4 of 11 bands): 11-20, 81-90, 91-95, 96-98
   Retirement applies to the band traded UNCONDITIONALLY. Conditional rules inside a retired band are NOT retired by it.
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 469  12     3%   3.0%     1%    -0.4      455   False
+  1-10 472  12     3%   3.0%     1%    -0.5      458   False
  11-20  88  15    17%  14.5%    11%     2.5       85   False
  21-30  52  14    27%  25.4%    17%     1.5       51   False
  31-40  43  15    35%  36.3%    22%    -1.4       41   False
@@ -39,21 +39,21 @@ YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_
  81-90  54  37    69%  86.1%    55%   -17.6       51   False
  91-95  41  31    76%  94.0%    61%   -18.2       38   False
  96-98  35  26    74%  98.1%    58%   -23.5       33   False
-yes_spread over 37794 real-ask obs: mean 6.22c, max 100c
+yes_spread over 38082 real-ask obs: mean 6.19c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.56, 'BOS': -1.47, 'NYC': 1.39, 'AUS': -1.12, 'TTN': 1.08, 'EWR': 0.69, 'CHI': -0.53, 'LAS': -0.47, 'SAN': -0.47, 'MIA': -0.44, 'SFO': 0.42, 'MSP': -0.35, 'OKC': -0.35, 'SAT': 0.35, 'PHX': -0.34, 'ATL': 0.18, 'HOU': 0.18, 'SEA': -0.16, 'DC': 0.12, 'DAL': -0.06, 'MSY': 0.06, 'PHL': 0.03, 'DEN': 0.0}
+station guide bias (guide - CLI): {'LAX': -2.56, 'BOS': -1.47, 'NYC': 1.39, 'AUS': -1.12, 'TTN': 1.08, 'EWR': 0.69, 'CHI': -0.53, 'MIA': -0.5, 'LAS': -0.47, 'SAN': -0.47, 'SFO': 0.42, 'MSP': -0.35, 'OKC': -0.35, 'SAT': 0.35, 'PHX': -0.34, 'MSY': 0.24, 'ATL': 0.18, 'HOU': 0.18, 'SEA': -0.16, 'DC': 0.12, 'DAL': -0.06, 'DEN': 0.03, 'PHL': 0.03}
 
                   rule   n   w    hit   LCB  meanP&L
-             frozen_G4 133 109    82%   75%     -3.0
-        exclude_marine 116  96    83%   75%     -1.6
-     floor96_ex_marine 161 152    94%   90%    -3.69
+             frozen_G4 134 110    82%   75%    -2.97
+        exclude_marine 117  97    83%   75%    -1.58
+     floor96_ex_marine 162 153    94%   90%    -3.66
      conv_window_96_98   5   4    80%   38%    -18.0
        floor96_depth25  88  84    95%   89%    -2.48
-          corrected_G4 109  89    82%   73%    -2.47
-  corrected_G4_floor90  89  84    94%   88%    -2.76
-          floor96_only 183 171    93%   89%    -4.68
-      floor96_twosided 145 140    97%   92%    -1.54
-    frozen_G4_twosided 121  98    81%   73%    -2.83
+          corrected_G4 110  90    82%   74%    -2.44
+  corrected_G4_floor90  90  85    94%   88%    -2.72
+          floor96_only 184 172    93%   89%    -4.65
+      floor96_twosided 146 141    97%   92%    -1.52
+    frozen_G4_twosided 122  99    81%   73%     -2.8
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
