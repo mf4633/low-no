@@ -1,13 +1,36 @@
 {
- "at": "2026-09-09T15:32:03.600513Z",
+ "at": "2026-09-09T16:34:29.358698Z",
  "traps": [
+  {
+   "city": "NYC",
+   "ceiling": 83,
+   "price": 46,
+   "p_model": 0.8154,
+   "p_market": 0.46,
+   "edge_pts": 35.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "46c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
   {
    "city": "CHI",
    "ceiling": 79,
-   "price": 64,
-   "p_model": 0.7075,
-   "p_market": 0.64,
-   "edge_pts": 6.8,
+   "price": 35,
+   "p_model": 0.4422,
+   "p_market": 0.35,
+   "edge_pts": 9.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -20,7 +43,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "64c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "35c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
