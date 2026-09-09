@@ -1,13 +1,36 @@
 {
- "at": "2026-09-09T13:28:15.467412Z",
+ "at": "2026-09-09T14:29:51.351200Z",
  "traps": [
+  {
+   "city": "NYC",
+   "ceiling": 83,
+   "price": 38,
+   "p_model": 0.6543,
+   "p_market": 0.38,
+   "edge_pts": 27.4,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 27 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "38c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
   {
    "city": "CHI",
    "ceiling": 79,
-   "price": 75,
-   "p_model": 0.8749,
-   "p_market": 0.75,
-   "edge_pts": 12.5,
+   "price": 69,
+   "p_model": 0.8265,
+   "p_market": 0.69,
+   "edge_pts": 13.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -20,7 +43,41 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "75c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "69c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "HOU",
+   "ceiling": 87,
+   "price": 96,
+   "p_model": 0.9738,
+   "p_market": 0.96,
+   "edge_pts": 1.4,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "MIA",
+   "ceiling": 86,
+   "price": 98,
+   "p_model": 0.9826,
+   "p_market": 0.98,
+   "edge_pts": 0.3,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
