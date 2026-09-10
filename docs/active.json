@@ -1,5 +1,150 @@
 {
- "at": "2026-09-10T14:25:02.194792Z",
- "tracked": [],
+ "at": "2026-09-10T15:24:33.746250Z",
+ "tracked": [
+  {
+   "city": "NYC",
+   "station": "KNYC",
+   "ticker": "KXHIGHNY-26SEP10-T85",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 84,
+   "run_max": 78.98,
+   "gap_to_clear": 5.0,
+   "already_cleared": false,
+   "guide": 88,
+   "pop": 2,
+   "no_ask": 0.92,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-10T14:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T13:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T12:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T11:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T10:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T09:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T08:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T08:28:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T08:22:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T07:51:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 3.0,
+    "q50": 5.0,
+    "q90": 8.9
+   },
+   "projected_max": {
+    "q10": 82.0,
+    "q50": 84.0,
+    "q90": 87.9
+   },
+   "p_exceed_empirical": 0.46,
+   "emp_n": 48,
+   "convergence_hour": 16,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  },
+  {
+   "city": "TTN",
+   "station": "KTTN",
+   "ticker": "KXHIGHTTTN-26SEP10-T83",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 82,
+   "run_max": 82.4,
+   "gap_to_clear": -0.4,
+   "already_cleared": true,
+   "guide": 87,
+   "pop": 3,
+   "no_ask": 0.98,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-10T15:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T15:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T15:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T14:30:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 3.6,
+    "q50": 6.4,
+    "q90": 7.4
+   },
+   "projected_max": {
+    "q10": 86.0,
+    "q50": 88.8,
+    "q90": 89.8
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
