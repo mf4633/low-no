@@ -1,18 +1,18 @@
 {
- "at": "2026-09-10T16:25:54.410724Z",
+ "at": "2026-09-10T16:28:51.307189Z",
  "traps": [
   {
    "city": "MSY",
    "ceiling": 85,
-   "price": 34,
+   "price": 33,
    "p_model": 0.5311,
-   "p_market": 0.34,
-   "edge_pts": 19.1,
+   "p_market": 0.33,
+   "edge_pts": 20.1,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,26 +24,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "34c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "DAL",
-   "ceiling": 96,
-   "price": 93,
-   "p_model": 0.9485,
-   "p_market": 0.93,
-   "edge_pts": 1.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=16.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -59,6 +40,25 @@
     {
      "code": "NO_HISTORY",
      "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
+  {
+   "city": "DAL",
+   "ceiling": 96,
+   "price": 94,
+   "p_model": 0.9485,
+   "p_market": 0.94,
+   "edge_pts": 0.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=16.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
