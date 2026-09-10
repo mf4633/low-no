@@ -1,5 +1,78 @@
 {
- "at": "2026-09-10T18:27:29.561844Z",
- "tracked": [],
+ "at": "2026-09-10T19:28:34.136533Z",
+ "tracked": [
+  {
+   "city": "ATL",
+   "station": "KATL",
+   "ticker": "KXHIGHTATL-26SEP10-T90",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 89,
+   "run_max": 89.6,
+   "gap_to_clear": -0.6,
+   "already_cleared": true,
+   "guide": 92,
+   "pop": 6,
+   "no_ask": 0.78,
+   "local_hour": 15,
+   "obs_trace": [
+    {
+     "ts": "2026-09-10T19:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T19:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:52:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-10T18:25:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -0.2,
+    "q50": 0.6,
+    "q90": 1.2
+   },
+   "projected_max": {
+    "q10": 89.4,
+    "q50": 90.2,
+    "q90": 90.8
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": true,
+   "note": "day effectively decided"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
