@@ -1,5 +1,5 @@
 {
- "at": "2026-09-10T16:28:51.865749Z",
+ "at": "2026-09-10T17:26:39.676303Z",
  "tracked": [
   {
    "city": "NYC",
@@ -8,14 +8,18 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 84,
-   "run_max": 80.96,
-   "gap_to_clear": 3.0,
+   "run_max": 82.04,
+   "gap_to_clear": 2.0,
    "already_cleared": false,
    "guide": 88,
    "pop": 2,
-   "no_ask": 0.91,
-   "local_hour": 12,
+   "no_ask": 0.88,
+   "local_hour": 13,
    "obs_trace": [
+    {
+     "ts": "2026-09-10T16:51:00+00:00",
+     "f": null
+    },
     {
      "ts": "2026-09-10T15:51:00+00:00",
      "f": null
@@ -51,24 +55,20 @@
     {
      "ts": "2026-09-10T08:28:00+00:00",
      "f": null
-    },
-    {
-     "ts": "2026-09-10T08:22:00+00:00",
-     "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 1.9,
-    "q50": 3.1,
-    "q90": 8.1
+    "q10": 0.1,
+    "q50": 2.1,
+    "q90": 6.0
    },
    "projected_max": {
-    "q10": 82.9,
+    "q10": 82.1,
     "q50": 84.1,
-    "q90": 89.1
+    "q90": 88.0
    },
-   "p_exceed_empirical": 0.6234,
-   "emp_n": 75,
+   "p_exceed_empirical": 0.6379,
+   "emp_n": 56,
    "convergence_hour": 16,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
