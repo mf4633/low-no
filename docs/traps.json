@@ -1,18 +1,45 @@
 {
- "at": "2026-09-10T21:30:12.730686Z",
+ "at": "2026-09-10T21:36:56.783064Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 84,
-   "price": 6,
+   "price": 4,
    "p_model": 1.0,
-   "p_market": 0.06,
-   "edge_pts": 94.0,
+   "p_market": 0.04,
+   "edge_pts": 96.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 94 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 96 pts. In this ledger the market won 7 of 8 such disputes."
+    }
+   ]
+  },
+  {
+   "city": "MSY",
+   "ceiling": 85,
+   "price": 3,
+   "p_model": 0.0457,
+   "p_market": 0.03,
+   "edge_pts": 1.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=16.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 2.6F short. The climb window has closed."
     }
    ]
   }
