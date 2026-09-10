@@ -1,18 +1,18 @@
 {
- "at": "2026-09-10T15:24:31.401311Z",
+ "at": "2026-09-10T16:25:54.410724Z",
  "traps": [
   {
    "city": "MSY",
    "ceiling": 85,
-   "price": 53,
-   "p_model": 0.7027,
-   "p_market": 0.53,
-   "edge_pts": 17.3,
+   "price": 34,
+   "p_model": 0.5311,
+   "p_market": 0.34,
+   "edge_pts": 19.1,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,32 +24,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "53c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "TTN",
-   "ceiling": 82,
-   "price": 98,
-   "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "34c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "DAL",
    "ceiling": 96,
-   "price": 97,
-   "p_model": 0.9728,
-   "p_market": 0.97,
-   "edge_pts": 0.3,
+   "price": 93,
+   "p_model": 0.9485,
+   "p_market": 0.93,
+   "edge_pts": 1.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -59,6 +44,21 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "EWR",
+   "ceiling": 84,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=14.0 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
