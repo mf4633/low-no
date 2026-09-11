@@ -1,13 +1,13 @@
 {
- "at": "2026-09-11T19:30:37.222432Z",
+ "at": "2026-09-11T20:31:19.116358Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 88,
-   "price": 10,
-   "p_model": 0.7003,
-   "p_market": 0.1,
-   "edge_pts": 60.0,
+   "price": 1,
+   "p_model": 0.6713,
+   "p_market": 0.01,
+   "edge_pts": 66.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 60 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 66 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -28,41 +28,34 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "NYC",
-   "ceiling": 78,
-   "price": 88,
-   "p_model": 1.0,
-   "p_market": 0.88,
-   "edge_pts": 12.0,
-   "size_lcb": 0.1385,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 69,
-   "price": 96,
-   "p_model": 1.0,
-   "p_market": 0.96,
-   "edge_pts": 4.0,
+   "city": "SAN",
+   "ceiling": 83,
+   "price": 15,
+   "p_model": 0.1991,
+   "p_market": 0.15,
+   "edge_pts": 4.9,
    "size_lcb": 0.0,
    "signals": [
     {
+     "code": "BOUNDARY",
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=17.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 13:00 is past this station's measured convergence hour (13:00) with the running max still 2.4F short. The climb window has closed."
     }
    ]
   }
