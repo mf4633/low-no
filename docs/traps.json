@@ -1,13 +1,13 @@
 {
- "at": "2026-09-11T14:26:36.422642Z",
+ "at": "2026-09-11T15:29:25.395167Z",
  "traps": [
   {
    "city": "SAN",
    "ceiling": 83,
-   "price": 44,
-   "p_model": 0.7593,
-   "p_market": 0.44,
-   "edge_pts": 31.9,
+   "price": 38,
+   "p_model": 0.5991,
+   "p_market": 0.38,
+   "edge_pts": 21.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -28,17 +28,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "38c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "NYC",
    "ceiling": 78,
-   "price": 66,
-   "p_model": 0.9593,
-   "p_market": 0.66,
-   "edge_pts": 29.9,
+   "price": 68,
+   "p_model": 0.8799,
+   "p_market": 0.68,
+   "edge_pts": 20.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -47,21 +47,40 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "66c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "68c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SFO",
+   "ceiling": 69,
+   "price": 82,
+   "p_model": 0.9586,
+   "p_market": 0.82,
+   "edge_pts": 13.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "ATL",
    "ceiling": 88,
-   "price": 81,
-   "p_model": 0.9378,
-   "p_market": 0.81,
-   "edge_pts": 12.8,
+   "price": 83,
+   "p_model": 0.8838,
+   "p_market": 0.83,
+   "edge_pts": 5.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -78,59 +97,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "81c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "HOU",
-   "ceiling": 88,
-   "price": 88,
-   "p_model": 0.9763,
-   "p_market": 0.88,
-   "edge_pts": 9.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 69,
-   "price": 86,
-   "p_model": 0.9067,
-   "p_market": 0.86,
-   "edge_pts": 4.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "86c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "83c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "SEA",
    "ceiling": 65,
-   "price": 90,
-   "p_model": 0.9049,
-   "p_market": 0.9,
-   "edge_pts": 0.5,
+   "price": 86,
+   "p_model": 0.8766,
+   "p_market": 0.86,
+   "edge_pts": 1.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -139,7 +116,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "86c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
