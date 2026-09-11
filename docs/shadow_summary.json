@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-11T09:12:52.936412Z",
+ "generated": "2026-09-11T12:14:50.584739Z",
  "n_rung_obs": 44996,
  "n_bottom_obs": 7741,
  "n_units": 757,
@@ -383,40 +383,28 @@
   "TTN": 0.81
  },
  "adaptive": {
+  "MSP": {
+   "bias": -0.5,
+   "sigma": 1.95,
+   "n_eff": 17.3,
+   "mode": "recency-pooled"
+  },
+  "MSY": {
+   "bias": 0.5,
+   "sigma": 1.75,
+   "n_eff": 17.3,
+   "mode": "recency-pooled"
+  },
+  "PHL": {
+   "bias": -0.14,
+   "sigma": 1.61,
+   "n_eff": 25.2,
+   "mode": "recency-pooled"
+  },
   "HOU": {
    "bias": -0.01,
    "sigma": 1.85,
    "n_eff": 17.3,
-   "mode": "recency-pooled"
-  },
-  "SAT": {
-   "bias": 0.1,
-   "sigma": 1.85,
-   "n_eff": 17.3,
-   "mode": "recency-pooled"
-  },
-  "EWR": {
-   "bias": 0.64,
-   "sigma": 2.07,
-   "n_eff": 14.7,
-   "mode": "recency-pooled"
-  },
-  "LAS": {
-   "bias": -0.38,
-   "sigma": 1.54,
-   "n_eff": 17.3,
-   "mode": "recency-pooled"
-  },
-  "AUS": {
-   "bias": -1.06,
-   "sigma": 1.73,
-   "n_eff": 25.2,
-   "mode": "recency-pooled"
-  },
-  "SEA": {
-   "bias": -0.26,
-   "sigma": 1.71,
-   "n_eff": 24.8,
    "mode": "recency-pooled"
   },
   "ATL": {
@@ -431,16 +419,16 @@
    "n_eff": 23.0,
    "mode": "recency-pooled"
   },
-  "OKC": {
-   "bias": -0.57,
-   "sigma": 2.06,
-   "n_eff": 17.3,
+  "NYC": {
+   "bias": 1.52,
+   "sigma": 1.71,
+   "n_eff": 24.5,
    "mode": "recency-pooled"
   },
-  "DC": {
-   "bias": 0.04,
-   "sigma": 1.85,
-   "n_eff": 17.3,
+  "LAX": {
+   "bias": -2.9,
+   "sigma": 1.47,
+   "n_eff": 25.2,
    "mode": "recency-pooled"
   },
   "TTN": {
@@ -449,33 +437,15 @@
    "n_eff": 14.7,
    "mode": "recency-pooled"
   },
-  "SAN": {
-   "bias": -0.47,
-   "sigma": 2.26,
+  "DC": {
+   "bias": 0.04,
+   "sigma": 1.85,
    "n_eff": 17.3,
    "mode": "recency-pooled"
   },
-  "CHI": {
-   "bias": -0.41,
-   "sigma": 1.57,
-   "n_eff": 25.2,
-   "mode": "recency-pooled"
-  },
-  "DEN": {
-   "bias": 0.05,
-   "sigma": 1.59,
-   "n_eff": 25.2,
-   "mode": "recency-pooled"
-  },
-  "PHL": {
-   "bias": -0.14,
-   "sigma": 1.61,
-   "n_eff": 25.2,
-   "mode": "recency-pooled"
-  },
-  "MSY": {
-   "bias": 0.5,
-   "sigma": 1.75,
+  "SAN": {
+   "bias": -0.47,
+   "sigma": 2.26,
    "n_eff": 17.3,
    "mode": "recency-pooled"
   },
@@ -485,21 +455,15 @@
    "n_eff": 17.3,
    "mode": "recency-pooled"
   },
-  "DAL": {
-   "bias": -0.18,
-   "sigma": 1.85,
-   "n_eff": 17.3,
+  "DEN": {
+   "bias": 0.05,
+   "sigma": 1.59,
+   "n_eff": 25.2,
    "mode": "recency-pooled"
   },
-  "MSP": {
-   "bias": -0.5,
-   "sigma": 1.95,
-   "n_eff": 17.3,
-   "mode": "recency-pooled"
-  },
-  "LAX": {
-   "bias": -2.9,
-   "sigma": 1.47,
+  "CHI": {
+   "bias": -0.41,
+   "sigma": 1.57,
    "n_eff": 25.2,
    "mode": "recency-pooled"
   },
@@ -509,16 +473,52 @@
    "n_eff": 24.8,
    "mode": "recency-pooled"
   },
-  "NYC": {
-   "bias": 1.52,
+  "SEA": {
+   "bias": -0.26,
    "sigma": 1.71,
-   "n_eff": 24.5,
+   "n_eff": 24.8,
    "mode": "recency-pooled"
   },
   "PHX": {
    "bias": -0.3,
    "sigma": 1.0,
    "n_eff": 25.2,
+   "mode": "recency-pooled"
+  },
+  "AUS": {
+   "bias": -1.06,
+   "sigma": 1.73,
+   "n_eff": 25.2,
+   "mode": "recency-pooled"
+  },
+  "DAL": {
+   "bias": -0.18,
+   "sigma": 1.85,
+   "n_eff": 17.3,
+   "mode": "recency-pooled"
+  },
+  "SAT": {
+   "bias": 0.1,
+   "sigma": 1.85,
+   "n_eff": 17.3,
+   "mode": "recency-pooled"
+  },
+  "LAS": {
+   "bias": -0.38,
+   "sigma": 1.54,
+   "n_eff": 17.3,
+   "mode": "recency-pooled"
+  },
+  "EWR": {
+   "bias": 0.64,
+   "sigma": 2.07,
+   "n_eff": 14.7,
+   "mode": "recency-pooled"
+  },
+  "OKC": {
+   "bias": -0.57,
+   "sigma": 2.06,
+   "n_eff": 17.3,
    "mode": "recency-pooled"
   }
  },
@@ -2086,6 +2086,30 @@
   }
  },
  "station_profiles": {
+  "MSP": {
+   "n_days": 20,
+   "bias": -0.5,
+   "sd": 2.52,
+   "hot_bust_days": 3,
+   "cool_bust_days": 4,
+   "boundary_days": 3
+  },
+  "MSY": {
+   "n_days": 20,
+   "bias": 0.45,
+   "sd": 2.2,
+   "hot_bust_days": 3,
+   "cool_bust_days": 1,
+   "boundary_days": 2
+  },
+  "PHL": {
+   "n_days": 35,
+   "bias": -0.11,
+   "sd": 1.98,
+   "hot_bust_days": 5,
+   "cool_bust_days": 3,
+   "boundary_days": 6
+  },
   "HOU": {
    "n_days": 20,
    "bias": 0.1,
@@ -2093,46 +2117,6 @@
    "hot_bust_days": 2,
    "cool_bust_days": 2,
    "boundary_days": 5
-  },
-  "SAT": {
-   "n_days": 20,
-   "bias": 0.15,
-   "sd": 1.42,
-   "hot_bust_days": 1,
-   "cool_bust_days": 0,
-   "boundary_days": 4
-  },
-  "EWR": {
-   "n_days": 16,
-   "bias": 0.75,
-   "sd": 2.44,
-   "hot_bust_days": 3,
-   "cool_bust_days": 2,
-   "boundary_days": 5
-  },
-  "LAS": {
-   "n_days": 20,
-   "bias": -0.45,
-   "sd": 0.92,
-   "hot_bust_days": 0,
-   "cool_bust_days": 1,
-   "boundary_days": 0
-  },
-  "AUS": {
-   "n_days": 35,
-   "bias": -1.11,
-   "sd": 1.17,
-   "hot_bust_days": 0,
-   "cool_bust_days": 7,
-   "boundary_days": 0
-  },
-  "SEA": {
-   "n_days": 34,
-   "bias": -0.26,
-   "sd": 2.45,
-   "hot_bust_days": 5,
-   "cool_bust_days": 4,
-   "boundary_days": 3
   },
   "ATL": {
    "n_days": 20,
@@ -2150,93 +2134,13 @@
    "cool_bust_days": 1,
    "boundary_days": 0
   },
-  "OKC": {
-   "n_days": 20,
-   "bias": -0.5,
-   "sd": 2.22,
-   "hot_bust_days": 3,
-   "cool_bust_days": 4,
-   "boundary_days": 2
-  },
-  "DC": {
-   "n_days": 20,
-   "bias": 0.05,
-   "sd": 2.13,
-   "hot_bust_days": 2,
-   "cool_bust_days": 4,
-   "boundary_days": 2
-  },
-  "TTN": {
-   "n_days": 16,
-   "bias": 0.81,
-   "sd": 1.84,
-   "hot_bust_days": 4,
-   "cool_bust_days": 0,
-   "boundary_days": 3
-  },
-  "SAN": {
-   "n_days": 20,
-   "bias": -0.4,
-   "sd": 3.51,
-   "hot_bust_days": 3,
-   "cool_bust_days": 4,
-   "boundary_days": 5
-  },
-  "CHI": {
-   "n_days": 35,
-   "bias": -0.51,
-   "sd": 1.93,
-   "hot_bust_days": 2,
-   "cool_bust_days": 4,
-   "boundary_days": 7
-  },
-  "DEN": {
-   "n_days": 35,
-   "bias": 0.0,
-   "sd": 1.9,
-   "hot_bust_days": 4,
-   "cool_bust_days": 3,
-   "boundary_days": 2
-  },
-  "PHL": {
-   "n_days": 35,
-   "bias": -0.11,
-   "sd": 1.98,
-   "hot_bust_days": 5,
-   "cool_bust_days": 3,
-   "boundary_days": 6
-  },
-  "MSY": {
-   "n_days": 20,
-   "bias": 0.45,
+  "NYC": {
+   "n_days": 34,
+   "bias": 1.59,
    "sd": 2.2,
-   "hot_bust_days": 3,
-   "cool_bust_days": 1,
-   "boundary_days": 2
-  },
-  "BOS": {
-   "n_days": 20,
-   "bias": -1.3,
-   "sd": 3.16,
-   "hot_bust_days": 2,
-   "cool_bust_days": 8,
-   "boundary_days": 4
-  },
-  "DAL": {
-   "n_days": 20,
-   "bias": -0.15,
-   "sd": 1.56,
-   "hot_bust_days": 1,
-   "cool_bust_days": 1,
-   "boundary_days": 2
-  },
-  "MSP": {
-   "n_days": 20,
-   "bias": -0.5,
-   "sd": 2.52,
-   "hot_bust_days": 3,
-   "cool_bust_days": 4,
-   "boundary_days": 3
+   "hot_bust_days": 12,
+   "cool_bust_days": 0,
+   "boundary_days": 14
   },
   "LAX": {
    "n_days": 35,
@@ -2246,6 +2150,54 @@
    "cool_bust_days": 21,
    "boundary_days": 3
   },
+  "TTN": {
+   "n_days": 16,
+   "bias": 0.81,
+   "sd": 1.84,
+   "hot_bust_days": 4,
+   "cool_bust_days": 0,
+   "boundary_days": 3
+  },
+  "DC": {
+   "n_days": 20,
+   "bias": 0.05,
+   "sd": 2.13,
+   "hot_bust_days": 2,
+   "cool_bust_days": 4,
+   "boundary_days": 2
+  },
+  "SAN": {
+   "n_days": 20,
+   "bias": -0.4,
+   "sd": 3.51,
+   "hot_bust_days": 3,
+   "cool_bust_days": 4,
+   "boundary_days": 5
+  },
+  "BOS": {
+   "n_days": 20,
+   "bias": -1.3,
+   "sd": 3.16,
+   "hot_bust_days": 2,
+   "cool_bust_days": 8,
+   "boundary_days": 4
+  },
+  "DEN": {
+   "n_days": 35,
+   "bias": 0.0,
+   "sd": 1.9,
+   "hot_bust_days": 4,
+   "cool_bust_days": 3,
+   "boundary_days": 2
+  },
+  "CHI": {
+   "n_days": 35,
+   "bias": -0.51,
+   "sd": 1.93,
+   "hot_bust_days": 2,
+   "cool_bust_days": 4,
+   "boundary_days": 7
+  },
   "SFO": {
    "n_days": 34,
    "bias": 0.0,
@@ -2254,13 +2206,13 @@
    "cool_bust_days": 9,
    "boundary_days": 4
   },
-  "NYC": {
+  "SEA": {
    "n_days": 34,
-   "bias": 1.59,
-   "sd": 2.2,
-   "hot_bust_days": 12,
-   "cool_bust_days": 0,
-   "boundary_days": 14
+   "bias": -0.26,
+   "sd": 2.45,
+   "hot_bust_days": 5,
+   "cool_bust_days": 4,
+   "boundary_days": 3
   },
   "PHX": {
    "n_days": 35,
@@ -2269,6 +2221,54 @@
    "hot_bust_days": 2,
    "cool_bust_days": 2,
    "boundary_days": 1
+  },
+  "AUS": {
+   "n_days": 35,
+   "bias": -1.11,
+   "sd": 1.17,
+   "hot_bust_days": 0,
+   "cool_bust_days": 7,
+   "boundary_days": 0
+  },
+  "DAL": {
+   "n_days": 20,
+   "bias": -0.15,
+   "sd": 1.56,
+   "hot_bust_days": 1,
+   "cool_bust_days": 1,
+   "boundary_days": 2
+  },
+  "SAT": {
+   "n_days": 20,
+   "bias": 0.15,
+   "sd": 1.42,
+   "hot_bust_days": 1,
+   "cool_bust_days": 0,
+   "boundary_days": 4
+  },
+  "LAS": {
+   "n_days": 20,
+   "bias": -0.45,
+   "sd": 0.92,
+   "hot_bust_days": 0,
+   "cool_bust_days": 1,
+   "boundary_days": 0
+  },
+  "EWR": {
+   "n_days": 16,
+   "bias": 0.75,
+   "sd": 2.44,
+   "hot_bust_days": 3,
+   "cool_bust_days": 2,
+   "boundary_days": 5
+  },
+  "OKC": {
+   "n_days": 20,
+   "bias": -0.5,
+   "sd": 2.22,
+   "hot_bust_days": 3,
+   "cool_bust_days": 4,
+   "boundary_days": 2
   }
  },
  "scan_coverage": {
@@ -2307,7 +2307,8 @@
   "2026-09-07": 13,
   "2026-09-08": 13,
   "2026-09-09": 13,
-  "2026-09-10": 13
+  "2026-09-10": 13,
+  "2026-09-11": 1
  },
  "convergence": {
   "cells": {
