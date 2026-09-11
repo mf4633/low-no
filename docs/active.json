@@ -1,6 +1,78 @@
 {
- "at": "2026-09-11T17:32:13.061442Z",
+ "at": "2026-09-11T18:29:33.652823Z",
  "tracked": [
+  {
+   "city": "NYC",
+   "station": "KNYC",
+   "ticker": "KXHIGHNY-26SEP11-T79",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 78,
+   "run_max": 78.08,
+   "gap_to_clear": -0.1,
+   "already_cleared": true,
+   "guide": 81,
+   "pop": 12,
+   "no_ask": 0.83,
+   "local_hour": 14,
+   "obs_trace": [
+    {
+     "ts": "2026-09-11T17:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T16:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T15:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T14:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T13:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T12:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T11:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T10:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T09:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-11T08:51:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 0.1,
+    "q50": 2.0,
+    "q90": 3.1
+   },
+   "projected_max": {
+    "q10": 78.2,
+    "q50": 80.1,
+    "q90": 81.2
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 16,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  },
   {
    "city": "SFO",
    "station": "KSFO",
@@ -8,67 +80,67 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 69,
-   "run_max": 66.2,
-   "gap_to_clear": 2.8,
+   "run_max": 68.0,
+   "gap_to_clear": 1.0,
    "already_cleared": false,
    "guide": 73,
    "pop": 2,
-   "no_ask": 0.93,
-   "local_hour": 10,
+   "no_ask": 0.96,
+   "local_hour": 11,
    "obs_trace": [
     {
-     "ts": "2026-09-11T17:10:00+00:00",
+     "ts": "2026-09-11T18:15:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T17:05:00+00:00",
+     "ts": "2026-09-11T18:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T17:00:00+00:00",
+     "ts": "2026-09-11T18:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:56:00+00:00",
+     "ts": "2026-09-11T18:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:55:00+00:00",
+     "ts": "2026-09-11T17:56:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:50:00+00:00",
+     "ts": "2026-09-11T17:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:45:00+00:00",
+     "ts": "2026-09-11T17:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:40:00+00:00",
+     "ts": "2026-09-11T17:45:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:35:00+00:00",
+     "ts": "2026-09-11T17:40:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-11T16:30:00+00:00",
+     "ts": "2026-09-11T17:35:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 4.8,
-    "q50": 6.2,
-    "q90": 16.8
+    "q10": 2.4,
+    "q50": 4.0,
+    "q90": 15.4
    },
    "projected_max": {
-    "q10": 71.0,
-    "q50": 72.4,
-    "q90": 83.0
+    "q10": 70.4,
+    "q50": 72.0,
+    "q90": 83.4
    },
-   "p_exceed_empirical": 0.9286,
-   "emp_n": 54,
+   "p_exceed_empirical": 0.9828,
+   "emp_n": 56,
    "convergence_hour": 14,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
