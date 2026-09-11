@@ -1,5 +1,5 @@
 {
- "at": "2026-09-11T16:31:54.238737Z",
+ "at": "2026-09-11T16:34:34.506741Z",
  "traps": [
   {
    "city": "NYC",
@@ -17,25 +17,6 @@
     {
      "code": "GRAVEYARD",
      "why": "65c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 69,
-   "price": 84,
-   "p_model": 0.9718,
-   "p_market": 0.84,
-   "edge_pts": 13.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "84c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -67,21 +48,63 @@
    ]
   },
   {
-   "city": "SEA",
-   "ceiling": 65,
+   "city": "SFO",
+   "ceiling": 69,
    "price": 90,
-   "p_model": 0.961,
+   "p_model": 0.9718,
    "p_market": 0.9,
-   "edge_pts": 6.1,
-   "size_lcb": 0.1664,
+   "edge_pts": 7.2,
+   "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "GRAVEYARD",
      "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SEA",
+   "ceiling": 65,
+   "price": 92,
+   "p_model": 0.961,
+   "p_market": 0.92,
+   "edge_pts": 4.1,
+   "size_lcb": 0.083,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    }
+   ]
+  },
+  {
+   "city": "ATL",
+   "ceiling": 88,
+   "price": 72,
+   "p_model": 0.7612,
+   "p_market": 0.72,
+   "edge_pts": 4.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=17.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "72c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
