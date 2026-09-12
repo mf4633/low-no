@@ -1,37 +1,14 @@
 {
- "at": "2026-09-12T11:24:35.817170Z",
+ "at": "2026-09-12T12:27:32.045374Z",
  "traps": [
-  {
-   "city": "ATL",
-   "ceiling": 81,
-   "price": 87,
-   "p_model": 0.9689,
-   "p_market": 0.87,
-   "edge_pts": 9.9,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "87c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
   {
    "city": "BOS",
    "ceiling": 72,
-   "price": 52,
-   "p_model": 0.6048,
-   "p_market": 0.52,
-   "edge_pts": 8.5,
-   "size_lcb": 0.0053,
+   "price": 48,
+   "p_model": 0.5732,
+   "p_market": 0.48,
+   "edge_pts": 9.3,
+   "size_lcb": 0.0129,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -43,17 +20,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "48c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "SAN",
-   "ceiling": 79,
-   "price": 84,
-   "p_model": 0.9065,
-   "p_market": 0.84,
-   "edge_pts": 6.7,
+   "city": "ATL",
+   "ceiling": 81,
+   "price": 91,
+   "p_model": 0.9706,
+   "p_market": 0.91,
+   "edge_pts": 6.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,11 +39,7 @@
     },
     {
      "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "84c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
