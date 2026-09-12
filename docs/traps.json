@@ -1,13 +1,13 @@
 {
- "at": "2026-09-12T18:54:21.846823Z",
+ "at": "2026-09-12T19:57:18.591989Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 72,
-   "price": 13,
-   "p_model": 0.5992,
-   "p_market": 0.13,
-   "edge_pts": 46.9,
+   "price": 3,
+   "p_model": 0.4918,
+   "p_market": 0.03,
+   "edge_pts": 46.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,22 +24,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 14:00 is past this station's measured convergence hour (13:00) with the running max still 0.4F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 65,
-   "price": 94,
-   "p_model": 0.9557,
-   "p_market": 0.94,
-   "edge_pts": 1.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "local hour 15:00 is past this station's measured convergence hour (13:00) with the running max still 0.4F short. The climb window has closed."
     }
    ]
   }
