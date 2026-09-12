@@ -1,13 +1,13 @@
 {
- "at": "2026-09-12T15:37:05.937337Z",
+ "at": "2026-09-12T16:40:13.447471Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 72,
-   "price": 40,
-   "p_model": 0.6903,
-   "p_market": 0.4,
-   "edge_pts": 29.0,
+   "price": 43,
+   "p_model": 0.7174,
+   "p_market": 0.43,
+   "edge_pts": 28.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -24,17 +24,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "40c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "43c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "SAN",
    "ceiling": 79,
-   "price": 83,
-   "p_model": 0.9295,
-   "p_market": 0.83,
-   "edge_pts": 10.0,
+   "price": 76,
+   "p_model": 0.8661,
+   "p_market": 0.76,
+   "edge_pts": 10.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -47,30 +47,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "83c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "ATL",
-   "ceiling": 81,
-   "price": 73,
-   "p_model": 0.8114,
-   "p_market": 0.73,
-   "edge_pts": 8.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "73c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "76c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
