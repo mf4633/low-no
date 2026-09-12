@@ -1,5 +1,5 @@
 {
- "at": "2026-09-12T23:18:15.158647Z",
+ "at": "2026-09-12T23:25:09.514972Z",
  "traps": [
   {
    "city": "BOS",
@@ -64,6 +64,29 @@
     {
      "code": "PAST_PEAK",
      "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 0.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "DEN",
+   "ceiling": 79,
+   "price": 59,
+   "p_model": 0.9455,
+   "p_market": 0.59,
+   "edge_pts": 35.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "59c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 17:00 is past this station's measured convergence hour (16:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   }
