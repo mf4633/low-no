@@ -1,5 +1,5 @@
 {
- "at": "2026-09-12T23:11:00.360707Z",
+ "at": "2026-09-12T23:18:15.158647Z",
  "traps": [
   {
    "city": "BOS",
@@ -35,10 +35,10 @@
   {
    "city": "SAN",
    "ceiling": 79,
-   "price": 25,
+   "price": 23,
    "p_model": 0.7016,
-   "p_market": 0.25,
-   "edge_pts": 45.2,
+   "p_market": 0.23,
+   "edge_pts": 47.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -47,7 +47,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -59,34 +59,11 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "25c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "23c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     },
     {
      "code": "PAST_PEAK",
      "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 0.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "DEN",
-   "ceiling": 79,
-   "price": 44,
-   "p_model": 0.7626,
-   "p_market": 0.44,
-   "edge_pts": 32.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (16:00) with the running max still 0.9F short. The climb window has closed."
     }
    ]
   }
