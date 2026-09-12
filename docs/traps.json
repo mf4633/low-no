@@ -1,13 +1,13 @@
 {
- "at": "2026-09-12T16:48:35.438906Z",
+ "at": "2026-09-12T17:51:09.913511Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 72,
-   "price": 35,
-   "p_model": 0.7174,
-   "p_market": 0.35,
-   "edge_pts": 36.7,
+   "price": 20,
+   "p_model": 0.6723,
+   "p_market": 0.2,
+   "edge_pts": 47.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 37 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -24,17 +24,21 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "35c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 13:00 is past this station's measured convergence hour (13:00) with the running max still 0.4F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SAN",
    "ceiling": 79,
-   "price": 76,
-   "p_model": 0.8661,
-   "p_market": 0.76,
-   "edge_pts": 10.6,
+   "price": 74,
+   "p_model": 0.806,
+   "p_market": 0.74,
+   "edge_pts": 6.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -47,22 +51,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "76c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "PHX",
-   "ceiling": 100,
-   "price": 98,
-   "p_model": 0.989,
-   "p_market": 0.98,
-   "edge_pts": 0.9,
-   "size_lcb": 0.1728,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "74c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
