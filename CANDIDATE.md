@@ -1887,3 +1887,186 @@ to 50x at half-Kelly -- months, not weeks, passing through multiple
 account halvings (P(30-loss streak) ~ 12% at any time). If the true rate
 is <= 4%, the quit lines end the pilot with roughly $60 lost and a clean
 answer. Both outcomes are acceptable; an unbounded middle is not.
+
+---
+
+# CORRECTION -- the ring-to-KNYC offset is not a constant  (2026-09-12)
+
+Status: CORRECTION to existing measurement machinery. Not a hypothesis, not a
+rule, nothing to promote. Recorded here because the project's convention is
+that a changed threshold is written down with a reason rather than adjusted.
+
+## What was wrong
+
+Intraday nowcasts of KNYC from the LGA/EWR/TEB ring have been taken with a
+single offset, re-derived ad hoc from the day's own completed hours. On
+2026-09-11 that produced `-1.82F`, fitted on six hourly points, and it was then
+applied to predict the 13:51 print. The prediction was 77; the print was 78.
+
+Two systematic terms were being absorbed as noise.
+
+## TERM 1 -- hour of day. Range 2.65F.
+
+Offset to subtract from the ring window max to predict the upcoming :51 print,
+window held at 50 minutes. n=36 complete days, 2026-06-26 .. 2026-09-09,
+288 hour-predictions. Truth is KNYC's own :51 print.
+
+| hour  | n  | offset | sd   |
+|-------|----|--------|------|
+| 11:51 | 36 | -2.04  | 1.36 |
+| 12:51 | 36 | -2.07  | 1.75 |
+| 13:51 | 36 | -2.69  | 1.80 |
+| 14:51 | 36 | -3.37  | 1.92 |
+| 15:51 | 36 | -3.67  | 1.76 |
+| 16:51 | 36 | -4.29  | 1.39 |
+| 17:51 | 36 | -4.69  | 2.00 |
+| 18:51 | 36 | -4.53  | 1.68 |
+
+Monotonic 11:51 -> 17:51. Every hour's own sd is at or below the pooled 1.99,
+which is the signature of a systematic term being counted as noise.
+
+Mechanism: Central Park is vegetated and shaded; LGA, EWR and TEB are paved
+airfields. The gap opens through the afternoon as the ring's surfaces keep
+loading and the Park's do not. It is the same physical asymmetry already
+documented for rooftop PWS, one layer out.
+
+## TERM 2 -- elapsed minutes in the window. Range 0.9F.
+
+A max over a still-filling window is smaller than a max over a full one, so the
+offset must grow as the window fills. Same population.
+
+| called at | offset | sd   |
+|-----------|--------|------|
+| 10 min    | -2.65  | 2.21 |
+| 20 min    | -2.89  | 2.15 |
+| 30 min    | -3.09  | 2.11 |
+| 40 min    | -3.26  | 2.03 |
+| 50 min    | -3.42  | 1.99 |
+| 59 min    | -3.54  | 1.93 |
+
+This is the same error class as the `solts.py` trailing-bin bug (a partial
+10-minute solar bin read as a completed one) and as the partial-time-bin bias
+noted in multi-station aggregation. Third occurrence; it should be assumed
+present wherever a max-over-window is compared against a fitted constant.
+
+## Effect of correcting both
+
+Joint table `offset(hour, elapsed)`, 40 cells, is in
+`hfasos/joint_offsets.json`.
+
+| model                          | resid sd |
+|--------------------------------|----------|
+| ring hourly :51, uncorrected   | 3.59     |
+| flat offset by elapsed only    | 1.99     |
+| hour x elapsed table           | 1.73     |
+
+25% variance reduction from adding the hour term to the elapsed term.
+
+## THE OFFSET IS SAMPLING-RESOLUTION SPECIFIC. This is the trap.
+
+The same method at 5-minute METAR resolution wants `-1.82`; at 1-minute it
+wants `-3.47`. Finer sampling finds higher ring maxima, so the offset must grow
+to compensate. **An offset carried across a change in observation density runs
+1.65F wrong every time.** Any stored offset must record the sampling interval
+it was fitted at.
+
+## Negative result -- 1-minute data buys nothing here
+
+Measured on the same 288 predictions, offset refitted per (hour, resolution):
+
+| ring sampling | resid sd | vs 1-min |
+|---------------|----------|----------|
+| 1-minute      | 1.72     | --       |
+| 5-minute      | 1.68     | -2%      |
+| 10-minute     | 1.66     | -3%      |
+| 20-minute     | 1.68     | -2%      |
+| hourly :51    | 3.59     | +109%    |
+
+The entire gain is in having ANY intra-hour sampling. 20-minute captures it all.
+The free network-1 5-minute feed matches paid HF-ASOS (network 258) to within
+noise. **Do not convert the HF-ASOS trial to paid on this basis.**
+
+Two reasons it cannot help: the quantity predicted is a preceding-hour maximum
+at whole-F resolution, and HF-ASOS air_temp is quantized to whole degrees
+Celsius -- 8,514 consecutive KLGA1M samples, 100% whole C, 1.8F steps. Same
+quantizer as the 5-minute observations, so `shape_pair_eval.py`'s 1.8F
+instrument-derived threshold stands unchanged and gains nothing from this feed.
+
+## What this does NOT license
+
+It does not touch GATE. It does not touch H4a, H7 or H8, whose variables are
+read by their own readers and must keep working exactly as registered. It is a
+correction to nowcast measurement only, and a nowcast has never been an entry
+condition.
+
+## Kill criteria for the corrected offset
+
+- Any refit moving a cell by more than 1.0F -> the table is regime-dependent,
+  not diurnal, and must be conditioned on regime or abandoned.
+- Live out-of-sample mean error exceeding 1.0F over 20 prints -> the 36-day
+  window does not transfer and the table is discarded rather than re-tuned.
+
+---
+
+# THE PRICE COMPARISON (measured 2026-09-12) -- a fact, and the end of a line
+
+Every measurement improvement made on 2026-09-12 was scored against TRUTH.
+None had been scored against a PRICE. H3 exists to insist on that distinction
+and it was not honoured until the poll log made it possible.
+
+`logs/poll/` now carries 12 settled days x 2 cities x ~154 polls with the book
+on the bottom rung. Two tests, both leave-one-DAY-out, both on the NO mid /
+ask actually quoted.
+
+## Test 1 -- calibration
+
+| | n | Brier |
+|---|---|---|
+| MARKET (NO mid) | 1848 | **0.0298** |
+| MODEL (settle-minus-print empirical, city x hour) | 1848 | 0.0948 |
+
+Market is **3.2x better calibrated**. Per city: DEN 0.0003 vs 0.0349, NYC
+0.0593 vs 0.1547. Market mean implied P(NO) 0.821 against a realised 0.831 --
+one point over 1,848 polls.
+
+This reproduces the point-in-time backtest (model Brier 0.0590 vs market 0.0118)
+by a wholly independent route, now with the corrected per-city CLI offsets and
+real books rather than a reconstruction.
+
+## Test 2 -- conditional profitability where the model DISPUTES the book
+
+One trade per (day, city), first qualifying poll, crossing the spread, Kalshi
+fees both sides. Rules fixed before any result was read.
+
+| margin | n | wins | total | per trade |
+|---|---|---|---|---|
+| 5% | 21 | 2 (10%) | -134c | -6.38c |
+| 10% | 18 | 2 (11%) | -121c | -6.72c |
+| 15% | 17 | 2 (12%) | -111c | -6.53c |
+| 20% | 16 | 2 (12%) | -93c | -5.81c |
+
+Negative at every threshold, and **raising the bar does not help** -- a larger
+required disagreement finds fewer of the same bad trades, not better ones. That
+is the model being wrong, not the filter being loose.
+
+The trade list is the diagnosis: `YES@1c, YES@1c, YES@2c, YES@4c, YES@7c,
+NO@8c, YES@23c, YES@61c`. Given freedom to disagree, the model immediately
+reinvents the banned instrument -- cheap tickets on rungs the market has priced
+at 1-2c and is right about. It does not dispute the near-certainties at all.
+The 3.2x Brier gap sits exactly where the market is confident and correct.
+
+## What this closes
+
+The 2026-09-12 measurement work is real and stays: per-city CLI offsets
+(11 cities, free data), CLI == the 1-minute maximum (proven on 260 station-days),
+the 6-hour max group exact to rounding, the ring hour x elapsed offsets. All of
+it is INSIDE THE PRICE. Six hypotheses have now resolved and six resolved
+against. H4a reached its bar and failed at -6.16%.
+
+A candidate H14 ("the intra-hour ring signal is not in the price") was drafted
+and then withdrawn the same day -- not because of the above, but because the
+baseline it named does not exist: Kalshi quotes the daily high, not the next
+hourly print, so "the market's implied distribution for the upcoming :51" is
+not a measurable object.
+
+Harnesses: `edge_test.py`, `edge_div.py`.
