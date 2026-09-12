@@ -786,6 +786,19 @@ def _hypothesis_progress(obs):
                  ready=h8_ready,
                  note="fills to the thinnest of four groups; H8b (joint cell) "
                       "is registered but not expected to report before the stop"),
+            dict(id="H15", name="LAX marine-layer regime not in the price",
+                 have=0, need=20,
+                 unit="distinct LAX marine-stratum days with a book",
+                 also=dict(have=0, need=2,
+                           unit="baselines beaten (market, clear-day control)"),
+                 ready=False,
+                 note="registered 2026-09-12, full text docs/H15.md, classifier "
+                      "lax_regime.py FROZEN the same day on free weather data "
+                      "with no price data in the loop. NO HARNESS YET -- have=0 "
+                      "is a placeholder, not a measured zero. Marine strata are "
+                      "29% of Sep-Dec days, so 20 of them needs ~70 calendar "
+                      "days from 2026-09-12: bar reached ~2026-11-20, 41 days "
+                      "before the stop. Reads logs/poll_lax/, NOT logs/poll/"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",
