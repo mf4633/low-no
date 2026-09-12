@@ -9,7 +9,7 @@ om_metno      5573    20  -1.40  2.22  2.84    55%
 om_ecmwf      5689    20  -0.97  3.02  3.94    44%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 121 calls, est $1.7243 spent, $3.28 left (~229 calls)
+spend: 127 calls, est $1.8098 spent, $3.19 left (~223 calls)
 rung-obs 44996 -> 757 independent units over 35 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  46   0     0%   5.7%     0%     8%    -5.6      open
@@ -57,7 +57,7 @@ station guide bias (guide - CLI): {'LAX': -2.86, 'NYC': 1.59, 'BOS': -1.3, 'AUS'
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-11': 1} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
@@ -67,9 +67,9 @@ PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 
 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [####################] 35/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
-  H4b   market lag on curve_dev    [###############.....] 395/200 events  +15/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 16/60 city-day units  +supply only; scoring waits on H4a (11 days since 2026-09-01)
-  H6    market prices off the stale print [#######.............] 77/200 print transitions  +9/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
+  H4b   market lag on curve_dev    [################....] 419/200 events  +16/20 distinct days
+  H5    contested band 81-95c (blocked on H4a) [....................] 19/60 city-day units  +supply only; scoring waits on H4a (11 days since 2026-09-01)
+  H6    market prices off the stale print [########............] 81/200 print transitions  +10/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
   H8    run_max/temp_now gap (H4a x H7) [#####...............] 39/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
