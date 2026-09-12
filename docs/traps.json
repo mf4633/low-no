@@ -1,18 +1,18 @@
 {
- "at": "2026-09-12T17:51:09.913511Z",
+ "at": "2026-09-12T18:54:21.846823Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 72,
-   "price": 20,
-   "p_model": 0.6723,
-   "p_market": 0.2,
-   "edge_pts": 47.2,
+   "price": 13,
+   "p_model": 0.5992,
+   "p_market": 0.13,
+   "edge_pts": 46.9,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
@@ -23,35 +23,23 @@
      "why": "n_eff=17.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
-     "code": "GRAVEYARD",
-     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    },
-    {
      "code": "PAST_PEAK",
-     "why": "local hour 13:00 is past this station's measured convergence hour (13:00) with the running max still 0.4F short. The climb window has closed."
+     "why": "local hour 14:00 is past this station's measured convergence hour (13:00) with the running max still 0.4F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "SAN",
-   "ceiling": 79,
-   "price": 74,
-   "p_model": 0.806,
-   "p_market": 0.74,
-   "edge_pts": 6.6,
+   "city": "SEA",
+   "ceiling": 65,
+   "price": 94,
+   "p_model": 0.9557,
+   "p_market": 0.94,
+   "edge_pts": 1.6,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
      "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "74c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
