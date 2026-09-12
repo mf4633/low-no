@@ -29,33 +29,35 @@ OUT_DIR = "logs/lax_book"
 CITY, STATION = "LAX", "KLAX"
 
 
-def sky_today(day):
-    """{utc_hour: ceiling_ft or None} for `day`, read from IEM report_type=3.
+CACHE_DIR = "logs/lax_sky"
 
-    SAME SOURCE AS TRAINING -- this is the whole point. lax_regimes.json was
-    built from IEM report_type=3, the ROUTINE :5x observation. Reading the live
-    sky from api.weather.gov instead produced two separate failures on
-    2026-09-12, both silent:
 
-      * KLAX reports every ~5 min there, so a naive out[hour]=... kept the
-        OLDEST ob in each hour (the feed is newest-first). Hour 16Z took its
-        16:00Z BKN instead of its 16:53Z SCT.
-      * and the routine :53 obs carry EMPTY cloudLayers there anyway -- only
-        the 5-minute specials have cloud data -- so "nearest :53" then read
-        clear when the hour was overcast.
+def _iem_sky(day):
+    """Raw IEM report_type=3 sky CSV for `day`, with backoff and a local cache.
 
-    Either one flips the regime. The first turned EARLY_BURN into LATE_BURN,
-    the frozen forecast said 74.8F against a market at 81-82, and the market
-    was right: LAX printed 81. A 98-point "discrepancy" manufactured entirely
-    by a train/serve mismatch -- the same shape as the 53-minute proxy-align
-    lag. H15 is registered on this classifier, so a silent mismatch here would
-    score every observation against the wrong cell and look like the hypothesis
-    failing.
+    SAME SOURCE, JUST MORE PATIENT. The temptation when IEM 503s is to fall back
+    to another feed. Do not. On 2026-09-12 reading the live sky from
+    api.weather.gov instead of IEM flipped EARLY_BURN to LATE_BURN two different
+    ways -- its 5-minute obs made a naive hour key take the OLDEST ob, and its
+    routine :53 obs carry empty cloudLayers -- and the frozen forecast then said
+    74.8F against a market at 81-82 that was right. H15 is registered on this
+    classifier; a silent source disagreement scores every observation against
+    the wrong cell and looks like the hypothesis failing.
 
-    IEM also runs AHEAD of api.weather.gov on live obs (measured 2026-09-11 and
-    -12: NWS up to an hour behind), so there is no recency cost either.
+    (HF-ASOS KLAX1M was checked as a fallback and does agree exactly -- oktas
+    2/4/6/8 map to FEW/SCT/BKN/OVC with identical bases on all 14 overlapping
+    hours of 2026-09-12. It is still not wired in: the trial expires 2026-09-14
+    and H15 runs to ~2026-11-20, so it would be a dependency that dies before
+    the first marine day, validated on one station on one day.)
+
+    Cached under logs/lax_sky/ once the day is complete, so a later outage
+    cannot erase a day already observed.
     """
-    import csv
+    import csv, time, random, urllib.request, urllib.error
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    cache = os.path.join(CACHE_DIR, f"{day}.csv")
+    if os.path.exists(cache) and os.path.getsize(cache) > 200:
+        return io.open(cache, encoding="utf-8").read()
     y, m, d = day[:4], day[5:7], day[8:10]
     nxt = (dt.date(int(y), int(m), int(d)) + dt.timedelta(days=1)).isoformat()
     u = ("https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=LAX"
@@ -64,17 +66,41 @@ def sky_today(day):
          f"&year2={nxt[:4]}&month2={nxt[5:7]}&day2={nxt[8:10]}"
          "&tz=UTC&format=onlycomma&latlon=no&missing=M&trace=T&direct=no"
          "&report_type=3")
-    try:
-        txt = sources._get_text(u, timeout=45) if hasattr(sources, "_get_text") else None
-    except Exception:
-        txt = None
-    if txt is None:
-        import urllib.request
+    txt = None
+    for attempt in range(6):
         try:
-            txt = urllib.request.urlopen(u, timeout=45).read().decode()
+            txt = urllib.request.urlopen(u, timeout=60).read().decode()
+            break
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or attempt == 5:
+                print(f"  IEM sky fetch failed: HTTP {e.code}")
+                return None
+            w = min(120, (2 ** attempt) * 5) + random.uniform(0, 3)
+            print(f"  IEM {e.code} -- backoff {w:.0f}s (attempt {attempt + 1}/6)")
+            time.sleep(w)
         except Exception as e:
-            print(f"  sky fetch failed: {str(e)[:60]}")
-            return {}
+            print(f"  IEM sky fetch failed: {str(e)[:60]}")
+            return None
+    if txt is None or len(txt) < 200:
+        return None
+    # cache only a COMPLETE day -- a partial day cached mid-afternoon would
+    # freeze the regime before the burn-off window has closed
+    if day < dt.datetime.now(dt.timezone.utc).date().isoformat():
+        io.open(cache, "w", encoding="utf-8").write(txt)
+    return txt
+
+
+def sky_today(day):
+    """{utc_hour: ceiling_ft or None} for `day`, from IEM report_type=3.
+
+    Matches the source AND report type lax_regimes.json was built from: the
+    routine :5x observation, one per hour. See _iem_sky for why this must not
+    silently fall back to another feed.
+    """
+    import csv
+    txt = _iem_sky(day)
+    if not txt:
+        return {}
     out = {}
     for r in csv.DictReader(io.StringIO(txt)):
         v = r.get("valid", "")
