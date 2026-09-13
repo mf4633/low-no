@@ -13,6 +13,7 @@ from typing import ClassVar, Dict, List, Optional
 from . import config as C
 from .advisor import FAST_STEPS, route_from, scan
 from .engine import GameState
+from .kin import SKILLS
 from .goods import RATION_GOODS, good, nourishment
 from .military import UNITS, host_strength
 from .trade import SHIP, Order, Stop
@@ -96,7 +97,35 @@ class Bot:
             self._shutter(s)
         self._dig()
         self._defend()
+        self._house()
         self._carts()
+
+    # ------------------------------------------------------------- the house
+    def _house(self) -> None:
+        """Give everyone of age a job, seat first.
+
+        A bot that never posts anybody is a bot playing a different game from
+        the one the balance guard is supposed to be measuring -- and it would
+        make the house look free, because nothing in the numbers would ever
+        show what holding a post is worth.
+        """
+        g = self.game
+        k = g.kin
+        seat = g.kin.seat or next(iter(g.world.settlements), "")
+        wants = [("steward", seat), ("factor", ""), ("master", seat),
+                 ("envoy", "")]
+        for post, target in wants:
+            if k.holder(post, target):
+                continue
+            free = [p for p in k.living()
+                    if p.uid != k.head and not p.post and not p.inlaw
+                    and p.age(g.day) >= 14]
+            if not free:
+                return
+            # The oldest first: they have the most years left in the job and
+            # the least time to waste before the seat falls to one of them.
+            free.sort(key=lambda p: p.born)
+            g.post(free[0].name, post, target)
 
     # -------------------------------------------------------------- the town
     def _govern(self, s) -> None:
@@ -466,9 +495,28 @@ class Conqueror(Bot):
             self._shutter(s)
         self._dig()
         self._defend()
+        self._house()
+        self._war_house()
         self._buy_arms()
         self._carts()
         self._campaign()
+
+    def _war_house(self) -> None:
+        """At war the eldest spare rides, because a captain is worth more in
+        the field than a third steward is at home."""
+        g = self.game
+        mine = [a for a in g.armies if a.owner == "player"]
+        if not mine:
+            return
+        held = g.kin.holder("captain", str(mine[0].uid))
+        if held is not None:
+            return
+        spare = [p for p in g.kin.living()
+                 if p.uid != g.kin.head and not p.inlaw
+                 and p.age(g.day) >= 16 and p.post in ("", "envoy")]
+        spare.sort(key=lambda p: (p.post == "", p.born))
+        if spare:
+            g.post(spare[0].name, "captain", str(mine[0].uid))
 
     def _buy_arms(self) -> None:
         """One cart kept permanently on the arms trade.
@@ -628,6 +676,19 @@ def report(game: GameState) -> str:
                      f" roofs {s.housing(p):>5,.0f} wall {s.wall_hp:>5,.0f}"
                      f" works {len(s.buildings):>3}"
                      f"  | " + ", ".join(f"{k} {v:.0f}" for v, k in stock[:5]))
+    lord = game.kin.lord
+    if lord is not None:
+        best = sorted(SKILLS, key=lambda sk: -lord.xp.get(sk, 0.0))
+        kept = ", ".join(f"{sk} {lord.level(sk)}" for sk in best
+                         if lord.level(sk) > 0) or "untried"
+        lines.append(f"  {lord.name}, {lord.age(game.day)} -- {kept}"
+                     + (f" ({', '.join(lord.reputation())})"
+                        if lord.reputation() else ""))
+        posted = [f"{q.name} {q.doing(game.world.node_name)}"
+                  for q in game.kin.living() if q.post and q.post != "head"]
+        lines.append(f"  the house {len(game.kin.living()):>12}"
+                     + ("   " + "; ".join(posted) if posted else
+                        "   nobody is posted to anything"))
     if game.over:
         lines.append(f"  ENDING    {game.over}")
     return "\n".join(lines)

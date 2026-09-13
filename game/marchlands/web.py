@@ -28,6 +28,7 @@ from typing import Tuple
 from urllib.parse import urlparse
 
 from .cli import Console
+from .kin import SKILLS
 from .layout import plan_for
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -153,6 +154,12 @@ def options(game, here: str = "") -> dict:
     return {"here": key, "slots": free, "buildings": out}
 
 
+def _best_skill(person) -> str:
+    """What one of yours is known for, or nothing if they have not been used."""
+    best = max(SKILLS, key=lambda sk: person.xp.get(sk, 0.0))
+    return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
+
+
 def snapshot(game, here: str = "") -> dict:
     """Everything the picture needs, and nothing it does not."""
     key = here or next(iter(game.world.settlements))
@@ -173,7 +180,18 @@ def snapshot(game, here: str = "") -> dict:
                   "towns": game.goals.towns,
                   "days": game.goals.days,
                   "paths": list(game.goals.paths)},
-        "lord": {"name": game.lord.name, "standing": game.lord.standing()},
+        "lord": {"name": game.lord.name,
+                 "standing": game.lord.standing(game.world.node_name)},
+        # The house, small enough to sit in a panel and complete enough to
+        # follow: who they are, how old, what they are doing, what it made them.
+        "kin": [{"name": p.name,
+                 "age": p.age(game.day),
+                 "head": p.uid == game.kin.head,
+                 "doing": p.doing(game.world.node_name),
+                 "skill": _best_skill(p)}
+                for p in sorted(game.kin.living(),
+                                key=lambda q: (q.uid != game.kin.head, q.born))],
+        "reputation": (game.kin.lord.reputation() if game.kin.lord else []),
         "here": key,
         "settlements": list(game.world.settlements),
         "town": {

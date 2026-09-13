@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 474 tests, ~5min
+python3 -m unittest discover -s tests          # 519 tests, ~5min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -128,9 +128,101 @@ man**, not a flag: he is worth real numbers in his hall, worth more riding with
 a host, and he is then standing where the arrows are. He can fall, or be taken
 and ransomed, and there are only so many of his line.
 
+**From Mount & Blade: Bannerlord** — the third thing both of the others leave
+out: a house. Your lord is a person who gets better at whatever he actually
+spends his days doing, who marries somebody's daughter for reasons of state,
+whose children grow up while you are busy, and who eventually dies and hands
+the whole business to one of them. See **[Your house](#your-house)**.
+
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
 where the game is played.
+
+## Your house
+
+```
+kin                       who they are and what it made them
+post <name> <post> [where] give one of them a job
+marry <name> <town>       a peace that does not run out
+```
+
+Bannerlord's real contribution to this genre is not the horses. It is that a
+campaign has a *person* in it who changes: you finish a war better at war than
+you started it, and when he dies the game does not restart, it continues as
+somebody else — somebody you have been training for a decade without
+particularly meaning to.
+
+That last clause is the whole design here. A succession that resets the numbers
+is a death in a spreadsheet. This one hands the seat to a woman of twenty-two
+who has had your carts since she was fifteen, and her trade is four, and you
+can see it in the margin the week she takes over.
+
+### A skill is earned by the day, not bought
+
+Nobody spends points. There are five skills, one per post, and whoever holds
+the post gets better at *that* and at nothing else:
+
+| post | skill | what it is worth |
+|---|---|---|
+| `steward` *(a town)* | stewardship | mood there, and what the tax roll bears |
+| `factor` | trade | every cart of yours sells a little better |
+| `captain` *(a host)* | tactics | that host hits harder and breaks later |
+| `master` *(a town)* | engineering | building and walls there, and your siege engines everywhere |
+| `envoy` | charm | peace is cheaper and hostility cools faster |
+
+Learning falls off — the fourth level costs more than twice the second — so
+level four is a chapter of honest service and level ten is a working lifetime.
+The young learn faster and the old slower. The lord is not posted: what he
+learns is whatever he is *doing*, so a man who never leaves his hall is a fine
+steward and an unproven soldier, and the campaign will say so at the worst
+possible moment.
+
+The cost of a post is not coin, it is the person. Everyone can only be in one
+place, so a son governing Aldworth is a son not riding with the host, and both
+the tax roll and the battle line know it.
+
+### A trait is a verdict, not a choice
+
+Nobody picks "merciful" off a list. You hold the tax light for two years and
+the word gets about; you storm a town instead of taking its surrender and that
+gets about too. Four of them, each running from one word to its opposite:
+**just / grasping**, **merciful / cruel**, **open-handed / close-fisted**,
+**bold / cautious**. A day moves any of them about a four-hundredth of the way
+to its extreme, which is the point — a reputation you can change in a week is
+not a reputation.
+
+They cost and pay. A just lord's towns are happier and his tax roll is thinner.
+A cruel one's neighbours stay angry longer. A cautious one is worth more on his
+own wall and less at the head of a charge. And his children are born into half
+of it, good or bad, because the march gives an heir the benefit of a doubt it
+would never have given his father.
+
+### The family
+
+You start with a lord of about thirty-seven, a wife, and three children aged
+roughly sixteen, eleven and five — half-grown on purpose, because a campaign is
+twelve years and a child born in chapter one would be twelve at the end of it
+and have done nothing. Children are born, come of age at fourteen, can be given
+a post, and are what a succession draws on.
+
+`marry <name> <town>` is the cheapest lasting peace in the game and the only
+one that cannot be un-bought. A truce runs out. A gift is forgotten as the
+favour decays. A daughter married into Ostmark is still married into Ostmark in
+the fifth chapter. What it costs is a dowry now and a person you might have
+posted somewhere.
+
+And the whole house crosses a chapter boundary intact and *older*: the years
+between chapters are not a gap it sits out. The son who was sixteen in **A
+Small Inheritance** is twenty-six by **Dust on the Road**, carrying ten years of
+whatever you had him doing.
+
+### The house rolls its own dice
+
+A birth in the hall must not move the weather. The kin keeps a random stream of
+its own, seeded and saved separately, because sharing the world's one re-rolled
+twelve seeds' worth of balance measurement the first time this was wired in —
+without changing a single rule. That is the kind of bug that looks exactly like
+a balance change, and there is a test that asserts it cannot come back.
 
 ## How it looks
 
@@ -633,6 +725,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `view.py` | the same holding as a flat plan |
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
+| `kin.py` | the house: skills earned in the job, traits earned by choice, births, marriages, succession |
 | `fire.py` | what catches, how it spreads, and what puts it out |
 | `layout.py` | where everything stands, so a renderer can draw a place |
 | `web.py` | a stdlib server and the browser's view of the game |

@@ -1213,6 +1213,15 @@ function paint(s) {
                            ['wages', -L.wages], ['upkeep', -L.upkeep], ['net', L.net]]
     .map(([k, v]) => `<li><label>${k}</label><span class="${v >= 0 ? 'up' : 'down'}">` +
                      `${v >= 0 ? '+' : ''}${num(v)}</span></li>`).join('');
+  // The house. A name, an age, and what the years in that job made of them --
+  // which is the only reason to care which of them takes the seat.
+  $('kinlist').innerHTML = (s.kin || []).map(p =>
+    `<li class="kinrow${p.head ? ' head' : ''}"><label>${p.name}` +
+    `<em>${p.age}</em></label><span>${p.skill || p.doing}</span></li>`).join('');
+  const repute = $('repute');
+  repute.textContent = (s.reputation || []).length
+    ? 'they call him ' + s.reputation.join(', ') : '';
+  repute.hidden = !repute.textContent;
   const alarm = $('alarm');
   const bad = s.town.besieged ? 'under siege' : s.town.raided ? 'the country is burning'
     : s.town.fires ? `${s.town.fires} roofs alight`

@@ -25,6 +25,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 from . import config as C
 from .chronicle import Chronicle
 from .engine import Goals, GameState
+from .kin import Kin
 from .scenarios import start as start_scenario
 
 #: The man the campaign is about. He is on the map from the first chapter, but
@@ -42,12 +43,19 @@ class Carry:
     renown: int = 0
     chronicle: Chronicle = field(default_factory=Chronicle)
     outcomes: Tuple[str, ...] = ()
+    #: The people, whole. This is the part of a campaign that is actually a
+    #: campaign: the purse is spent and the techs are a list, but the house
+    #: that arrives in chapter five is twelve years older than the one that
+    #: started, with the same children in it, doing what you had them doing.
+    kin: Optional[Kin] = None
+    days: int = 0                 # how long the house has been running
 
     def to_dict(self) -> dict:
         return {"purse": self.purse, "techs": list(self.techs),
                 "lord_name": self.lord_name, "heirs": self.heirs,
                 "renown": self.renown, "chronicle": self.chronicle.to_dict(),
-                "outcomes": list(self.outcomes)}
+                "outcomes": list(self.outcomes), "days": self.days,
+                "kin": self.kin.to_dict() if self.kin else None}
 
     @classmethod
     def from_dict(cls, d: dict) -> "Carry":
@@ -57,7 +65,9 @@ class Carry:
                    heirs=d.get("heirs", 2),
                    renown=d.get("renown", 0),
                    chronicle=Chronicle.from_dict(d.get("chronicle", {})),
-                   outcomes=tuple(d.get("outcomes", ())))
+                   outcomes=tuple(d.get("outcomes", ())),
+                   days=d.get("days", 0),
+                   kin=Kin.from_dict(d["kin"]) if d.get("kin") else None)
 
 
 @dataclass(frozen=True)
@@ -85,6 +95,29 @@ class Chapter:
         if carry.lord_name:
             g.lord.name = carry.lord_name
             g.lord.heirs = carry.heirs
+        if carry.kin is not None and carry.kin.people:
+            # The years between chapters are not a gap the house sits out. A
+            # chapter's own clock restarts at day nought, so everyone's
+            # birthday is slid back by however long the house has been going;
+            # otherwise a son of nineteen arrives in chapter three aged four.
+            g.kin = carry.kin
+            for p in g.kin.people:
+                p.born -= carry.days
+                if p.died >= 0:
+                    p.died -= carry.days
+            g.kin.seat = g.lord.seat
+            g.kin.riding = 0
+            for p in g.kin.people:
+                # Hosts and posts do not survive a chapter; the people do.
+                if p.post != "head":
+                    p.post, p.target = "", ""
+            # One name, and the carry's is it: a chapter may have renamed the
+            # lord for reasons of its own, and a house whose head answers to
+            # something different from the title bar is a bug in every screen.
+            if g.kin.lord is not None:
+                if carry.lord_name:
+                    g.kin.lord.name = carry.lord_name
+                g.lord.name = g.kin.lord.name
         if len(carry.chronicle):
             g.chronicle = carry.chronicle
         self.dress(g)
@@ -312,6 +345,8 @@ def carry_from(g: GameState, carry: Carry, won: bool) -> Carry:
         renown=renown,
         chronicle=g.chronicle,
         outcomes=carry.outcomes + (f"{g.chapter}:{'won' if won else 'lost'}",),
+        kin=g.kin,
+        days=carry.days + g.day,
     )
 
 

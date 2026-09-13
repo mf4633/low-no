@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 #: What a lord is worth to the men who can see him.
 HOME_MOOD = 4.0             # a lord in residence, in his own hall
@@ -63,7 +63,8 @@ class Lord:
         """No lord to be had today, for whatever reason."""
         return not self.alive or self.captured
 
-    def standing(self) -> str:
+    def standing(self, name_of: Optional[Callable[[str], str]] = None) -> str:
+        name = name_of or (lambda k: k)
         if self.captured:
             return f"held for ransom at {self.ransom:,.0f}c"
         if not self.alive:
@@ -72,7 +73,7 @@ class Lord:
             return f"dead -- an heir is raised in {self.heir_days} days"
         if self.riding:
             return f"riding with host {self.riding}"
-        return f"in his hall at {self.seat or 'home'}"
+        return f"in his hall at {name(self.seat) if self.seat else 'home'}"
 
     # ------------------------------------------------------------- the day
     def day(self) -> List[str]:

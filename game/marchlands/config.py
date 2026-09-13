@@ -131,3 +131,11 @@ RELIC_DAYS = 6             # days a host must stand at a shrine to lift one
 RELIC_HOLD_DAYS = 120      # days you must keep them to win by them
 RELIC_COIN = 42.0          # pilgrims' offerings, per relic per day
 BANKRUPTCY_FLOOR = -3000.0
+
+# --- the house ---------------------------------------------------------------
+# A marriage is the only lasting peace in the game: a truce runs out and a
+# gift is forgotten, but a daughter in Ostmark is still there in five years.
+DOWRY_BASE = 1_400.0            # scaled by the town's muster and prosperity
+MARRIAGE_FAVOUR = 70.0          # standing goodwill the match buys outright
+MARRIAGE_COOLING = 35.0         # and how much of his temper it takes off today
+MARRIAGE_TRUCE = 240            # days nobody marches on kin

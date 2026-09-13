@@ -92,6 +92,7 @@ class Settlement:
     raided: bool = False      # somebody is burning the country outside
     lord_home: bool = False   # your lord keeps his hall here today
     lord_lost: bool = False   # and nobody at all keeps it
+    steward_mood: float = 0.0  # what whoever governs here is worth, set daily
     raid_pressure: float = 0.0   # how much of it they got through today
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
@@ -584,6 +585,8 @@ class Settlement:
             out.append(("the lord in his hall", C.LORD_MOOD))
         elif self.lord_lost:
             out.append(("no lord in the hall", -C.LORD_MOOD * 1.5))
+        if abs(self.steward_mood) >= 0.05:
+            out.append(("who governs here", self.steward_mood))
         if self.fires:
             out.append(("the town is burning", -9.0 - 9.0 * self.fires.worst()))
         if self.raided:

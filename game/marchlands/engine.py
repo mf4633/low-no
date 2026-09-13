@@ -21,7 +21,8 @@ from .castle import INVEST, Works, choose, storms_now
 from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lord as lordly
-from .lord import Lord, name_for
+from .kin import POSTS, Kin, found as found_kin
+from .lord import Lord
 from .market import Market
 from .military import (BESIEGING, GARRISON, MARCHING, RAIDING, RETURNING,
                        UNITS, Army,
@@ -122,6 +123,8 @@ class GameState:
     relic_days: int = 0
     mood_days: int = 0
     lord: Lord = field(default_factory=Lord)
+    #: Who he is, who is behind him, and what each of them has been doing.
+    kin: Kin = field(default_factory=Kin)
     chronicle: Chronicle = field(default_factory=Chronicle)
     chapter: str = ""           # which chapter of a campaign, if any
     over: str = ""              # '' while playing, else the ending
@@ -133,9 +136,17 @@ class GameState:
         self._war_outlay = 0.0
         self._plunder = 0.0
         if self.lord.name == Lord.name and self.world.settlements:
-            # A lord of your own, named once, seated in whatever you hold.
-            self.lord.name = name_for(random.Random(self.seed * 104729))
+            # A lord of your own, seated in whatever you hold -- and a wife,
+            # and children of an age to be given something to do before the
+            # campaign is over. See kin.found for why they start half-grown.
             self.lord.seat = next(iter(self.world.settlements))
+        if not self.kin.people:
+            seed = random.Random(self.seed * 104729)
+            self.kin = found_kin(seed, seat=self.lord.seat,
+                                 lord_name=None if self.lord.name == Lord.name
+                                 else self.lord.name)
+            self.lord.name = self.kin.lord.name
+        self.kin.seat = self.lord.seat
 
     # ------------------------------------------------------------- calendar
     @property
@@ -200,6 +211,13 @@ class GameState:
                 return s
         return next(iter(self.world.settlements.values()))
 
+    def _key_of(self, s: Settlement) -> str:
+        """The key a settlement is filed under, which posts are given against."""
+        for key, other in self.world.settlements.items():
+            if other is s:
+                return key
+        return ""
+
     # ------------------------------------------------------------------ tick
     def tick(self) -> List[str]:
         if self.over:
@@ -211,13 +229,14 @@ class GameState:
         msgs += self.events.tick(self.world, self.day, self.rng, self.progress)
 
         # 1. Settlements work, eat and are taxed.
-        for s in self.world.settlements.values():
+        for key, s in self.world.settlements.items():
             before = {b.uid: b.complete for b in s.buildings}
             rep = s.tick(self.season, self.rng, self.progress)
             for b in s.buildings:
                 if b.complete and not before.get(b.uid, True):
                     msgs.append(f"{s.name}: {b.spec.name} finished")
-            led.taxes += rep.taxes
+            # A steward who knows the ground gets more out of the same ground.
+            led.taxes += rep.taxes * self.kin.mult("taxes", key)
             led.wages += rep.wages
             led.upkeep += rep.upkeep
             msgs += rep.notes
@@ -256,6 +275,13 @@ class GameState:
         self.treasury, tmsgs = self.trade_engine.tick(self.caravans, self.treasury)
         led.caravans = caravan_cost
         led.trade = (self.treasury - before_trade) + caravan_cost
+        # Whoever has the carts. On a day the road paid, it paid a little more;
+        # on a day it did not, no amount of skill invents a buyer.
+        gain = self.treasury - before_trade
+        if gain > 0:
+            factored = gain * (self.kin.mult("trade") - 1.0)
+            self.treasury += factored
+            led.trade += factored
         msgs += tmsgs
 
         # 6. Learning, and the slow climb between ages.
@@ -687,7 +713,7 @@ class GameState:
     def lead(self, uid: int) -> str:
         """Send your lord out with a host, for what that is worth both ways."""
         if self.lord.gone:
-            return f"{self.lord.name} is {self.lord.standing()}"
+            return f"{self.lord.name} is {self.lord.standing(self.world.node_name)}"
         if uid == 0:
             self.lord.riding = 0
             return f"{self.lord.name} returns to his hall"
@@ -700,7 +726,7 @@ class GameState:
 
     def ransom_lord(self) -> str:
         if not self.lord.captured:
-            return f"{self.lord.name} is {self.lord.standing()}"
+            return f"{self.lord.name} is {self.lord.standing(self.world.node_name)}"
         if self.treasury < self.lord.ransom:
             return (f"They want {self.lord.ransom:,.0f}c for {self.lord.name} "
                     f"and you have {self.treasury:,.0f}c")
@@ -716,15 +742,88 @@ class GameState:
                               text=text, weight=weight, chapter=self.chapter)
         return text
 
+    def _lord_fell(self) -> List[str]:
+        """His host broke around him. Both halves of the man have to hear it.
+
+        `Lord` holds where he is standing; `Kin` holds who he was and who has
+        been training behind him. Keeping the two in step in one place is the
+        only reason a succession can say `Osric takes the seat, 22 years old,
+        trade 4` instead of picking a name out of a hat -- which is what the
+        old call to `name_for` did, and it is why the heir was nobody.
+        """
+        self.lord.ransom = min(9000.0, 900.0 + 0.06 * self.net_worth())
+        heir = self.kin.heir(self.day)
+        msgs = self.lord.falls(self.rng, heir.name if heir else self.lord.name)
+        if not self.lord.alive:
+            who = self.kin.lord
+            if who is not None:
+                msgs += [self.note(ln, MOMENTOUS)
+                         for ln in self.kin.bury(who, self.day)]
+            for st in self.world.settlements.values():
+                st.popularity = max(0.0, st.popularity - lordly.MOURNING)
+        return msgs
+
     def _lord_day(self) -> List[str]:
         msgs = self.lord.day()
         if self.lord.riding and self.army(self.lord.riding) is None:
             self.lord.riding = 0        # the host he rode with is gone
         seat = self.lord.seat or next(iter(self.world.settlements), "")
+        self.kin.seat, self.kin.riding = seat, self.lord.riding
+
+        # What the head of the house did today is what the head of the house
+        # learned today. A lord who never leaves the hall is a good steward
+        # and an unproven soldier, and the campaign will say so.
+        riding = self.army(self.lord.riding) if self.lord.riding else None
+        doing = ("siege" if riding is not None and riding.state == BESIEGING
+                 else "field" if riding is not None else "hall")
+        before = self.kin.head
+        # A birth, a death and a succession are the three things a chronicle is
+        # for. The house says them; this is where they get written down.
+        for line in self.kin.day(self.day, head_doing=doing):
+            msgs.append(self.note(line, MOMENTOUS) if line.startswith("***")
+                        else line)
+        if self.kin.head != before and self.lord.alive:
+            # He died in his bed. The hall is as empty as if he had not.
+            self.lord.alive = False
+            self.lord.riding = 0
+            self.lord.heir_days = lordly.SUCCESSION_DAYS
+            for st in self.world.settlements.values():
+                st.popularity = max(0.0, st.popularity - lordly.MOURNING)
+        if self.kin.lord is not None:
+            self.lord.name = self.kin.lord.name
+        self.lord.heirs = self.kin.heirs_left(self.day)
+        msgs += self._reputation_day()
+
         for key, st in self.world.settlements.items():
             st.lord_home = self.lord.at_home and key == seat
             st.lord_lost = self.lord.gone and key == seat
+            st.steward_mood = self.kin.bonus("mood", key)
         return msgs
+
+    def _reputation_day(self) -> List[str]:
+        """The march's opinion of your lord, formed a little at a time.
+
+        Nobody picks a trait off a list. You hold the tax low for two years and
+        the word gets about; you keep him behind his own wall through a war and
+        that gets about too. A day moves any of these by about a four-hundredth
+        of the way to its extreme, which is the point: a reputation you can
+        change in a week is not a reputation.
+        """
+        home = self.home()
+        if home is not None:
+            # The bands run -2 (largesse) to 4 (cruel), so the count of them is
+            # not the worst of them. Normalising against the wrong one made
+            # "none" read as half-way to cruel.
+            tax = home.tax_level / max(C.TAX_LEVELS)
+            self.kin.did("just", 0.008 * (0.45 - tax))
+            if home.report.unpaid:
+                self.kin.did("open", -0.02)
+        at_war = any(a.owner != "player" for a in self.armies)
+        if self.lord.in_the_field:
+            self.kin.did("bold", 0.006)
+        elif at_war and self.lord.at_home:
+            self.kin.did("bold", -0.003)
+        return []
 
     def relics_held(self, owner: str = "player") -> int:
         return sum(1 for sh in self.world.shrines.values() if sh.holder == owner)
@@ -804,7 +903,11 @@ class GameState:
     def _raid_town(self, a: Army, town) -> List[str]:
         """You, burning somebody else's country. Loot comes home as coin."""
         msgs: List[str] = []
-        raiders = Side(a.units, attack_mult=self.progress.mult("attack")
+        if a.owner == "player":
+            self.kin.did("merciful", -0.05)
+        raiders = Side(a.units,
+                       attack_mult=(self.progress.mult("attack")
+                                    * self.kin.mult("attack", a.uid))
                        if a.owner == "player" else 1.0)
         garrison = Side(dict(town.garrison))
         worked, _hurt, lost, lines = raid_day(
@@ -834,6 +937,8 @@ class GameState:
         besieger = Side(a.units,
                         attack_mult=(self.progress.mult("attack")
                                      * self.progress.mult("siege")
+                                     * self.kin.mult("siege")
+                                     * self.kin.mult("attack", a.uid)
                                      * lordly.attack_bonus(self.lord, a.uid))
                         if player else 1.0,
                         defense_mult=self.progress.mult("defense") if player else 1.0)
@@ -868,6 +973,11 @@ class GameState:
                         f"the ground after {res.rounds} rounds")
             a.siege_days = 0
             if res.winner == "attacker":
+                if player:
+                    self.kin.did("merciful", -0.35)
+                    self.kin.teach("engineering", 14.0, self.day, post="master")
+                    self.kin.teach("tactics", 10.0, self.day, post="captain",
+                                   target=str(a.uid))
                 msgs.append(self._take_town(town, a))
                 a.prune()
                 return msgs        # the garrison is the victor's now, not the survivors'
@@ -876,11 +986,7 @@ class GameState:
                 msgs.append(f"{a.name} is thrown back from {town.name}")
                 # He was standing where the arrows were. Sometimes that tells.
                 if self.lord.riding == a.uid:
-                    self.lord.ransom = min(9000.0, 900.0 + 0.06 * self.net_worth())
-                    msgs += self.lord.falls(self.rng, name_for(self.rng))
-                    for st in self.world.settlements.values():
-                        if not self.lord.alive:
-                            st.popularity = max(0.0, st.popularity - lordly.MOURNING)
+                    msgs += self._lord_fell()
                 self.march(a.uid, a.home)
             else:
                 a.state = RETURNING
@@ -906,7 +1012,8 @@ class GameState:
         holder = Side(s.units, attack_mult=self.progress.mult("attack"),
                       defense_mult=self.progress.mult("defense"),
                       battlement=6.0 + s.effect("battlement")
-                      + (lordly.HOME_DEFENCE if at_home else 0.0))
+                      + (lordly.HOME_DEFENCE if at_home else 0.0)
+                      + self.kin.bonus("defence"))
         works = Works.of([b.key for b in s.buildings
                           if b.complete and b.spec.terrain == "rampart"])
         if a.owner != "player":
@@ -1058,7 +1165,8 @@ class GameState:
                 t.hostility += (C.HOSTILITY_DRIFT * pressure * t.temper
                                 * (0.5 + wealth_factor)
                                 * (0.6 + 0.8 * self.rng.random()))
-                t.hostility = max(0.0, t.hostility - t.favour * 0.02)
+                t.hostility = max(0.0, t.hostility - t.favour * 0.02
+                                  - self.kin.bonus("cooling"))
             if t.hostility >= C.HOSTILITY_WAR:
                 msgs.append(self._send_host(t, pressure, self._nearest_of_mine(key)))
                 continue
@@ -1206,6 +1314,89 @@ class GameState:
             host["trebuchet"] = max(1, round(0.8 * scale))
         return {k: float(v) for k, v in host.items() if v > 0}
 
+    # ----------------------------------------------------------- the house
+    def post(self, who: str, post: str = "", target: str = "") -> str:
+        """Give one of yours a job, or call them home.
+
+        The cost of a post is not coin, it is the person: everybody can only
+        be in one place, so a son governing Aldworth is a son not riding with
+        the host, and both the tax roll and the battle line know it.
+        """
+        person = self.kin.by_name(who)
+        if person is None:
+            return f"nobody of yours called {who!r}"
+        spec = POSTS.get(post)
+        if post and spec is None:
+            return (f"there is no post called {post!r}; "
+                    f"try {', '.join(sorted(POSTS))}")
+        if spec and spec.needs == "town":
+            key = self._resolve_town(target)
+            if key is None:
+                return f"{target!r} is no settlement of yours"
+            target = key
+        if spec and spec.needs == "host":
+            if not target.isdigit() or self.army(int(target)) is None:
+                return f"no host {target!r} of yours to ride with"
+            a = self.army(int(target))
+            if a.owner != "player":
+                return "that host is not yours"
+        return self.kin.give(person, post, target,
+                             name_of=self.world.node_name)
+
+    def _resolve_town(self, text: str) -> Optional[str]:
+        want = (text or "").strip().lower()
+        for key, s in self.world.settlements.items():
+            if want in (key.lower(), s.name.lower()):
+                return key
+        for key, s in self.world.settlements.items():
+            if s.name.lower().startswith(want) or key.lower().startswith(want):
+                return key
+        return None
+
+    def dowry(self, town_key: str) -> float:
+        """What a house of that standing expects to see before it says yes."""
+        town = self.world.towns.get(town_key)
+        if town is None:
+            return 0.0
+        return C.DOWRY_BASE * (0.7 + town.muster) * town.prosperity
+
+    def wed(self, who: str, town_key: str) -> str:
+        """Marry one of yours into a neighbouring house.
+
+        This is the cheapest lasting peace in the game and the only one that
+        cannot be un-bought: a truce runs out, a gift is forgotten as the
+        favour decays, and a daughter married into Ostmark is still married
+        into Ostmark in the fifth chapter. What it costs is a dowry now and a
+        person you might have posted somewhere.
+        """
+        person = self.kin.by_name(who)
+        if person is None:
+            return f"nobody of yours called {who!r}"
+        town = self.world.towns.get(town_key)
+        if town is None:
+            return f"there is no {town_key!r} to treat with"
+        if town.mine:
+            return f"{town.name} is sworn to you already; there is nothing to buy"
+        if any(p.alive and p.married_to == town_key for p in self.kin.people):
+            return f"your house is tied to {town.name} already"
+        cost = self.dowry(town_key)
+        if self.treasury < cost:
+            return (f"{town.lord} of {town.name} expects {cost:,.0f}c with the "
+                    f"match; you have {self.treasury:,.0f}c")
+        said, mate = self.kin.marry(person, town_key, town.name, self.day)
+        if mate is None:
+            return said
+        self.treasury -= cost
+        self._outlay += cost
+        town.favour += C.MARRIAGE_FAVOUR
+        town.hostility = max(0.0, town.hostility - C.MARRIAGE_COOLING)
+        town.truce_days = max(town.truce_days, C.MARRIAGE_TRUCE)
+        self.kin.did("open", 0.15)
+        self.kin.teach("charm", 20.0, self.day, post="envoy")
+        return self.note(f"{said} {cost:,.0f}c goes with her, and "
+                         f"{town.lord}'s temper falls to {town.hostility:.0f}.",
+                         MOMENTOUS)
+
     # ------------------------------------------------------------ diplomacy
     def gift(self, town_key: str, coin: float) -> str:
         """Buy a lord's goodwill. Cheaper than a wall, and it does not last."""
@@ -1222,12 +1413,17 @@ class GameState:
         before = town.hostility
         town.hostility = max(0.0, town.hostility - coin * C.GIFT_PER_COIN)
         town.favour += coin * 0.01
+        self.kin.did("open", 0.10)
+        self.kin.teach("charm", 6.0, self.day, post="envoy")
         return (f"{coin:,.0f}c goes to {town.lord} of {town.name}; "
                 f"his temper cools from {before:.0f} to {town.hostility:.0f}")
 
     def truce_cost(self, town_key: str, days: int) -> float:
         town = self.world.towns[town_key]
-        return C.TRUCE_RATE * days * town.muster * town.prosperity
+        # An envoy who has sat with these people before does not pay the
+        # stranger's price, and neither does a lord with a name for mercy.
+        return (C.TRUCE_RATE * days * town.muster * town.prosperity
+                * self.kin.mult("truce_cost"))
 
     def truce(self, town_key: str, days: int = 180) -> str:
         """Peace by the day. A lord who is paid not to march does not march."""
@@ -1245,6 +1441,8 @@ class GameState:
         self._outlay += cost
         town.truce_days = max(town.truce_days, days)
         town.hostility = min(town.hostility, 40.0)
+        self.kin.did("merciful", 0.10)
+        self.kin.teach("charm", 8.0, self.day, post="envoy")
         return (f"{town.lord} of {town.name} takes {cost:,.0f}c and swears off "
                 f"the march for {days} days")
 
@@ -1415,8 +1613,12 @@ class GameState:
             return why
         self.treasury -= coin
         self._outlay += coin
-        s.start_build(building_key)
-        return (f"{spec.name} begun at {s.name}; {spec.build_days} days, "
+        inst = s.start_build(building_key)
+        # Whoever has the works here. An engineer does not make stone cheaper;
+        # he makes the same gang of men get more done before the frost.
+        speed = self.kin.mult("build", self._key_of(s))
+        inst.days_left = max(1, int(round(inst.days_left / speed)))
+        return (f"{spec.name} begun at {s.name}; {inst.days_left} days, "
                 f"{coin:.0f}c paid")
 
     def found(self, site_key: str) -> str:
@@ -1463,7 +1665,7 @@ class GameState:
             "history": self.history[-400:], "battles": self.battles[-40:],
             "cathedral_days": self.cathedral_days,
             "relic_days": self.relic_days, "mood_days": self.mood_days,
-            "lord": self.lord.to_dict(),
+            "lord": self.lord.to_dict(), "kin": self.kin.to_dict(),
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
             "rng": list(self.rng.getstate()),
@@ -1494,6 +1696,15 @@ class GameState:
         g.relic_days = d.get("relic_days", 0)
         g.mood_days = d.get("mood_days", 0)
         g.lord = Lord.from_dict(d["lord"]) if "lord" in d else Lord()
+        # A save from before the house existed gets one founded around the
+        # lord it already has, rather than a hall with nobody in it.
+        if d.get("kin"):
+            g.kin = Kin.from_dict(d["kin"])
+        else:
+            g.kin = found_kin(random.Random(d["seed"] * 104729),
+                              seat=g.lord.seat, lord_name=g.lord.name)
+        g.kin.seat = g.lord.seat
+        g.kin.riding = g.lord.riding
         g.chronicle = Chronicle.from_dict(d.get("chronicle", {}))
         g.chapter = d.get("chapter", "")
         g.over = d.get("over", "")

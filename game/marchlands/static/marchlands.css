@@ -149,6 +149,16 @@ body.march #ear { color: #6b5c3e; background: rgba(235,224,194,.75);
   border: 1px solid var(--edge); border-radius: 2px; padding: 4px 6px;
   margin-left: 5px;
 }
+/* The house: a name and an age on the left, what they are good at on the
+   right. The head of it is the one in gold, because he is the one who dies. */
+#kinlist li { font-size: 12.5px; padding: 2px 0; align-items: baseline; }
+#kinlist label { color: var(--parch); }
+#kinlist li.head label { color: var(--gold); }
+#kinlist em { font-style: normal; color: var(--dim); font-size: 11px;
+              padding-left: 6px; font-variant-numeric: tabular-nums; }
+#kinlist span { color: var(--dim); font-size: 11.5px; text-align: right; }
+#repute { margin: 6px 0 0; font-size: 11.5px; font-style: italic; }
+
 #runs li, #carts li { display: block; padding: 3px 0; font-size: 12.5px; }
 #runs b, #carts b { color: var(--gold); font-weight: normal; }
 #runs span, #carts span { color: var(--dim); }
@@ -229,8 +239,7 @@ body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
     max-height: none; overflow: hidden; padding: 7px 10px;
   }
   #panel, #panel.more { box-shadow: none; }
-  #panel h2, #panel #trade,
-  #panel section:nth-of-type(3), #panel section:nth-of-type(4) { display: none; }
+  #panel h2, #panel #trade, #panel section:nth-of-type(n+3) { display: none; }
   #panel section { display: flex; flex-wrap: wrap; gap: 6px 14px; }
   #panel .row { padding: 0; gap: 5px; font-size: 12px; }
   #panel .meter { width: 52px; }

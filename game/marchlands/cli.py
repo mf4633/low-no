@@ -18,6 +18,7 @@ from .chronicle import MOMENTOUS, NOTABLE, ROUTINE
 from .engine import GameState
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
+from . import kin as kinly
 from . import lord as lordly
 from . import render as ink
 from .military import UNITS, describe, host_strength, host_upkeep
@@ -603,6 +604,55 @@ class Console:
                   "  settlement is still a lord."]
         return "\n".join(lines)
 
+    def _kin_hints(self) -> List[str]:
+        """The house is the easiest system in the game to never notice.
+
+        Everything else announces itself -- a wall falls down, a cart stops
+        earning, a granary empties. A son of sixteen with nothing to do makes
+        no noise at all, and the cost of that is invisible for ten years and
+        then decides a succession.
+        """
+        g = self.game
+        out: List[str] = []
+        k = g.kin
+        idle = [p for p in k.living()
+                if p.uid != k.head and not p.post and not p.inlaw
+                and p.age(g.day) >= kinly.COMES_OF_AGE]
+        if idle:
+            who = idle[0]
+            spare = [key for key in kinly.POSTS if not k.holder(key)]
+            job = spare[0] if spare else "steward"
+            where = ("" if not kinly.POSTS[job].needs
+                     else " " + self._where_name(g))
+            them = "him" if who.sex == "m" else "her"
+            out.append(f"{who.name} is {who.age(g.day)} and has nothing to do. "
+                       f"`post {who.name.split()[0].lower()} {job}{where}` "
+                       f"starts {them} at something -- a skill only grows in "
+                       f"the job.")
+        if g.day > 180 and not any(p.married_to for p in k.people if p.alive):
+            free = [p for p in k.living()
+                    if not p.spouse and p.age(g.day) >= kinly.COMES_OF_AGE
+                    and p.uid != k.head]
+            if free:
+                out.append("Nobody of yours is married out. A match is the only "
+                           "peace that does not run out -- `marry` prices them.")
+        heir = k.heir(g.day)
+        lord = k.lord
+        if lord is not None and lord.age(g.day) >= kinly.ELDERLY:
+            if heir is None:
+                out.append(f"{lord.name} is {lord.age(g.day)} and there is nobody "
+                           f"behind him. The line ends where he does.")
+            elif not heir.post:
+                out.append(f"{lord.name} is {lord.age(g.day)}. {heir.name} takes "
+                           f"the seat after him and has never held a post -- "
+                           f"whatever they have not learned by then, they never "
+                           f"will.")
+        return out
+
+    def _where_name(self, g) -> str:
+        """A settlement key a `post` line can actually be typed with."""
+        return next(iter(g.world.settlements), "")
+
     def cmd_next(self, args: List[str]) -> None:
         n = int(args[0]) if args else 1
         self.game.advance(n)
@@ -707,6 +757,7 @@ class Console:
         if g.lord.captured:
             out.append(f"{g.lord.name} is held at {g.lord.ransom:,.0f}c. "
                        f"`lord ransom` buys him back.")
+        out += self._kin_hints()
         idle = [c for c in g.caravans if not c.running]
         if idle:
             out.append(f"Caravan {idle[0].uid} is standing idle. `scan`, then "
@@ -1106,7 +1157,7 @@ class Console:
             return self.say("  " + g.lead(0))
         if args:
             return self.say("  " + g.lead(int(args[0])))
-        self.say(ink.head(g.lord.name.upper(), g.lord.standing()))
+        self.say(ink.head(g.lord.name.upper(), g.lord.standing(self._name)))
         if g.lord.at_home:
             worth = (f"+{C.LORD_MOOD:.0f} mood, "
                      f"+{lordly.HOME_DEFENCE:.0f} on the wall")
@@ -1121,8 +1172,161 @@ class Console:
                                   f"`lord ransom` pays it", ink.BLOOD))
         elif not g.lord.alive:
             self.say("  " + ink.c(f"{g.lord.heirs} of the line left", ink.BLOOD))
-        self.say("", ink.c("  lord <host> sends him out, lord home brings him back.",
-                           ink.DIM))
+        best = sorted(kinly.SKILLS, key=lambda sk: -g.kin.lord.xp.get(sk, 0.0)) \
+            if g.kin.lord else []
+        if best:
+            him = g.kin.lord
+            self.say("  he is         " + ", ".join(
+                f"{sk} {him.level(sk)}" for sk in best[:3] if him.level(sk) > 0)
+                or ink.c("untried at everything so far", ink.DIM))
+            words = him.reputation()
+            if words:
+                self.say("  they call him " + ink.c(", ".join(words), ink.BONE))
+            heir = g.kin.heir(g.day)
+            if heir is not None:
+                self.say(f"  after him     {heir.name}, {heir.age(g.day)}, "
+                         + ink.c(heir.doing(self._name), ink.DIM))
+        self.say("", ink.c("  lord <host> sends him out, lord home brings him back. "
+                           "`kin` is the rest of them.", ink.DIM))
+
+    # ------------------------------------------------------------- the house
+    def _kin_word(self, p, lord) -> str:
+        """How a person stands to the lord, in one word a reader already has."""
+        if lord is None or p.uid == lord.uid:
+            return "the lord"
+        if p.uid == lord.spouse:
+            return "his wife" if p.sex == "f" else "her husband"
+        if lord.uid in (p.father, p.mother):
+            return "his son" if p.sex == "m" else "his daughter"
+        if p.uid in (lord.father, lord.mother):
+            return "his father" if p.sex == "m" else "his mother"
+        if p.inlaw:
+            return "married in"
+        if p.father and p.father == lord.father:
+            return "his brother" if p.sex == "m" else "his sister"
+        grandparent = {c.uid for c in self.game.kin.children_of(lord.uid)}
+        if p.father in grandparent or p.mother in grandparent:
+            return "his grandson" if p.sex == "m" else "his granddaughter"
+        return "of the line"
+
+    def cmd_kin(self, args: List[str]) -> None:
+        """Your house: who they are, what they are doing, what it made them."""
+        g = self.game
+        k = g.kin
+        lord = k.lord
+        if lord is None:
+            return self.say(ink.head("THE HOUSE"),
+                            ink.c("  There is nobody left of the line.", ink.BLOOD))
+        if args:
+            return self._one_of_the_kin(args[0])
+        living = sorted(k.living(), key=lambda p: (p.uid != k.head, p.born))
+        self.say(ink.head(f"THE HOUSE OF {lord.name.upper()}",
+                          f"{len(living)} of the line"))
+        self.say(ink.c("  who                  age  standing      "
+                       "doing                      best at", ink.DIM))
+        for p in living:
+            best = max(kinly.SKILLS, key=lambda sk: p.xp.get(sk, 0.0))
+            skill = (f"{best} {p.level(best)}" if p.level(best) > 0
+                     else ink.c("--", ink.FAINT))
+            doing = p.doing(self._name)
+            colour = (ink.GOLD if p.uid == k.head
+                      else ink.PARCH if p.post else ink.DIM)
+            self.say(f"  {ink.c(ink.pad(p.name, 20), colour)} "
+                     f"{p.age(g.day):>3}  "
+                     f"{ink.c(ink.pad(self._kin_word(p, lord), 13), ink.DIM)} "
+                     f"{ink.pad(doing, 26)} {skill}")
+        words = lord.reputation()
+        self.say("", "  they call him " + (ink.c(", ".join(words), ink.BONE)
+                                           if words else
+                                           ink.c("nothing in particular yet", ink.DIM)))
+        open_posts = [key for key in kinly.POSTS if not k.holder(key)]
+        if open_posts:
+            self.say(ink.c(f"  unfilled      {', '.join(sorted(open_posts))}",
+                           ink.AMBER))
+        self.say(ink.c("  `kin <name>` for one of them · `post <name> <post> "
+                       "[where]` · `marry <name> <town>`", ink.DIM))
+
+    def _one_of_the_kin(self, name: str) -> None:
+        g = self.game
+        p = g.kin.by_name(name)
+        if p is None:
+            return self.err(f"nobody of yours called {name!r}")
+        self.say(ink.head(p.name.upper(),
+                          f"{p.age(g.day)} years old, {p.doing(self._name)}"))
+        self.say(ink.c("  skill        how far it has got      what it is "
+                       "worth            to next", ink.DIM))
+        for skill in kinly.SKILLS:
+            level = p.level(skill)
+            want = p.to_next(skill)
+            tail = (f"{want:>7,.0f}" if want
+                    else ink.c("    top", ink.GOLD))
+            self.say(f"  {ink.pad(skill, 13)}{ink.bar(level, kinly.MAX_SKILL, 12)}"
+                     f" {level:>2}  "
+                     f"{ink.c(ink.pad(kinly.SKILL_BLURB[skill], 34), ink.DIM)}"
+                     f"{tail}")
+        marks = []
+        for key, kind, unkind in kinly.TRAITS:
+            v = p.trait(key)
+            if abs(v) < 0.35:
+                continue
+            marks.append(ink.c(f"{kind if v > 0 else unkind} {abs(v):.1f}",
+                               ink.LEAF if v > 0 else ink.RUST))
+        if marks:
+            self.say("", "  reputation    " + "  ".join(marks))
+        kids = [c for c in g.kin.children_of(p.uid) if c.alive]
+        if kids:
+            self.say("  children      " + ", ".join(
+                f"{c.name} ({c.age(g.day)})" for c in kids))
+        if p.spouse:
+            mate = g.kin.get(p.spouse)
+            if mate is not None:
+                gone = " he is dead" if mate.sex == "m" else " she is dead"
+                self.say(f"  married       {mate.name}"
+                         + (" --" + gone if not mate.alive else ""))
+
+    def cmd_post(self, args: List[str]) -> None:
+        """Give one of yours a job. Everyone can only be in one place."""
+        g = self.game
+        if not args:
+            self.say(ink.head("POSTS", "one person each"))
+            for key, spec in kinly.POSTS.items():
+                who = g.kin.holder(key)
+                sits = (ink.c(f"{who.name} ({spec.skill} "
+                              f"{who.level(spec.skill)})", ink.PARCH)
+                        if who else ink.c("nobody", ink.AMBER))
+                self.say(f"  {ink.c(ink.pad(key, 9), ink.GOLD)}"
+                         f"{ink.pad(sits, 30)} {ink.c(spec.blurb, ink.DIM)}")
+            return self.say("", ink.c("  post <name> <post> [town|host]  ·  "
+                                      "post <name> none calls them home", ink.DIM))
+        who = args[0]
+        job = args[1].lower() if len(args) > 1 else ""
+        if job in ("none", "home", "-"):
+            job = ""
+        target = args[2] if len(args) > 2 else ""
+        self.say("  " + g.post(who, job, target))
+
+    def cmd_marry(self, args: List[str]) -> None:
+        """Marry one of yours into a neighbouring house."""
+        g = self.game
+        if not args:
+            self.say(ink.head("MATCHES", "a peace that does not run out"))
+            free = [p for p in g.kin.living()
+                    if not p.spouse and p.age(g.day) >= kinly.COMES_OF_AGE]
+            self.say("  of yours      " + (", ".join(p.name for p in free)
+                                           if free else "nobody unmarried"))
+            for key, t in sorted(g.world.towns.items(),
+                                 key=lambda kv: -kv[1].hostility)[:6]:
+                if t.mine:
+                    continue
+                tied = any(p.alive and p.married_to == key for p in g.kin.people)
+                note = (ink.c("kin already", ink.LEAF) if tied
+                        else f"{g.dowry(key):,.0f}c")
+                self.say(f"  {ink.pad(t.name, 13)} {ink.pad(t.lord, 24)}"
+                         f" temper {t.hostility:>3.0f}   {note}")
+            return self.say("", ink.c("  marry <name> <town>", ink.DIM))
+        if len(args) < 2:
+            return self.err("marry <name> <town>")
+        self.say("  " + g.wed(args[0], self._node(args[1])))
 
     def cmd_relics(self, args: List[str]) -> None:
         """Where the bones are, and whose they are today."""
@@ -1522,6 +1726,9 @@ COMMANDS = {
     "siege": Console.cmd_siege, "plans": Console.cmd_plans,
     "raid": Console.cmd_raid, "relics": Console.cmd_relics,
     "lord": Console.cmd_lord, "chronicle": Console.cmd_chronicle,
+    "kin": Console.cmd_kin, "house": Console.cmd_kin, "family": Console.cmd_kin,
+    "post": Console.cmd_post, "posts": Console.cmd_post,
+    "marry": Console.cmd_marry, "match": Console.cmd_marry,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,
@@ -1562,6 +1769,8 @@ HELP = """
                     march <id> <place>   recall <id>       standdown <id>
                     plans [place]   siege [<id> <plan>]   raid <id>
                     lord [<id>|home|ransom]     relics    chronicle
+  YOUR HOUSE        kin [name]      post [<name> <post> [where]]
+                    marry [<name> <town>]
                     war             battles [n]
                     gift <town> <coin>   truce <town> [days]   demand <town>
   ELSE              hint            briefing               scenarios
