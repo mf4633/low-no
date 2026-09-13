@@ -24,7 +24,6 @@ PRIMARY = "primary"
 INDUSTRY = "industry"
 CIVIC = "civic"
 CASTLE = "castle"
-CASTLE = "castle"
 
 
 @dataclass(frozen=True)
@@ -186,6 +185,28 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
        {"coin": 260, "stone": 80}, 10, {}, {}, upkeep=1.0, age=3,
        effects={"wall": 220.0, "defense": 25.0, "battlement": 12.0},
        note="Raiders price your walls before they price your granary."),
+
+    # --- works: the wall line is finite, so each of these is a tower you did
+    # --- not build. Each answers one thing a besieger might try.
+    _b("moat", "Moat", CASTLE, RAMPART, 0,
+       {"coin": 150, "wood": 20}, 9, {}, {}, age=2,
+       effects={"wall": 40.0, "moat": 1.0},
+       note="Water. A miner cannot dig through it and a ram cannot cross it."),
+    _b("pitch_ditch", "Pitch Ditch", CASTLE, RAMPART, 0,
+       {"coin": 110, "wood": 25, "charcoal": 15}, 4, {}, {}, age=2,
+       effects={"pitch": 1.0},
+       note="Fired once, at the moment an assault comes in. Needs charcoal in "
+            "store to light."),
+    _b("kill_pit", "Killing Pit", CASTLE, RAMPART, 0,
+       {"coin": 80, "wood": 18}, 3, {}, {}, age=3,
+       effects={"pits": 1.0},
+       note="Stakes under the wall. Nothing decisive; it just makes every "
+            "storm cost more than it should."),
+    _b("oil_pot", "Oil Pot", CASTLE, RAMPART, 0,
+       {"coin": 130, "iron": 6, "charcoal": 10}, 5, {}, {}, upkeep=0.5, age=3,
+       effects={"oil": 1.0},
+       note="Over the gate, where the rams have to come. Needs a gatehouse "
+            "beneath it to be worth anything."),
 
     # --- war and learning ---------------------------------------------------
     _b("barracks", "Barracks", CASTLE, URBAN, 1,

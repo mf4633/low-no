@@ -36,7 +36,8 @@ other, and more than one way to win.
 **From Stronghold** — popularity as the master dial, rations and taxes as the
 two levers on it, ale and a chapel and a garden against gallows and stocks, a
 weapons industry that *is* the army (coin plus a sword your own smith made), and
-walls that decide sieges.
+castles that are designs rather than hit-point pools — moats, pitch ditches,
+killing pits and oil, each answering a different way in.
 
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
@@ -201,10 +202,47 @@ an armoury, plate from an armourer. Every soldier also walks out of the labour
 pool, so an army is paid for twice: once in coin, once in fields nobody works.
 
 Spears break horse. Horse rides down bows and siege crews. Foot in armour walks
-through bows. None of it matters while a wall is standing — without rams or
-trebuchets a host can only sit outside until it gets bored and goes home. While
-the wall is high the garrison is barely exposed; as it comes down they are
-shooting over rubble.
+through bows. None of it matters while a wall is standing — which is what a
+castle is for.
+
+### The castle is a place, not a number
+
+A wall in most games is a pool of hit points: buy more and the siege takes
+longer. Here a castle is a set of **answers**, and a besieger has to pick which
+of them he is going to walk into.
+
+| plan | what it needs | what beats it |
+|---|---|---|
+| **batter** the gate | rams (20 engine power) | boiling oil over the gatehouse |
+| **breach** the curtain | real engines (55) | towers shooting back at the crews |
+| **escalade** the wall | nothing at all | towers, a pitch ditch, a manned wall |
+| **sap** the foundation | engineers | water in a moat — stops it outright |
+| **invest** and starve | nothing at all | a full granary and a gate to sortie from |
+
+Each works differently rather than just scoring differently. A **moat** costs a
+host three days under fire before it can come to grips, and a miner who strikes
+water is simply finished. A **pitch ditch** is fired once, at the moment the
+assault goes in, and it is spent. An **oil pot** punishes the gate every day and
+does nothing at all against a man standing off at bowshot. **Ladders** need no
+engines, which is the only kind thing about them: they are worse against an
+intact wall, worse again with towers on it — but against a wall-walk you have
+*emptied*, they take the place today while engines would still be breaking
+stone. And **investing** touches nothing: it cuts the roads, which in a game
+about trade is the sharpest thing anyone can do to you.
+
+The defender's half of that is a real decision because the wall line is finite.
+Works stand on it alongside the walls themselves, so every ditch you dig is a
+tower you did not build. `plans <place>` reads any castle — yours or a rival's —
+and names what each way in would meet there. `siege <host> <plan>` sets how your
+own host goes in; changing your mind restarts the work, so a mine half-dug is a
+mine wasted.
+
+Rival lords read your castle the same way, and pick accordingly: bring nothing
+that breaks stone and a captain will sit down and starve you instead. Their own
+seats are graded by how rich and old they are — a market town like Dunmere has
+an open wall, while Marchand has a moat, three towers, pits, a pitch ditch and
+oil over the gate, and will force you onto the one expensive answer it has no
+reply to.
 
 **The other lords are playing too.** Every town has a prosperity that climbs in
 peace and drives its walls, garrison and muster together, so a town you meant to
@@ -289,6 +327,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `render.py` | ink: palette, framing, bars, sparklines, colour discipline |
 | `iso.py` | the holding in perspective: tiles, sprites, smoke, people |
 | `view.py` | the same holding as a flat plan |
+| `castle.py` | works, assault plans, and what answers what |
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |

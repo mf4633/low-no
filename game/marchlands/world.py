@@ -16,6 +16,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from . import config as C
 from .goods import ALL_KEYS, good
+from .castle import Works
 from .market import Market
 from .settlement import Settlement
 
@@ -73,6 +74,24 @@ class ForeignTown:
 
     def tribute(self) -> float:
         return (C.TRIBUTE_BASE + C.TRIBUTE_PER_WEALTH * self.wealth) * self.prosperity
+
+    def works(self) -> Works:
+        """The castle a foreign lord has, read off how old and rich his seat is.
+
+        There are no building lists out there, so a great seat is simply
+        assumed to have spent its centuries the way a great seat would: a
+        market town has a gate and a ditch, and Marchand has everything.
+        """
+        grade = self.wall_base * (0.6 + 0.4 * self.prosperity)
+        return Works(
+            moat=1 if grade >= 600 else 0,
+            pitch=1 if grade >= 450 else 0,
+            pits=1 if grade >= 550 else 0,
+            oil=1 if grade >= 850 else 0,
+            towers=min(4, int(grade // 320)),
+            gate=grade >= 380,
+            stone=grade >= 300,
+        )
 
     def rebuild_walls(self, share: float = 0.02) -> None:
         self.wall_hp = min(self.wall_max, self.wall_hp + self.wall_max * share)

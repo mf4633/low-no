@@ -84,6 +84,7 @@ class Settlement:
     wall_hp: float = 0.0
     deposits: Dict[str, float] = field(default_factory=dict)
     besieged: bool = False
+    blockaded: bool = False   # the roads are cut: no cart comes or goes
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
 
@@ -156,6 +157,8 @@ class Settlement:
         base += 0.035 * self.fear + mods.bonus("productivity")
         if self.besieged:
             base *= C.SIEGE_HUNGER
+        if self.blockaded:
+            base *= C.BLOCKADE_HUNGER
         return max(0.0, base)
 
     # ------------------------------------------------------------ build/raze
@@ -447,6 +450,8 @@ class Settlement:
             out.append(("unpaid wages", -C.UNPAID_WAGE_PENALTY))
         if self.besieged:
             out.append(("under siege", -8.0))
+        if self.blockaded:
+            out.append(("the roads are cut", -7.0))
         jobless = self.workforce - self.employed
         if self.workforce and jobless / self.workforce > 0.35:
             out.append(("idle hands", -6.0))
@@ -488,7 +493,7 @@ class Settlement:
             "popularity": self.popularity, "ration_level": self.ration_level,
             "tax_level": self.tax_level, "units": dict(self.units),
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
-            "besieged": self.besieged, "next_uid": self.next_uid,
+            "besieged": self.besieged, "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
         }
 
@@ -500,6 +505,6 @@ class Settlement:
                 ration_level=d["ration_level"], tax_level=d["tax_level"],
                 units=dict(d.get("units", {})), wall_hp=d.get("wall_hp", 0.0),
                 deposits=dict(d.get("deposits", {})),
-                besieged=d.get("besieged", False), next_uid=d.get("next_uid", 1))
+                besieged=d.get("besieged", False), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         return s

@@ -31,9 +31,10 @@ HOME_PLAN = [
     "inn", "townhouse", "charcoal_burner", "iron_mine", "smelter",
     "stone_wall", "townhouse", "warehouse", "blacksmith", "wall_tower",
     "iron_mine", "smelter", "armoury", "armourer", "townhouse", "stable",
-    "trading_post", "chapel",
+    "trading_post", "chapel", "pitch_ditch",
     "fletcher", "townhouse", "wall_tower", "gatehouse", "garden",
-    "guardhouse", "townhouse", "siege_yard", "townhouse", "cottage",
+    "guardhouse", "townhouse", "siege_yard", "oil_pot", "moat",
+    "townhouse", "cottage", "kill_pit",
 ]
 COLONY_PLAN = [
     "woodcutter", "cottage", "farm", "sawmill", "quarry", "saltworks",
@@ -93,6 +94,7 @@ class Bot:
         for s in g.world.settlements.values():
             self._govern(s)
             self._shutter(s)
+        self._dig()
         self._defend()
         self._carts()
 
@@ -220,6 +222,39 @@ class Bot:
         self.errand = (cart.uid, key, home.market.stock.get(key, 0.0) + need * 0.9)
 
     # ----------------------------------------------------------------- the wall
+    #: Cheap works, in the order a steward would dig them when he sees dust on
+    #: the road. Stakes and a fired ditch are days of work, not seasons, which
+    #: is the whole reason they are worth digging late.
+    DIG = ("pitch_ditch", "kill_pit", "oil_pot", "moat")
+    #: Slots kept clear on the wall line for walls and towers.
+    WALL_LINE_RESERVE = 4
+
+    def _dig(self) -> None:
+        """Works go in when a host is actually coming, not on a rainy Tuesday.
+
+        A ditch costs coin and a length of wall line, so digging one in a quiet
+        year is a tower you will wish you had. Digging one with dust on the
+        road is the cheapest defence in the game.
+        """
+        g = self.game
+        coming = [a for a in g.armies if a.owner != "player"]
+        if not coming:
+            return
+        if g.treasury < self.reserve + 400:
+            return
+        home = g.world.settlements[self.home]
+        # Leave room on the wall line for the walls themselves: a ditch dug
+        # into the last slot is a tower that can never be built after it.
+        if home.slots_free("rampart") < self.WALL_LINE_RESERVE:
+            return
+        for key in self.DIG:
+            if home.count(key):
+                continue
+            if key == "oil_pot" and not home.count("gatehouse"):
+                continue
+            if "begun" in g.build(self.home, key):
+                return
+
     def _defend(self) -> None:
         """Enough men on the wall to make a siege not worth a lord's time --
         and not one more, because every soldier is a field nobody is working."""
@@ -426,6 +461,7 @@ class Conqueror(Bot):
         for s in g.world.settlements.values():
             self._govern(s)
             self._shutter(s)
+        self._dig()
         self._defend()
         self._buy_arms()
         self._carts()

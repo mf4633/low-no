@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple
 
 from . import config as C
 from .buildings import building
+from .castle import INVEST, Works, choose, storms_now
 from .events import EventEngine
 from .goods import ALL_KEYS, good
 from .market import Market
@@ -436,6 +437,7 @@ class GameState:
         msgs: List[str] = []
         for s in self.world.settlements.values():
             s.besieged = False
+            s.blockaded = False
         for a in list(self.armies):
             if a.owner != "player" and self.world.towns[a.owner].mine:
                 msgs.append(f"{a.name} turns for home -- {self.world.node_name(a.owner)} "
@@ -534,14 +536,22 @@ class GameState:
             for k, n in x.units.items():
                 defenders[k] = defenders.get(k, 0.0) + n
         holder = Side(defenders, battlement=8.0)
+        works = town.works()
+        if not player:
+            a.siege.plan = choose(works, siege_power=a.siege_power,
+                                  engineers=a.units.get("engineer", 0.0),
+                                  host=a.size, garrison=sum(town.garrison.values()),
+                                  wall=town.wall_hp, wall_max=town.wall_max,
+                                  patient=a.siege_days > 8)
         wall, _la, _ld, lines = siege_day(besieger, holder, town.wall_hp, self.rng,
-                                          town.name, wall_max=town.wall_max)
+                                          town.name, wall_max=town.wall_max,
+                                          works=works, state=a.siege)
         town.wall_hp = wall
         if player:
             town.hostility = C.HOSTILITY_WAR
         if self.day % 5 == 0 and lines and (player or town.mine):
             msgs.append(f"{a.name}: {lines[0]}")
-        if wall <= 0:
+        if storms_now(a.siege.plan, wall, holder.alive()):
             res = fight(besieger, holder, rng=self.rng, place=town.name)
             msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
                         f"the ground after {res.rounds} rounds")
@@ -577,14 +587,26 @@ class GameState:
         holder = Side(s.units, attack_mult=self.progress.mult("attack"),
                       defense_mult=self.progress.mult("defense"),
                       battlement=6.0 + s.effect("battlement"))   # cover, even bare
+        works = Works.of([b.key for b in s.buildings
+                          if b.complete and b.spec.terrain == "rampart"])
+        if a.owner != "player":
+            a.siege.plan = choose(works, siege_power=a.siege_power,
+                                  engineers=a.units.get("engineer", 0.0),
+                                  host=a.size, garrison=sum(s.units.values()),
+                                  wall=s.wall_hp, wall_max=s.wall_max(self.progress),
+                                  patient=a.siege_days > 8)
         wall, _la, _ld, lines = siege_day(besieger, holder, s.wall_hp, self.rng, s.name,
-                                          wall_max=s.wall_max(self.progress))
+                                          wall_max=s.wall_max(self.progress),
+                                          works=works, state=a.siege,
+                                          have_pitch=s.market.stock.get("charcoal", 0) >= 5)
+        if a.siege.plan == INVEST:
+            s.blockaded = True
         s.wall_hp = wall
         if self.day % 5 == 0 and lines:
             msgs.append(f"{s.name} under siege: {lines[0]}")
         s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
         a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
-        if wall <= 0:
+        if storms_now(a.siege.plan, wall, holder.alive()):
             res = fight(besieger, holder, rng=self.rng, place=s.name)
             msgs.append(f"ASSAULT ON {s.name.upper()}: the {res.winner} holds the "
                         f"ground after {res.rounds} rounds")

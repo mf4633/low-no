@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 from . import config as C
+from .castle import SiegeState, Works, approach
 from .tech import NO_PROGRESS, Progress
 
 FOOT = "foot"
@@ -213,7 +214,8 @@ def _apply(side: Side, damage: float, rng: random.Random) -> Dict[str, float]:
 
 def siege_day(besieger: Side, defender: Side, wall_hp: float,
               rng: random.Random, place: str = "the walls",
-              wall_max: float = 0.0
+              wall_max: float = 0.0, works: Optional["Works"] = None,
+              state: Optional["SiegeState"] = None, have_pitch: bool = True
               ) -> Tuple[float, Dict[str, float], Dict[str, float], List[str]]:
     """One day of a siege: engines work on the stone, bowmen trade at a distance.
 
@@ -224,7 +226,22 @@ def siege_day(besieger: Side, defender: Side, wall_hp: float,
     siege = sum(UNITS[k].siege_power * n for k, n in besieger.units.items())
     siege *= besieger.attack_mult
     wall = wall_hp
-    if siege > 0:
+    att_mult = def_mult = 1.0
+    burst = 0.0
+    if state is not None:
+        # The besieger has a plan, and the plan meets whatever was dug for it.
+        engineers = sum(n for k, n in besieger.units.items() if k == "engineer")
+        ap = approach(state.plan, works or Works(), state, siege_power=siege,
+                      engineers=engineers, wall=wall, wall_max=wall_max,
+                      have_pitch=have_pitch, rng=rng)
+        hit = min(wall, ap.wall_damage)
+        wall -= hit
+        att_mult, def_mult, burst = ap.attacker_mult, ap.defender_mult, ap.burst
+        lines.extend(f"{ln} at {place}" if i == 0 else ln
+                     for i, ln in enumerate(ap.lines))
+        if hit > 0:
+            lines.append(f"{wall:.0f} of wall standing")
+    elif siege > 0:
         hit = min(wall, siege * (0.8 + 0.4 * rng.random()))
         wall -= hit
         lines.append(f"engines work on {place}: {wall:.0f} of wall standing")
@@ -236,6 +253,12 @@ def siege_day(besieger: Side, defender: Side, wall_hp: float,
     cover = 0.55 + 0.42 * intact
     fire_d = _damage(defender, besieger, ranged_only=True, cover=0.0) * C.SIEGE_ATTRITION
     fire_a = _damage(besieger, defender, ranged_only=True, cover=cover) * C.SIEGE_ATTRITION
+    fire_d *= att_mult
+    fire_a *= def_mult
+    if burst > 0:
+        # Oil and pitch do not trade fire with anybody: they simply kill.
+        for k in list(besieger.units):
+            besieger.units[k] *= max(0.0, 1.0 - burst)
     lost_a = _apply(besieger, fire_d, rng)
     lost_d = _apply(defender, fire_a, rng)
     if lost_a or lost_d:
@@ -324,6 +347,7 @@ class Army:
     state: str = GARRISON
     home: str = ""
     siege_days: int = 0
+    siege: SiegeState = field(default_factory=SiegeState)
     log: List[str] = field(default_factory=list)
 
     @property
@@ -356,17 +380,21 @@ class Army:
                 del self.units[k]
 
     def to_dict(self) -> dict:
-        d = {k: v for k, v in self.__dict__.items() if k not in ("units", "log")}
+        d = {k: v for k, v in self.__dict__.items()
+             if k not in ("units", "log", "siege")}
         d["units"] = dict(self.units)
         d["log"] = list(self.log[-8:])
+        d["siege"] = self.siege.to_dict()
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "Army":
+        d = dict(d)
         units = dict(d.pop("units", {}))
         log = list(d.pop("log", []))
+        siege = SiegeState.from_dict(d.pop("siege", {}))
         a = cls(**d)
-        a.units, a.log = units, log
+        a.units, a.log, a.siege = units, log, siege
         return a
 
 

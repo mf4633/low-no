@@ -97,6 +97,10 @@ SPRITES: Dict[str, List[Tuple[str, int]]] = {
     "palisade": [("▀▀", RUST), ("██", RUST)],
     "stone_wall": [("▀▀", BONE), ("██", STONE)],
     "gatehouse": [("▄▄", BONE), ("∩∩", SLATE)],
+    "moat": [("≈≈", SEA)],
+    "pitch_ditch": [("▄▄", FLAME)],
+    "kill_pit": [("^^", IRON)],
+    "oil_pot": [("◓◓", FLAME)],
     "cathedral": [(" ✝ ", GOLD), ("▟█▙", BONE), ("███", BONE), ("███", BONE)],
     "barracks": _hall(IRON, SLATE),
     "siege_yard": [("╦╦", RUST), ("██", IRON)],
@@ -275,6 +279,18 @@ def scene(settlement, mods=None, season: str = "spring", day: int = 0,
         cap = BONE if stone else RUST
         if besieged or frac < 0.6:
             face = cap = BLOOD if frac < 0.35 else AMBER
+        # A moat is the one work you can see from outside, so it gets drawn.
+        if any(b.key == "moat" for b in standing):
+            for tx in range(g.x0 - 2, g.x1 + 3):
+                for ty in (g.y0 - 2, g.y1 + 2):
+                    sx, sy = g.screen(tx, ty)
+                    for dx, ch in enumerate("≈≈≈"):
+                        cv.put(sx - 1 + dx, sy, ch, SEA)
+            for ty in range(g.y0 - 1, g.y1 + 2):
+                for tx in (g.x0 - 2, g.x1 + 2):
+                    sx, sy = g.screen(tx, ty)
+                    for dx, ch in enumerate("≈≈≈"):
+                        cv.put(sx - 1 + dx, sy, ch, SEA)
         ring = ([(tx, g.y0 - 1) for tx in range(g.x0 - 1, g.x1 + 2)]
                 + [(g.x1 + 1, ty) for ty in range(g.y0, g.y1 + 2)]
                 + [(tx, g.y1 + 1) for tx in range(g.x1, g.x0 - 2, -1)]

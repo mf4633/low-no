@@ -23,6 +23,9 @@ GLYPHS: Dict[str, Tuple[str, int]] = {
     "keep": ("▣", BONE), "palisade": ("╫", RUST), "stone_wall": ("╬", STONE),
     "gatehouse": ("∩", BONE), "wall_tower": ("♦", BONE),
     "barracks": ("x", IRON), "siege_yard": ("X", IRON),
+    # works on the wall line
+    "moat": ("≈", SEA), "pitch_ditch": ("~", FLAME),
+    "kill_pit": ("^", IRON), "oil_pot": ("◓", FLAME),
     # roofs
     "hovel": ("⌂", RUST), "cottage": ("⌂", AMBER), "townhouse": ("⌂", GOLD),
     # the land

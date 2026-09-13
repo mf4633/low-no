@@ -216,15 +216,30 @@ class TestLongRun(unittest.TestCase):
         ordinary policy every time is a formality. The bot plays the trading
         game competently and no better, so it should take the crown sometimes
         and miss it sometimes.
+
+        Be careful reading the win count. Measured over twelve seeds the naive
+        bot takes the crown about one game in twelve, so four seeds is a thin
+        sample and this one leans on seed 17 being the winner in it. The band
+        below is the sturdier half of the guard: it is the *distance* from the
+        goal that says whether the game is calibrated, and it moves long before
+        a win appears or disappears.
         """
-        won, ends = 0, []
+        won, ends, worth = 0, [], []
         for seed in (3, 5, 7, 17):
             g = new_game(seed=seed)
             Bot(g).run(C.GOAL_DAYS)
             ends.append(f"{seed}:{g.net_worth():,.0f}")
+            worth.append(g.net_worth())
             won += any(w in g.over for w in ("Triumph", "Dominion", "cathedral"))
         self.assertGreaterEqual(won, 1, f"nobody can win: {ends}")
         self.assertLessEqual(won, 3, f"anybody can win: {ends}")
+        # An ordinary policy should finish within reach of the goal without
+        # walking it: a mean far below says the economy has been broken, a mean
+        # above says the goal has stopped being a goal.
+        mean = sum(worth) / len(worth)
+        goal = C.GOAL_NET_WORTH
+        self.assertGreater(mean, 0.40 * goal, f"the economy is too punishing: {ends}")
+        self.assertLess(mean, 1.05 * goal, f"the goal is a formality: {ends}")
 
 
 if __name__ == "__main__":

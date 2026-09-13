@@ -11,6 +11,7 @@ from . import config as C
 from .advisor import route_from, scan, shortage_report
 from .buildings import ALL_BUILDING_KEYS, BUILDINGS, building
 from .buildings import resolve as resolve_building
+from .castle import PLANS, SiegeState, Works
 from .engine import GameState
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
@@ -584,6 +585,24 @@ class Console:
             a = coming[0]
             out.append(f"{a.name} is {a.where()} with {describe(a.units)}. "
                        f"`garrison` shows what you have; `recruit` adds to it.")
+            # What they can try is decided by what you dug, and a ditch is days
+            # of work where a tower is a season -- so it is worth saying now.
+            mine = Works.of([b.key for b in s.buildings
+                             if b.complete and b.spec.terrain == "rampart"])
+            gaps = [label for have, label in
+                    ((mine.moat, "a moat stops a mine and holds a ram off for days"),
+                     (mine.pitch, "a pitch ditch is four days' work and breaks one assault"),
+                     (mine.pits, "killing pits make every storm cost more"))
+                    if not have]
+            if gaps:
+                out.append(f"Nothing is dug in front of {s.name}: {gaps[0]}. "
+                           f"`plans {self.here}` shows what they could try.")
+        sieging = [a for a in g.armies if a.owner == "player" and a.state == "besieging"]
+        if sieging:
+            a = sieging[0]
+            out.append(f"{a.name} is set to {PLANS[a.siege.plan].name}. "
+                       f"`plans {a.at}` shows what stands against that, and "
+                       f"`siege {a.uid} <plan>` changes it.")
         if days < 12:
             out.append(f"{s.name} has about {days:.0f} days of food. Build a farm, "
                        f"a mill and a bakery -- or buy bread in from Vantry.")
@@ -799,6 +818,85 @@ class Console:
                          f" {s.garrison_line()}")
         if not g.armies and not any(s.units for s in g.world.settlements.values()):
             self.say("  nobody is under arms")
+
+    def cmd_plans(self, args: List[str]) -> None:
+        """What a castle is made of, and what each answer to it costs."""
+        g = self.game
+        works, name = None, ""
+        if args:
+            key = self._node(args[0])
+            if key in g.world.towns:
+                t = g.world.towns[key]
+                works, name = t.works(), t.name
+            elif key in g.world.settlements:
+                s = g.world.settlements[key]
+                works = Works.of([b.key for b in s.buildings
+                                  if b.complete and b.spec.terrain == "rampart"])
+                name = s.name
+            else:
+                return self.err(f"no such place: {args[0]}")
+        self.say(ink.head("WAYS INTO A CASTLE", name.upper()))
+        if works is not None:
+            standing = []
+            if works.stone:
+                standing.append("stone curtain")
+            if works.gate:
+                standing.append("gatehouse")
+            for n, label in ((works.towers, "tower"), (works.moat, "moat"),
+                             (works.pitch, "pitch ditch"), (works.pits, "killing pit"),
+                             (works.oil, "oil pot")):
+                if n:
+                    standing.append(f"{n}x {label}" if n > 1 else label)
+            self.say("  they have  " + ink.c(", ".join(standing) or "an open town",
+                                             ink.BONE))
+        for key, plan in PLANS.items():
+            need = []
+            if plan.needs_siege:
+                need.append(f"{plan.needs_siege:.0f} engine power")
+            if plan.needs_engineers:
+                need.append("engineers")
+            self.say("",
+                     f"  {ink.c(plan.name, ink.GOLD)}  "
+                     + ink.c(f"({', '.join(need)})" if need else "(needs nothing)",
+                             ink.DIM))
+            self.say(f"     {ink.c(plan.blurb, ink.DIM)}")
+            if works is not None:
+                answered = works.answers(key)
+                if answered:
+                    self.say("     " + ink.c("against you here: " + "; ".join(answered),
+                                              ink.BLOOD))
+                else:
+                    self.say("     " + ink.c("nothing here answers it", ink.LEAF))
+        self.say("", ink.c("  siege <host> <plan> sets how a host of yours goes in.",
+                           ink.DIM))
+
+    def cmd_siege(self, args: List[str]) -> None:
+        g = self.game
+        if not args:
+            hosts = [a for a in g.armies if a.owner == "player"]
+            if not hosts:
+                return self.err("you have no host in the field")
+            self.say(ink.head("SIEGE ORDERS"))
+            for a in hosts:
+                self.say(f"  [{a.uid}] {a.name:<22} "
+                         f"{PLANS[a.siege.plan].name:<22} {a.where()}")
+            return
+        if len(args) < 2:
+            return self.err("siege <host> <" + "|".join(PLANS) + ">")
+        a = g.army(int(args[0]))
+        if not a or a.owner != "player":
+            return self.err(f"no host of yours numbered {args[0]}")
+        key = args[1].lower()
+        if key not in PLANS:
+            return self.err(f"no such plan; choose from {', '.join(PLANS)}")
+        plan = PLANS[key]
+        ok, why = plan.viable(a.siege_power, a.units.get("engineer", 0.0))
+        if not ok:
+            return self.err(f"{a.name} cannot {plan.name}: {why}")
+        if a.siege.plan != key:
+            a.siege = SiegeState(plan=key)      # a new plan starts from nothing
+        self.say(f"  {a.name} will {ink.c(plan.name, ink.GOLD)}.")
+        self.say(f"  {ink.c(plan.blurb, ink.DIM)}")
 
     def cmd_march(self, args: List[str]) -> None:
         if len(args) < 2:
@@ -1112,6 +1210,7 @@ COMMANDS = {
     "units": Console.cmd_units, "recruit": Console.cmd_recruit,
     "host": Console.cmd_host, "army": Console.cmd_army, "armies": Console.cmd_army,
     "march": Console.cmd_march, "recall": Console.cmd_recall,
+    "siege": Console.cmd_siege, "plans": Console.cmd_plans,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,
     "gift": Console.cmd_gift, "truce": Console.cmd_truce,
@@ -1149,6 +1248,7 @@ HELP = """
   WAR               units           recruit <who> [n]      garrison [town]
                     host <town> <who> <n> ...              army [id]
                     march <id> <place>   recall <id>       standdown <id>
+                    plans [place]   siege [<id> <plan>]
                     war             battles [n]
                     gift <town> <coin>   truce <town> [days]   demand <town>
   ELSE              hint            briefing               scenarios
@@ -1189,7 +1289,22 @@ HELP_TOPICS = {
 
   Spears break horse. Horse rides down bows and siege crews. Bows cut up foot.
   Foot in armour walks through bows. None of it matters while a wall is
-  standing: without rams or trebuchets a host can only sit outside and starve.
+  standing, which is what a castle is for.
+
+  A castle is not a pool of hit points, it is a set of answers. A besieger
+  picks a plan and each plan is beaten by a different thing you dug:
+
+    batter    rams at the gate         answered by boiling oil
+    breach    engines on the curtain   answered by towers shooting the crews
+    escalade  ladders, no engines      answered by towers and a pitch ditch
+    sap       a mine under a section   answered outright by water in a moat
+    invest    sit down and starve it   answered by a full granary and a gate
+
+  `plans <place>` reads a castle and says what each way in would meet there.
+  `siege <host> <plan>` sets how a host of yours goes in -- and changing the
+  plan starts the work over, so a mine half-dug is a mine wasted. Works stand
+  on the wall line and the wall line is finite: every ditch is a tower you did
+  not build.
 
   Lords grow bolder the richer you get, and they scheme against each other as
   well as against you: leave the march alone long enough and one of them will

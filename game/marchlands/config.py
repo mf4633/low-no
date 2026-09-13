@@ -98,6 +98,7 @@ TRADING_POST_TARIFF_RELIEF = 0.45
 LETHALITY = 1.15                # how bloody one round of a battle is
 SIEGE_ATTRITION = 0.16          # share of a round's fire that lands during a siege
 SIEGE_HUNGER = 0.55             # what a besieged town still manages to produce
+BLOCKADE_HUNGER = 0.80          # and what it manages with the roads cut too
 RAID_BASE_CHANCE = 0.004        # per settlement per day, scaled by year
 RAID_LOOT_FRACTION = 0.18
 HOSTILITY_DRIFT = 0.30          # per day, per town; scales with how rich you look
