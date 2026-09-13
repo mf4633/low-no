@@ -380,6 +380,7 @@ class Army:
     state: str = GARRISON
     home: str = ""
     siege_days: int = 0
+    errand: str = ""              # 'pilgrimage' for a relic party; '' for a host
     siege: SiegeState = field(default_factory=SiegeState)
     log: List[str] = field(default_factory=list)
 

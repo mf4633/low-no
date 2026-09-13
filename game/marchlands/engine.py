@@ -658,7 +658,8 @@ class GameState:
         target = min(open_ones, key=lambda k: self.world.distance(town.key, k))
         party = {"spearman": max(6.0, 14.0 * town.muster)}
         a = Army(uid=self.next_army_uid, name=f"{town.lord}'s pilgrimage",
-                 owner=town.key, units=party, at=town.key, home=town.key)
+                 owner=town.key, units=party, at=town.key, home=town.key,
+                 errand="pilgrimage")
         self.next_army_uid += 1
         self.armies.append(a)
         a.bound_for = target
@@ -1014,8 +1015,12 @@ class GameState:
                 if revolt:
                     msgs.append(revolt)
                 continue
-            if any(a.owner == key for a in self.armies):
+            if any(a.owner == key and not a.errand for a in self.armies):
                 continue      # its host is already out
+            # A party of spearmen away at a shrine is not "his host": counting
+            # it as one made relic-hunting a pressure valve on the whole war,
+            # so tuning how often the lords went for bones quietly retuned how
+            # often they declared on anybody.
 
             # -- offence taken at you ---------------------------------------
             if t.truce_days <= 0:

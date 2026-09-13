@@ -304,6 +304,13 @@ Against a rival it costs him prosperity, which is the number his walls, his
 garrison and his muster are all computed from; against you it stops the fields
 being worked at all.
 
+One thing worth knowing about how that was built: a lord's relic party is
+explicitly *not* his host. It was, at first, and because the war logic skips a
+lord who already has men in the field, how often the lords went relic-hunting
+quietly set how often they declared war on anybody — tuning the shrines
+retuned the whole map. Parties now carry an errand and the war logic ignores
+them.
+
 `relics` lists the five shrines. A host that stands at one for six days lifts
 what is in it and carries it home, where the offerings come to about 42c a day
 — half again with a cathedral to rest them in. Hold four of them for a hundred

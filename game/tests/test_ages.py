@@ -343,6 +343,36 @@ class TestRelics(unittest.TestCase):
         g.tick()
         self.assertEqual(g.relic_days, 0)
 
+    def test_a_pilgrimage_is_not_a_lord_s_host(self):
+        """It must not gate his wars: that made relic tuning retune the map.
+
+        A party of spearmen away at a shrine used to count as "his host is
+        already out", so how often the lords went relic-hunting quietly set how
+        often they declared on anybody.
+        """
+        g = game(seed=4)
+        for t in g.world.towns.values():
+            t.ambition = 45.0
+        party = None
+        for _ in range(400):
+            g.tick()
+            party = next((a for a in g.armies if a.errand == "pilgrimage"), None)
+            if party:
+                break
+        self.assertIsNotNone(party, "no lord ever went for a relic")
+        self.assertEqual(party.errand, "pilgrimage")
+        # Their own lord is still free to make war while they are away.
+        town = g.world.towns[party.owner]
+        town.hostility = C.HOSTILITY_WAR
+        out = []
+        for _ in range(6):
+            out += g.tick()
+            if any(a.owner == party.owner and not a.errand for a in g.armies):
+                break
+        self.assertTrue(any(a.owner == party.owner and not a.errand
+                            for a in g.armies),
+                        "a lord with men at a shrine could not raise a host")
+
     def test_the_lords_go_for_them_too(self):
         g = game(seed=3)
         Bot(g).run(900)
