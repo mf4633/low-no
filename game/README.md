@@ -8,22 +8,78 @@ Pure Python, standard library only, runs in a terminal.
 
 ```bash
 cd game
-python3 -m marchlands                          # play the default scenario
-python3 -m marchlands --list                   # the four scenarios and five houses
+python3 -m marchlands --campaign               # the six-chapter campaign
+python3 -m marchlands                          # or one scenario on its own
+python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 336 tests, ~4min
+python3 -m unittest discover -s tests          # 376 tests, ~4min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
-work, `hint` tells you what a patient steward would point at next, `briefing` restates why you are here, and `help` lists
-everything.
+work, `chronicle` reads your reign back, `hint` tells you what a patient
+steward would point at next, `briefing` restates why you are here, and `help`
+lists everything.
 
 > Housed in this repository under `game/` because the session's branch scope is
 > `mf4633/low-no`. It shares no code with the trading system in the repository
 > root and lifts out cleanly with `git subtree split -P game`.
 
 ---
+
+## The Marcher Chronicle
+
+```bash
+python3 -m marchlands --campaign
+```
+
+Six linked chapters, one house, and a man in the way. This is the part both
+parents are actually remembered for, and for the same reason: a scenario asks
+whether you can do a thing, a campaign asks what became of you, and the
+difference is that the second one has a middle.
+
+| | chapter | teaches | |
+|---|---|---|---|
+| 1 | **A Small Inheritance** | the market | Your father never once found out what wheat was worth in Vantry. |
+| 2 | **The Reeve's Complaint** | the commons | The levy is going out whatever you do. Keep your people anyway. |
+| 3 | **The Salt Road** | the sea | The Count is buying the coast and pays over the odds for salt. |
+| 4 | **Dust on the Road** | the castle | There is no winning this one. Still be here at the end of it. |
+| 5 | **The Bones of St Ceolwulf** | the map | His parties are already on the roads. |
+| 6 | **The Count of Marchand** | everything | Three years. There is no seventh chapter. |
+
+Each chapter hands the next one your purse (a share of it, not the whole
+thing), everything your house worked out, your lord and whatever is left of
+his line — and the chronicle. A chapter you lose still moves you on; you live
+with it, and the record says so.
+
+Running under all of it is the Count of Marchand. He is on the map from the
+first chapter and has no particular reason to notice you. By the fourth he has
+decided what you are, which is a gap in his map.
+
+### The chronicle
+
+Both parents needed this and neither had it. What anybody remembers about a
+long game is not the final score, it is the shape of the thing — the year the
+host came, the siege that nearly went, the season it was finally all paid for.
+A number at the end throws that away.
+
+So the game writes it down as it happens, and `chronicle` reads your reign
+back:
+
+```
+  -- Dust on the Road --
+  spring 1247   The Age of Craft begins
+  autumn 1248   ALDWORTH IS STORMED. The keep is thrown down and 4,860c
+                carried off. Raise another, or hold what is left of the
+                march from somewhere else.
+  spring 1249   You held. 116,166c and 483 souls still answer to you,
+                which was the whole of what was asked.
+```
+
+It keeps its own housekeeping: a fortnight-long siege writes one line rather
+than fourteen, another lord's pilgrimage is recorded but does not shoulder
+your own years aside, and when it runs out of room the routine years go first
+and the keep falling stays.
 
 ## What it takes from each
 
@@ -447,6 +503,8 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
 | `fire.py` | what catches, how it spreads, and what puts it out |
+| `campaign.py` | six chapters, what crosses between them, the Count |
+| `chronicle.py` | what happened, written down as it happened |
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |

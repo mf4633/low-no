@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple
 
 from . import config as C
 from .buildings import building
+from .chronicle import MOMENTOUS, NOTABLE, ROUTINE, Chronicle
 from .castle import INVEST, Works, choose, storms_now
 from .events import EventEngine
 from .goods import ALL_KEYS, good
@@ -44,6 +45,8 @@ class Goals:
     towns: int = C.GOAL_TOWNS
     relics: int = C.GOAL_RELICS
     relic_days: int = C.RELIC_HOLD_DAYS
+    mood: float = 0.0                 # popularity a 'commons' chapter wants
+    mood_days: int = 0                # ...held for this long
     days: int = C.GOAL_DAYS
     bankruptcy: float = C.BANKRUPTCY_FLOOR
     wonder: bool = True               # may the cathedral win it?
@@ -117,7 +120,10 @@ class GameState:
     battles: List[str] = field(default_factory=list)
     cathedral_days: int = 0
     relic_days: int = 0
+    mood_days: int = 0
     lord: Lord = field(default_factory=Lord)
+    chronicle: Chronicle = field(default_factory=Chronicle)
+    chapter: str = ""           # which chapter of a campaign, if any
     over: str = ""              # '' while playing, else the ending
 
     def __post_init__(self) -> None:
@@ -294,7 +300,8 @@ class GameState:
             p.advancing -= 1
             if p.advancing <= 0:
                 p.age += 1
-                msgs.append(f"*** The {AGES[p.age].name} begins ***")
+                msgs.append(self.note(f"*** The {AGES[p.age].name} begins ***",
+                                      MOMENTOUS))
         if p.researching:
             p.research_left -= p.mult("research_speed") * self._scholars()
             if p.research_left <= 0:
@@ -609,7 +616,11 @@ class GameState:
             a.siege_days = 0
             who = "You have" if a.owner == "player" else \
                 f"{self.world.node_name(a.owner)} has"
-            msgs.append(f"*** {who} lifted {sh.relic} from {sh.name}. ***")
+            # Somebody else's pilgrimage is not an event in your reign. It goes
+            # in, because in the relic chapter it is the whole argument, but it
+            # does not shoulder your own years out of the way.
+            msgs.append(self.note(f"*** {who} lifted {sh.relic} from {sh.name}. ***",
+                                  MOMENTOUS if a.owner == "player" else ROUTINE))
             # Everyone goes home afterwards. A party left standing at a shrine
             # is a lord who counts as having his host out for ever, and a lord
             # whose host is out never declares on anybody.
@@ -696,6 +707,12 @@ class GameState:
         self.lord.captured = False
         self.lord.ransom = 0.0
         return f"{self.lord.name} is bought back and rides in at the gate"
+
+    def note(self, text: str, weight: int = NOTABLE) -> str:
+        """Write a line in the chronicle and hand it back to be said aloud."""
+        self.chronicle.record(day=self.day, year=self.year, season=self.season,
+                              text=text, weight=weight, chapter=self.chapter)
+        return text
 
     def _lord_day(self) -> List[str]:
         msgs = self.lord.day()
@@ -957,9 +974,10 @@ class GameState:
             if b.spec.terrain == "rampart":
                 s.demolish(b.uid)
         s.wall_hp = 0.0
-        return (f"*** {s.name.upper()} IS STORMED. The keep is thrown down and "
-                f"{loot:,.0f}c carried off. Raise another, or hold what is left "
-                f"of the march from somewhere else. ***")
+        return self.note(
+            f"*** {s.name.upper()} IS STORMED. The keep is thrown down and "
+            f"{loot:,.0f}c carried off. Raise another, or hold what is left "
+            f"of the march from somewhere else. ***", MOMENTOUS)
 
     def _take_town(self, town, a: Army) -> str:
         was_mine = town.mine
@@ -989,14 +1007,15 @@ class GameState:
             for other in self.world.towns.values():
                 if not other.mine:
                     other.hostility = min(C.HOSTILITY_WAR, other.hostility + 18.0)
-            return (f"*** {town.name} bends the knee. Its tolls are yours, and "
-                    f"{town.tribute():.0f}c a day with them. ***")
+            return self.note(
+                f"*** {town.name} bends the knee. Its tolls are yours, and "
+                f"{town.tribute():.0f}c a day with them. ***", MOMENTOUS)
         liege = self.world.node_name(a.owner)
         a.state = RETURNING
         self.march(a.uid, a.home)
         if was_mine:
-            return (f"*** {town.name} IS TAKEN FROM YOU by {liege}. "
-                    f"Its tribute is theirs now. ***")
+            return self.note(f"*** {town.name} IS TAKEN FROM YOU by {liege}. "
+                             f"Its tribute is theirs now. ***", MOMENTOUS)
         return f"{town.name} has fallen to {liege}"
 
     def _lords_and_hosts(self) -> List[str]:
@@ -1073,8 +1092,8 @@ class GameState:
         town.owner = ""
         town.hostility = 65.0
         town.garrison = dict(town.target_garrison())
-        return (f"*** {town.name} throws off its oath -- you have nothing left "
-                f"nearby to hold it with. ***")
+        return self.note(f"*** {town.name} throws off its oath -- you have "
+                         f"nothing left nearby to hold it with. ***", MOMENTOUS)
 
     def _nearest_of_mine(self, key: str) -> str:
         return min(self.world.settlements,
@@ -1254,16 +1273,16 @@ class GameState:
             return [self.over]
         if self.treasury < self.goals.bankruptcy:
             self.over = "Ruined. Your debts outran your carts."
-            return [self.over]
+            return [self.note(self.over, MOMENTOUS)]
         if self.population < 5:
             self.over = ("Ended. The last of your people are gone and there is "
                          "nothing left to rule.")
-            return [self.over]
+            return [self.note(self.over, MOMENTOUS)]
         vassals = self.world.vassals()
         if "dominion" in self.goals.paths and len(vassals) >= self.goals.towns:
             self.over = (f"Dominion. {len(vassals)} towns of the march answer to you: "
                          f"{', '.join(self.world.node_name(v) for v in vassals)}.")
-            return [self.over]
+            return [self.note(self.over, MOMENTOUS)]
         if "reliquary" in self.goals.paths and self.relics_held() >= self.goals.relics:
             self.relic_days += 1
             if self.relic_days == 1:
@@ -1274,7 +1293,7 @@ class GameState:
                              f"relics have rested in your keeping for "
                              f"{self.goals.relic_days} days, and the pilgrims "
                              f"come to you.")
-                return [self.over]
+                return [self.note(self.over, MOMENTOUS)]
         else:
             self.relic_days = 0
         if self.goals.wonder and any(s.effect("wonder")
@@ -1285,19 +1304,59 @@ class GameState:
             if self.cathedral_days >= CATHEDRAL_HOLD:
                 self.over = ("The cathedral stands and the bells have rung for "
                              "half a year. The marches are yours.")
-                return [self.over]
+                return [self.note(self.over, MOMENTOUS)]
         worth = self.net_worth()
         if ("wealth" in self.goals.paths and worth >= self.goals.net_worth
                 and self.population >= self.goals.population):
             self.over = (f"Triumph. {worth:,.0f}c of house and holdings, "
                          f"{self.population:.0f} souls, in {self.day} days.")
-            return [self.over]
+            return [self.note(self.over, MOMENTOUS)]
+        if "commons" in self.goals.paths and self.goals.mood:
+            seat = self.world.settlements.get(
+                self.lord.seat or next(iter(self.world.settlements), ""))
+            if seat is not None and seat.popularity >= self.goals.mood:
+                self.mood_days += 1
+                if self.mood_days == 1:
+                    return [f"{seat.name} is content. Keep it so for "
+                            f"{self.goals.mood_days} days."]
+                if self.mood_days >= self.goals.mood_days:
+                    self.over = (f"The Commons. {seat.name} has been content for "
+                                 f"{self.goals.mood_days} days together, which is "
+                                 f"longer than most lords manage in a lifetime.")
+                    return [self.note(self.over, MOMENTOUS)]
+            else:
+                self.mood_days = 0
         if self.day >= self.goals.days:
-            self.over = (f"Time called. You end with {worth:,.0f}c against a goal of "
-                         f"{self.goals.net_worth:,.0f}c, {self.population:.0f} of "
-                         f"{self.goals.population} souls and {len(vassals)} of "
-                         f"{self.goals.towns} towns.")
-            return [self.over]
+            if "endure" in self.goals.paths:
+                self.over = (f"You held. {worth:,.0f}c and {self.population:.0f} "
+                             f"souls still answer to you, which was the whole of "
+                             f"what was asked.")
+                return [self.note(self.over, MOMENTOUS)]
+            # Say what was actually asked for. A chapter that wants relics has
+            # no meaningful coin target, and printing the unused one gives you
+            # "against a goal of 1,000,000,000,000c", which is not a sentence
+            # anybody should be handed at the end of two years' play.
+            want = []
+            if "wealth" in self.goals.paths:
+                want.append(f"{worth:,.0f}c of {self.goals.net_worth:,.0f}")
+                want.append(f"{self.population:.0f} of {self.goals.population} souls")
+            if "dominion" in self.goals.paths:
+                want.append(f"{len(vassals)} of {self.goals.towns} towns sworn")
+            if "reliquary" in self.goals.paths:
+                want.append(f"{self.relics_held()} of {self.goals.relics} relics "
+                            f"held, for {self.relic_days} of "
+                            f"{self.goals.relic_days} days")
+            if "commons" in self.goals.paths:
+                seat = self.world.settlements.get(
+                    self.lord.seat or next(iter(self.world.settlements), ""))
+                mood = seat.popularity if seat is not None else 0.0
+                want.append(f"content {self.mood_days} of "
+                            f"{self.goals.mood_days} days (mood {mood:.0f} of "
+                            f"{self.goals.mood:.0f})")
+            if not want:
+                want.append(f"{worth:,.0f}c of house and holdings")
+            self.over = "Time called. You end with " + ", ".join(want) + "."
+            return [self.note(self.over, MOMENTOUS)]
         return []
 
     # ------------------------------------------------------------- caravans
@@ -1401,8 +1460,10 @@ class GameState:
             "events": self.events.to_dict(), "progress": self.progress.to_dict(),
             "history": self.history[-400:], "battles": self.battles[-40:],
             "cathedral_days": self.cathedral_days,
-            "relic_days": self.relic_days,
+            "relic_days": self.relic_days, "mood_days": self.mood_days,
             "lord": self.lord.to_dict(),
+            "chronicle": self.chronicle.to_dict(),
+            "chapter": self.chapter,
         }
 
     def save(self, path: str) -> str:
@@ -1428,7 +1489,10 @@ class GameState:
         g.battles = list(d.get("battles", []))
         g.cathedral_days = d.get("cathedral_days", 0)
         g.relic_days = d.get("relic_days", 0)
+        g.mood_days = d.get("mood_days", 0)
         g.lord = Lord.from_dict(d["lord"]) if "lord" in d else Lord()
+        g.chronicle = Chronicle.from_dict(d.get("chronicle", {}))
+        g.chapter = d.get("chapter", "")
         g.over = d.get("over", "")
         g.rng = random.Random(d["seed"] + d["day"])
         g.trade_engine = TradeEngine(g.world, g.rng)

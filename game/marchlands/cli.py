@@ -11,7 +11,9 @@ from . import config as C
 from .advisor import route_from, scan, shortage_report
 from .buildings import ALL_BUILDING_KEYS, BUILDINGS, building
 from .buildings import resolve as resolve_building
+from .campaign import CHAPTERS, BY_KEY as CHAPTERS_BY_KEY
 from .castle import PLANS, SiegeState, Works
+from .chronicle import MOMENTOUS, NOTABLE, ROUTINE
 from .engine import GameState
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
@@ -68,6 +70,8 @@ class Console:
         self.say(f"  ! {msg}")
 
     # -------------------------------------------------------------- helpers
+    run = None          # the campaign this game belongs to, if any
+
     def settlement(self, key: Optional[str] = None):
         w = self.game.world
         k = key or self.here
@@ -971,6 +975,50 @@ class Console:
         self.say("  " + self.game.march(int(args[0]),
                                         self._node(args[1], shrines=True)))
 
+    def cmd_campaign(self, args: List[str]) -> None:
+        """Where you are in the Marcher Chronicle, and what you are carrying."""
+        run = self.run
+        if run is None:
+            return self.say(
+                ink.head("THE MARCHER CHRONICLE"),
+                ink.c("  You are playing a single game, not the campaign.",
+                      ink.DIM),
+                ink.c("  Start it with:  python3 -m marchlands --campaign",
+                      ink.DIM))
+        ch = run.current
+        self.say(ink.head("THE MARCHER CHRONICLE",
+                          f"chapter {min(run.chapter + 1, len(CHAPTERS))}"
+                          f" of {len(CHAPTERS)}"))
+        for line in run.standing():
+            self.say(line)
+        self.say("", f"  this chapter teaches {ink.c(ch.teaches, ink.GOLD)}")
+        carry = run.carry
+        self.say(f"  you brought    {ink.coin(carry.purse)}c, "
+                 f"{len(carry.techs)} things your house had already worked out",
+                 f"  renown         {carry.renown}")
+
+    def cmd_chronicle(self, args: List[str]) -> None:
+        """Your reign, read back to you."""
+        g = self.game
+        least = ROUTINE if args and args[0].lower() in ("all", "full") else NOTABLE
+        entries = g.chronicle.read(least=least, limit=60)
+        if not entries:
+            return self.say(ink.head("THE CHRONICLE"),
+                            ink.c("  Nothing worth writing down has happened yet.",
+                                  ink.DIM))
+        self.say(ink.head("THE CHRONICLE", f"{len(g.chronicle)} entries"))
+        chapter = None
+        for e in entries:
+            if e.chapter != chapter:
+                chapter = e.chapter
+                name = CHAPTERS_BY_KEY[chapter].name if chapter in CHAPTERS_BY_KEY \
+                    else ""
+                if name:
+                    self.say("", ink.c(f"  -- {name} --", ink.GOLD))
+            colour = ink.BONE if e.weight >= MOMENTOUS else ink.DIM
+            self.say(f"  {ink.c(ink.pad(e.stamp(), 13), ink.PLUM)} "
+                     + ink.c(e.text.strip("* "), colour))
+
     def cmd_lord(self, args: List[str]) -> None:
         """Your lord: where he is, what he is worth there, and the risk of it."""
         g = self.game
@@ -1353,7 +1401,8 @@ COMMANDS = {
     "march": Console.cmd_march, "recall": Console.cmd_recall,
     "siege": Console.cmd_siege, "plans": Console.cmd_plans,
     "raid": Console.cmd_raid, "relics": Console.cmd_relics,
-    "lord": Console.cmd_lord,
+    "lord": Console.cmd_lord, "chronicle": Console.cmd_chronicle,
+    "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,
     "gift": Console.cmd_gift, "truce": Console.cmd_truce,
@@ -1392,10 +1441,11 @@ HELP = """
                     host <town> <who> <n> ...              army [id]
                     march <id> <place>   recall <id>       standdown <id>
                     plans [place]   siege [<id> <plan>]   raid <id>
-                    lord [<id>|home|ransom]     relics
+                    lord [<id>|home|ransom]     relics    chronicle
                     war             battles [n]
                     gift <town> <coin>   truce <town> [days]   demand <town>
   ELSE              hint            briefing               scenarios
+                    campaign        chronicle [all]
                     log [n]   save [file]   load [file]   autosave [file]   quit
                     help trade | help town | help war | help win
 """
@@ -1513,6 +1563,75 @@ HELP_TOPICS = {
 """,
 }
 
+
+
+def play_campaign(run, *, out=sys.stdout, script: Optional[Sequence[str]] = None,
+                  save_to: Optional[str] = None):
+    """Play the Marcher Chronicle through, chapter after chapter.
+
+    Each chapter is an ordinary game with its own terms. What makes it a
+    campaign is what crosses between them: the purse, what the house has
+    worked out, the lord and what is left of his line, and the chronicle,
+    which by the last chapter is the only record of how you got there.
+    """
+    con = None
+    while not run.done:
+        ch = run.current
+        g = run.begin()
+        con = Console(g, out=out)
+        con.run = run
+        con.say("")
+        con.say(ink.head(ch.name.upper(),
+                         f"chapter {run.chapter + 1} of {len(CHAPTERS)}"))
+        for line in (g.briefing or "").splitlines():
+            con.say(f"  {line}")
+        if run.carry.purse:
+            con.say("", ink.c(f"  You bring {run.carry.purse:,.0f}c and "
+                              f"{len(run.carry.techs)} things your house already "
+                              f"knows.", ink.DIM))
+        con.say("")
+        con.status()
+        con.say("", "  `campaign` for where you are, `chronicle` for how you got "
+                    "here, `hint` if you are stuck.")
+        _drive(con, script)
+        won, epilogue = run.finish(con.game)
+        con.say("")
+        con.say(ink.head("END OF CHAPTER", ch.name))
+        con.say(f"  {con.game.over}")
+        con.say("")
+        con.say("  " + ink.c(epilogue, ink.GOLD if won else ink.AMBER))
+        if save_to:
+            con.say("  " + run.save(save_to))
+        if con.quit or script is not None:
+            break
+    if run.done and con is not None:
+        con.say("")
+        con.say(ink.head("THE MARCHER CHRONICLE", "complete"))
+        for line in run.standing():
+            con.say(line)
+        con.say("", f"  renown {run.carry.renown} of a possible "
+                    f"{3 * len(CHAPTERS)}")
+        con.say("", ink.c("  `chronicle` reads the whole of it back.", ink.DIM))
+    return con
+
+
+def _drive(con, script: Optional[Sequence[str]]) -> None:
+    """Run one chapter to its end, from a script or from a person."""
+    if script is not None:
+        for line in script:
+            con.say(f"\n> {line}")
+            con.do(line)
+            if con.quit or con.game.over:
+                return
+        return
+    while not con.quit and not con.game.over:
+        try:
+            line = input("\n> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            con.quit = True
+            return
+        if line:
+            con.do(line)
 
 
 def play(game: Optional[GameState] = None, script: Optional[Sequence[str]] = None,
