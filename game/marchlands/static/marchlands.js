@@ -30,6 +30,50 @@ const NARROW = () => canvas.clientWidth <= 720;
  * in the purse is two people writing the same page. */
 const num = v => Math.round(v).toLocaleString();
 
+/* ------------------------------------------------------------------ light
+ * A day passes in the simulation when you ask for one; the light does not
+ * wait to be asked. It turns on its own, and every simulated day it is given
+ * one more turn to make -- so `a week` wheels the sun round seven times and
+ * you can watch a week go by, which is the cheapest way there is to make a
+ * button feel like it did something.
+ *
+ * `phase` is 0 at dawn, .25 at noon, .5 at dusk, .75 at midnight.
+ */
+const DAY_SECONDS = 110;          // one turn of the sky, left alone
+const SWEEP = 1.9;                // turns a second when it is catching up
+let phase = 0.18, phaseTarget = 0.18, lastClock = 0, lastDay = null;
+let glows = [];                   // things that shine, drawn after the light
+
+function turnTheSky(t) {
+  if (lastClock === 0) lastClock = t;
+  const dt = Math.max(0, Math.min(0.25, t - lastClock));
+  lastClock = t;
+  if (state && lastDay !== null && state.day !== lastDay) {
+    phaseTarget += Math.max(0, state.day - lastDay);   // a turn for each day
+  }
+  if (state) lastDay = state.day;
+  phaseTarget += STILL ? 0 : dt / DAY_SECONDS;
+  const gap = phaseTarget - phase;
+  phase += STILL ? gap : Math.min(gap, SWEEP * dt);
+  if (phase > 8) { phase -= 8; phaseTarget -= 8; }     // keep the maths small
+}
+
+/* Where the sun is and what colour the day is, out of one number.
+ *
+ * p runs 0 dawn, .25 noon, .5 dusk, .75 midnight, so the elevation is just a
+ * sine of it and everything else falls out: how dark it is, how warm the low
+ * light is, and which way a shadow is thrown.
+ */
+function sun() {
+  const p = phase % 1;
+  const up = Math.sin(p * Math.PI * 2);            // -1 midnight, +1 noon
+  const alt = Math.max(0, up);
+  const night = Math.max(0, Math.min(1, (0.06 - up) / 0.34));
+  const warm = Math.max(0, 1 - Math.abs(up) * 2.6) * (1 - night * 0.7);
+  return { p, up, alt, night, warm,
+           az: Math.PI * (0.12 + 1.46 * p) };
+}
+
 /* ---------------------------------------------------------------- palette */
 const SEASON = {
   spring: { sky: ['#9dc4e8', '#dfe9f2'], grass: '#6f8f4a', crop: '#8fae52',
@@ -101,6 +145,34 @@ const mix = (a, b, f) => {
   const c = x.map((v, i) => Math.round(v + (y[i] - v) * f));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 };
+/* A shadow is geometry, not light, so it is drawn with the thing that casts
+ * it rather than in the wash. Long and sideways at either end of the day,
+ * short and under your feet at noon, and gone at night -- where a soft patch
+ * of contact shade takes over, because a building with nothing under it at
+ * all floats. */
+function castShadow(sx, sy, w, d, h) {
+  const s = sun();
+  if (s.night > 0.93) return;
+  const len = h * (0.35 + 2.6 * Math.pow(1 - s.alt, 2)) * (1 - s.night);
+  const dx = Math.cos(s.az) * len, dy = -Math.sin(s.az) * len * 0.42;
+  // A long shadow is not a faint one. It softens at the edges in life, which
+  // a flat fill cannot do, but fading it out at dusk loses the hour entirely.
+  const soft = 0.26 * (1 - s.night * 0.85);
+  ctx.fillStyle = `rgba(24,20,14,${soft.toFixed(3)})`;
+  ctx.beginPath();
+  ctx.moveTo(sx - w, sy);
+  ctx.lineTo(sx, sy - d);
+  ctx.lineTo(sx + dx, sy - d + dy);
+  ctx.lineTo(sx + w + dx, sy + dy);
+  ctx.lineTo(sx + w, sy);
+  ctx.lineTo(sx, sy + d);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(sx, sy + 1, w * 0.92, d * 0.92, 0, 0, 7);
+  ctx.fill();
+}
+
 function poly(pts, fill, stroke) {
   ctx.beginPath();
   ctx.moveTo(pts[0][0], pts[0][1]);
@@ -152,15 +224,51 @@ function drawTile(x, y, kind) {
       ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 1, by - 3); ctx.stroke();
     }
   } else if (kind === 'water') {
-    const t = clock();
-    ctx.strokeStyle = 'rgba(255,255,255,.20)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 2; i++) {
-      const wy = sy + (i - 0.5) * 9 + Math.sin(t * 1.4 + x + y + i) * 2.2;
+    // Three things make water read as water: it moves, it is darker where it
+    // is deep, and it throws the sky back at you off the side facing the sun.
+    const t = clock(), s = sun();
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(d[0][0], d[0][1]);
+    for (let i = 1; i < 4; i++) ctx.lineTo(d[i][0], d[i][1]);
+    ctx.closePath(); ctx.clip();
+    // Swell: three crossing waves at different speeds, so the surface never
+    // repeats on any count a player could hold.
+    for (let i = 0; i < 3; i++) {
+      const a = 0.055 + 0.05 * (2 - i);
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+      const wy = sy + (i - 1) * 8
+        + Math.sin(t * (0.9 + i * 0.35) + (x + y) * 0.8 + i * 2.1) * 3.0;
       ctx.beginPath();
-      ctx.moveTo(sx - 13, wy); ctx.quadraticCurveTo(sx, wy - 2.5, sx + 13, wy);
-      ctx.stroke();
+      ctx.moveTo(sx - TW / 2, wy);
+      ctx.quadraticCurveTo(sx - TW / 4, wy - 3.4, sx, wy);
+      ctx.quadraticCurveTo(sx + TW / 4, wy + 3.4, sx + TW / 2, wy);
+      ctx.lineTo(sx + TW / 2, wy + 2.6);
+      ctx.quadraticCurveTo(sx + TW / 4, wy + 6.0, sx, wy + 2.6);
+      ctx.quadraticCurveTo(sx - TW / 4, wy - 0.8, sx - TW / 2, wy + 2.6);
+      ctx.closePath(); ctx.fill();
     }
+    // The sun's own road across the water, which only exists when it is low.
+    const glint = Math.max(0, 1 - Math.abs(s.up) * 2.2) * (1 - s.night);
+    if (glint > 0.02) {
+      ctx.fillStyle = `rgba(255,226,168,${(0.38 * glint).toFixed(3)})`;
+      for (let i = 0; i < 3; i++) {
+        const gy = sy + (i - 1) * 7 + Math.sin(t * 1.6 + x * 1.3 + i) * 2.4;
+        const gw = 7 + 5 * Math.sin(t * 2.1 + y + i);
+        ctx.beginPath();
+        ctx.ellipse(sx + Math.cos(s.az) * 7, gy, gw, 1.15, 0, 0, 7);
+        ctx.fill();
+      }
+    }
+    // And the moon's, colder and narrower.
+    if (s.night > 0.2) {
+      ctx.fillStyle = `rgba(198,216,245,${(0.22 * s.night).toFixed(3)})`;
+      for (let i = 0; i < 2; i++) {
+        const gy = sy + (i - 0.5) * 9 + Math.sin(t * 1.1 + x + i) * 2.0;
+        ctx.beginPath(); ctx.ellipse(sx, gy, 6, 0.9, 0, 0, 7); ctx.fill();
+      }
+    }
+    ctx.restore();
   } else if (kind === 'forest') {
     // Dapple, so the edge of the wood is leaf shadow rather than a drawn line.
     ctx.fillStyle = 'rgba(22,36,14,.17)';
@@ -196,8 +304,7 @@ function drawTrees(x, y) {
     const tx = sx + (rnd(x, y, i + 23) - 0.5) * 34;
     const ty = sy + (rnd(x, y, i + 29) - 0.5) * 15;
     const h = 16 + rnd(x, y, i + 31) * 10;
-    ctx.fillStyle = 'rgba(20,30,12,.20)';
-    ctx.beginPath(); ctx.ellipse(tx, ty + 1, 9, 4, 0, 0, 7); ctx.fill();
+    castShadow(tx, ty, 8, 3.6, h * 0.75);
     ctx.strokeStyle = '#4a3722'; ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty - h); ctx.stroke();
     const leaf = state && state.season === 'winter' ? null : p.tree;
@@ -286,9 +393,7 @@ function drawBuilding(b, t) {
   const h = 22 * st.s;
   if (!b.complete) { drawScaffold(sx, sy, w, d, h); return; }
 
-  // Ground shadow, so nothing floats.
-  ctx.fillStyle = 'rgba(0,0,0,.22)';
-  ctx.beginPath(); ctx.ellipse(sx, sy + 3, w * 0.95, d * 0.95, 0, 0, 7); ctx.fill();
+  castShadow(sx, sy, w, d, h + 12 * st.s);
 
   if (st.wall === 'pit') { drawPit(sx, sy, w, d, st); return; }
 
@@ -372,6 +477,10 @@ function drawOpenings(sx, sy, w, d, h, st, b) {
   poly([[dx - dw / 2, dy - dh], [dx + dw / 2, dy - dh + dw * 0.3],
         [dx + dw / 2, dy + dw * 0.3], [dx - dw / 2, dy]], 'rgba(38,26,16,.85)');
   if (b && (b.running || st.oven)) {
+    // A window is a hole in a wall by day and a light by night, so the glow
+    // is set aside and drawn after the dark is laid down.
+    glows.push({ x: sx - w * 0.34, y: sy + d * 0.12 - h * 0.55, r: 15,
+                 a: b.running ? 0.34 : 0.16 });
     const lit = b.running ? 'rgba(255,206,110,.85)' : 'rgba(255,206,110,.25)';
     const wx = sx - w * 0.45, wy = sy - h * 0.55;
     poly([[wx - 3, wy - 5], [wx + 3, wy - 3.2], [wx + 3, wy + 2],
@@ -466,8 +575,7 @@ function drawWall(w, t) {
   const stone = w.kind !== 'timber';
   const colour = stone ? '#a2988a' : '#8a6a45';
   const h = w.kind === 'tower' ? 52 : w.kind === 'gate' ? 40 : 28;
-  ctx.fillStyle = 'rgba(0,0,0,.22)';
-  ctx.beginPath(); ctx.ellipse(sx, sy + 2, hw * 0.9, hd * 0.9, 0, 0, 7); ctx.fill();
+  castShadow(sx, sy, hw * 0.92, hd * 0.92, h);
   if (w.kind === 'gap') return;
 
   const T = [sx, sy - hd - h], L = [sx - hw, sy - h];
@@ -626,28 +734,152 @@ function drawEffects(t) {
   ctx.globalAlpha = 1;
 }
 
+/* Dawn, day, dusk, night. The sky is three stops rather than two, because the
+ * band of warm light along the horizon at either end of a day is the whole
+ * difference between a time of day and a brightness setting. */
+const NIGHT_SKY = ['#0d1830', '#1b2b47'];
+const DAWN_SKY = ['#2e4a72', '#e9a367'];
+const DUSK_SKY = ['#3a3560', '#d97a4e'];
+
+function skyStops(s, p) {
+  const top = rgbOf(p.sky[0]), bottom = rgbOf(p.sky[1]);
+  let a = top, b = bottom;
+  if (s.warm > 0) {
+    const warm = s.up >= 0 || s.p < 0.5 ? DAWN_SKY : DUSK_SKY;
+    a = rgbOf(mix(`rgb(${a})`, warm[0], s.warm * 0.85));
+    b = rgbOf(mix(`rgb(${b})`, warm[1], s.warm * 0.9));
+  }
+  if (s.night > 0) {
+    a = rgbOf(mix(`rgb(${a})`, NIGHT_SKY[0], s.night));
+    b = rgbOf(mix(`rgb(${b})`, NIGHT_SKY[1], s.night));
+  }
+  return [`rgb(${a})`, `rgb(${b})`];
+}
+
 function drawSky(w, h, t) {
-  const p = pal();
+  const p = pal(), s = sun();
+  const [a, b] = skyStops(s, p);
   const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, p.sky[0]); g.addColorStop(1, p.sky[1]);
+  g.addColorStop(0, a); g.addColorStop(1, b);
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-  // The sun crosses with the months, which is all the clock a year needs.
-  const frac = ((state ? state.month : 6) - 1) / 12;
-  const sunx = w * (0.12 + 0.76 * frac), suny = h * (0.30 - 0.14 * Math.sin(frac * Math.PI));
-  const halo = ctx.createRadialGradient(sunx, suny, 4, sunx, suny, 90);
-  halo.addColorStop(0, p.sun); halo.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = halo;
-  ctx.beginPath(); ctx.arc(sunx, suny, 90, 0, 7); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.40)';
+
+  // Stars, where the sky is dark enough to hold them. A fixed field, so they
+  // are the same stars every night, which is the only thing stars ever do.
+  if (s.night > 0.05) {
+    ctx.globalAlpha = s.night * 0.9;
+    ctx.fillStyle = '#e8eef8';
+    for (let i = 0; i < 70; i++) {
+      const x = rnd(i, 3, 11) * w, y = rnd(i, 7, 13) * h * 0.55;
+      const tw = 0.55 + 0.45 * Math.sin(t * 1.7 + i);
+      ctx.globalAlpha = s.night * tw * 0.85;
+      ctx.beginPath(); ctx.arc(x, y, 0.6 + rnd(i, 5, 17) * 0.9, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // The sun, and the moon on the other side of the same wheel. The month sets
+  // how far north it rides; the hour sets where along the arc it is.
+  const season = ((state ? state.month : 6) - 1) / 12;
+  // High enough to clear the land at the top of the view for most of the
+  // day: a sun that spends noon behind a wheat field is not a sun.
+  const arc = x => [w * (0.06 + 0.88 * x),
+                    h * (0.50 - 0.44 * Math.sin(x * Math.PI)
+                         - 0.05 * Math.sin(season * Math.PI * 2))];
+  if (s.up > -0.12) {
+    const [sx, sy] = arc(s.p * 2 <= 1 ? s.p * 2 : s.p * 2 - 1);
+    const halo = ctx.createRadialGradient(sx, sy, 3, sx, sy, 110);
+    const core = s.warm > 0.25 ? '#ffd9a0' : p.sun;
+    halo.addColorStop(0, core);
+    halo.addColorStop(0.10, core);
+    halo.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalAlpha = 0.55 + 0.45 * s.alt;
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(sx, sy, 110, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else {
+    const [mx, my] = arc((s.p - 0.5) * 2);
+    ctx.globalAlpha = Math.min(1, s.night * 1.2);
+    ctx.fillStyle = '#e6ecf6';
+    ctx.beginPath(); ctx.arc(mx, my, 13, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(190,205,228,.55)';
+    ctx.beginPath(); ctx.arc(mx - 4, my - 3, 3.2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx + 3, my + 4, 2.2, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Cloud, lit from whichever side the sun is on and unlit at night.
+  const bright = 0.40 * (1 - s.night * 0.75);
   for (let i = 0; i < 5; i++) {
     const cx = ((i * 331 + t * (7 + i * 2)) % (w + 340)) - 170;
     const cy = 40 + i * 33 + Math.sin(i) * 12;
+    ctx.fillStyle = s.warm > 0.2
+      ? `rgba(255,${Math.round(214 - 40 * s.warm)},190,${bright + 0.1})`
+      : `rgba(255,255,255,${bright})`;
     for (let k = 0; k < 3; k++) {
       ctx.beginPath();
       ctx.ellipse(cx + k * 27, cy + (k === 1 ? -7 : 0), 30 - k * 4, 13, 0, 0, 7);
       ctx.fill();
     }
   }
+}
+
+/* The light itself, laid over the world once everything solid is drawn.
+ *
+ * Doing it this way rather than tinting every fill is not a shortcut: it is
+ * the only way the hundred or so colours in this file can stay readable as
+ * colours -- thatch is #b8994f whatever the hour -- while still all obeying
+ * one sun. Anything that is meant to shine rather than be lit is drawn after
+ * this pass, which is exactly what makes a lit window worth having.
+ */
+function lightWash(w, h) {
+  const s = sun();
+  // Noon is white and does nothing. A low sun takes the blue out first, which
+  // is why evening is warm; night takes the red out, which is why it is not.
+  const low = Math.max(0, 1 - s.alt * 2.4) * (1 - s.night);
+  const k = s.night;
+  if (k < 0.01 && low < 0.01) return;
+  const r = Math.round(255 - 188 * k - 16 * low);
+  const g = Math.round(255 - 168 * k - 36 * low);
+  const b = Math.round(255 - 104 * k - 68 * low);
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, w, h);
+  if (s.warm > 0.02) {
+    // The last of the sun coming in sideways, over the top of everything.
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.26 * s.warm;
+    ctx.fillStyle = '#ff9040';
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.restore();
+}
+
+/* Everything that makes its own light, once the night has been laid over the
+ * things that do not. Collected during the pass rather than drawn in it, so a
+ * window can be behind a roof and still glow through the dark. */
+function drawGlows() {
+  const s = sun();
+  const lit = Math.min(1, s.night * 1.25);
+  if (lit > 0.02) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const g of glows) {
+      // Small and sharp. Thirty of these in a courtyard on a `lighter` pass
+      // add up, and a town that glows white all over is not a lit town, it is
+      // an overexposed one.
+      const r = g.r * (0.8 + 0.35 * lit);
+      const grad = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, r);
+      const a = (g.a || 0.5) * lit;
+      grad.addColorStop(0, `rgba(255,208,128,${a.toFixed(3)})`);
+      grad.addColorStop(0.35, `rgba(255,186,96,${(a * 0.34).toFixed(3)})`);
+      grad.addColorStop(1, 'rgba(255,170,70,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  glows = [];
 }
 
 function drawWeather(w, h, t) {
@@ -877,6 +1109,18 @@ function drawMarch(w, h, t) {
         [w - 79, h - 146]], '#8f2b26');
   ctx.fillStyle = '#5a4a30'; ctx.font = '11px Georgia, serif';
   ctx.textAlign = 'center'; ctx.fillText('N', w - 74, h - 174); ctx.textAlign = 'left';
+  // A map is read indoors, so the hour barely touches it -- but a parchment
+  // that stays noon-bright while the town outside is dark reads as a bug.
+  const s = sun();
+  if (s.night > 0.05) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `rgba(${Math.round(255 - 46 * s.night)},` +
+                    `${Math.round(255 - 44 * s.night)},` +
+                    `${Math.round(255 - 26 * s.night)},1)`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
 }
 
 async function loadOptions() {
@@ -1056,6 +1300,7 @@ for (const btn of document.querySelectorAll('#clock button')) {
 /* ------------------------------------------------------------------ frame */
 function frame() {
   const t = clock();
+  turnTheSky(t);
   const w = canvas.width / dpr, h = canvas.height / dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (mode === 'march') {
@@ -1063,6 +1308,7 @@ function frame() {
     nextFrame();
     return;
   }
+  glows = [];
   drawSky(w, h, t);
   if (plan) {
     ctx.save();
@@ -1094,6 +1340,17 @@ function frame() {
       else drawFolk(it.f, it.i, t);
     }
     drawEffects(t);
+    ctx.restore();
+  }
+  // The light goes on last over everything solid, and then the things that
+  // make their own. A brazier is not less bright because the sun went down.
+  lightWash(w, h);
+  if (plan) {
+    ctx.save();
+    ctx.translate(w / 2 + camera.x, h / 2 + camera.y);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-(plan.w - plan.h) * TW / 4, -(plan.w + plan.h) * TH / 4);
+    drawGlows();
     ctx.restore();
   }
   drawWeather(w, h, t);

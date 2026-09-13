@@ -448,6 +448,31 @@ class TestItShips(unittest.TestCase):
         self.assertNotIn("#panel { display: none", narrow)
         self.assertIn("#panel", narrow)
 
+    def test_the_light_is_laid_down_after_the_world_and_before_the_glows(self):
+        """Order is the whole trick, and it is invisible when it is wrong.
+
+        The scene is drawn in daylight colours and the hour is washed over it,
+        so a hundred colours in that file stay readable as colours. Anything
+        that makes its own light has to come after the wash or a lit window at
+        midnight is just a slightly less dark window.
+        """
+        from marchlands.web import STATIC
+        js = open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8").read()
+        for name in ("function lightWash", "function drawGlows",
+                     "function castShadow", "function turnTheSky"):
+            self.assertIn(name, js, name)
+        body = js[js.index("function frame()"):]
+        wash = body.index("lightWash(w, h)")
+        self.assertLess(body.index("drawEffects(t)"), wash)
+        self.assertLess(wash, body.index("drawGlows()"))
+
+    def test_the_renderer_still_asks_the_network_for_nothing(self):
+        from marchlands.web import STATIC
+        for name in ("marchlands.js", "sound.js"):
+            js = open(os.path.join(STATIC, name), encoding="utf-8").read()
+            for word in ("http://", "https://", "fetch('http", "import("):
+                self.assertNotIn(word, js, f"{name} reaches out with {word!r}")
+
     def test_the_wheel_is_told_to_carry_them(self):
         """The one line whose absence caused this, asserted directly."""
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

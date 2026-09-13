@@ -352,6 +352,42 @@ ditch, mill sails turning, smoke from the ovens that are lit, windows glowing
 where somebody is working, people on the road, and snow in winter with the
 trees gone bare.
 
+### The hour of the day
+
+A day passes in the simulation when you ask for one; the light does not wait to
+be asked. It turns on its own -- one full round of dawn, noon, dusk and night
+every two minutes or so -- and every simulated day gives it one more round to
+make, so **`a week` wheels the sun round seven times** and you watch the week go
+by. It is the cheapest way there is to make a button feel like it did
+something.
+
+Out of one number -- where the sun is -- comes everything else. The sky is
+three stops rather than two, because the band of warm light along the horizon
+at either end of a day is the whole difference between a time of day and a
+brightness setting. Stars come out in a fixed field, which is the only thing
+stars ever do. The moon rides the other half of the same wheel.
+
+**Shadows are geometry, not light**, so they are drawn with the thing that
+casts them: long and sideways at either end of the day, short and underfoot at
+noon, gone at night. A long shadow is not a faint one — fading them out at dusk
+loses the hour entirely.
+
+**The light itself is one pass over the top of everything solid.** Doing it
+that way rather than tinting every fill is not a shortcut: it is the only way
+the hundred-odd colours in that file can stay readable as colours — thatch is
+`#b8994f` whatever the hour — while all obeying one sun. Noon is white and does
+nothing. A low sun takes the blue out first, which is why evening is warm;
+night takes the red out, which is why it is not.
+
+Then the things that make their own light are drawn *after* the dark, which is
+exactly what makes a lit window worth having. At midnight the town is a
+constellation of small warm windows, and you can see which sheds are running.
+
+**Water** is three crossing waves at different speeds, so the surface never
+repeats on any count a player could hold, plus the sun's own road across it —
+which only exists when the sun is low, and turns cold and narrow when the moon
+has it instead.
+
 Everything is a vector path. There are no images in this repository and there
 is still no dependency list — the thatch is a row of arcs, the stone is a
 clipped brick pattern, the smoke is forty particles with a lifetime. The rule
