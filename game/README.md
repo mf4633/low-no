@@ -12,11 +12,12 @@ python3 -m marchlands                          # play the default scenario
 python3 -m marchlands --list                   # the four scenarios and five houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 186 tests, ~100s
+python3 -m unittest discover -s tests          # 198 tests, ~110s
 ```
 
-In game, `hint` tells you what a patient steward would point at next, `briefing`
-restates why you are here, and `help` lists everything.
+In game, **`view`** draws your town, `hint` tells you what a patient steward
+would point at next, `briefing` restates why you are here, and `help` lists
+everything.
 
 > Housed in this repository under `game/` because the session's branch scope is
 > `mf4633/low-no`. It shares no code with the trading system in the repository
@@ -40,6 +41,36 @@ walls that decide sieges.
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
 where the game is played.
+
+## How it looks
+
+It is a terminal game, so it is not beautiful the way Stronghold was beautiful
+-- there are no hand-painted sprites and nobody is carrying a sack anywhere.
+What it does have is a picture of your holding rather than a table about it.
+`view` draws the settlement from its own state: the forest and the hills and
+the fields you cleared, the walls you paid for (timber drawn thin, stone drawn
+thick, towers at the corners, a gate if you built one), and every building
+standing where its land is.
+
+```
+── ALDWORTH ──────────────────────────────────── summer, 1248 ──
+ ♣  ♠ ♣     ♠ ♣     ♠ ♣     ♠ ♣ ·        ▴ ˄     ▴ ˄     ▴ ˄
+♣ ♠     ♣ ♠     ♣ ♠     ♣ ♠  ,    ˄ ▴  △    ˄ ▴  ◆  ˄ ▴
+· ≡  ≡ ,≡  ♠  ≡   ╔══════════════════════════════╗    ,  ,
+  ≡  ♠  ≡, ᵕ  ,· ,║ ▣  x  ⌂  ⌂  ⌂  ⌂  ⌂  ⌂  ⌂  ▥ ║  ·· ,
+,  ,  ,·  ,· ,,   ║ ▥  ¶  ∪  §  ¤  ▤  b  b  b  b ║  ·,
+      ,,          ║ a  f  k  ✻  ✻  ✻  ✻  p  p  s ║    ,,
+  ,  ·,    ,   ,  ╚═══════════════∩══════════════╝ ·
+ ●       ∴       ∴        , ·   , · ·        ,  ·
+```
+
+Colour carries the rest, on a terminal that has it: a workshop burns bright
+when it is running, dims when it is short of hands or inputs, and goes out
+when you close it; the wall turns amber under siege and red when it is going;
+fields and woods change colour with the season; prices read green when they
+are cheap and red when they are dear; the ledger is green above the line and
+red below it. Piped to a file or a test it comes out as plain text, so none of
+that gets in the way of a transcript.
 
 ## The three systems
 
@@ -221,6 +252,8 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `engine.py` | the tick, the ledger, research, war, diplomacy, endings, saves |
 | `scenario.py` | the map's pieces, and the default seat |
 | `scenarios.py` | the four scenarios and their terms |
+| `render.py` | ink: palette, framing, bars, sparklines, colour discipline |
+| `view.py` | the town drawn as a plan from its own state |
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |

@@ -13,14 +13,20 @@ from .buildings import resolve as resolve_building
 from .engine import GameState
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
+from . import render as ink
 from .military import UNITS, describe, host_strength, host_upkeep
 from .military import resolve as resolve_unit
 from .scenarios import CAMPAIGN, SCENARIOS, start as start_scenario
 from .tech import AGES, HOUSES, TECHS
 from .trade import CART, IDLE, MOVING, SHIP, TRADING, Order, Stop
+from .view import GLYPHS, townscape
 
 BARS = " ▁▂▃▄▅▆▇█"
-RULE = "-" * 72
+RULE = ink.rule()
+
+
+def title(text: str, right: str = "", colour: int = ink.GOLD) -> str:
+    return ink.head(text, right, colour)
 
 
 def _fmt(x: float, width: int = 8, dp: int = 0) -> str:
@@ -44,6 +50,10 @@ class Console:
         self.here = next(iter(game.world.settlements))
         self.quit = False
         self.autosave_path = ""
+        try:
+            ink.set_colour(ink._enabled() and out.isatty())
+        except Exception:                    # pragma: no cover - odd streams
+            ink.set_colour(False)
 
     # ------------------------------------------------------------------ i/o
     def say(self, *lines: str) -> None:
@@ -73,21 +83,23 @@ class Console:
         led = g.ledger
         p = g.progress
         vassals = g.world.vassals()
-        self.say(RULE,
-                 f"  {g.date_str():<38}  treasury {g.treasury:>10,.0f}c",
-                 f"  net worth {g.net_worth():>10,.0f}c of {g.goals.net_worth:,.0f}"
-                 f"      souls {g.population:>6,.0f} of {g.goals.population}",
-                 f"  {p.age_name():<24} {HOUSES[g.house].name if g.house else '':<26}"
+        tint = ink.SEASON_TINT.get(g.season, ink.GOLD)
+        self.say(ink.head(g.date_str(), f"{g.treasury:,.0f}c in the chest", tint),
+                 f"  net worth {ink.coin(g.net_worth(), 10)}c of "
+                 f"{g.goals.net_worth:,.0f}"
+                 f"      souls {ink.c(f'{g.population:>6,.0f}', ink.PARCH)}"
+                 f" of {g.goals.population}",
+                 f"  {ink.c(p.age_name(), ink.PLUM):<33} "
+                 f"{ink.c(HOUSES[g.house].name, ink.BONE) if g.house else '':<35}"
                  f"  towns sworn {len(vassals)} of {g.goals.towns}",
                  RULE)
         for s in g.world.settlements.values():
-            bar = "#" * int(s.popularity / 5) + "." * (20 - int(s.popularity / 5))
-            siege = " UNDER SIEGE" if s.besieged else ""
-            self.say(f"  {s.name:<12} pop {s.population:>6,.0f}/"
-                     f"{s.housing(p):<5,.0f}"
-                     f"  mood [{bar}] {s.popularity:>4.0f}"
+            siege = ink.c("  UNDER SIEGE", ink.BLOOD, bold=True) if s.besieged else ""
+            self.say(f"  {ink.c(ink.pad(s.name, 12), ink.PARCH, bold=True)}"
+                     f" pop {s.population:>6,.0f}/{s.housing(p):<5,.0f}"
+                     f" {ink.bar(s.popularity, 100, 16)} {s.popularity:>4.0f}"
                      f"  work {s.employed:>3}/{s.jobs_offered:<3}"
-                     f"  {C.RATION_LABELS[s.ration_level]} rations,"
+                     f"  {C.RATION_LABELS[s.ration_level]},"
                      f" {C.TAX_LABELS[s.tax_level]} tax{siege}")
         busy = []
         if p.advancing:
@@ -110,24 +122,62 @@ class Console:
                          f"{c.load:>3.0f}/{c.capacity:<3.0f} {c.manifest()[:34]:<34}"
                          f" {c.total_profit:+,.0f}c")
         self.say("",
-                 f"  day's ledger   taxes {led.taxes:+8,.0f}   trade {led.trade:+9,.0f}"
-                 f"   tribute {led.tribute:+7,.0f}   interest {led.interest:+6,.0f}",
-                 f"                 wages {-led.wages:+8,.0f}   upkeep {-led.upkeep:+9,.0f}"
-                 f"   carts {-led.caravans:+9,.0f}   war {-led.war:+11,.0f}",
-                 f"                 net   {led.net:+8,.0f}c")
+                 f"  day's ledger   taxes {ink.coin(led.taxes, 7, True)}"
+                 f"   trade {ink.coin(led.trade, 8, True)}"
+                 f"   tribute {ink.coin(led.tribute, 6, True)}"
+                 f"   interest {ink.coin(led.interest, 5, True)}",
+                 f"                 wages {ink.coin(-led.wages, 7, True)}"
+                 f"   upkeep {ink.coin(-led.upkeep, 7, True)}"
+                 f"   carts {ink.coin(-led.caravans, 8, True)}"
+                 f"   war {ink.coin(-led.war, 10, True)}",
+                 f"                 net   {ink.coin(led.net, 7, True)}c")
         if len(g.history) > 3:
-            self.say(f"  worth  {sparkline([h['worth'] for h in g.history])}")
+            self.say("  worth  " + ink.spark([h["worth"] for h in g.history]))
         for m in g.messages[-8:]:
-            self.say(f"  * {m}")
+            self.say("  " + ink.c("*", ink.FAINT) + " " + self._tint(m))
         if g.over:
-            self.say(RULE, f"  {g.over}", RULE)
+            self.say(RULE, "  " + ink.c(g.over, ink.GOLD, bold=True), RULE)
+
+    MESSAGE_TINTS = (
+        (("WAR:", "ASSAULT", "RAID", "STORMED", "TAKEN", "under siege",
+          "COFFERS", "unrest"), ink.BLOOD),
+        (("bends the knee", "Learned:", "***", "finished", "Triumph",
+          "Dominion"), ink.GOLD),
+        (("News:", "marches on", "lays siege"), ink.AMBER),
+    )
+
+    def _tint(self, msg: str) -> str:
+        for words, colour in self.MESSAGE_TINTS:
+            if any(w in msg for w in words):
+                return ink.c(msg, colour)
+        return msg
+
+    def plan_view(self, key: Optional[str] = None) -> None:
+        """The one screen this game spent a long time without: your town."""
+        s = self.settlement(key)
+        g = self.game
+        p = g.progress
+        self.say(ink.head(s.name.upper(),
+                          f"{C.SEASON_OF_MONTH[g.month]}, {g.year}",
+                          ink.SEASON_TINT.get(g.season, ink.GOLD)))
+        for line in townscape(s, p, g.season, besieged=s.besieged):
+            self.say(line)
+        wall_top = s.wall_max(p)
+        self.say("",
+                 f"  souls   {s.population:>6,.0f} of {s.housing(p):,.0f} roofs"
+                 f"     mood {ink.bar(s.popularity, 100, 14)} {s.popularity:>3.0f}"
+                 f"     {C.RATION_LABELS[s.ration_level]} rations",
+                 f"  wall    {ink.bar(s.wall_hp, max(wall_top, 1), 14)}"
+                 f" {s.wall_hp:>5,.0f}/{wall_top:<5,.0f}"
+                 f"  garrison {s.garrison_line()}")
 
     def town_view(self, key: Optional[str] = None) -> None:
         s = self.settlement(key)
         p = self.game.progress
-        self.say(RULE, f"  {s.name}  --  pop {s.population:,.0f}, "
-                 f"housing {s.housing(p):,.0f}, mood {s.popularity:.0f}"
-                 + ("  *** UNDER SIEGE ***" if s.besieged else ""), RULE)
+        self.say(ink.head(f"{s.name}", f"pop {s.population:,.0f} / mood "
+                          f"{s.popularity:.0f}" + (" / UNDER SIEGE" if s.besieged
+                                                   else ""),
+                          ink.BLOOD if s.besieged else ink.GOLD))
         land = "  ".join(f"{t}: {s.slots_free(t)}/{n}" for t, n in s.terrain.items() if n)
         self.say(f"  free land   {land}")
         if s.deposits:
@@ -139,7 +189,7 @@ class Console:
                  f" works {s.effect('defense'):.0f}, garrison {s.garrison_line()}"
                  f"  (strength {s.defense(p):.0f})")
         self.say("")
-        self.say("   id  building            staff  running  note")
+        self.say(ink.c("   id  building            staff  running  note", ink.DIM))
         for b in sorted(s.buildings, key=lambda b: (b.spec.category, b.key)):
             if not b.complete:
                 run = f"{b.days_left}d to raise"
@@ -150,7 +200,10 @@ class Console:
             else:
                 run = "  -"
             jobs = f"{b.staffed}/{b.spec.jobs}" if b.spec.jobs else "  -"
-            self.say(f"  {b.uid:>3}  {b.spec.name:<20}{jobs:>5}  {run:>9}  {b.idle_reason}")
+            glyph, colour = GLYPHS.get(b.key, ("·", ink.DIM))
+            note = ink.c(b.idle_reason, ink.AMBER if b.idle_reason else ink.DIM)
+            self.say(f"  {b.uid:>3}  {ink.c(glyph, colour)} "
+                     f"{ink.pad(b.spec.name, 18)}{jobs:>5}  {run:>9}  {note}")
         self.say("")
         self.say("  mood    " + "  ".join(f"{k} {v:+.0f}"
                                           for k, v in s.mood_factors(p)))
@@ -166,8 +219,9 @@ class Console:
     def stores(self, key: Optional[str] = None, count: int = 24) -> None:
         s = self.settlement(key)
         rep = s.report
-        self.say(RULE, f"  {s.name} stores", RULE,
-                 "  good           stock    price   made/day   used/day")
+        self.say(ink.head(f"{s.name} stores", f"{s.market.inventory_value():,.0f}c"),
+                 ink.c("  good           stock    price   made/day   used/day",
+                       ink.DIM))
         rows = []
         for k in ALL_KEYS:
             stock = s.market.stock[k]
@@ -177,8 +231,11 @@ class Console:
                 continue
             rows.append((k, stock, s.market.price(k), made, used))
         for k, stock, price, made, used in rows[:count]:
-            flag = "  <-- falling" if used > made + 0.01 and stock < 60 else ""
-            self.say(f"  {good(k).name:<12}{stock:>8,.0f}  {price:>7.2f}"
+            flag = ink.c("  <-- falling", ink.AMBER) if (
+                used > made + 0.01 and stock < 60) else ""
+            rel = price / good(k).base_price
+            self.say(f"  {good(k).name:<12}{stock:>8,.0f}  "
+                     f"{ink.c(f'{price:>7.2f}', ink.tone(rel))}"
                      f"{made:>10.1f}{used:>11.1f}{flag}")
 
     def market_view(self, key: str) -> None:
@@ -212,10 +269,12 @@ class Console:
     def price_view(self, gkey: str) -> None:
         g = self.game
         k = resolve_good(gkey)
-        self.say(RULE, f"  {good(k).name}  --  base {good(k).base_price:.2f}c,"
-                 f" {good(k).weight:.1f} cart units, "
-                 f"{100 * good(k).spoilage:.1f}%/day spoilage", RULE,
-                 "  place          they pay   they ask   stock   trend")
+        self.say(ink.head(good(k).name,
+                          f"base {good(k).base_price:.2f}c / "
+                          f"{good(k).weight:.1f} cart units / "
+                          f"{100 * good(k).spoilage:.1f}%/day spoilage"),
+                 ink.c("  place          they pay   they ask   stock   trend",
+                       ink.DIM))
         rows = []
         for node in g.world.all_nodes():
             m = g.world.market_of(node)
@@ -224,14 +283,17 @@ class Console:
             rows.append((node, m))
         rows.sort(key=lambda r: -r[1].bid(k))
         for node, m in rows:
-            spark = sparkline(m.history[k], 20)
             tag = " (yours)" if g.world.is_mine(node) else ""
-            self.say(f"  {self._name(node) + tag:<14}{m.bid(k):>10.2f}{m.ask(k):>11.2f}"
-                     f"{m.stock[k]:>8,.0f}   {spark}")
+            rel = m.price(k) / good(k).base_price
+            name = ink.c(ink.pad(self._name(node) + tag, 14),
+                         ink.PARCH if g.world.is_mine(node) else ink.INK)
+            self.say(f"  {name}{ink.c(f'{m.bid(k):>10.2f}', ink.tone(rel))}"
+                     f"{m.ask(k):>11.2f}{m.stock[k]:>8,.0f}   "
+                     + ink.spark(m.history[k], 20, ink.tone(rel)))
 
     def chain_view(self, gkey: str) -> None:
         k = resolve_good(gkey)
-        self.say(RULE, f"  {good(k).name} chain", RULE)
+        self.say(ink.head(f"{good(k).name} chain"))
         for bk, b in BUILDINGS.items():
             if k in b.outputs:
                 ins = ", ".join(f"{v:g} {good(i).name}" for i, v in b.inputs.items()) or "nothing"
@@ -243,7 +305,7 @@ class Console:
                 self.say(f"  eaten by {b.name:<17} {b.inputs[k]:g}/day -> {outs}")
 
     def buildings_view(self, filt: str = "") -> None:
-        self.say(RULE, "  what you may raise", RULE,
+        self.say(ink.head("WHAT YOU MAY RAISE", self.game.progress.age_name()),
                  "  key             name                 land    hands  cost")
         s = self.settlement()
         for k in ALL_BUILDING_KEYS:
@@ -261,7 +323,7 @@ class Console:
         ins = ", ".join(f"{v:g} {good(i).name}" for i, v in b.inputs.items()) or "-"
         outs = ", ".join(f"{v:g} {good(o).name}" for o, v in b.outputs.items()) or "-"
         cost = ", ".join(f"{v:g} {i}" for i, v in b.build_cost.items())
-        self.say(RULE, f"  {b.name} ({b.key})", RULE,
+        self.say(ink.head(b.name, b.key),
                  f"  land      {b.terrain}        hands {b.jobs}    raise in {b.build_days}d",
                  f"  cost      {cost}",
                  f"  per day   {ins}  ->  {outs}",
@@ -274,7 +336,8 @@ class Console:
     def caravan_view(self, uid: Optional[int] = None) -> None:
         g = self.game
         if uid is None:
-            self.say(RULE, f"  caravans ({len(g.caravans)}/{g.caravan_limit})", RULE)
+            self.say(ink.head("CARAVANS AND HULLS",
+                              f"{len(g.caravans)} of {g.caravan_limit}"))
             for c in g.caravans:
                 state = {IDLE: "idle", MOVING: "on the road" if not c.sails else "at sea",
                          TRADING: "in port" if c.sails else "in town"}[c.state]
@@ -289,7 +352,7 @@ class Console:
         c = g.caravan(uid)
         if not c:
             return self.err(f"no caravan {uid}")
-        self.say(RULE, f"  [{c.uid}] {c.name}", RULE,
+        self.say(ink.head(c.name, "cog" if c.sails else "cart"),
                  f"  where     {c.where()}",
                  f"  cargo     {c.manifest()}  ({c.load:.0f}/{c.capacity:.0f} cart units)",
                  f"  guards    {c.guards}  ({c.daily_cost:.0f}c/day all in)",
@@ -311,7 +374,7 @@ class Console:
             spd = C.CARAVAN_BASE_SPEED + self.settlement().effect("caravan_speed")
             cost = C.CARAVAN_UPKEEP + C.GUARD_COST
             what = f"cart of {cap:.0f} units at {spd:.0f} leagues/day"
-        self.say(RULE, f"  the counting house  ({what}, all costs in)", RULE)
+        self.say(ink.head("THE COUNTING HOUSE", f"{what}, all costs in"))
         rows = scan(g.world, self.here, capacity=cap, speed=spd, daily_cost=cost,
                     budget=max(0.0, g.treasury), top=top, sails=sails)
         for o in rows:
@@ -330,9 +393,9 @@ class Console:
         xs = [c[0] for c in g.world.coords.values()] + [s.x for s in g.world.sites.values()]
         ys = [c[1] for c in g.world.coords.values()] + [s.y for s in g.world.sites.values()]
         lo_x, hi_x, lo_y, hi_y = min(xs), max(xs), min(ys), max(ys)
-        grid = [[" "] * w for _ in range(h)]
+        grid = [[(" ", ink.FAINT)] * w for _ in range(h)]
 
-        def plot(x: float, y: float, label: str) -> None:
+        def plot(x: float, y: float, label: str, colour: int = ink.INK) -> None:
             cx = min(w - len(label) - 1,
                      int((x - lo_x) / max(hi_x - lo_x, 1e-6) * (w - 14)) + 1)
             cy = int((hi_y - y) / max(hi_y - lo_y, 1e-6) * (h - 2)) + 1
@@ -340,24 +403,33 @@ class Console:
                 if not 0 <= row < h:
                     continue
                 span = grid[row][max(0, cx - 1):cx + len(label) + 1]
-                if all(ch == " " for ch in span):
+                if all(cell[0] == " " for cell in span):
                     cy = row
                     break
             for i, ch in enumerate(label):
                 if 0 <= cx + i < w:
-                    grid[cy][cx + i] = ch
+                    grid[cy][cx + i] = (ch, colour)
 
         labels: List[str] = []
         for key, (x, y) in sorted(g.world.coords.items()):
             mark = "@" if g.world.is_mine(key) else ("~" if g.world.is_port(key) else "o")
-            plot(x, y, mark + self._name(key))
+            plot(x, y, mark + self._name(key), _node_colour(g, key))
             labels.append(f"{self._name(key):<10} {g.world.distance(self.here, key):>4.0f} leagues")
         for key, site in g.world.sites.items():
-            plot(site.x, site.y, "+" + site.name)
-        self.say(RULE, "  the marchlands   (@ yours, o foreign, ~ port, "
-                 "+ unclaimed)", RULE)
+            plot(site.x, site.y, "+" + site.name, ink.LEAF)
+        self.say(ink.head("THE MARCHLANDS",
+                          "@ yours   ~ port   o foreign   + unclaimed"))
         for row in grid:
-            self.say("  " + "".join(row).rstrip())
+            line, run, colour = [], [], None
+            for ch, col in row:
+                if col != colour:
+                    if run:
+                        line.append(ink.c("".join(run), colour))
+                    run, colour = [], col
+                run.append(ch)
+            if run:
+                line.append(ink.c("".join(run), colour))
+            self.say("  " + "".join(line).rstrip())
         self.say(RULE)
         for i in range(0, len(labels), 3):
             self.say("  " + "   ".join(labels[i:i + 3]))
@@ -452,7 +524,7 @@ class Console:
         self.say(f"  autosaving to {self.autosave_path} after every `next`")
 
     def cmd_scenarios(self, args: List[str]) -> None:
-        self.say(RULE, "  scenarios", RULE)
+        self.say(ink.head("SCENARIOS"))
         for i, key in enumerate(CAMPAIGN, 1):
             sc = SCENARIOS[key]
             here = "  <- you are here" if key == self.game.scenario else ""
@@ -463,7 +535,7 @@ class Console:
     def cmd_briefing(self, args: List[str]) -> None:
         g = self.game
         sc = SCENARIOS.get(g.scenario)
-        self.say(RULE, f"  {sc.name if sc else g.scenario}", RULE)
+        self.say(ink.head((sc.name if sc else g.scenario).upper()))
         for line in (g.briefing or "").splitlines():
             self.say(f"  {line}")
         self.say(self.win_text())
@@ -535,6 +607,13 @@ class Console:
                 self.here = key
         self.town_view()
 
+    def cmd_view(self, args: List[str]) -> None:
+        if args:
+            key = self._node(args[0])
+            if key in self.game.world.settlements:
+                self.here = key
+        self.plan_view()
+
     def cmd_stores(self, args: List[str]) -> None:
         self.stores(self._node(args[0]) if args else None)
 
@@ -598,7 +677,7 @@ class Console:
     def cmd_garrison(self, args: List[str]) -> None:
         s = self.settlement(self._node(args[0]) if args else None)
         p = self.game.progress
-        self.say(RULE, f"  {s.name} garrison", RULE,
+        self.say(ink.head(f"{s.name} garrison"),
                  f"  {s.garrison_line()}",
                  f"  strength {host_strength(s.units):.0f}, "
                  f"upkeep {host_upkeep(s.units):.0f}c/day",
@@ -608,7 +687,7 @@ class Console:
 
     def cmd_units(self, args: List[str]) -> None:
         p = self.game.progress
-        self.say(RULE, "  who you may muster", RULE,
+        self.say(ink.head("WHO YOU MAY MUSTER", p.age_name()),
                  "  key            name              age  coin  arms              "
                  "atk  def   hp  class")
         for k, u in UNITS.items():
@@ -649,7 +728,7 @@ class Console:
             a = g.army(int(args[0]))
             if not a:
                 return self.err(f"no host {args[0]}")
-            self.say(RULE, f"  [{a.uid}] {a.name}", RULE,
+            self.say(ink.head(a.name, a.where()),
                      f"  where     {a.where()}",
                      f"  strength  {host_strength(a.units):.0f}"
                      f"   upkeep {a.upkeep:.0f}c/day"
@@ -658,7 +737,7 @@ class Console:
             for line in a.log[-8:]:
                 self.say(f"     . {line}")
             return
-        self.say(RULE, "  hosts in the field", RULE)
+        self.say(ink.head("HOSTS IN THE FIELD"))
         for a in g.armies:
             side = "yours" if a.owner == "player" else f"{self._name(a.home)}"
             self.say(f"  [{a.uid}] {a.name:<22} {side:<12} {a.where():<24}"
@@ -686,7 +765,7 @@ class Console:
 
     def cmd_war(self, args: List[str]) -> None:
         g = self.game
-        self.say(RULE, "  the state of the march", RULE,
+        self.say(ink.head("THE STATE OF THE MARCH"),
                  "  town          lord                    sworn to    walls"
                  "  could field   mood toward you")
         for key, t in g.world.towns.items():
@@ -703,8 +782,13 @@ class Console:
             liege = ("you" if t.mine else
                      g.world.node_name(t.owner) if t.owner else "-")
             might = host_strength(g.likely_host(key))
-            self.say(f"  {t.name:<13} {t.lord:<23} {liege:<10} {t.wall_hp:>6,.0f}"
-                     f"  {might:>10,.0f}   {state} ({t.hostility:.0f})")
+            mood = (ink.LEAF if t.mine else ink.SEA if t.truce_days else
+                    ink.BLOOD if t.hostility > 70 else
+                    ink.AMBER if t.hostility > 40 else ink.INK)
+            self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)} "
+                     f"{ink.c(ink.pad(t.lord, 23), ink.DIM)} {liege:<10}"
+                     f" {t.wall_hp:>6,.0f}  {might:>10,.0f}   "
+                     + ink.c(f"{state} ({t.hostility:.0f})", mood))
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "
@@ -747,7 +831,8 @@ class Console:
         if args and args[0].lower() in ("begin", "go", "climb"):
             return self.say("  " + g.begin_age())
         nxt = p.next_age()
-        self.say(RULE, f"  {p.age_name()}", RULE, f"  {AGES[p.age].blurb}")
+        self.say(ink.head(p.age_name().upper()),
+                 "  " + ink.c(AGES[p.age].blurb, ink.DIM))
         if p.advancing:
             return self.say(f"  climbing to the {AGES[p.age + 1].name}: "
                             f"{p.advancing} days to go")
@@ -772,7 +857,7 @@ class Console:
                     return self.err(f"no craft matches {args[0]!r}")
                 key = hits[0]
             return self.say("  " + g.research(key))
-        self.say(RULE, f"  the guildhall  ({p.age_name()})", RULE)
+        self.say(ink.head("THE GUILDHALL", p.age_name()))
         if p.researching:
             self.say(f"  studying {TECHS[p.researching].name}, "
                      f"{p.research_left:.0f} days to go", "")
@@ -911,6 +996,19 @@ class Console:
         self.quit = True
 
 
+def _node_colour(game, key: str) -> int:
+    if game.world.is_mine(key):
+        return ink.GOLD
+    town = game.world.towns.get(key)
+    if town is None:
+        return ink.INK
+    if town.mine:
+        return ink.LEAF
+    if game.world.is_port(key):
+        return ink.SEA
+    return ink.BLOOD if town.hostility > 70 else ink.INK
+
+
 def _level(text: str, labels: Dict[int, str]) -> int:
     t = text.lower()
     for k, v in labels.items():
@@ -953,6 +1051,7 @@ COMMANDS = {
     "next": Console.cmd_next, "n": Console.cmd_next, "wait": Console.cmd_next,
     "status": Console.cmd_status, "s": Console.cmd_status,
     "town": Console.cmd_town, "stores": Console.cmd_stores,
+    "view": Console.cmd_view, "plan": Console.cmd_view, "v": Console.cmd_view,
     "market": Console.cmd_market, "prices": Console.cmd_prices,
     "chain": Console.cmd_chain, "buildings": Console.cmd_buildings,
     "info": Console.cmd_info, "build": Console.cmd_build, "raze": Console.cmd_raze,
@@ -980,7 +1079,8 @@ COMMANDS = {
 
 HELP = """
   THE DAY           next [n]        let n days pass        status / s
-  YOUR TOWN         town [name]     stores [town]          needs
+  YOUR TOWN         view / v        town [name]            stores [town]
+                    needs
                     build <key>     buildings [filter]     info <key>
                     close <id>      raze <id>
                     ration <level>  tax <level>            found [site]
