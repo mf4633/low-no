@@ -1,13 +1,13 @@
 {
- "at": "2026-09-13T16:33:57.709351Z",
+ "at": "2026-09-13T17:36:08.204694Z",
  "traps": [
   {
    "city": "SEA",
    "ceiling": 63,
-   "price": 8,
-   "p_model": 0.8746,
-   "p_market": 0.08,
-   "edge_pts": 79.5,
+   "price": 7,
+   "p_model": 0.7642,
+   "p_market": 0.07,
+   "edge_pts": 69.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 79 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 69 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -25,31 +25,12 @@
    ]
   },
   {
-   "city": "LAX",
-   "ceiling": 75,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    }
-   ]
-  },
-  {
    "city": "HOU",
    "ceiling": 90,
-   "price": 82,
-   "p_model": 0.8226,
-   "p_market": 0.82,
-   "edge_pts": 0.3,
+   "price": 69,
+   "p_model": 0.818,
+   "p_market": 0.69,
+   "edge_pts": 12.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,7 +43,22 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "69c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "TTN",
+   "ceiling": 78,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=16.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }

@@ -1,6 +1,78 @@
 {
- "at": "2026-09-13T16:33:58.274240Z",
+ "at": "2026-09-13T17:36:09.875868Z",
  "tracked": [
+  {
+   "city": "DAL",
+   "station": "KDFW",
+   "ticker": "KXHIGHTDAL-26SEP13-T98",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 97,
+   "run_max": 93.2,
+   "gap_to_clear": 3.8,
+   "already_cleared": false,
+   "guide": 101,
+   "pop": 0,
+   "no_ask": 0.95,
+   "local_hour": 12,
+   "obs_trace": [
+    {
+     "ts": "2026-09-13T17:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T17:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T17:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T17:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:35:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 4.2,
+    "q50": 6.8,
+    "q90": 8.8
+   },
+   "projected_max": {
+    "q10": 97.4,
+    "q50": 100.0,
+    "q90": 102.0
+   },
+   "p_exceed_empirical": 0.881,
+   "emp_n": 40,
+   "convergence_hour": 16,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  },
   {
    "city": "OKC",
    "station": "KOKC",
@@ -8,67 +80,67 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 96,
-   "run_max": 87.8,
-   "gap_to_clear": 8.2,
+   "run_max": 91.4,
+   "gap_to_clear": 4.6,
    "already_cleared": false,
    "guide": 100,
-   "pop": 13,
-   "no_ask": 0.92,
-   "local_hour": 11,
+   "pop": 4,
+   "no_ask": 0.96,
+   "local_hour": 12,
    "obs_trace": [
     {
-     "ts": "2026-09-13T16:15:00+00:00",
+     "ts": "2026-09-13T17:15:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:10:00+00:00",
+     "ts": "2026-09-13T17:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:05:00+00:00",
+     "ts": "2026-09-13T17:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:00:00+00:00",
+     "ts": "2026-09-13T17:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T15:55:00+00:00",
+     "ts": "2026-09-13T16:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T15:52:00+00:00",
+     "ts": "2026-09-13T16:52:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T15:50:00+00:00",
+     "ts": "2026-09-13T16:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T15:45:00+00:00",
+     "ts": "2026-09-13T16:45:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T15:40:00+00:00",
+     "ts": "2026-09-13T16:40:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T15:35:00+00:00",
+     "ts": "2026-09-13T16:35:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 6.0,
-    "q50": 9.0,
-    "q90": 12.8
+    "q10": 3.4,
+    "q50": 5.2,
+    "q90": 8.0
    },
    "projected_max": {
-    "q10": 93.8,
-    "q50": 96.8,
-    "q90": 100.6
+    "q10": 94.8,
+    "q50": 96.6,
+    "q90": 99.4
    },
-   "p_exceed_empirical": 0.5,
-   "emp_n": 64,
+   "p_exceed_empirical": 0.6905,
+   "emp_n": 40,
    "convergence_hour": 15,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
