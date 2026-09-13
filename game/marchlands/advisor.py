@@ -9,7 +9,7 @@ goods, and the days on the road. If it says 40c a day, that is after all of it.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from . import config as C
 from .goods import ALL_KEYS, good
@@ -59,9 +59,14 @@ class Opportunity:
                 f"({self.per_day:+.1f}c/day): " + "; ".join(bits))
 
 
+#: A merchant who empties his own stores to fill a cart is not a merchant.
+HOME_DRAW = 0.40
+
+
 def _best_cargo(src: Market, dst: Market, capacity: float,
                 budget: float, tariff_src: float, tariff_dst: float,
-                exclude: Sequence[str] = ()) -> Optional[Leg]:
+                exclude: Sequence[str] = (), from_home: bool = False
+                ) -> Optional[Leg]:
     """The single most profitable good to carry src -> dst, priced honestly."""
     best: Optional[Leg] = None
     for k in ALL_KEYS:
@@ -72,7 +77,14 @@ def _best_cargo(src: Market, dst: Market, capacity: float,
         a, b = _clone(src), _clone(dst)
         a.tariff_rate, b.tariff_rate = tariff_src, tariff_dst
         qty = capacity / max(good(k).weight, 1e-6)
-        buy = a.buy_from(k, qty, budget=budget)
+        cash = budget
+        if from_home:
+            # Loading your own stores costs no coin, only the chance to sell
+            # them at home. A lord with an empty chest can still fill a cart --
+            # which is what keeps a bad season from being a one-way door.
+            qty = min(qty, src.stock.get(k, 0.0) * HOME_DRAW)
+            cash = None
+        buy = a.buy_from(k, qty, budget=cash)
         if buy.quantity <= 0:
             continue
         sell = b.sell_to(k, buy.quantity)
@@ -111,10 +123,11 @@ def scan(world, home: str, capacity: float = C.CARAVAN_BASE_CAPACITY,
             # *taken* from your own stores still cost you what you could have
             # sold them for, so the buy side of a home leg is priced normally.
             a_home, b_home = a in world.settlements, b in world.settlements
-            leg_out = None if b_home else _best_cargo(ma, mb, capacity, budget, ta, tb)
+            leg_out = None if b_home else _best_cargo(
+                ma, mb, capacity, budget, ta, tb, from_home=a_home)
             leg_back = None if a_home else _best_cargo(
                 mb, ma, capacity, budget, tb, ta,
-                exclude=(leg_out.good,) if leg_out else ())
+                exclude=(leg_out.good,) if leg_out else (), from_home=b_home)
             if not leg_out and not leg_back:
                 continue
             dist = world.distance(a, b)
@@ -128,12 +141,23 @@ def scan(world, home: str, capacity: float = C.CARAVAN_BASE_CAPACITY,
     return out[:top]
 
 
-def route_from(opp: Opportunity, safety: float = 0.85) -> List[Stop]:
+#: How far past the scanned price a standing order may chase a purchase.
+BUY_SLIP = 1.06
+#: The floor a standing order will sell at, as a multiple of what it paid.
+#: Anchoring the floor to the *cost* rather than to the hoped-for price is what
+#: keeps a cart from sitting on a hold full of tools it will not part with.
+SELL_FLOOR = 1.12
+
+
+def route_from(opp: Opportunity, safety: float = 1.0,
+               carrying: Optional[Dict[str, float]] = None) -> List[Stop]:
     """Turn an opportunity into a standing two-stop loop.
 
-    Limit prices are set a little inside the scanned prices: by the time the
-    cart arrives the market has moved, and a merchant who buys at any price is
-    a merchant the market is happy to see coming.
+    The limit prices are the important part. A cart runs its loop over and over,
+    and each lap closes the gap it was living on; without a tight ceiling on
+    what it will pay it goes on buying long after the trade has turned against
+    it, and quietly bleeds. With one, the volume falls to nothing, the route
+    reports itself worked out, and you go and find another.
     """
     stops: List[Stop] = []
     first = Stop(node=opp.frm)
@@ -141,17 +165,23 @@ def route_from(opp: Opportunity, safety: float = 0.85) -> List[Stop]:
     if opp.out:
         avg = opp.out.buy_cost / max(opp.out.qty, 1e-6)
         first.buy.append(Order(good=opp.out.good, quantity=opp.out.qty,
-                               limit_price=round(avg / safety, 2)))
-        sell_avg = opp.out.sell_value / max(opp.out.qty, 1e-6)
+                               limit_price=round(avg * BUY_SLIP * safety, 2)))
         second.sell.append(Order(good=opp.out.good, quantity=-1,
-                                 limit_price=round(sell_avg * safety, 2)))
+                                 limit_price=round(avg * SELL_FLOOR, 2)))
     if opp.back:
         avg = opp.back.buy_cost / max(opp.back.qty, 1e-6)
         second.buy.append(Order(good=opp.back.good, quantity=opp.back.qty,
-                                limit_price=round(avg / safety, 2)))
-        sell_avg = opp.back.sell_value / max(opp.back.qty, 1e-6)
+                                limit_price=round(avg * BUY_SLIP * safety, 2)))
         first.sell.append(Order(good=opp.back.good, quantity=-1,
-                                limit_price=round(sell_avg * safety, 2)))
+                                limit_price=round(avg * SELL_FLOOR, 2)))
+    # Anything already in the cart has to go somewhere, or it rides forever and
+    # the capacity is gone for good.
+    planned = {o.good for st in (first, second) for o in list(st.buy) + list(st.sell)}
+    for k, qty in (carrying or {}).items():
+        if qty <= 0.05 or k in planned:
+            continue
+        second.sell.append(Order(good=k, quantity=-1))
+        first.sell.append(Order(good=k, quantity=-1))
     stops.append(first)
     stops.append(second)
     return stops

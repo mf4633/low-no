@@ -13,30 +13,45 @@ from typing import Dict, List, Optional
 from . import config as C
 from .advisor import route_from, scan
 from .engine import GameState
-from .goods import good
+from .goods import RATION_GOODS, good, nourishment
+from .military import host_strength
 from .scenario import new_game
 from .trade import Order, Stop
 
 # Feed the town, then work up the chain. Order is a preference, not a queue --
 # the bot takes the first thing it can actually afford and has land for.
 HOME_PLAN = [
-    "farm", "mill", "bakery", "orchard", "granary", "woodcutter", "farm",
-    "mill", "bakery", "quarry", "trading_post", "sawmill", "cottage",
-    "clay_pit", "kiln", "market", "cottage", "sheep_farm", "weaver", "hop_farm", "brewery",
-    "inn", "townhouse", "charcoal_burner", "iron_mine",
-    "smelter", "guardhouse", "townhouse", "warehouse", "blacksmith",
-    "stable", "chapel", "townhouse", "trading_post", "dairy", "armoury",
-    "townhouse", "wall_tower", "townhouse", "cottage",
+    # feed the town
+    "farm", "mill", "bakery", "quarry", "orchard", "granary", "woodcutter",
+    "farm", "mill", "bakery", "trading_post", "sawmill", "poleturner",
+    "farm", "mill", "bakery", "orchard", "cottage", "guildhall",
+    # make something worth carrying
+    "clay_pit", "kiln", "cottage", "market", "farm", "mill", "bakery",
+    "fletcher", "stone_wall", "sheep_farm", "weaver", "poleturner", "brewery",
+    # grow, and start thinking about the walls
+    "inn", "townhouse", "charcoal_burner", "iron_mine", "smelter",
+    "stone_wall", "townhouse", "warehouse", "blacksmith", "wall_tower",
+    "iron_mine", "smelter", "armoury", "armourer", "townhouse", "stable",
+    "trading_post", "chapel",
+    "fletcher", "townhouse", "wall_tower", "gatehouse", "garden",
+    "guardhouse", "townhouse", "siege_yard", "townhouse", "cottage",
 ]
 COLONY_PLAN = [
     "woodcutter", "cottage", "farm", "quarry", "saltworks", "clay_pit",
     "orchard", "cottage", "mill", "bakery", "granary", "iron_mine",
-    "charcoal_burner", "smelter", "cottage", "market", "townhouse",
+    "charcoal_burner", "smelter", "cottage", "market", "palisade",
+    "townhouse", "stone_wall",
 ]
 
 
 class Bot:
-    """Greedy but not clever: build what it can, keep carts on the best route."""
+    """A plain policy, used as a balance test rather than an opponent.
+
+    It has one rule that matters: never spend the wage chest. Everything else
+    is a priority ladder -- eat, defend, climb, build, learn, buy, expand --
+    drawn from whatever is left after a month's payroll is set aside. Most of
+    the ways a real player goes broke are ways this rule prevents.
+    """
 
     def __init__(self, game: GameState, verbose: bool = False) -> None:
         self.game = game
@@ -44,31 +59,81 @@ class Bot:
         self.verbose = verbose
         self.home = next(iter(game.world.settlements))
         self.supply_cart: Optional[int] = None
+        self.errand: Optional[tuple] = None    # (cart uid, good, target stock)
 
     def plan_for(self, key: str) -> List[str]:
         if key not in self.plans:
             self.plans[key] = list(HOME_PLAN if key == self.home else COLONY_PLAN)
         return self.plans[key]
 
+    # ------------------------------------------------------------- the purse
+    #: The wage chest. Flat on purpose: a reserve that grows with the payroll
+    #: throttles the very growth that pays the payroll, and the town stalls.
+    RESERVE_BASE = 900.0
+    RESERVE_PER_CART = 40.0
+
+    @property
+    def reserve(self) -> float:
+        return self.RESERVE_BASE + self.RESERVE_PER_CART * len(self.game.caravans)
+
+    def spendable(self) -> float:
+        return self.game.treasury - self.reserve
+
     # ------------------------------------------------------------------ play
     def step(self) -> None:
+        # Order matters more than any ladder. Capital first -- a town that arms
+        # before it has anything worth defending never grows one -- and the
+        # carts last, so they trade with whatever the day left in the chest.
         g = self.game
+        self._climb()
         self._build()
+        self._learn()
         self._settle()
         for s in g.world.settlements.values():
             self._govern(s)
             self._shutter(s)
+        self._defend()
         self._carts()
+
+    # -------------------------------------------------------------- the town
+    def _govern(self, s) -> None:
+        food = nourishment({k: s.market.stock[k] for k in RATION_GOODS})
+        days = food / max(0.2 * s.population, 1e-6)
+        s.ration_level = 3 if days > 30 else (2 if days > 10 else 1)
+        s.tax_level = 2 if s.popularity > 30 else 1
+
+    def _shutter(self, s) -> None:
+        """Close works whose output is piled up and worthless; open them when
+        the glut clears. Wages do not stop for an unsold barrel."""
+        for b in s.buildings:
+            if not b.complete or not b.spec.outputs:
+                continue
+            rel = [s.market.price(k) / good(k).base_price for k in b.spec.outputs]
+            if b.enabled and max(rel) < 0.55:
+                b.enabled = False
+            elif not b.enabled and max(rel) > 0.95:
+                b.enabled = True
 
     def _build(self) -> None:
         g = self.game
-        buffer = 900.0 + 40.0 * len(g.caravans)
-        for key, s in g.world.settlements.items():
-            plan = self.plan_for(key)
+        buffer = self.reserve
+        nxt = g.progress.next_age()
+        if nxt and not g.progress.advancing:
+            buffer = max(buffer, nxt.cost.get("coin", 0.0) * 1.15)
+        if g.treasury <= buffer:
+            return
+        home = g.world.settlements[self.home]
+        # A thrown-down keep is not just a ruin: without one there is no way
+        # into the later ages at all. Put it back before anything else.
+        if not home.count("keep") and "begun" in g.build(self.home, "keep"):
+            return
+        # One thing raised in each settlement each day: a colony that waits its
+        # turn behind the capital never gets off the ground.
+        for key in list(g.world.settlements):
             if g.treasury <= buffer:
                 return
-            # Take the first affordable item rather than stalling on a blocked one.
-            for i, b in enumerate(plan[:5]):
+            plan = self.plan_for(key)
+            for i, b in enumerate(plan[:6]):
                 if "begun" in g.build(key, b):
                     plan.pop(i)
                     break
@@ -77,32 +142,139 @@ class Bot:
         g = self.game
         if not g.world.sites or g.treasury < 9000:
             return
-        key = min(g.world.sites, key=lambda k: g.world.sites[k].coin_cost)
-        g.found(key)
+        g.found(min(g.world.sites, key=lambda k: g.world.sites[k].coin_cost))
 
-    def _govern(self, s) -> None:
-        from .goods import RATION_GOODS, nourishment
-        food = nourishment({k: s.market.stock[k] for k in RATION_GOODS})
-        days = food / max(0.2 * s.population, 1e-6)
-        s.ration_level = 3 if days > 30 else (2 if days > 10 else 1)
-        s.tax_level = 2 if s.popularity > 30 else 1
+    # ------------------------------------------------------------ the ladder
+    def _climb(self) -> None:
+        g, p = self.game, self.game.progress
+        nxt = p.next_age()
+        if p.advancing or not nxt:
+            return
+        if g.treasury < nxt.cost.get("coin", 0.0) + self.reserve:
+            return
+        msg = g.begin_age()
+        if "needs" in msg:
+            self._hoard(nxt)
+            self._procure(nxt)
 
-    def _shutter(self, s) -> None:
-        """Close works whose output is piled up and worthless; open them again
-        when the glut clears. Wages do not stop for an unsold barrel."""
-        for b in s.buildings:
-            if not b.complete or not b.spec.outputs:
+    def _learn(self) -> None:
+        g, p = self.game, self.game.progress
+        if p.researching:
+            return
+        for t in p.available():
+            if g.treasury > t.cost.get("coin", 0.0) + self.reserve * 1.5:
+                if "takes up" in g.research(t.key):
+                    return
+
+    def _hoard(self, age) -> None:
+        """Stop spending the very thing the next age is waiting on.
+
+        A blacksmith quietly eating three iron a day will hold a house in the
+        same age for years. Shut it while the pile builds, open it after.
+        """
+        home = self.game.world.settlements[self.home]
+        short = {k for k, q in age.cost.items()
+                 if k != "coin" and home.market.stock.get(k, 0.0) < q * 1.4}
+        for b in home.buildings:
+            if not b.complete or not b.spec.inputs:
                 continue
-            rel = [s.market.price(k) / good(k).base_price for k in b.spec.outputs]
-            if b.enabled and max(rel) < 0.55:
-                b.enabled = False          # the yard is full and the price is on the floor
-            elif not b.enabled and max(rel) > 0.95:
+            if short & set(b.spec.inputs) and not short & set(b.spec.outputs):
+                b.enabled = False
+            elif not short and not b.enabled:
                 b.enabled = True
+
+    def _procure(self, age) -> None:
+        """Buy what the next age wants and your own land will not give you.
+
+        Iron under somebody else's hill is still iron -- this is the trade
+        layer doing the thing it exists for.
+        """
+        g = self.game
+        if self.errand is not None:
+            return
+        home = g.world.settlements[self.home]
+        short = [(k, q * 1.4 - home.market.stock.get(k, 0.0))
+                 for k, q in age.cost.items()
+                 if k != "coin" and home.market.stock.get(k, 0.0) < q * 1.4]
+        if not short:
+            return
+        key, need = max(short, key=lambda kv: kv[1])
+        ceiling = good(key).base_price * 2.2      # dear, but not at any price
+        need = min(need, max(0.0, g.treasury - 2 * self.reserve) * 0.3 / ceiling)
+        if need < 5:
+            return
+        cart = next((c for c in g.caravans if not c.running and c.load < 5), None)
+        if cart is None:
+            return
+        sellers = [(n, m.ask(key)) for n in g.world.towns
+                   for m in [g.world.market_of(n)] if m and m.sells(key)]
+        if not sellers:
+            return
+        where = min(sellers, key=lambda s: s[1])[0]
+        cart.set_route([
+            Stop(node=where, buy=[Order(key, min(need, cart.capacity), ceiling)]),
+            Stop(node=self.home, sell=[Order(key, -1)]),
+        ])
+        cart.start()
+        self.errand = (cart.uid, key, home.market.stock.get(key, 0.0) + need * 0.9)
+
+    # ----------------------------------------------------------------- the wall
+    def _defend(self) -> None:
+        """Enough men on the wall to make a siege not worth a lord's time --
+        and not one more, because every soldier is a field nobody is working."""
+        g = self.game
+        home = g.world.settlements[self.home]
+        if not home.effect("muster") or g.treasury < 2 * self.reserve:
+            return
+        coming = [a for a in g.armies if a.owner != "player"]
+        urgent = bool(coming)
+        cap = int((0.35 if urgent else 0.22) * home.population)
+        if home.soldiers >= cap:
+            return
+        # Judge the wall by the biggest host the march could send at it, not by
+        # the quiet of this particular morning. Walls and towers are worth
+        # roughly double, so parity is not the target -- half of it is.
+        # Arm to the temper of the march, not to its worst imaginable day: a
+        # garrison raised in a quiet year is a year of fields not worked.
+        worst = max((host_strength(g.likely_host(k))
+                     * (0.15 + 0.85 * (t.hostility / C.HOSTILITY_WAR) ** 1.5)
+                     for k, t in g.world.towns.items() if not t.mine), default=0.0)
+        threat = max(0.55 * worst,
+                     0.9 * sum(host_strength(a.units) for a in coming))
+        if host_strength(home.units) >= threat:
+            return
+        # A wall of archers loses the moment the gate goes: fill a mix, and
+        # take whichever part of it is furthest behind.
+        want = {"spearman": 0.35, "man_at_arms": 0.20, "archer": 0.30,
+                "crossbowman": 0.15}
+        have = max(1.0, float(home.soldiers))
+        order = sorted(want, key=lambda k: home.units.get(k, 0.0) / have - want[k])
+        for batch in (8 if urgent else 4, 3, 1):
+            for key in order + ["militia"]:
+                if "muster at" in g.recruit(self.home, key, batch):
+                    return
+
+    # ---------------------------------------------------------------- the road
+    def _trim(self, stops):
+        """Never carry food out of a town down to its last fortnight."""
+        home = self.game.world.settlements[self.home]
+        food = nourishment({k: home.market.stock[k] for k in RATION_GOODS})
+        if food / max(0.2 * home.population, 1e-6) > 12:
+            return stops
+        for st in stops:
+            if st.node in self.game.world.settlements:
+                st.buy = [o for o in st.buy if o.good not in RATION_GOODS]
+        return stops
+
+    def _errand_cart(self) -> Optional[int]:
+        return self.errand[0] if self.errand else None
 
     def _carts(self) -> None:
         g = self.game
-        if len(g.caravans) < g.caravan_limit and g.treasury > 1200:
-            g.new_caravan(self.home)
+        if len(g.caravans) < g.caravan_limit and g.treasury > C.CARAVAN_COST * 4:
+            cart, _why = g.new_caravan(self.home)
+            if cart:
+                cart.guards = 3
         colonies = [k for k in g.world.settlements if k != self.home]
         idle: List = []
         for c in g.caravans:
@@ -123,32 +295,43 @@ class Bot:
                 if self.supply_cart == c.uid:
                     self.supply_cart = None
                     c.halt()
+            if c.uid == self._errand_cart():
+                # An errand is one journey, not a standing route: once the pile
+                # is home the cart goes back on the books.
+                uid, key, target = self.errand
+                home = g.world.settlements[self.home]
+                if home.market.stock.get(key, 0.0) >= target or not c.running:
+                    self.errand = None
+                    c.halt()
+                else:
+                    continue
             if c.running and c.route:
                 continue
             idle.append(c)
         if idle:
             # Shop once for the whole fleet and hand each cart a different
             # trade: three carts on one route is three carts crushing one price.
+            # Trading capital is not capital spending: a cart spends and
+            # recovers within the trip, so it draws on the whole treasury.
             opts = scan(g.world, self.home, capacity=idle[0].capacity,
                         speed=idle[0].speed, budget=max(0.0, g.treasury * 0.5),
                         top=3 + len(idle))
-            taken = {tuple(sorted((s.node for s in c.route))) for c in g.caravans
+            taken = {tuple(sorted(s.node for s in c.route)) for c in g.caravans
                      if c.running and c.route}
             for c in idle:
                 for opp in opts:
                     sig = tuple(sorted((opp.frm, opp.to)))
                     if sig in taken or opp.per_day <= 0:
                         continue
-                    c.set_route(route_from(opp))
+                    c.set_route(self._trim(route_from(opp, carrying=c.cargo)))
                     c.start()
                     taken.add(sig)
                     break
         # Re-shop every three weeks; an edge does not keep.
         if g.day % 21 == 0:
             for c in g.caravans:
-                # Only re-shop an empty cart: a route change mid-load strands
-                # whatever it is carrying.
-                if c.uid != self.supply_cart and not c.cargo:
+                if c.uid not in (self.supply_cart, self._errand_cart()) \
+                        and c.load < 0.15 * c.capacity:
                     c.halt()
 
     def run(self, days: int) -> List[dict]:
@@ -163,16 +346,20 @@ class Bot:
 
 
 def report(game: GameState) -> str:
-    lines = [f"day {game.day} ({game.date_str()})",
+    p = game.progress
+    lines = [f"day {game.day} ({game.date_str()})  --  {p.age_name()}",
              f"  treasury  {game.treasury:>12,.0f}c",
              f"  net worth {game.net_worth():>12,.0f}c",
              f"  souls     {game.population:>12,.0f}   caravans {len(game.caravans)}"
-             f"   trade {sum(c.total_profit for c in game.caravans):>10,.0f}c"]
+             f"   trade {sum(c.total_profit for c in game.caravans):>10,.0f}c",
+             f"  soldiers  {game.soldiers:>12}   sworn towns "
+             f"{len(game.world.vassals())}   known {len(p.researched) - 1}"]
     for s in game.world.settlements.values():
         stock = sorted(((v, k) for k, v in s.market.stock.items() if v > 1), reverse=True)
         lines.append(f"  {s.name:<10} pop {s.population:>5,.0f} mood {s.popularity:>3.0f}"
-                     f" roofs {s.housing:>5,.0f} works {len(s.buildings):>3}"
-                     f"  | " + ", ".join(f"{k} {v:.0f}" for v, k in stock[:6]))
+                     f" roofs {s.housing(p):>5,.0f} wall {s.wall_hp:>5,.0f}"
+                     f" works {len(s.buildings):>3}"
+                     f"  | " + ", ".join(f"{k} {v:.0f}" for v, k in stock[:5]))
     if game.over:
         lines.append(f"  ENDING    {game.over}")
     return "\n".join(lines)

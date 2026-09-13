@@ -31,10 +31,10 @@ TAX_LEVELS = {              # coins per head per day, and the mood it costs
     -2: (-0.80, +6.0),      # largesse: you pay them
     -1: (-0.35, +3.0),
     0: (0.00, +0.5),
-    1: (0.35, -1.0),
-    2: (0.70, -3.5),
-    3: (1.15, -7.0),
-    4: (1.80, -13.0),
+    1: (0.45, -1.0),
+    2: (0.85, -3.5),
+    3: (1.35, -7.0),
+    4: (2.10, -13.0),
 }
 TAX_LABELS = {-2: "largesse", -1: "gifts", 0: "none", 1: "light",
               2: "normal", 3: "heavy", 4: "cruel"}
@@ -81,19 +81,26 @@ SPILL_RATE = 0.10           # share of the overflow lost each day
 CARAVAN_BASE_CAPACITY = 150.0   # cart units
 CARAVAN_BASE_SPEED = 32.0       # leagues per day
 CARAVAN_COST = 300.0            # coins to outfit
-CARAVAN_UPKEEP = 6.0            # coins per day, whether it moves or not
-GUARD_COST = 4.0                # coins per guard per day
-GUARD_PROTECTION = 0.16         # share of banditry removed per guard
+CARAVAN_UPKEEP = 4.0            # coins per day, whether it moves or not
+GUARD_COST = 3.0                # coins per guard per day
+GUARD_PROTECTION = 0.22         # share of banditry removed per guard
 BASE_TARIFF = 0.06              # foreign toll on both sides of a deal
 TRADING_POST_TARIFF_RELIEF = 0.45
 
 # --- military ---------------------------------------------------------------
-GARRISON_COST = 5.0             # coins per soldier per day
+LETHALITY = 1.15                # how bloody one round of a battle is
+SIEGE_ATTRITION = 0.16          # share of a round's fire that lands during a siege
+SIEGE_HUNGER = 0.55             # what a besieged town still manages to produce
 RAID_BASE_CHANCE = 0.004        # per settlement per day, scaled by year
 RAID_LOOT_FRACTION = 0.18
+HOSTILITY_DRIFT = 0.30          # per day, per town; scales with how rich you look
+HOSTILITY_WAR = 100.0           # at this, a lord marches
+TRIBUTE_BASE = 22.0             # coins per day from a town that has bent the knee
+TRIBUTE_PER_WEALTH = 14.0
 
 # --- victory ----------------------------------------------------------------
 GOAL_NET_WORTH = 120000.0
 GOAL_POPULATION = 450
 GOAL_DAYS = 3 * DAYS_PER_YEAR
+GOAL_TOWNS = 5              # towns sworn to you for a dominion victory
 BANKRUPTCY_FLOOR = -3000.0

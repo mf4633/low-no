@@ -70,6 +70,11 @@ GOODS: Dict[str, Good] = {g.key: g for g in [
     _g("tools",    "Tools",     FINISHED,26.0,  0.9, 0.000, 0.60),
     _g("weapons",  "Weapons",   FINISHED,36.0, 1.0, 0.000, 0.70),
 
+    # --- arms: the bridge from the workshop to the muster field -------------
+    _g("spears",   "Spears",    FINISHED, 9.0,  1.0, 0.000, 0.55, tags=("arms",)),
+    _g("bows",     "Bows",      FINISHED,16.0,  0.6, 0.000, 0.60, tags=("arms",)),
+    _g("armour",   "Armour",    FINISHED,52.0,  1.1, 0.000, 0.70, tags=("arms",)),
+
     # --- imports only -------------------------------------------------------
     _g("spice",    "Spice",     LUXURY, 55.0,  0.2, 0.001, 0.80, foreign_only=True,
        tags=("luxury",)),
@@ -89,6 +94,8 @@ def nourishment(cargo: Dict[str, float]) -> float:
 #: Goods that lift mood but are not food.
 COMFORT_GOODS = tuple(k for k, g in GOODS.items() if "comfort" in g.tags)
 LUXURY_GOODS = tuple(k for k, g in GOODS.items() if "luxury" in g.tags)
+#: Goods that arm a soldier rather than feed or please one.
+ARMS_GOODS = tuple(k for k, g in GOODS.items() if "arms" in g.tags) + ("weapons",)
 
 
 def good(key: str) -> Good:

@@ -82,7 +82,8 @@ class EventEngine:
     shock_chance: float = 0.10      # per day, somewhere in the world
     log: List[str] = field(default_factory=list)
 
-    def tick(self, world: World, day: int, rng: random.Random) -> List[str]:
+    def tick(self, world: World, day: int, rng: random.Random,
+             progress=None) -> List[str]:
         msgs: List[str] = []
         if world.towns and rng.random() < self.shock_chance:
             msgs.append(self._roll_shock(world, rng))
@@ -90,7 +91,7 @@ class EventEngine:
             m = r.act(world, rng)
             if m:
                 msgs.append(m)
-        msgs += self._raids(world, day, rng)
+        msgs += self._raids(world, day, rng, progress)
         msgs = [m for m in msgs if m]
         self.log += msgs
         if len(self.log) > 200:
@@ -112,17 +113,23 @@ class EventEngine:
         return (f"News: {town.name} {label} -- it {direction} "
                 f"{good(key).name} for the next {days} days")
 
-    def _raids(self, world: World, day: int, rng: random.Random) -> List[str]:
+    def _raids(self, world: World, day: int, rng: random.Random,
+               progress=None) -> List[str]:
+        """Bandits, not lords. A lord brings a host and a ram; see engine.py."""
+        from .tech import NO_PROGRESS
+        mods = progress or NO_PROGRESS
         out: List[str] = []
         pressure = 1.0 + day / float(C.DAYS_PER_YEAR)
         for s in world.settlements.values():
             if rng.random() > C.RAID_BASE_CHANCE * pressure:
                 continue
             strength = 12.0 + 9.0 * pressure * rng.random()
-            if s.defense >= strength:
-                out.append(f"Raiders probed {s.name} and were turned away at the wall")
+            defence = s.defense(mods)
+            if defence >= strength:
+                out.append(f"Raiders probed {s.name} and were turned away "
+                           f"at the wall")
                 continue
-            loot = C.RAID_LOOT_FRACTION * (1.0 - s.defense / max(strength, 1.0))
+            loot = C.RAID_LOOT_FRACTION * (1.0 - defence / max(strength, 1.0))
             value = 0.0
             for k in ALL_KEYS:
                 taken = s.market.stock[k] * loot
@@ -130,7 +137,7 @@ class EventEngine:
                 value += taken * s.market.bid(k)
             s.popularity = max(0.0, s.popularity - 8.0)
             out.append(f"RAID on {s.name}: {value:.0f}c of stores carried off "
-                       f"(defence {s.defense:.0f} vs {strength:.0f})")
+                       f"(defence {defence:.0f} against {strength:.0f})")
         return out
 
     def to_dict(self) -> dict:

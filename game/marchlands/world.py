@@ -46,6 +46,25 @@ class ForeignTown:
     wealth: float = 1.0           # scales its appetite
     blurb: str = ""
     shocks: List[Shock] = field(default_factory=list)
+    # --- the lord and his stones -------------------------------------------
+    lord: str = ""                # who holds it; "" once it is yours
+    owner: str = ""               # '' free, 'player' once it has bent the knee
+    hostility: float = 0.0        # 0-100; at 100 a host marches on you
+    garrison: Dict[str, float] = field(default_factory=dict)
+    wall_hp: float = 0.0
+    wall_max: float = 0.0
+    muster: float = 1.0           # how big a host this town can put in the field
+    temper: float = 1.0           # how quickly this lord takes offence
+
+    @property
+    def mine(self) -> bool:
+        return self.owner == "player"
+
+    def tribute(self) -> float:
+        return C.TRIBUTE_BASE + C.TRIBUTE_PER_WEALTH * self.wealth
+
+    def rebuild_walls(self, share: float = 0.02) -> None:
+        self.wall_hp = min(self.wall_max, self.wall_hp + self.wall_max * share)
 
     def specialties(self) -> List[str]:
         return [k for k, v in sorted(self.flow.items(), key=lambda kv: -kv[1]) if v > 0]
@@ -81,7 +100,11 @@ class ForeignTown:
                 "market": self.market.to_dict(), "flow": dict(self.flow),
                 "base_target": dict(self.base_target),
                 "lawlessness": self.lawlessness, "wealth": self.wealth,
-                "blurb": self.blurb, "shocks": [s.to_dict() for s in self.shocks]}
+                "blurb": self.blurb, "shocks": [s.to_dict() for s in self.shocks],
+                "lord": self.lord, "owner": self.owner, "hostility": self.hostility,
+                "garrison": dict(self.garrison), "wall_hp": self.wall_hp,
+                "wall_max": self.wall_max, "muster": self.muster,
+                "temper": self.temper}
 
     @classmethod
     def from_dict(cls, d: dict) -> "ForeignTown":
@@ -90,6 +113,14 @@ class ForeignTown:
                 base_target=dict(d["base_target"]), lawlessness=d["lawlessness"],
                 wealth=d["wealth"], blurb=d.get("blurb", ""))
         t.shocks = [Shock(**s) for s in d.get("shocks", [])]
+        t.lord = d.get("lord", "")
+        t.owner = d.get("owner", "")
+        t.hostility = d.get("hostility", 0.0)
+        t.garrison = dict(d.get("garrison", {}))
+        t.wall_hp = d.get("wall_hp", 0.0)
+        t.wall_max = d.get("wall_max", 0.0)
+        t.muster = d.get("muster", 1.0)
+        t.temper = d.get("temper", 1.0)
         return t
 
 
@@ -103,10 +134,12 @@ class Site:
     terrain: Dict[str, int]
     coin_cost: float
     blurb: str = ""
+    deposits: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         d = self.__dict__.copy()
         d["terrain"] = dict(self.terrain)
+        d["deposits"] = dict(self.deposits)
         return d
 
 
@@ -149,7 +182,15 @@ class World:
         return key
 
     def is_mine(self, key: str) -> bool:
+        """Your own settlement -- somewhere goods move without coin changing hands."""
         return key in self.settlements
+
+    def is_friendly(self, key: str) -> bool:
+        """Yours or sworn to you: no tolls, no danger of being turned away."""
+        return key in self.settlements or (key in self.towns and self.towns[key].mine)
+
+    def vassals(self) -> List[str]:
+        return [k for k, t in self.towns.items() if t.mine]
 
     def all_nodes(self) -> List[str]:
         return list(self.settlements.keys()) + list(self.towns.keys())
@@ -172,6 +213,8 @@ class World:
         """Toll charged at `node`, after any relief your trading posts bought."""
         if node in self.settlements:
             return 0.0
+        if self.towns[node].mine:
+            return 0.0                     # a vassal does not toll its lord
         base = self.towns[node].market.tariff_rate
         relief = max((s.tariff_relief for s in self.settlements.values()), default=0.0)
         return base * (1.0 - relief)
@@ -216,7 +259,9 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
               consumes: Dict[str, float], appetite: float = 1.0,
               lawlessness: float = 0.01, tariff: float = C.BASE_TARIFF,
               wealth: float = 1.0, blurb: str = "",
-              trades: Optional[Iterable[str]] = None) -> ForeignTown:
+              trades: Optional[Iterable[str]] = None,
+              lord: str = "", walls: float = 500.0, muster: float = 1.0,
+              garrison: Optional[Dict[str, float]] = None) -> ForeignTown:
     """Build a foreign town from a surplus/deficit sketch.
 
     Targets are set so that the town's own flow leaves it visibly long of what
@@ -242,4 +287,8 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
         m.posted[k] = m.curve(k, m.stock[k])
     return ForeignTown(key=key, name=name, x=x, y=y, market=m, flow=flow,
                        base_target=dict(target), lawlessness=lawlessness,
-                       wealth=wealth, blurb=blurb)
+                       wealth=wealth, blurb=blurb, lord=lord,
+                       garrison=dict(garrison or {
+                           "spearman": round(11 * muster), "archer": round(8 * muster),
+                           "man_at_arms": round(4 * muster)}),
+                       wall_hp=walls, wall_max=walls, muster=muster)

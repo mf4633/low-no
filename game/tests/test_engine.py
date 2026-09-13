@@ -38,7 +38,7 @@ class TestLedger(unittest.TestCase):
     def test_building_costs_coin_and_land(self):
         g = new_game()
         before = g.treasury
-        msg = g.build("aldworth", "mill")
+        msg = g.build("aldworth", "poleturner")
         self.assertIn("begun", msg)
         self.assertLess(g.treasury, before)
 
@@ -76,6 +76,29 @@ class TestSettling(unittest.TestCase):
         self.assertGreater(g.world.distance("aldworth", "greyfell"), 0)
 
 
+class TestVassals(unittest.TestCase):
+    def test_a_sworn_town_pays_tribute_and_charges_no_toll(self):
+        g = new_game()
+        town = g.world.towns["dunmere"]
+        self.assertGreater(g.world.tariff_for("dunmere", None), 0.0)
+        town.owner = "player"
+        self.assertEqual(g.world.tariff_for("dunmere", None), 0.0)
+        self.assertTrue(g.world.is_friendly("dunmere"))
+        g.tick()
+        self.assertAlmostEqual(g.ledger.tribute, town.tribute(), places=6)
+
+
+class TestInterest(unittest.TestCase):
+    def test_letters_of_credit_pay_on_a_full_chest(self):
+        g = new_game()
+        g.treasury = 50_000
+        g.tick()
+        self.assertEqual(g.ledger.interest, 0.0)
+        g.progress.researched.add("letters_of_credit")
+        g.tick()
+        self.assertGreater(g.ledger.interest, 0.0)
+
+
 class TestEndings(unittest.TestCase):
     def test_debt_ends_it(self):
         g = new_game()
@@ -89,6 +112,16 @@ class TestEndings(unittest.TestCase):
         g.world.settlements["aldworth"].population = C.GOAL_POPULATION + 50
         g.tick()
         self.assertIn("Triumph", g.over)
+
+    def test_the_cathedral_must_be_held(self):
+        g = new_game()
+        home = g.home()
+        inst = home.start_build("cathedral")
+        inst.days_left = 0
+        g.tick()
+        self.assertEqual(g.over, "")
+        g.advance(190)
+        self.assertIn("cathedral", g.over)
 
     def test_the_clock_ends_it(self):
         g = new_game()
@@ -128,7 +161,7 @@ class TestSaves(unittest.TestCase):
             g.save(path)
             with open(path) as fh:
                 data = json.load(fh)
-        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["version"], 2)
 
 
 class TestLongRun(unittest.TestCase):
@@ -155,8 +188,25 @@ class TestLongRun(unittest.TestCase):
         for seed in (3, 7, 11, 19, 23):
             g = new_game(seed=seed)
             Bot(g).run(C.GOAL_DAYS)
-            survived += "Ruined" not in g.over
-        self.assertGreaterEqual(survived, 3, "the opening is too punishing")
+            survived += "Ruined" not in g.over and "Ended" not in g.over
+        self.assertGreaterEqual(survived, 4, "the opening is too punishing")
+
+    def test_the_naive_bot_climbs_at_least_one_age(self):
+        """Balance guard: the age costs must be payable by an ordinary town."""
+        ages = []
+        for seed in (3, 11, 23):
+            g = new_game(seed=seed)
+            Bot(g).run(C.GOAL_DAYS)
+            ages.append(g.progress.age)
+        self.assertGreaterEqual(min(ages), 2, "the second age is out of reach")
+        self.assertGreaterEqual(max(ages), 3, "the third age is out of reach")
+
+    def test_the_naive_bot_learns_and_settles(self):
+        """Balance guard: research and expansion must both be affordable."""
+        g = new_game(seed=11)
+        Bot(g).run(C.GOAL_DAYS)
+        self.assertGreaterEqual(len(g.progress.researched) - 1, 5)
+        self.assertGreaterEqual(len(g.world.settlements), 2)
 
     def test_the_naive_bot_does_not_walk_the_goal(self):
         """Balance guard: greed without judgement should not be enough."""

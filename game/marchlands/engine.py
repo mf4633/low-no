@@ -1,10 +1,10 @@
 """The game: one state object, one tick, one ledger.
 
-Everything the player sees is derived from `GameState`. The tick is
-deliberately ordered -- produce before you feed, feed before you take the mood,
-pay before you count the day's coin -- because several of the feedback loops
-(hunger -> mood -> productivity -> hunger) are only stable if the order is
-fixed.
+The tick is deliberately ordered -- produce before you feed, feed before you
+take the mood, pay before you count the day's coin -- because several feedback
+loops (hunger -> mood -> productivity -> hunger) are only stable if the order
+is fixed. War is settled last, after the day's work, so a siege eats into
+tomorrow rather than rewriting today.
 """
 
 from __future__ import annotations
@@ -12,39 +12,45 @@ from __future__ import annotations
 import json
 import random
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from . import config as C
 from .buildings import building
 from .events import EventEngine
-from .goods import ALL_KEYS
+from .goods import ALL_KEYS, good
 from .market import Market
+from .military import (BESIEGING, GARRISON, MARCHING, RETURNING, UNITS, Army,
+                       Side, can_recruit, describe, fight, host_speed,
+                       recruit_cost, siege_day, unit)
+from .settlement import Settlement
+from .tech import AGES, TECHS, Progress
 from .trade import Caravan, TradeEngine, caravan_from_dict, caravan_to_dict
 from .world import World
 
-SAVE_VERSION = 1
+SAVE_VERSION = 2
+CATHEDRAL_HOLD = 180
 
 
 @dataclass
 class Ledger:
     taxes: float = 0.0
     trade: float = 0.0
+    tribute: float = 0.0
+    interest: float = 0.0
     wages: float = 0.0
     upkeep: float = 0.0
     caravans: float = 0.0
     building: float = 0.0
+    war: float = 0.0
 
     @property
     def income(self) -> float:
-        return self.taxes + max(0.0, self.trade)
-
-    @property
-    def outgo(self) -> float:
-        return self.wages + self.upkeep + self.caravans + self.building - min(0.0, self.trade)
+        return self.taxes + self.tribute + self.interest + max(0.0, self.trade)
 
     @property
     def net(self) -> float:
-        return self.taxes + self.trade - self.wages - self.upkeep - self.caravans - self.building
+        return (self.taxes + self.trade + self.tribute + self.interest
+                - self.wages - self.upkeep - self.caravans - self.building - self.war)
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -56,17 +62,25 @@ class GameState:
     treasury: float = 1500.0
     day: int = 0
     caravans: List[Caravan] = field(default_factory=list)
+    armies: List[Army] = field(default_factory=list)
     events: EventEngine = field(default_factory=EventEngine)
+    progress: Progress = field(default_factory=Progress)
+    house: str = ""
     seed: int = 7
     next_caravan_uid: int = 1
+    next_army_uid: int = 1
     messages: List[str] = field(default_factory=list)
     ledger: Ledger = field(default_factory=Ledger)
     history: List[dict] = field(default_factory=list)
+    battles: List[str] = field(default_factory=list)
+    cathedral_days: int = 0
     over: str = ""              # '' while playing, else the ending
 
     def __post_init__(self) -> None:
         self.rng = random.Random(self.seed)
         self.trade_engine = TradeEngine(self.world, self.rng)
+        self._outlay = 0.0        # coin spent between ticks, for the ledger
+        self._war_outlay = 0.0
 
     # ------------------------------------------------------------- calendar
     @property
@@ -98,10 +112,14 @@ class GameState:
         worth = self.treasury
         for s in self.world.settlements.values():
             worth += s.net_worth()
+        fallback = next(iter(self.world.settlements.values())).market
         for c in self.caravans:
-            m = self.world.market_of(c.at) or next(iter(self.world.settlements.values())).market
+            m = self.world.market_of(c.at) or fallback
             worth += sum(q * m.bid(k) for k, q in c.cargo.items())
             worth += C.CARAVAN_COST * 0.5
+        for a in self.armies:
+            if a.owner == "player":
+                worth += sum(UNITS[k].coin * n * 0.5 for k, n in a.units.items())
         return worth
 
     @property
@@ -109,8 +127,21 @@ class GameState:
         return sum(s.population for s in self.world.settlements.values())
 
     @property
+    def soldiers(self) -> int:
+        return (sum(s.soldiers for s in self.world.settlements.values())
+                + sum(a.size for a in self.armies if a.owner == "player"))
+
+    @property
     def caravan_limit(self) -> int:
-        return 2 + sum(s.caravan_slots for s in self.world.settlements.values())
+        return int(2 + sum(s.caravan_slots for s in self.world.settlements.values())
+                   + self.progress.bonus("caravan_slots"))
+
+    def home(self) -> Settlement:
+        """The seat: wherever the keep stands, else your first settlement."""
+        for s in self.world.settlements.values():
+            if s.count("keep"):
+                return s
+        return next(iter(self.world.settlements.values()))
 
     # ------------------------------------------------------------------ tick
     def tick(self) -> List[str]:
@@ -120,12 +151,12 @@ class GameState:
         msgs: List[str] = []
         led = Ledger()
 
-        msgs += self.events.tick(self.world, self.day, self.rng)
+        msgs += self.events.tick(self.world, self.day, self.rng, self.progress)
 
         # 1. Settlements work, eat and are taxed.
         for s in self.world.settlements.values():
             before = {b.uid: b.complete for b in s.buildings}
-            rep = s.tick(self.season, self.rng)
+            rep = s.tick(self.season, self.rng, self.progress)
             for b in s.buildings:
                 if b.complete and not before.get(b.uid, True):
                     msgs.append(f"{s.name}: {b.spec.name} finished")
@@ -133,14 +164,22 @@ class GameState:
             led.wages += rep.wages
             led.upkeep += rep.upkeep
             msgs += rep.notes
+        # Your hosts, not the ones marching on you.
+        led.war = sum(a.upkeep for a in self.armies if a.owner == "player")
+        led.building, self._outlay = self._outlay, 0.0
+        led.war += self._war_outlay
+        self._war_outlay = 0.0
 
         # 2. Pay the wage bill; an unpaid day costs you the town's goodwill.
-        payroll = led.wages + led.upkeep
+        payroll = led.wages + led.upkeep + led.war
         if self.treasury < payroll:
             for s in self.world.settlements.values():
                 s.report.unpaid = True
             msgs.append("THE COFFERS ARE EMPTY -- wages went unpaid today")
-        self.treasury += led.taxes - payroll
+        led.tribute = sum(t.tribute() for t in self.world.towns.values() if t.mine)
+        if self.treasury > 0:
+            led.interest = self.treasury * self.progress.bonus("interest")
+        self.treasury += led.taxes + led.tribute + led.interest - payroll
 
         # 3. Markets at home relax toward their fundamentals.
         for s in self.world.settlements.values():
@@ -158,10 +197,16 @@ class GameState:
         led.trade = (self.treasury - before_trade) + caravan_cost
         msgs += tmsgs
 
-        # 6. Mood and migration settle last, on the day as it actually went.
+        # 6. Learning, and the slow climb between ages.
+        msgs += self._study()
+
+        # 7. War.
+        msgs += self._military_day()
+
+        # 8. Mood and migration settle last, on the day as it actually went.
         for s in self.world.settlements.values():
-            s.update_mood()
-            s.migrate(self.rng)
+            s.update_mood(self.progress)
+            s.migrate(self.rng, self.progress)
             if s.popularity < C.UNREST_THRESHOLD:
                 msgs.append(f"{s.name} is in open unrest -- nobody is working")
 
@@ -171,7 +216,7 @@ class GameState:
             "pop": self.population,
             "pop_mood": sum(s.popularity for s in self.world.settlements.values())
                         / max(1, len(self.world.settlements)),
-            "net": led.net,
+            "net": led.net, "soldiers": self.soldiers, "age": self.progress.age,
         })
         if len(self.history) > 2000:
             del self.history[:-2000]
@@ -188,13 +233,439 @@ class GameState:
                 break
         return out
 
+    # ------------------------------------------------------- ages and techs
+    def _study(self) -> List[str]:
+        msgs: List[str] = []
+        p = self.progress
+        if p.advancing:
+            p.advancing -= 1
+            if p.advancing <= 0:
+                p.age += 1
+                msgs.append(f"*** The {AGES[p.age].name} begins ***")
+        if p.researching:
+            p.research_left -= p.mult("research_speed") * self._scholars()
+            if p.research_left <= 0:
+                p.researched.add(p.researching)
+                msgs.append(f"Learned: {TECHS[p.researching].name}")
+                p.researching = ""
+        return msgs
+
+    def _scholars(self) -> float:
+        """Guildhalls do the studying; without one, nothing is learned."""
+        halls = sum(s.effect("research") for s in self.world.settlements.values())
+        return min(2.0, halls) if halls else 0.0
+
+    def begin_age(self) -> str:
+        p = self.progress
+        nxt = p.next_age()
+        if p.advancing:
+            return f"already climbing to the {AGES[p.age + 1].name} ({p.advancing}d)"
+        if not nxt:
+            return "there is no age beyond this one"
+        home = self.home()
+        for key in nxt.needs:
+            if not any(s.count(key) for s in self.world.settlements.values()):
+                return f"the {nxt.name} needs {building(key).name} first"
+        coin = nxt.cost.get("coin", 0.0)
+        if self.treasury < coin:
+            return f"the {nxt.name} costs {coin:,.0f}c; you have {self.treasury:,.0f}c"
+        short = [(k, q) for k, q in nxt.cost.items()
+                 if k != "coin" and home.market.stock.get(k, 0.0) < q]
+        if short:
+            return (f"{home.name} needs " + ", ".join(
+                f"{q:g} {good(k).name}" for k, q in short))
+        self.treasury -= coin
+        self._outlay += coin
+        for k, q in nxt.cost.items():
+            if k != "coin":
+                home.market.take(k, q)
+        p.advancing = nxt.days
+        return f"Work begins toward the {nxt.name} -- {nxt.days} days"
+
+    def research(self, key: str) -> str:
+        p = self.progress
+        if key not in TECHS:
+            return f"no such craft as {key!r}"
+        t = TECHS[key]
+        if key in p.researched:
+            return f"{t.name} is already known"
+        if p.researching:
+            return f"the guildhall is busy with {TECHS[p.researching].name}"
+        if t.age > p.age:
+            return f"{t.name} belongs to the {AGES[t.age].name}"
+        if t.prereq and t.prereq not in p.researched:
+            return f"{t.name} follows {TECHS[t.prereq].name}"
+        if not self._scholars():
+            return "you have no guildhall to study in"
+        home = self.home()
+        coin = t.cost.get("coin", 0.0)
+        if self.treasury < coin:
+            return f"{t.name} costs {coin:,.0f}c"
+        short = [(k, q) for k, q in t.cost.items()
+                 if k != "coin" and home.market.stock.get(k, 0.0) < q]
+        if short:
+            return (f"{home.name} needs " + ", ".join(
+                f"{q:g} {good(k).name}" for k, q in short))
+        self.treasury -= coin
+        self._outlay += coin
+        for k, q in t.cost.items():
+            if k != "coin":
+                home.market.take(k, q)
+        p.researching = key
+        p.research_left = float(t.days)
+        return f"The guildhall takes up {t.name} -- about {t.days} days"
+
+    # -------------------------------------------------------------- military
+    def recruit(self, settlement_key: str, unit_key: str, count: int) -> str:
+        s = self.world.settlements.get(settlement_key)
+        if not s:
+            return f"{settlement_key} is not yours"
+        if not s.effect("muster"):
+            return f"{s.name} has no barracks"
+        ok, why = can_recruit(unit_key, self.progress)
+        if not ok:
+            return why
+        u = unit(unit_key)
+        count = max(1, int(count))
+        coin, goods = recruit_cost(unit_key, count, self.progress)
+        if self.treasury < coin:
+            return f"{count} {u.name} cost {coin:,.0f}c; you have {self.treasury:,.0f}c"
+        short = [(k, q) for k, q in goods.items() if s.market.stock.get(k, 0.0) < q]
+        if short:
+            return (f"{s.name} needs " + ", ".join(
+                f"{q:g} {good(k).name}" for k, q in short) +
+                " -- soldiers are armed from your own workshops")
+        if u.unit_class != "siege" and s.workforce < count:
+            return f"{s.name} has no spare hands; every soldier is one fewer worker"
+        self.treasury -= coin
+        self._war_outlay += coin
+        for k, q in goods.items():
+            s.market.take(k, q)
+        s.units[unit_key] = s.units.get(unit_key, 0.0) + count
+        return f"{count} {u.name} muster at {s.name} ({coin:,.0f}c)"
+
+    def raise_host(self, settlement_key: str, units: Dict[str, int],
+                   name: str = "") -> Tuple[Optional[Army], str]:
+        s = self.world.settlements.get(settlement_key)
+        if not s:
+            return None, f"{settlement_key} is not yours"
+        take: Dict[str, float] = {}
+        for k, n in units.items():
+            have = s.units.get(k, 0.0)
+            if have < n:
+                return None, f"{s.name} has only {have:.0f} {unit(k).name}"
+            take[k] = float(n)
+        if not take:
+            return None, "name some soldiers to march"
+        for k, n in take.items():
+            s.units[k] -= n
+            if s.units[k] < 0.5:
+                del s.units[k]
+        a = Army(uid=self.next_army_uid, name=name or f"Host {self.next_army_uid}",
+                 owner="player", units=take, at=settlement_key, home=settlement_key)
+        self.next_army_uid += 1
+        self.armies.append(a)
+        return a, ""
+
+    def army(self, uid: int) -> Optional[Army]:
+        return next((a for a in self.armies if a.uid == uid), None)
+
+    def march(self, uid: int, node: str) -> str:
+        a = self.army(uid)
+        if not a:
+            return f"no host {uid}"
+        if node not in self.world.coords:
+            return f"nowhere called {node!r}"
+        if a.at == node:
+            return self._arrive(a)
+        dist = self.world.distance(a.at or a.home, node)
+        a.bound_for = node
+        a.days_left = max(1.0, dist / max(host_speed(a.units), 1.0))
+        a.state = MARCHING
+        return (f"{a.name} marches on {self.world.node_name(node)} -- "
+                f"{a.days_left:.0f} days")
+
+    def disband_host(self, uid: int) -> str:
+        a = self.army(uid)
+        if not a:
+            return f"no host {uid}"
+        if a.state == MARCHING:
+            return f"{a.name} is on the road"
+        s = self.world.settlements.get(a.at)
+        if not s:
+            return f"{a.name} must be in one of your settlements to stand down"
+        for k, n in a.units.items():
+            s.units[k] = s.units.get(k, 0.0) + n
+        self.armies.remove(a)
+        return f"{a.name} stands down into the garrison of {s.name}"
+
+    def _military_day(self) -> List[str]:
+        msgs: List[str] = []
+        for s in self.world.settlements.values():
+            s.besieged = False
+        for a in list(self.armies):
+            if a.owner != "player" and self.world.towns[a.owner].mine:
+                msgs.append(f"{a.name} turns for home -- {self.world.node_name(a.owner)} "
+                            f"is sworn to you now")
+                self.armies.remove(a)
+                continue
+            if a.state == MARCHING:
+                a.siege_days = 0
+                a.days_left -= 1
+                if a.days_left <= 0:
+                    a.at, a.bound_for = a.bound_for, ""
+                    msgs.append(self._arrive(a))
+            elif a.state == BESIEGING:
+                msgs += self._siege(a)
+            a.prune()
+            if a.size <= 0 and a in self.armies:
+                msgs.append(f"{a.name} is no more")
+                self.armies.remove(a)
+        msgs += self._lords_and_hosts()
+        msgs = [m for m in msgs if m]
+        self.battles += [m for m in msgs if m]
+        if len(self.battles) > 120:
+            del self.battles[:-120]
+        return msgs
+
+    def _arrive(self, a: Army) -> str:
+        """What happens when a host walks up to a place."""
+        node = a.at
+        if a.owner == "player":
+            if self.world.is_friendly(node):
+                a.state = GARRISON
+                return f"{a.name} reaches {self.world.node_name(node)}"
+            town = self.world.towns[node]
+            a.state = BESIEGING
+            return (f"{a.name} sits down before {town.name} "
+                    f"({town.wall_hp:.0f} of wall, {describe(town.garrison)} within)")
+        if node == a.home and node in self.world.towns:
+            # A host that gets home stands down into its own town's garrison,
+            # so the lord can call it out again another year.
+            town = self.world.towns[node]
+            for k, n in a.units.items():
+                town.garrison[k] = town.garrison.get(k, 0.0) + n
+            if a in self.armies:
+                self.armies.remove(a)
+            return ""
+        s = self.world.settlements.get(node)
+        if s is None:
+            a.state = GARRISON
+            return ""
+        a.state = BESIEGING
+        s.besieged = True
+        return (f"A host out of {self.world.node_name(a.home)} is before {s.name}! "
+                f"{describe(a.units)}")
+
+    SIEGE_PATIENCE = 21
+
+    def _siege(self, a: Army) -> List[str]:
+        msgs: List[str] = []
+        a.siege_days += 1
+        if a.siege_power <= 0 and a.siege_days > self.SIEGE_PATIENCE:
+            # Hunger and boredom break more sieges than arrows do.
+            a.siege_days = 0
+            where = self.world.node_name(a.at)
+            if a.owner == "player":
+                self.march(a.uid, a.home)
+                return [f"{a.name} has nothing to break the walls of {where} with "
+                        f"and breaks up"]
+            self.armies.remove(a)
+            return [f"The host outside {where} breaks up and goes home"]
+        atk_mult = self.progress.mult("attack") * self.progress.mult("siege")
+        def_mult = self.progress.mult("defense")
+        if a.owner == "player":
+            town = self.world.towns[a.at]
+            besieger = Side(a.units, attack_mult=atk_mult, defense_mult=def_mult)
+            holder = Side(town.garrison, battlement=8.0)
+            wall, _la, _ld, lines = siege_day(besieger, holder, town.wall_hp, self.rng,
+                                              town.name, wall_max=town.wall_max)
+            town.wall_hp = wall
+            town.hostility = C.HOSTILITY_WAR
+            if self.day % 5 == 0 and lines:
+                msgs.append(f"{a.name}: {lines[0]}")
+            if wall <= 0:
+                res = fight(besieger, holder, rng=self.rng, place=town.name)
+                msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
+                            f"the ground after {res.rounds} rounds")
+                a.siege_days = 0
+                if res.winner == "attacker":
+                    msgs.append(self._take_town(town, a))
+                else:
+                    a.state = RETURNING
+                    msgs.append(f"{a.name} is thrown back from {town.name}")
+                    self.march(a.uid, a.home)
+                town.wall_hp = max(town.wall_hp, town.wall_max * 0.15)
+            a.prune()
+            town.garrison = {k: v for k, v in holder.units.items() if v >= 0.5}
+            return msgs
+        # A lord besieging you.
+        s = self.world.settlements.get(a.at)
+        if not s:
+            return msgs
+        s.besieged = True
+        besieger = Side(a.units)
+        holder = Side(s.units, attack_mult=self.progress.mult("attack"),
+                      defense_mult=def_mult,
+                      battlement=6.0 + s.effect("battlement"))   # cover, even bare
+        wall, _la, _ld, lines = siege_day(besieger, holder, s.wall_hp, self.rng, s.name,
+                                          wall_max=s.wall_max(self.progress))
+        s.wall_hp = wall
+        if self.day % 5 == 0 and lines:
+            msgs.append(f"{s.name} under siege: {lines[0]}")
+        if wall <= 0:
+            res = fight(besieger, holder, rng=self.rng, place=s.name)
+            msgs.append(f"ASSAULT ON {s.name.upper()}: the {res.winner} holds the "
+                        f"ground after {res.rounds} rounds")
+            s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
+            a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
+            if res.winner == "attacker":
+                msgs.append(self._sack(s, a))
+            else:
+                msgs.append(f"The host is broken beneath the walls of {s.name}")
+                if a in self.armies:
+                    self.armies.remove(a)
+                if a.home in self.world.towns:
+                    self.world.towns[a.home].hostility = 25.0
+            s.wall_hp = max(s.wall_hp, s.wall_max(self.progress) * 0.10)
+        else:
+            s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
+            a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
+        return msgs
+
+    def _take_town(self, town, a: Army) -> str:
+        town.owner = "player"
+        town.hostility = 0.0
+        town.garrison = {}
+        town.wall_hp = town.wall_max * 0.2
+        a.state = GARRISON
+        # Everyone else notices.
+        for other in self.world.towns.values():
+            if not other.mine:
+                other.hostility = min(C.HOSTILITY_WAR, other.hostility + 18.0)
+        return (f"*** {town.name} bends the knee. Its tolls are yours, and "
+                f"{town.tribute():.0f}c a day with them. ***")
+
+    def _sack(self, s: Settlement, a: Army) -> str:
+        """A storming is a catastrophe, not a trapdoor.
+
+        The keep is thrown down and the town gutted, but so long as you hold
+        ground anywhere you are still in the game -- which is the whole argument
+        for founding a second settlement before you need one.
+        """
+        keep = next((b for b in s.buildings if b.key == "keep"), None)
+        loot = 0.0
+        share = 0.60 if keep else 0.45
+        for k in ALL_KEYS:
+            taken = s.market.stock[k] * share
+            s.market.stock[k] -= taken
+            loot += taken * s.market.bid(k)
+        s.population *= 0.65 if keep else 0.75
+        s.popularity = max(0.0, s.popularity - (35.0 if keep else 25.0))
+        s.units = {}
+        a.state = RETURNING
+        self.march(a.uid, a.home)
+        if not keep:
+            return f"{s.name} is sacked -- {loot:,.0f}c of stores carried off"
+        for b in list(s.buildings):
+            if b.spec.terrain == "rampart":
+                s.demolish(b.uid)
+        s.wall_hp = 0.0
+        return (f"*** {s.name.upper()} IS STORMED. The keep is thrown down and "
+                f"{loot:,.0f}c carried off. Raise another, or hold what is left "
+                f"of the march from somewhere else. ***")
+
+    def _lords_and_hosts(self) -> List[str]:
+        """Foreign lords grow bolder as you grow richer, then they march."""
+        msgs: List[str] = []
+        if not self.world.settlements:
+            return msgs
+        # Lords get bolder with the years, but not without limit: a host that
+        # cannot be met is not a challenge, it is an ending with extra steps.
+        pressure = min(2.6, 1.0 + self.day / (1.7 * C.DAYS_PER_YEAR))
+        wealth_factor = min(2.5, self.net_worth() / 40000.0)
+        for t in self.world.towns.values():
+            if t.mine:
+                t.rebuild_walls(0.01)
+                continue
+            if any(a.owner == t.key for a in self.armies):
+                continue
+            t.hostility += (C.HOSTILITY_DRIFT * pressure * t.temper
+                            * (0.5 + wealth_factor) * (0.6 + 0.8 * self.rng.random()))
+            t.rebuild_walls(0.006)
+            if t.hostility < C.HOSTILITY_WAR:
+                continue
+            t.hostility = 0.0
+            # One war at a time: the others stand back to see how this goes.
+            for other in self.world.towns.values():
+                if other is not t:
+                    other.hostility = max(0.0, other.hostility - 45.0)
+            target_key = min(self.world.settlements,
+                             key=lambda k: self.world.distance(t.key, k))
+            target = self.world.settlements[target_key]
+            host = self._muster_enemy(t, pressure)
+            a = Army(uid=self.next_army_uid, name=f"{t.lord}'s host", owner=t.key,
+                     units=host, at=t.key, home=t.key)
+            self.next_army_uid += 1
+            self.armies.append(a)
+            dist = self.world.distance(t.key, target_key)
+            a.bound_for = target_key
+            a.days_left = max(1.0, dist / max(host_speed(host), 1.0))
+            a.state = MARCHING
+            msgs.append(f"WAR: {t.lord} of {t.name} marches on {target.name} with "
+                        f"{describe(host)} -- {a.days_left:.0f} days out")
+        return msgs
+
+    def war_pressure(self) -> float:
+        return min(2.6, 1.0 + self.day / (1.7 * C.DAYS_PER_YEAR))
+
+    def likely_host(self, town_key: str) -> Dict[str, float]:
+        """The host that town could put in the field today. Look before you
+        decide the wall is high enough."""
+        town = self.world.towns[town_key]
+        if town.mine:
+            return {}
+        return self._muster_enemy(town, self.war_pressure(), spread=False)
+
+    def _muster_enemy(self, town, pressure: float, spread: bool = True) -> Dict[str, float]:
+        scale = town.muster * pressure
+        if spread:
+            scale *= 0.7 + 0.6 * self.rng.random()
+        host = {"spearman": round(10 * scale), "archer": round(7 * scale)}
+        if self.progress.age >= 2 or pressure > 1.6:
+            host["man_at_arms"] = round(5 * scale)
+        if self.progress.age >= 3 or pressure > 2.4:
+            host["knight"] = round(3 * scale)
+            host["ram"] = max(1, round(1.4 * scale))
+            host["engineer"] = round(3 * scale)
+        if self.progress.age >= 4:
+            host["trebuchet"] = max(1, round(0.8 * scale))
+        return {k: float(v) for k, v in host.items() if v > 0}
+
+    # -------------------------------------------------------------- endings
     def _check_ending(self) -> List[str]:
+        if self.over:
+            return [self.over]
         if self.treasury < C.BANKRUPTCY_FLOOR:
             self.over = "Ruined. Your debts outran your carts."
             return [self.over]
         if self.population < 5:
-            self.over = "Deserted. The last family walked out of the gate."
+            self.over = ("Ended. The last of your people are gone and there is "
+                         "nothing left to rule.")
             return [self.over]
+        vassals = self.world.vassals()
+        if len(vassals) >= C.GOAL_TOWNS:
+            self.over = (f"Dominion. {len(vassals)} towns of the march answer to you: "
+                         f"{', '.join(self.world.node_name(v) for v in vassals)}.")
+            return [self.over]
+        if any(s.effect("wonder") for s in self.world.settlements.values()):
+            self.cathedral_days += 1
+            if self.cathedral_days == 1:
+                return [f"The cathedral is finished. Hold it {CATHEDRAL_HOLD} days."]
+            if self.cathedral_days >= CATHEDRAL_HOLD:
+                self.over = ("The cathedral stands and the bells have rung for "
+                             "half a year. The marches are yours.")
+                return [self.over]
         worth = self.net_worth()
         if worth >= C.GOAL_NET_WORTH and self.population >= C.GOAL_POPULATION:
             self.over = (f"Triumph. {worth:,.0f}c of house and holdings, "
@@ -202,8 +673,9 @@ class GameState:
             return [self.over]
         if self.day >= C.GOAL_DAYS:
             self.over = (f"Time called. You end with {worth:,.0f}c against a goal of "
-                         f"{C.GOAL_NET_WORTH:,.0f}c and {self.population:.0f} of "
-                         f"{C.GOAL_POPULATION} souls.")
+                         f"{C.GOAL_NET_WORTH:,.0f}c, {self.population:.0f} of "
+                         f"{C.GOAL_POPULATION} souls and {len(vassals)} of "
+                         f"{C.GOAL_TOWNS} towns.")
             return [self.over]
         return []
 
@@ -249,11 +721,11 @@ class GameState:
         coin = spec.build_cost.get("coin", 0.0)
         if self.treasury < coin:
             return f"{spec.name} costs {coin:.0f}c; you have {self.treasury:.0f}c"
-        ok, why = s.can_build(building_key)
+        ok, why = s.can_build(building_key, self.progress)
         if not ok:
             return why
         self.treasury -= coin
-        self.ledger.building += coin
+        self._outlay += coin
         s.start_build(building_key)
         return (f"{spec.name} begun at {s.name}; {spec.build_days} days, "
                 f"{coin:.0f}c paid")
@@ -267,11 +739,11 @@ class GameState:
             return (f"settling {site.name} costs {site.coin_cost:,.0f}c; "
                     f"you have {self.treasury:,.0f}c")
         self.treasury -= site.coin_cost
-        self.ledger.building += site.coin_cost
+        self._outlay += site.coin_cost
         market = Market(name=site.name, stock={}, target={})
-        from .settlement import Settlement
         s = Settlement(name=site.name, terrain=dict(site.terrain), market=market,
-                       population=25.0, popularity=C.POPULARITY_START)
+                       population=25.0, popularity=C.POPULARITY_START,
+                       deposits=dict(site.deposits))
         s.update_market_targets()
         for k, q in (("bread", 40.0), ("apples", 30.0), ("wood", 120.0),
                      ("stone", 40.0), ("planks", 20.0)):
@@ -289,10 +761,13 @@ class GameState:
         return {
             "version": SAVE_VERSION, "day": self.day, "treasury": self.treasury,
             "seed": self.seed, "next_caravan_uid": self.next_caravan_uid,
+            "next_army_uid": self.next_army_uid, "house": self.house,
             "over": self.over, "world": self.world.to_dict(),
             "caravans": [caravan_to_dict(c) for c in self.caravans],
-            "events": self.events.to_dict(), "history": self.history[-400:],
-            "rng": self.rng.getstate()[1][:8],
+            "armies": [a.to_dict() for a in self.armies],
+            "events": self.events.to_dict(), "progress": self.progress.to_dict(),
+            "history": self.history[-400:], "battles": self.battles[-40:],
+            "cathedral_days": self.cathedral_days,
         }
 
     def save(self, path: str) -> str:
@@ -303,11 +778,16 @@ class GameState:
     @classmethod
     def from_dict(cls, d: dict) -> "GameState":
         g = cls(world=World.from_dict(d["world"]), treasury=d["treasury"],
-                day=d["day"], seed=d["seed"])
+                day=d["day"], seed=d["seed"], house=d.get("house", ""))
         g.caravans = [caravan_from_dict(c) for c in d["caravans"]]
+        g.armies = [Army.from_dict(a) for a in d.get("armies", [])]
         g.events = EventEngine.from_dict(d["events"])
+        g.progress = Progress.from_dict(d["progress"])
         g.next_caravan_uid = d["next_caravan_uid"]
+        g.next_army_uid = d.get("next_army_uid", 1)
         g.history = list(d.get("history", []))
+        g.battles = list(d.get("battles", []))
+        g.cathedral_days = d.get("cathedral_days", 0)
         g.over = d.get("over", "")
         g.rng = random.Random(d["seed"] + d["day"])
         g.trade_engine = TradeEngine(g.world, g.rng)

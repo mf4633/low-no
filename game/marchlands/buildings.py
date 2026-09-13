@@ -17,11 +17,14 @@ HILLS = "hills"
 CLAY = "clay"
 COAST = "coast"
 URBAN = "urban"
-TERRAINS = (FERTILE, FOREST, HILLS, CLAY, COAST, URBAN)
+RAMPART = "rampart"      # the castle perimeter, not the town plots
+TERRAINS = (FERTILE, FOREST, HILLS, CLAY, COAST, URBAN, RAMPART)
 
 PRIMARY = "primary"
 INDUSTRY = "industry"
 CIVIC = "civic"
+CASTLE = "castle"
+CASTLE = "castle"
 
 
 @dataclass(frozen=True)
@@ -38,6 +41,8 @@ class Building:
     upkeep: float = 0.0                 # coins per day
     season: str = ""                    # '', 'field' or 'orchard'
     effects: Dict[str, float] = field(default_factory=dict)
+    age: int = 1                        # the age that unlocks it
+    draws: str = ""                     # settlement deposit its output comes out of
     note: str = ""
 
     @property
@@ -66,9 +71,12 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
     _b("woodcutter", "Woodcutter's Hut", PRIMARY, FOREST, 2,
        {"coin": 50, "wood": 5}, 3, {}, {"wood": 10.0}),
     _b("quarry", "Quarry", PRIMARY, HILLS, 3,
-       {"coin": 140, "wood": 25}, 7, {}, {"stone": 8.0}),
+       {"coin": 140, "wood": 25}, 7, {}, {"stone": 8.0}, draws="stone",
+       note="Works a seam. When the hill is quarried out, the sheds stand idle."),
     _b("iron_mine", "Iron Mine", PRIMARY, HILLS, 4,
-       {"coin": 200, "wood": 35, "planks": 10}, 9, {}, {"iron_ore": 7.0}),
+       {"coin": 200, "wood": 35, "planks": 10}, 9, {}, {"iron_ore": 7.0},
+       age=2, draws="iron_ore",
+       note="Works a seam. Iron under one hill does not last a lifetime."),
     _b("clay_pit", "Clay Pit", PRIMARY, CLAY, 2,
        {"coin": 60, "wood": 10}, 3, {}, {"clay": 8.0}),
     _b("saltworks", "Saltworks", PRIMARY, COAST, 3,
@@ -83,26 +91,37 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
        {"bread": 12.0}),
     _b("brewery", "Brewery", INDUSTRY, URBAN, 2,
        {"coin": 170, "wood": 25, "stone": 10}, 6, {"hops": 4.0, "wheat": 4.0},
-       {"ale": 6.0}),
+       {"ale": 6.0}, age=2),
     _b("sawmill", "Sawmill", INDUSTRY, URBAN, 2,
        {"coin": 130, "wood": 25}, 5, {"wood": 8.0}, {"planks": 7.0}),
     _b("charcoal_burner", "Charcoal Burner", INDUSTRY, FOREST, 1,
        {"coin": 60, "wood": 8}, 3, {"wood": 6.0}, {"charcoal": 5.0}),
     _b("smelter", "Smelter", INDUSTRY, URBAN, 3,
        {"coin": 260, "wood": 30, "stone": 40}, 9,
-       {"iron_ore": 6.0, "charcoal": 4.0}, {"iron": 5.0}),
+       {"iron_ore": 6.0, "charcoal": 4.0}, {"iron": 5.0}, age=2),
     _b("weaver", "Weaver's Shop", INDUSTRY, URBAN, 2,
-       {"coin": 140, "wood": 20, "planks": 8}, 5, {"wool": 5.0}, {"cloth": 4.0}),
+       {"coin": 140, "wood": 20, "planks": 8}, 5, {"wool": 5.0}, {"cloth": 4.0}, age=2),
     _b("kiln", "Pottery Kiln", INDUSTRY, URBAN, 2,
        {"coin": 150, "wood": 20, "stone": 15}, 5, {"clay": 6.0, "charcoal": 2.0},
-       {"pottery": 5.0}),
+       {"pottery": 5.0}, age=2),
     _b("blacksmith", "Blacksmith", INDUSTRY, URBAN, 2,
        {"coin": 220, "wood": 25, "stone": 20, "iron": 5}, 7,
-       {"iron": 3.0, "planks": 2.0}, {"tools": 3.0}),
+       {"iron": 3.0, "planks": 2.0}, {"tools": 3.0}, age=2),
     _b("armoury", "Armoury", INDUSTRY, URBAN, 3,
        {"coin": 320, "wood": 30, "stone": 35, "iron": 10}, 10,
        {"iron": 4.0, "charcoal": 3.0}, {"weapons": 3.0},
-       note="Weapons sell for a fortune in a town at war -- and for scrap in peace."),
+       note="Swords and pole-arms: a fortune in a town at war, scrap in peace.", age=3),
+    _b("poleturner", "Poleturner", INDUSTRY, URBAN, 1,
+       {"coin": 90, "wood": 15}, 4, {"wood": 5.0}, {"spears": 4.0},
+       note="The cheapest way to put a weapon in a levy's hands."),
+    _b("fletcher", "Fletcher", INDUSTRY, URBAN, 2,
+       {"coin": 130, "wood": 20, "planks": 6}, 5, {"wood": 6.0, "cloth": 1.0},
+       {"bows": 3.0}, age=2,
+       note="Bows are worth three times as much on a battlement as in a field."),
+    _b("armourer", "Armourer", INDUSTRY, URBAN, 3,
+       {"coin": 300, "wood": 25, "stone": 30, "iron": 12}, 9,
+       {"iron": 5.0, "charcoal": 3.0}, {"armour": 2.0}, age=3,
+       note="Armour is the difference between a man-at-arms and a casualty."),
 
     # --- civic --------------------------------------------------------------
     _b("hovel", "Hovel", CIVIC, URBAN, 0,
@@ -113,7 +132,7 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
     _b("townhouse", "Townhouses", CIVIC, URBAN, 0,
        {"coin": 380, "wood": 30, "planks": 25, "stone": 20}, 7, {}, {},
        effects={"housing": 55, "mood": 2.0},
-       note="The only way past a few hundred souls on one hill."),
+       note="The only way past a few hundred souls on one hill.", age=3),
     _b("warehouse", "Warehouse", CIVIC, URBAN, 1,
        {"coin": 160, "wood": 35, "planks": 10}, 5, {}, {},
        effects={"storage": 500}),
@@ -123,7 +142,7 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
        note="Halves spoilage across the settlement. Cheaper than a second farm."),
     _b("chapel", "Chapel", CIVIC, URBAN, 0,
        {"coin": 200, "wood": 15, "stone": 45}, 8, {}, {}, upkeep=3.0,
-       effects={"mood": 5.0}),
+       effects={"mood": 5.0}, age=2),
     _b("inn", "Inn", CIVIC, URBAN, 1,
        {"coin": 180, "wood": 30, "planks": 8}, 6, {"ale": 3.0}, {}, upkeep=2.0,
        effects={"mood": 7.0},
@@ -131,21 +150,68 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
     _b("market", "Market Square", CIVIC, URBAN, 2,
        {"coin": 220, "wood": 25, "stone": 30}, 7, {}, {}, upkeep=2.0,
        effects={"spread": -0.03, "mood": 2.0},
-       note="Narrows the spread you pay on every deal struck in this town."),
+       note="Narrows the spread you pay on every deal struck in this town.", age=2),
     _b("trading_post", "Trading Post", CIVIC, URBAN, 2,
        {"coin": 300, "wood": 40, "planks": 15, "stone": 20}, 9, {}, {}, upkeep=4.0,
        effects={"caravan_slots": 1, "tariff_relief": 1.0},
-       note="Each post cuts foreign tolls and lets you run another caravan."),
+       note="Each post cuts foreign tolls and lets you run another caravan.", age=2),
     _b("stable", "Stables", CIVIC, URBAN, 1,
        {"coin": 200, "wood": 35, "planks": 10}, 6, {}, {}, upkeep=3.0,
-       effects={"caravan_speed": 5.0, "caravan_capacity": 50.0}),
+       effects={"caravan_speed": 5.0, "caravan_capacity": 50.0}, age=3),
     _b("guardhouse", "Guardhouse", CIVIC, URBAN, 0,
        {"coin": 180, "wood": 20, "stone": 40}, 7, {}, {}, upkeep=2.0,
        effects={"defense": 12.0}),
-    _b("wall_tower", "Wall Tower", CIVIC, URBAN, 0,
-       {"coin": 260, "stone": 80}, 10, {}, {}, upkeep=1.0,
-       effects={"defense": 25.0},
+    # --- the castle ---------------------------------------------------------
+    _b("keep", "The Keep", CASTLE, RAMPART, 0,
+       {"coin": 900, "stone": 220, "planks": 40}, 20, {}, {}, upkeep=2.0,
+       effects={"wall": 400.0, "defense": 20.0, "storage": 150.0, "mood": 3.0},
+       note="Your seat. Lose it and you lose everything; you may only hold one."),
+    _b("palisade", "Palisade", CASTLE, RAMPART, 0,
+       {"coin": 70, "wood": 35}, 3, {}, {},
+       effects={"wall": 160.0, "defense": 4.0},
+       note="Timber buys you a season, not a siege."),
+    _b("stone_wall", "Stone Wall", CASTLE, RAMPART, 0,
+       {"coin": 190, "stone": 95}, 7, {}, {}, age=2,
+       effects={"wall": 420.0, "defense": 8.0}),
+    _b("gatehouse", "Gatehouse", CASTLE, RAMPART, 0,
+       {"coin": 240, "stone": 70, "planks": 20}, 8, {}, {}, upkeep=1.0, age=2,
+       effects={"wall": 260.0, "defense": 12.0, "sortie": 1.0},
+       note="Lets a garrison sortie at besiegers instead of waiting behind stone."),
+    _b("wall_tower", "Wall Tower", CASTLE, RAMPART, 0,
+       {"coin": 260, "stone": 80}, 10, {}, {}, upkeep=1.0, age=3,
+       effects={"wall": 220.0, "defense": 25.0, "battlement": 12.0},
        note="Raiders price your walls before they price your granary."),
+
+    # --- war and learning ---------------------------------------------------
+    _b("barracks", "Barracks", CASTLE, URBAN, 1,
+       {"coin": 160, "wood": 30, "stone": 20}, 6, {}, {}, upkeep=2.0,
+       effects={"muster": 1.0},
+       note="Coin and arms go in, soldiers come out -- and out of the labour pool."),
+    _b("siege_yard", "Siege Yard", CASTLE, URBAN, 2,
+       {"coin": 280, "wood": 40, "planks": 25, "iron": 8}, 9, {}, {}, upkeep=3.0,
+       age=3, effects={"siege": 1.0},
+       note="Rams and trebuchets. Walls do not fall to men on foot."),
+    _b("guildhall", "Guildhall", CIVIC, URBAN, 2,
+       {"coin": 260, "wood": 30, "stone": 35, "planks": 15}, 8, {}, {}, upkeep=3.0,
+       age=2, effects={"research": 1.0, "mood": 1.0},
+       note="Where the crafts are written down. Nothing is researched without one."),
+    _b("cathedral", "Cathedral", CIVIC, URBAN, 3,
+       {"coin": 6000, "stone": 900, "planks": 250, "iron": 120, "tools": 60}, 120,
+       {}, {}, upkeep=12.0, age=4,
+       effects={"mood": 15.0, "wonder": 1.0},
+       note="A lifetime's work. Finish it, hold it, and the marches are yours."),
+
+    # --- carrot and stick ---------------------------------------------------
+    _b("maypole", "Maypole", CIVIC, URBAN, 0,
+       {"coin": 40, "wood": 12}, 2, {}, {}, effects={"mood": 4.0}),
+    _b("garden", "Pleasure Garden", CIVIC, URBAN, 0,
+       {"coin": 160, "wood": 15, "stone": 25}, 6, {}, {}, upkeep=2.0, age=2,
+       effects={"mood": 8.0}),
+    _b("stocks", "Stocks", CIVIC, URBAN, 0,
+       {"coin": 50, "wood": 15}, 2, {}, {}, effects={"fear": 2.0},
+       note="Fear drives the work along, and drives the people out."),
+    _b("gallows", "Gallows", CIVIC, URBAN, 0,
+       {"coin": 90, "wood": 25}, 3, {}, {}, upkeep=1.0, effects={"fear": 4.0}),
 ]}
 
 ALL_BUILDING_KEYS = tuple(BUILDINGS.keys())

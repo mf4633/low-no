@@ -238,7 +238,11 @@ class TradeEngine:
 
         for o in stop.buy:
             space = c.free_space / max(good(o.good).weight, 1e-6)
-            qty = space if o.quantity < 0 else min(o.quantity, space)
+            # "Buy 80 wool" means *hold* eighty, not buy eighty more every lap.
+            # Without this a standing order quietly averages down into a hold
+            # full of something nobody on the route will take back.
+            carried = c.cargo.get(o.good, 0.0)
+            qty = space if o.quantity < 0 else min(o.quantity - carried, space)
             if qty <= 1e-6:
                 continue
             if mine:
@@ -265,12 +269,14 @@ class TradeEngine:
             c.note(f"bought {fill.quantity:.0f} {good(o.good).name} at {market.name} "
                    f"for {outlay:.0f}c ({fill.avg_price:.2f}/u)")
 
-        c.dry_stops = 0 if moved_qty > 1e-6 else c.dry_stops + 1
+        # A route wears out: once your own trips have closed the gap, the
+        # stops stop being worth the wheels. Trivial business counts as none.
+        c.dry_stops = 0 if moved_qty > 0.12 * c.capacity else c.dry_stops + 1
         if c.dry_stops >= 2 * max(1, len(c.route)):
             c.running = False
             c.dry_stops = 0
-            msgs.append(f"{c.name} has nothing left to trade on its route "
-                        f"and is standing idle at {market.name}")
+            msgs.append(f"{c.name}'s route is worked out -- it stands idle "
+                        f"at {market.name}")
         c.trip_profit += gross
         c.total_profit += gross
         if abs(gross) > 1:

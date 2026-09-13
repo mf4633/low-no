@@ -13,7 +13,10 @@ from .buildings import resolve as resolve_building
 from .engine import GameState
 from .goods import ALL_KEYS, good
 from .goods import resolve as resolve_good
+from .military import UNITS, describe, host_strength, host_upkeep
+from .military import resolve as resolve_unit
 from .scenario import new_game
+from .tech import AGES, HOUSES, TECHS
 from .trade import IDLE, MOVING, TRADING, Order, Stop
 
 BARS = " ▁▂▃▄▅▆▇█"
@@ -67,18 +70,38 @@ class Console:
     def status(self) -> None:
         g = self.game
         led = g.ledger
+        p = g.progress
+        vassals = g.world.vassals()
         self.say(RULE,
                  f"  {g.date_str():<38}  treasury {g.treasury:>10,.0f}c",
                  f"  net worth {g.net_worth():>10,.0f}c of {C.GOAL_NET_WORTH:,.0f}"
                  f"      souls {g.population:>6,.0f} of {C.GOAL_POPULATION}",
+                 f"  {p.age_name():<24} {HOUSES[g.house].name if g.house else '':<26}"
+                 f"  towns sworn {len(vassals)} of {C.GOAL_TOWNS}",
                  RULE)
         for s in g.world.settlements.values():
             bar = "#" * int(s.popularity / 5) + "." * (20 - int(s.popularity / 5))
-            self.say(f"  {s.name:<12} pop {s.population:>6,.0f}/{s.housing:<5,.0f}"
+            siege = " UNDER SIEGE" if s.besieged else ""
+            self.say(f"  {s.name:<12} pop {s.population:>6,.0f}/"
+                     f"{s.housing(p):<5,.0f}"
                      f"  mood [{bar}] {s.popularity:>4.0f}"
                      f"  work {s.employed:>3}/{s.jobs_offered:<3}"
                      f"  {C.RATION_LABELS[s.ration_level]} rations,"
-                     f" {C.TAX_LABELS[s.tax_level]} tax")
+                     f" {C.TAX_LABELS[s.tax_level]} tax{siege}")
+        busy = []
+        if p.advancing:
+            busy.append(f"climbing to the {AGES[p.age + 1].name} ({p.advancing}d)")
+        if p.researching:
+            busy.append(f"studying {TECHS[p.researching].name} "
+                        f"({p.research_left:.0f}d)")
+        if busy:
+            self.say("  " + ";  ".join(busy))
+        if g.soldiers:
+            self.say(f"  under arms   {g.soldiers} soldiers"
+                     + (f", {len(g.armies)} in the field" if g.armies else ""))
+        for a in g.armies:
+            if a.owner != "player":
+                self.say(f"  ! {a.name} out of {self._name(a.home)}: {a.where()}")
         if g.caravans:
             self.say("")
             for c in g.caravans:
@@ -87,8 +110,9 @@ class Console:
                          f" {c.total_profit:+,.0f}c")
         self.say("",
                  f"  day's ledger   taxes {led.taxes:+8,.0f}   trade {led.trade:+9,.0f}"
-                 f"   wages {-led.wages:+8,.0f}   upkeep {-led.upkeep:+7,.0f}"
-                 f"   carts {-led.caravans:+6,.0f}",
+                 f"   tribute {led.tribute:+7,.0f}   interest {led.interest:+6,.0f}",
+                 f"                 wages {-led.wages:+8,.0f}   upkeep {-led.upkeep:+9,.0f}"
+                 f"   carts {-led.caravans:+9,.0f}   war {-led.war:+11,.0f}",
                  f"                 net   {led.net:+8,.0f}c")
         if len(g.history) > 3:
             self.say(f"  worth  {sparkline([h['worth'] for h in g.history])}")
@@ -99,12 +123,20 @@ class Console:
 
     def town_view(self, key: Optional[str] = None) -> None:
         s = self.settlement(key)
-        self.say(RULE, f"  {s.name}  --  pop {s.population:,.0f}, housing {s.housing:,.0f},"
-                 f" mood {s.popularity:.0f}, defence {s.defense:.0f}", RULE)
+        p = self.game.progress
+        self.say(RULE, f"  {s.name}  --  pop {s.population:,.0f}, "
+                 f"housing {s.housing(p):,.0f}, mood {s.popularity:.0f}"
+                 + ("  *** UNDER SIEGE ***" if s.besieged else ""), RULE)
         land = "  ".join(f"{t}: {s.slots_free(t)}/{n}" for t, n in s.terrain.items() if n)
         self.say(f"  free land   {land}")
-        self.say(f"  stores      {s.market.total_units():,.0f}/{s.storage:,.0f} units,"
+        if s.deposits:
+            self.say("  seams       " + ",  ".join(
+                f"{good(k).name} {v:,.0f} left" for k, v in s.deposits.items()))
+        self.say(f"  stores      {s.market.total_units():,.0f}/{s.storage(p):,.0f} units,"
                  f" worth {s.market.inventory_value():,.0f}c")
+        self.say(f"  defences    wall {s.wall_hp:,.0f}/{s.wall_max(p):,.0f},"
+                 f" works {s.effect('defense'):.0f}, garrison {s.garrison_line()}"
+                 f"  (strength {s.defense(p):.0f})")
         self.say("")
         self.say("   id  building            staff  running  note")
         for b in sorted(s.buildings, key=lambda b: (b.spec.category, b.key)):
@@ -119,7 +151,11 @@ class Console:
             jobs = f"{b.staffed}/{b.spec.jobs}" if b.spec.jobs else "  -"
             self.say(f"  {b.uid:>3}  {b.spec.name:<20}{jobs:>5}  {run:>9}  {b.idle_reason}")
         self.say("")
-        self.say("  mood    " + "  ".join(f"{k} {v:+.0f}" for k, v in s.mood_factors()))
+        self.say("  mood    " + "  ".join(f"{k} {v:+.0f}"
+                                          for k, v in s.mood_factors(p)))
+        if s.fear:
+            self.say(f"  fear    {s.fear:.0f} -- work runs "
+                     f"{3.5 * s.fear:.0f}% harder and the people like it that much less")
         short = shortage_report(s)[:6]
         if short:
             self.say("  burning " + ", ".join(
@@ -424,12 +460,172 @@ class Console:
         self.say(f"  {s.name} now on {C.TAX_LABELS[s.tax_level]} taxes")
 
     def cmd_garrison(self, args: List[str]) -> None:
-        s = self.settlement()
+        s = self.settlement(self._node(args[0]) if args else None)
+        p = self.game.progress
+        self.say(RULE, f"  {s.name} garrison", RULE,
+                 f"  {s.garrison_line()}",
+                 f"  strength {host_strength(s.units):.0f}, "
+                 f"upkeep {host_upkeep(s.units):.0f}c/day",
+                 f"  wall {s.wall_hp:,.0f}/{s.wall_max(p):,.0f}"
+                 f"   works {s.effect('defense'):.0f}"
+                 f"   battlements {s.effect('battlement'):.0f}")
+
+    def cmd_units(self, args: List[str]) -> None:
+        p = self.game.progress
+        self.say(RULE, "  who you may muster", RULE,
+                 "  key            name              age  coin  arms              "
+                 "atk  def   hp  class")
+        for k, u in UNITS.items():
+            if u.needs_tech and u.needs_tech not in p.researched:
+                continue
+            arms = " ".join(f"{v:g} {g}" for g, v in u.equipment.items())
+            mark = " " if u.age <= p.age else "-"
+            self.say(f" {mark}{k:<14} {u.name:<17} {u.age:>2}  {u.coin:>5.0f}"
+                     f"  {arms:<18}{u.attack:>4.0f} {u.defense:>4.0f} {u.hp:>4.0f}"
+                     f"  {u.unit_class}")
+        self.say("  (- means a later age; arms come out of your own stores)")
+
+    def cmd_recruit(self, args: List[str]) -> None:
         if not args:
-            return self.say(f"  {s.garrison} soldiers at {s.name}, defence {s.defense:.0f}")
-        s.garrison = max(0, int(args[0]))
-        self.say(f"  {s.garrison} soldiers at {s.name} "
-                 f"({C.GARRISON_COST * s.garrison:.0f}c/day), defence {s.defense:.0f}")
+            return self.err("recruit <soldier> [number] [town]")
+        key = resolve_unit(args[0])
+        count = int(args[1]) if len(args) > 1 else 1
+        town = self._node(args[2]) if len(args) > 2 else self.here
+        self.say("  " + self.game.recruit(town, key, count))
+
+    def cmd_host(self, args: List[str]) -> None:
+        """host <town> <soldier> <n> [<soldier> <n> ...]"""
+        if len(args) < 3:
+            return self.err("host <town> <soldier> <n> [<soldier> <n> ...]")
+        town = self._node(args[0])
+        units: Dict[str, int] = {}
+        rest = args[1:]
+        for i in range(0, len(rest) - 1, 2):
+            units[resolve_unit(rest[i])] = int(rest[i + 1])
+        a, why = self.game.raise_host(town, units)
+        if not a:
+            return self.err(why)
+        self.say(f"  {a.name} stands ready at {self._name(town)}: {describe(a.units)}")
+
+    def cmd_army(self, args: List[str]) -> None:
+        g = self.game
+        if args:
+            a = g.army(int(args[0]))
+            if not a:
+                return self.err(f"no host {args[0]}")
+            self.say(RULE, f"  [{a.uid}] {a.name}", RULE,
+                     f"  where     {a.where()}",
+                     f"  strength  {host_strength(a.units):.0f}"
+                     f"   upkeep {a.upkeep:.0f}c/day"
+                     f"   siege {a.siege_power:.0f}",
+                     f"  host      {describe(a.units)}")
+            for line in a.log[-8:]:
+                self.say(f"     . {line}")
+            return
+        self.say(RULE, "  hosts in the field", RULE)
+        for a in g.armies:
+            side = "yours" if a.owner == "player" else f"{self._name(a.home)}"
+            self.say(f"  [{a.uid}] {a.name:<22} {side:<12} {a.where():<24}"
+                     f" {describe(a.units)}")
+        for key, s in g.world.settlements.items():
+            if s.units:
+                self.say(f"   -   garrison of {s.name:<14} {'':12} {'in the walls':<24}"
+                         f" {s.garrison_line()}")
+        if not g.armies and not any(s.units for s in g.world.settlements.values()):
+            self.say("  nobody is under arms")
+
+    def cmd_march(self, args: List[str]) -> None:
+        if len(args) < 2:
+            return self.err("march <host> <place>")
+        self.say("  " + self.game.march(int(args[0]), self._node(args[1])))
+
+    def cmd_recall(self, args: List[str]) -> None:
+        a = self.game.army(int(args[0]))
+        if not a:
+            return self.err("no such host")
+        self.say("  " + self.game.march(a.uid, a.home))
+
+    def cmd_standdown(self, args: List[str]) -> None:
+        self.say("  " + self.game.disband_host(int(args[0])))
+
+    def cmd_war(self, args: List[str]) -> None:
+        g = self.game
+        self.say(RULE, "  the state of the march", RULE,
+                 "  town          lord                     walls   could field"
+                 "   mood toward you")
+        for key, t in g.world.towns.items():
+            if t.mine:
+                state = "sworn to you"
+            elif t.hostility > 70:
+                state = "arming"
+            elif t.hostility > 40:
+                state = "cold"
+            else:
+                state = "civil"
+            might = host_strength(g.likely_host(key))
+            self.say(f"  {t.name:<13} {t.lord:<24} {t.wall_hp:>5,.0f}"
+                     f"   {might:>9,.0f}   {state} ({t.hostility:.0f})")
+        mine = sum(host_strength(s.units) for s in g.world.settlements.values())
+        mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
+        self.say("", f"  your own strength {mine:,.0f}, spread over "
+                 f"{len(g.world.settlements)} settlements and {len(g.armies)} hosts")
+        for a in g.armies:
+            who = "yours" if a.owner == "player" else self._name(a.home)
+            self.say(f"  host: {a.name} ({who}) -- {a.where()}, {describe(a.units)}")
+
+    def cmd_battles(self, args: List[str]) -> None:
+        n = int(args[0]) if args else 12
+        for line in self.game.battles[-n:]:
+            self.say(f"  * {line}")
+        if not self.game.battles:
+            self.say("  the march has been quiet")
+
+    def cmd_age(self, args: List[str]) -> None:
+        g = self.game
+        p = g.progress
+        if args and args[0].lower() in ("begin", "go", "climb"):
+            return self.say("  " + g.begin_age())
+        nxt = p.next_age()
+        self.say(RULE, f"  {p.age_name()}", RULE, f"  {AGES[p.age].blurb}")
+        if p.advancing:
+            return self.say(f"  climbing to the {AGES[p.age + 1].name}: "
+                            f"{p.advancing} days to go")
+        if not nxt:
+            return self.say("  there is nothing above this.")
+        cost = ", ".join(f"{v:,.0f} {'coin' if k == 'coin' else good(k).name}"
+                         for k, v in nxt.cost.items())
+        self.say("", f"  next: {nxt.name} -- {nxt.days} days",
+                 f"  {nxt.blurb}",
+                 f"  cost   {cost}",
+                 "  needs  " + (", ".join(nxt.needs) if nxt.needs else "nothing built"),
+                 "  (`age begin` to start the work)")
+
+    def cmd_tech(self, args: List[str]) -> None:
+        g = self.game
+        p = g.progress
+        if args:
+            key = args[0].lower()
+            if key not in TECHS:
+                hits = [k for k in TECHS if k.startswith(key) and not TECHS[k].hidden]
+                if len(hits) != 1:
+                    return self.err(f"no craft matches {args[0]!r}")
+                key = hits[0]
+            return self.say("  " + g.research(key))
+        self.say(RULE, f"  the guildhall  ({p.age_name()})", RULE)
+        if p.researching:
+            self.say(f"  studying {TECHS[p.researching].name}, "
+                     f"{p.research_left:.0f} days to go", "")
+        for t in p.available():
+            cost = " ".join(f"{v:g}{k[:5]}" for k, v in t.cost.items())
+            self.say(f"  {t.key:<18} {t.name:<22} {t.days:>3}d  {cost}")
+            if t.blurb:
+                self.say(f"       {t.blurb}")
+        known = sorted(TECHS[k].name for k in p.researched if not TECHS[k].hidden)
+        if known:
+            self.say("", "  known: " + ", ".join(known))
+        if g.house:
+            self.say("", f"  your house: {HOUSES[g.house].name}",
+                     f"       {HOUSES[g.house].blurb}")
 
     def cmd_found(self, args: List[str]) -> None:
         if not args:
@@ -589,6 +785,12 @@ COMMANDS = {
     "info": Console.cmd_info, "build": Console.cmd_build, "raze": Console.cmd_raze,
     "close": Console.cmd_close, "ration": Console.cmd_ration, "tax": Console.cmd_tax,
     "garrison": Console.cmd_garrison, "found": Console.cmd_found,
+    "units": Console.cmd_units, "recruit": Console.cmd_recruit,
+    "host": Console.cmd_host, "army": Console.cmd_army, "armies": Console.cmd_army,
+    "march": Console.cmd_march, "recall": Console.cmd_recall,
+    "standdown": Console.cmd_standdown, "war": Console.cmd_war,
+    "battles": Console.cmd_battles, "age": Console.cmd_age,
+    "tech": Console.cmd_tech, "research": Console.cmd_tech,
     "caravans": Console.cmd_caravans, "c": Console.cmd_caravans,
     "new": Console.cmd_new, "guards": Console.cmd_guards, "route": Console.cmd_route,
     "auto": Console.cmd_auto, "go": Console.cmd_go, "stop": Console.cmd_stop,
@@ -603,8 +805,8 @@ HELP = """
   YOUR TOWN         town [name]     stores [town]          needs
                     build <key>     buildings [filter]     info <key>
                     close <id>      raze <id>
-                    ration <level>  tax <level>            garrison <n>
-                    found [site]
+                    ration <level>  tax <level>            found [site]
+  THE LONG GAME     age | age begin                        tech [key]
   THE MARKET        market <town>   prices <good>          chain <good>
                     scan [n]        map                    chart [metric]
   THE ROAD          caravans / c    caravan <id>           new [town] [name]
@@ -612,8 +814,12 @@ HELP = """
                     guards <id> <n> disband <id>
                     route <id> add <town> buy <good> <qty>[@max] sell <good> all[@min]
                     route <id> clear | show
+  WAR               units           recruit <who> [n]      garrison [town]
+                    host <town> <who> <n> ...              army [id]
+                    march <id> <place>   recall <id>       standdown <id>
+                    war             battles [n]
   ELSE              log [n]   save [file]   load [file]   quit
-                    help trade | help town | help win
+                    help trade | help town | help war | help win
 """
 
 HELP_TOPICS = {
@@ -640,13 +846,35 @@ HELP_TOPICS = {
   must buy, and what you have too much of is only worth what a cart can carry
   to somebody who wants it.
 """,
-    "win": f"""
-  Reach {C.GOAL_NET_WORTH:,.0f}c of net worth with {C.GOAL_POPULATION} souls
-  under your rule inside {C.GOAL_DAYS // C.DAYS_PER_YEAR} years. Net worth is
-  coin plus stores plus what your buildings and carts would fetch.
+    "war": """
+  Soldiers are made, not bought. A barracks turns coin and arms from your own
+  workshops into men: spears from a poleturner, bows from a fletcher, swords
+  from an armoury, plate from an armourer. Every soldier also walks out of the
+  labour pool -- an army is paid for twice, once in coin and once in fields
+  nobody is working.
 
-  You lose if your debts pass {abs(C.BANKRUPTCY_FLOOR):,.0f}c or the last
-  family walks out of the gate.
+  Spears break horse. Horse rides down bows and siege crews. Bows cut up foot.
+  Foot in armour walks through bows. None of it matters while a wall is
+  standing: without rams or trebuchets a host can only sit outside and starve.
+
+  Lords grow bolder the richer you get. `war` shows who is arming. Take a town
+  and it bends the knee -- no tolls, daily tribute, and every other lord one
+  step angrier. Five towns sworn to you wins the game outright.
+
+  A storming is not the end. The keep is thrown down, the town gutted, and you
+  start again from whatever else you hold -- which is the best argument there
+  is for founding a second settlement before you need one. You are only
+  finished when there is nowhere left.
+""",
+    "win": f"""
+  Three ways, inside {C.GOAL_DAYS // C.DAYS_PER_YEAR} years:
+
+    WEALTH    {C.GOAL_NET_WORTH:,.0f}c of net worth with {C.GOAL_POPULATION} souls under your rule.
+    DOMINION  {C.GOAL_TOWNS} of the seven towns sworn to you.
+    THE BELLS Finish the cathedral and hold it half a year.
+
+  You lose if your debts pass {abs(C.BANKRUPTCY_FLOOR):,.0f}c, the last family
+  walks out of the gate, or the settlement holding your keep is stormed.
 """,
 }
 

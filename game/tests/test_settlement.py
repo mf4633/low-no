@@ -7,6 +7,7 @@ from marchlands import config as C
 from marchlands.goods import ALL_KEYS, RATION_GOODS, good
 from marchlands.market import Market
 from marchlands.settlement import Settlement
+from marchlands.tech import Progress
 
 
 def make(pop=120.0, stock=150.0, **terrain) -> Settlement:
@@ -158,7 +159,79 @@ class TestMoodAndPeople(unittest.TestCase):
     def test_unrest_stops_the_work(self):
         s = make()
         s.popularity = 2.0
-        self.assertLessEqual(s.productivity, C.UNREST_PRODUCTIVITY)
+        self.assertLessEqual(s.productivity(), C.UNREST_PRODUCTIVITY)
+
+
+class TestSeamsAndWalls(unittest.TestCase):
+    def test_a_quarry_works_a_seam_dry(self):
+        s = make(stock=0.0)
+        s.deposits = {"stone": 20.0}
+        raise_now(s, "quarry")
+        for _ in range(8):
+            s.tick("summer", random.Random(1))
+        self.assertEqual(s.deposits["stone"], 0.0)
+        self.assertLessEqual(s.market.stock["stone"], 20.0 + 1e-6)
+        self.assertIn("worked out", s.buildings[-1].idle_reason)
+
+    def test_deep_shafts_stretch_the_seam(self):
+        left = {}
+        for tech in ((), ("deep_shafts",)):
+            s = make(stock=0.0)
+            s.deposits = {"stone": 400.0}
+            raise_now(s, "quarry")
+            mods = Progress(age=3, researched=set(tech))
+            for _ in range(10):
+                s.tick("summer", random.Random(1), mods)
+            left[tech] = s.deposits["stone"]
+        self.assertGreater(left[("deep_shafts",)], left[()])
+
+    def test_walls_rise_with_the_building_and_mend_with_stone(self):
+        s = make()
+        raise_now(s, "palisade")
+        s.wall_hp = 0.0
+        s.market.stock["stone"] = 500.0
+        s.tick("summer", random.Random(1))
+        self.assertGreater(s.wall_hp, 0.0)
+        self.assertLessEqual(s.wall_hp, s.wall_max())
+
+    def test_masonry_raises_the_wall(self):
+        s = make()
+        raise_now(s, "palisade")
+        plain = s.wall_max()
+        self.assertGreater(s.wall_max(Progress(researched={"masonry"})), plain)
+
+    def test_a_besieged_town_works_at_half_pace(self):
+        s = make()
+        s.tick("summer", random.Random(1))
+        free = s.productivity()
+        s.besieged = True
+        self.assertLess(s.productivity(), free)
+
+
+class TestFear(unittest.TestCase):
+    def test_gallows_drive_the_work_and_empty_the_town(self):
+        kind, cruel = make(), make()
+        raise_now(cruel, "gallows", "stocks")
+        for s in (kind, cruel):
+            s.tick("summer", random.Random(1))
+        self.assertGreater(cruel.productivity(), kind.productivity())
+        self.assertLess(dict(cruel.mood_factors()).get("fear", 0.0), 0.0)
+
+
+class TestSoldiers(unittest.TestCase):
+    def test_a_soldier_is_a_worker_you_no_longer_have(self):
+        s = make()
+        before = s.workforce
+        s.units = {"spearman": 10}
+        self.assertEqual(s.workforce, before - 10)
+
+    def test_a_garrison_costs_upkeep_and_adds_defence(self):
+        s = make()
+        bare = s.defense()
+        s.units = {"man_at_arms": 12}
+        s.tick("summer", random.Random(1))
+        self.assertGreater(s.defense(), bare)
+        self.assertGreater(s.report.upkeep, 0.0)
 
 
 class TestStores(unittest.TestCase):
