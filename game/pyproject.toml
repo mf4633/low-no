@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marchlands"
+version = "0.1.0"
+description = "A medieval economy game: land, labour, and the road between markets"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []          # stdlib only, on purpose
+
+[project.scripts]
+marchlands = "marchlands.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["marchlands*"]
