@@ -1,59 +1,59 @@
-settlements: 708 cached, 0 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 718 cached, 10 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
-om_gfs        6059    21  -0.54  1.74  2.26    68%
-om_best       4937    21  -0.57  1.75  2.28    68%
-nws_grid      6356    21  -0.16  1.83  2.55    75%
-nbm_guide     6399    21  -0.42  1.86  2.63    74%
-om_icon       5973    21  -1.17  2.11  2.67    56%
-om_metno      5925    21  -1.40  2.24  2.86    54%
-om_ecmwf      6048    21  -0.98  3.04  3.97    43%
+om_gfs        6213    22  -0.53  1.73  2.25    68%
+om_best       5060    22  -0.56  1.74  2.27    68%
+nws_grid      6516    22  -0.15  1.84  2.55    75%
+nbm_guide     6559    22  -0.40  1.86  2.62    74%
+om_icon       6117    22  -1.17  2.11  2.67    56%
+om_metno      6066    22  -1.41  2.25  2.87    54%
+om_ecmwf      6200    22  -0.99  3.08  4.00    43%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
 spend: 140 calls, est $1.9950 spent, $3.00 left (~210 calls)
-rung-obs 47204 -> 786 independent units over 36 days
+rung-obs 48164 -> 800 independent units over 37 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  48   0     0%   5.7%     0%     7%    -5.7      open
  11-20  36   1     3%  16.2%     0%    14%   -13.3   RETIRED
- 21-30  36   4    11%  25.5%     4%    32%   -14.1      open
+ 21-30  37   4    11%  25.5%     4%    31%   -14.4      open
  31-40  44   8    18%  37.2%    10%    39%   -18.7      open
  41-50  34  10    29%  46.9%    17%    52%   -17.2      open
  51-60  38  16    42%  56.9%    28%    68%   -14.5      open
  61-70  51  30    59%  67.1%    45%    76%    -8.1      open
- 71-80  53  34    64%  77.9%    51%    82%   -13.5      open
- 81-90  96  74    77%  87.6%    68%    87%   -10.5   RETIRED
- 91-95 136 120    88%  94.4%    82%    94%    -6.1   RETIRED
- 96-98 214 202    94%  98.2%    90%    97%    -3.7   RETIRED
+ 71-80  55  35    64%  77.9%    50%    81%   -14.0      open
+ 81-90  99  76    77%  87.6%    68%    87%   -10.8   RETIRED
+ 91-95 140 123    88%  94.4%    81%    94%    -6.5   RETIRED
+ 96-98 218 206    94%  98.2%    91%    97%    -3.6   RETIRED
   RETIRED at 95% (4 of 11 bands): 11-20, 81-90, 91-95, 96-98
   Retirement applies to the band traded UNCONDITIONALLY. Conditional rules inside a retired band are NOT retired by it.
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 560  13     2%   3.0%     1%    -0.6      546   False
- 11-20 105  17    16%  14.7%    10%     1.5      102   False
- 21-30  67  17    25%  25.2%    16%     0.2       66   False
- 31-40  52  17    33%  36.1%    22%    -3.3       50   False
+  1-10 569  13     2%   3.0%     1%    -0.7      555   False
+ 11-20 109  18    17%  14.6%    11%     1.8      106   False
+ 21-30  69  18    26%  25.2%    17%     0.9       68   False
+ 31-40  54  18    33%  36.0%    22%    -2.6       52   False
  41-50  37  13    35%  46.0%    22%   -10.7       35   False
  51-60  45  21    47%  55.9%    33%    -9.0       44   False
  61-70  47  27    57%  66.1%    43%    -8.5       43   False
- 71-80  47  24    51%  77.8%    37%   -26.2       46   False
- 81-90  58  40    69%  85.9%    56%   -17.0       55   False
+ 71-80  48  25    52%  77.7%    38%   -25.1       47   False
+ 81-90  59  41    69%  85.8%    57%   -16.4       56   False
  91-95  44  33    75%  94.1%    61%   -18.9       41   False
- 96-98  38  28    74%  98.1%    58%   -24.2       36   False
-yes_spread over 46914 real-ask obs: mean 6.04c, max 100c
+ 96-98  39  29    74%  98.1%    59%   -23.5       37   False
+yes_spread over 47874 real-ask obs: mean 5.99c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.81, 'NYC': 1.6, 'BOS': -1.33, 'AUS': -1.17, 'TTN': 0.82, 'OKC': -0.76, 'EWR': 0.71, 'CHI': -0.53, 'ATL': 0.48, 'LAS': -0.48, 'MSP': -0.48, 'MSY': 0.48, 'MIA': -0.47, 'PHX': -0.31, 'DAL': -0.24, 'SEA': -0.23, 'SAN': -0.19, 'DC': 0.1, 'SAT': 0.1, 'PHL': -0.08, 'DEN': 0.06, 'SFO': 0.0, 'HOU': 0.0}
+station guide bias (guide - CLI): {'LAX': -2.73, 'NYC': 1.6, 'BOS': -1.33, 'AUS': -1.17, 'TTN': 0.82, 'OKC': -0.76, 'EWR': 0.71, 'MSP': -0.55, 'CHI': -0.53, 'ATL': 0.5, 'MSY': 0.48, 'MIA': -0.47, 'LAS': -0.41, 'PHX': -0.32, 'DAL': -0.27, 'HOU': -0.14, 'SEA': -0.11, 'DC': 0.1, 'SAT': 0.1, 'PHL': -0.08, 'DEN': 0.06, 'SFO': -0.03, 'SAN': 0.0}
 
                   rule   n   w    hit   LCB  meanP&L
-             frozen_G4 157 131    83%   77%    -2.99
-        exclude_marine 139 117    84%   77%    -1.98
-     floor96_ex_marine 191 182    95%   91%    -2.82
+             frozen_G4 160 133    83%   77%    -3.36
+        exclude_marine 141 119    84%   78%    -1.84
+     floor96_ex_marine 195 186    95%   92%    -2.72
      conv_window_96_98   6   5    83%   44%    -14.5
-       floor96_depth25 112 108    96%   91%    -1.51
-          corrected_G4 138 115    83%   76%    -2.36
-  corrected_G4_floor90 114 107    94%   88%    -3.25
-          floor96_only 214 202    94%   90%    -3.73
-      floor96_twosided 168 163    97%   93%    -1.07
-    frozen_G4_twosided 142 117    82%   75%    -2.91
+       floor96_depth25 115 111    97%   91%    -1.41
+          corrected_G4 141 117    83%   76%    -2.79
+  corrected_G4_floor90 117 109    93%   87%    -3.85
+          floor96_only 218 206    94%   91%    -3.62
+      floor96_twosided 171 166    97%   93%    -1.01
+    frozen_G4_twosided 145 119    82%   75%    -3.32
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
@@ -63,10 +63,10 @@ PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines
 
 PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
   HYPOTHESIS REFUTED 2026-08-27: hot-bias premise was a CLI parser artifact. Measured rate 3.1% vs breakeven 2.6% (LCB 1.5%). No station clears the bias gate, so the pilot correctly trades nothing. NO SEED. See CANDIDATE.md.
-  status.json written (lowno.status/1): 36 days, 6 hypothesis bar(s) still short
+  status.json written (lowno.status/1): 37 days, 6 hypothesis bar(s) still short
 
 HYPOTHESIS PROGRESS (data bars, not results)
-  H4a   shape validation (held-out) [####################] 36/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
+  H4a   shape validation (held-out) [####################] 37/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
   H4b   market lag on curve_dev    [#################...] 455/200 events  +17/20 distinct days
   H5    contested band 81-95c (blocked on H4a) [....................] 22/60 city-day units  +supply only; scoring waits on H4a (12 days since 2026-09-01)
   H6    market prices off the stale print [########............] 89/200 print transitions  +11/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
