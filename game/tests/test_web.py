@@ -19,7 +19,8 @@ from marchlands.layout import (CLAY, FIELD, FOREST, GRASS, HILL, ROAD, WATER,
 from marchlands.scenarios import start
 from marchlands.settlement import BuildingInstance
 from marchlands.sim import Bot
-from marchlands.web import Handler, march, run_command, serve, snapshot
+from marchlands.web import (Handler, march, options, run_command, serve,
+                            snapshot)
 
 
 def grown(seed=3, days=600, scenario="marchlands"):
@@ -229,6 +230,76 @@ class TestTheMarch(unittest.TestCase):
         json.dumps(march(g, "aldworth"))
 
 
+class TestWhatYouCanDo(unittest.TestCase):
+    """The page asks what is possible; it never decides."""
+
+    def test_it_offers_every_building_in_the_game(self):
+        from marchlands.buildings import BUILDINGS
+        g, _s = grown()
+        o = options(g, "aldworth")
+        self.assertEqual({b["key"] for b in o["buildings"]}, set(BUILDINGS))
+
+    def test_what_you_cannot_raise_says_why_not(self):
+        g, _s = grown()
+        for b in options(g, "aldworth")["buildings"]:
+            if not b["can"]:
+                self.assertTrue(b["why"], b["key"])
+
+    def test_it_agrees_with_the_engine_about_every_one(self):
+        """If these ever disagree the page offers something the game refuses."""
+        g, _s = grown(days=60)
+        for b in options(g, "aldworth")["buildings"]:
+            ok, _why = g.world.settlements["aldworth"].can_build(b["key"], g.progress)
+            afford = g.treasury >= b["coin"]
+            self.assertEqual(b["can"], ok and afford, b["key"])
+
+    def test_an_empty_purse_is_a_reason(self):
+        g, _s = grown()
+        g.treasury = 0.0
+        pricey = [b for b in options(g, "aldworth")["buildings"] if b["coin"] > 0]
+        self.assertTrue(pricey)
+        for b in pricey:
+            self.assertFalse(b["can"])
+
+    def test_what_you_can_raise_comes_first(self):
+        g, _s = grown(days=60)
+        can = [b["can"] for b in options(g, "aldworth")["buildings"]]
+        self.assertEqual(can, sorted(can, reverse=True))
+
+    def test_it_reports_the_room_left_on_each_kind_of_ground(self):
+        g, s = grown()
+        slots = options(g, "aldworth")["slots"]
+        for terrain, free in slots.items():
+            self.assertEqual(free, s.slots_free(terrain), terrain)
+
+    def test_all_of_it_is_json(self):
+        g, _s = grown()
+        json.dumps(options(g, "aldworth"))
+
+
+class TestWhatTravelsAndWhatDoesNot(unittest.TestCase):
+    """Prices are public; strength is not. Saying both in one breath read as a
+    contradiction on the map -- a town labelled never visited, quoting a price."""
+
+    def test_a_price_is_known_everywhere(self):
+        g, _s = grown(days=200)
+        for n in march(g, "aldworth")["nodes"]:
+            if n["kind"] == "town":
+                self.assertGreater(n["price"], 0.0, n["name"])
+
+    def test_strength_is_only_known_where_you_have_been(self):
+        g, _s = grown(days=200)
+        towns = [n for n in march(g, "aldworth")["nodes"] if n["kind"] == "town"]
+        unseen = [n for n in towns if n["known"] < 0]
+        self.assertTrue(unseen, "nothing was left unvisited to test with")
+        for n in unseen:
+            self.assertIsNone(n["host"])
+            self.assertIsNone(n["walls"])
+        for n in towns:
+            if n["known"] >= 0:
+                self.assertIsNotNone(n["host"], n["name"])
+
+
 class TestCommandBridge(unittest.TestCase):
     def test_a_command_runs_and_its_words_come_back(self):
         g, _s = grown(days=30)
@@ -294,6 +365,12 @@ class TestServer(unittest.TestCase):
         m = json.loads(body)
         self.assertEqual(m["good"], "wheat")
         self.assertTrue(m["nodes"])
+
+    def test_what_can_be_raised_is_served_too(self):
+        _s, _c, body = self.get("/options")
+        o = json.loads(body)
+        self.assertTrue(o["buildings"])
+        self.assertIn("slots", o)
 
     def test_the_chronicle_is_readable_from_the_page(self):
         _s, _c, body = self.get("/chronicle")

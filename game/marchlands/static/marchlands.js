@@ -67,6 +67,7 @@ const STYLE = {
 const styleOf = k => STYLE[k] || STYLE.default;
 
 /* ---------------------------------------------------------------- helpers */
+const $ = id => document.getElementById(id);
 const iso = (x, y) => [(x - y) * TW / 2, (x + y) * TH / 2];
 /* Accepts what it returns. Shading an already-shaded colour used to give NaN,
  * which canvas paints as black -- every forest and every road came out as a
@@ -701,7 +702,11 @@ function drawMarch(w, h, t) {
       if (n.price > 0) {
         ctx.strokeStyle = priceColour(n.price, band);
         ctx.lineWidth = 3.5;
+        // Dashed where nobody of yours has been: the price is hearsay, and a
+        // solid ring would claim more than the game knows.
+        if (n.kind === 'town' && n.known < 0) ctx.setLineDash([4, 4]);
         ctx.beginPath(); ctx.arc(x, y - 4, 15 * size, 0, 7); ctx.stroke();
+        ctx.setLineDash([]);
       }
       poly([[x - 9 * size, y + 2], [x - 9 * size, y - 5 * size],
             [x - 4 * size, y - 10 * size], [x + 1 * size, y - 5 * size],
@@ -748,6 +753,10 @@ function drawMarch(w, h, t) {
   ctx.textAlign = 'center'; ctx.fillText('N', w - 74, h - 174); ctx.textAlign = 'left';
 }
 
+async function loadOptions() {
+  try { opts = await (await fetch('/options')).json(); } catch (e) { opts = null; }
+}
+
 async function loadMarch() {
   const r = await fetch('/march?good=' + encodeURIComponent(good));
   world = await r.json();
@@ -769,6 +778,149 @@ function paintTrade() {
 function nameOf(key) {
   const n = world && world.nodes.find(x => x.key === key);
   return n ? n.name : key;
+}
+
+/* ------------------------------------------------------------------- writ
+ * What you can do to the thing you just clicked.
+ *
+ * Nothing in here knows a rule. Every button composes the same line a person
+ * would have typed and posts it, so there is exactly one place the rules live
+ * and it is not in this file. The page asks the engine what is possible and
+ * draws the answer; it never decides.
+ */
+let opts = null, picked = null;
+
+function screenToTile(ev) {
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
+           + (plan.w - plan.h) * TW / 4;
+  const py = (ev.clientY - r.top - r.height / 2 - camera.y) / camera.zoom
+           + (plan.w + plan.h) * TH / 4;
+  // Invert the isometric projection: a screen point back to a tile.
+  const tx = Math.round((px / (TW / 2) + py / (TH / 2)) / 2);
+  const ty = Math.round((py / (TH / 2) - px / (TW / 2)) / 2);
+  return [tx, ty];
+}
+function buildingAt(ev) {
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
+           + (plan.w - plan.h) * TW / 4;
+  const py = (ev.clientY - r.top - r.height / 2 - camera.y) / camera.zoom
+           + (plan.w + plan.h) * TH / 4;
+  let best = null, bestD = 40;
+  for (const b of plan.buildings) {
+    const [sx, sy] = iso(b.x, b.y);
+    const d = Math.hypot(sx - px, (sy - py) * 1.9);
+    if (d < bestD) { bestD = d; best = b; }
+  }
+  return best;
+}
+function townNodeAt(ev) {
+  if (!world) return null;
+  const r = canvas.getBoundingClientRect();
+  const f = mapFit(canvas.clientWidth, canvas.clientHeight);
+  const px = ev.clientX - r.left, py = ev.clientY - r.top;
+  let best = null, bestD = 26;
+  for (const n of world.nodes) {
+    const [x, y] = mapXY(n, f);
+    const d = Math.hypot(x - px, y - py);
+    if (d < bestD) { bestD = d; best = n; }
+  }
+  return best;
+}
+
+function openWrit(title, html, ev) {
+  const writ = $('writ');
+  $('writ-title').textContent = title;
+  $('writ-body').innerHTML = html;
+  writ.hidden = false;
+  const r = canvas.getBoundingClientRect();
+  const x = Math.min(Math.max(12, ev.clientX - r.left + 16),
+                     r.width - 302);
+  const y = Math.min(Math.max(52, ev.clientY - r.top - 30), r.height - 260);
+  writ.style.left = x + 'px';
+  writ.style.top = y + 'px';
+  for (const btn of writ.querySelectorAll('[data-do]')) {
+    btn.addEventListener('click', async () => {
+      await send(btn.dataset.do);
+      if (btn.dataset.keep === undefined) closeWrit();
+      else reopen(ev);
+    });
+  }
+}
+const closeWrit = () => { $('writ').hidden = true; picked = null; };
+$('writ-close').addEventListener('click', closeWrit);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWrit(); });
+
+function reopen(ev) {
+  if (picked && picked.kind === 'plot') return plotWrit(picked.x, picked.y, ev);
+  if (picked && picked.kind === 'building') {
+    const again = plan.buildings.find(b => b.uid === picked.uid);
+    if (again) return buildingWrit(again, ev);
+  }
+  closeWrit();
+}
+
+function buildingWrit(b, ev) {
+  picked = { kind: 'building', uid: b.uid };
+  const how = !b.complete ? 'being built'
+    : b.burning ? 'on fire' : b.running ? 'working' : 'idle';
+  openWrit(b.name, `
+    <p>${how}${b.terrain === 'urban' ? ' · inside the wall' : ''}</p>
+    <div class="acts">
+      <button data-do="close ${b.uid}">${b.running || b.idle ? 'close / open' : 'close'}</button>
+      <button data-do="raze ${b.uid}">pull down</button>
+    </div>
+    <p class="why">who gets hands first when there are not enough</p>
+    <div class="acts">
+      <button data-do="work ${b.key} first" data-keep="1">first</button>
+      <button data-do="work ${b.key} normal" data-keep="1">normal</button>
+      <button data-do="work ${b.key} last" data-keep="1">last</button>
+    </div>`, ev);
+}
+
+function plotWrit(x, y, ev) {
+  picked = { kind: 'plot', x, y };
+  if (!opts) { openWrit('this plot', '<p class="why">asking…</p>', ev); return; }
+  const rows = opts.buildings.slice(0, 30).map(b => `
+    <button data-do="build ${b.key}" ${b.can ? '' : 'disabled'}
+            title="${b.can ? (b.note || b.name) : b.why}">
+      <span>${b.name}</span>
+      <em>${b.can ? Math.round(b.coin) + 'c · ' + b.days + 'd' : b.why}</em>
+    </button>`).join('');
+  const room = Object.entries(opts.slots)
+    .filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ');
+  openWrit('raise something', `
+    <p class="why">room for: ${room || 'nothing — the land is full'}</p>
+    <div class="pick">${rows}</div>`, ev);
+}
+
+function nodeWrit(n, ev) {
+  const carts = world.carts.filter(c => !c.moving);
+  const idle = carts.length ? carts[0] : null;
+  // Prices are public -- merchants talk. Strength is not, and saying so in the
+  // same breath as a price is what made this read as a contradiction.
+  const price = n.price > 0
+    ? `<p>${world.good} at <b>${n.price.toFixed(2)}c</b> · ${n.stock} in store` +
+      `<span class="why"> — merchants report it</span></p>` : '';
+  const known = n.kind !== 'town' ? ''
+    : n.known < 0
+      ? 'you have never sent anyone, so you know nothing of its strength'
+      : `about ${n.host} of strength behind ${n.walls} of wall — ` +
+        (n.known === 0 ? 'seen today' : `and that is ${n.known} days old`);
+  const acts = n.kind === 'town' ? `
+    <div class="acts">
+      ${idle ? `<button data-do="auto ${idle.uid}">put ${idle.name} on the best run</button>` : ''}
+      <button data-do="scan">what is worth carrying</button>
+      <button data-do="gift ${n.key} 500">gift 500c</button>
+      <button data-do="truce ${n.key}">ask for a truce</button>
+    </div>` : n.kind === 'site' ? `
+    <div class="acts"><button data-do="found ${n.key}">settle it</button></div>` : '';
+  openWrit(n.name, price + (known ? `<p class="why">${known}</p>` : '') + acts, ev);
+}
+
+for (const btn of document.querySelectorAll('#clock button')) {
+  btn.addEventListener('click', () => send(btn.dataset.do));
 }
 
 /* ------------------------------------------------------------------ frame */
@@ -819,9 +971,33 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
-let drag = null;
-canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; });
-window.addEventListener('pointerup', () => { drag = null; });
+let drag = null, pressed = null;
+canvas.addEventListener('pointerdown', e => {
+  drag = { x: e.clientX, y: e.clientY };
+  pressed = { x: e.clientX, y: e.clientY, t: performance.now() };
+});
+window.addEventListener('pointerup', e => {
+  drag = null;
+  // A click is a press that did not turn into a drag. Without this the writ
+  // opens every time you finish moving the camera.
+  if (!pressed) return;
+  const moved = Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y);
+  const quick = performance.now() - pressed.t < 600;
+  pressed = null;
+  if (moved > 5 || !quick) return;
+  if (e.target !== canvas) return;
+  if (mode === 'march') {
+    const n = townNodeAt(e);
+    return n ? nodeWrit(n, e) : closeWrit();
+  }
+  if (!plan) return;
+  const b = buildingAt(e);
+  if (b) return buildingWrit(b, e);
+  const [tx, ty] = screenToTile(e);
+  const p = plan.precinct;
+  if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) return plotWrit(tx, ty, e);
+  closeWrit();
+});
 window.addEventListener('pointermove', e => {
   if (!drag) return;
   camera.x += e.clientX - drag.x; camera.y += e.clientY - drag.y;
@@ -856,7 +1032,6 @@ canvas.addEventListener('mousemove', e => {
 });
 
 /* -------------------------------------------------------------------- data */
-const $ = id => document.getElementById(id);
 function meter(el, frac, warnAt, badAt) {
   el.classList.toggle('warn', frac < warnAt);
   el.classList.toggle('bad', frac < badAt);
@@ -908,7 +1083,7 @@ async function send(line) {
   const data = await r.json();
   if (data.said) say(data.said, 'said');
   if (data.state) paint(data.state);
-  if (mode === 'march') loadMarch();
+  if (mode === 'march') loadMarch(); else loadOptions();
 }
 
 $('ask').addEventListener('submit', e => {
@@ -963,7 +1138,9 @@ $('good').innerHTML = GOODS.map(g =>
   resize();
   paint(await (await fetch('/state')).json());
   frameTown();
-  say('Marchlands. Drag to move, scroll to zoom, hover a roof to ask what it is.');
+  loadOptions();
+  say('Marchlands. Drag to move, scroll to zoom. Click a roof to do something '
+      + 'with it, or an empty plot to raise something on it.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   requestAnimationFrame(frame);
 })();

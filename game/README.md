@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 414 tests, ~5min
+python3 -m unittest discover -s tests          # 424 tests, ~5min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -164,6 +164,29 @@ seeing from a view:
   join, the best one labelled with its coin per day and what it carries
 * the fog on it: a town you have never sent a cart to is labelled *never
   visited* rather than given a number it has not earned
+
+### Clicking things
+
+The browser was a picture with a command line taped under it. Now the picture
+is the interface: click a roof and you get what can be done to *that* — close
+it, pull it down, move it up or down the queue for hands. Click an empty plot
+and you get what can be raised on it, priced, with the reason beside anything
+you cannot have yet. Click a town on the march and you get its price, what you
+know of its strength, and a cart to put on the road.
+
+One rule holds the whole thing together: **nothing in the page knows a rule.**
+Every button composes the same line a person would have typed — `build hovel`,
+`close 14`, `work bakery first`, `auto 2` — and posts it. The page asks the
+engine what is possible and draws the answer; it never decides. There is
+exactly one place the rules live and it is not in JavaScript.
+
+That distinction caught a real bug the moment it was clicked. A town labelled
+*never visited* was quoting a bread price in the same breath, which reads as a
+contradiction — until you notice the game has always been right about this and
+the wording was wrong. Prices travel: merchants talk, and `prices` has listed
+every market since the first week. What does not travel is how many men are
+behind a wall. The map now says each in its own words, and draws a hearsay
+price as a dashed ring.
 
 Which is the whole thesis of the game in one picture: bread at 3.8c in Bruille
 and 16.4c in Ostmark, four days apart, and a cart of yours already on the road

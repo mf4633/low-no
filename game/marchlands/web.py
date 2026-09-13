@@ -68,11 +68,19 @@ def march(game, here: str, good: str = "bread") -> dict:
             stock = price = 0.0
         else:
             continue
+        # Prices travel: merchants talk, and `prices` has always listed every
+        # market. What does not travel is how many men a lord has behind his
+        # wall, so that -- and only that -- is what the fog covers here.
         seen, age = game.known(key) if key in w.towns else ({}, 0)
+        from .military import host_strength
+        host = (round(host_strength(game.believed_host(key)))
+                if key in w.towns and age >= 0 else None)
         nodes.append({"key": key, "name": name, "x": x, "y": y, "kind": kind,
                       "who": who, "port": w.is_port(key),
                       "price": round(price, 2), "stock": round(stock),
-                      "known": age, "here": key == here})
+                      "known": age, "host": host,
+                      "walls": round(seen.get("wall_hp", 0.0)) if seen else None,
+                      "here": key == here})
     for key, site in w.sites.items():
         nodes.append({"key": key, "name": site.name, "x": site.x, "y": site.y,
                       "kind": "site", "who": "", "port": False,
@@ -113,6 +121,36 @@ def march(game, here: str, good: str = "bread") -> dict:
     except Exception:
         runs = []          # the map is worth drawing even if the scan is not
     return {"good": good, "nodes": nodes, "carts": carts, "runs": runs}
+
+
+def options(game, here: str = "") -> dict:
+    """What the town could raise today, and why not where not.
+
+    The page never decides any of this. It asks, it draws the answer, and when
+    you click it sends the same `build cottage` a person would have typed --
+    so there is exactly one place the rules live, and it is not in JavaScript.
+    """
+    from .buildings import BUILDINGS
+    key = here or next(iter(game.world.settlements))
+    s = game.world.settlements[key]
+    out = []
+    for bkey, spec in BUILDINGS.items():
+        ok, why = s.can_build(bkey, game.progress)
+        coin = spec.build_cost.get("coin", 0.0)
+        if ok and game.treasury < coin:
+            ok, why = False, f"costs {coin:,.0f}c; you have {game.treasury:,.0f}c"
+        out.append({
+            "key": bkey, "name": spec.name, "category": spec.category,
+            "terrain": spec.terrain, "age": spec.age, "jobs": spec.jobs,
+            "coin": coin, "days": spec.build_days,
+            "goods": {k: v for k, v in spec.build_cost.items() if k != "coin"},
+            "makes": dict(spec.outputs), "wants": dict(spec.inputs),
+            "note": spec.note, "can": ok, "why": "" if ok else why,
+        })
+    out.sort(key=lambda b: (not b["can"], b["age"], b["coin"]))
+    free = {t: s.slots_free(t) for t in
+            ("fertile", "forest", "hills", "clay", "coast", "urban", "rampart")}
+    return {"here": key, "slots": free, "buildings": out}
 
 
 def snapshot(game, here: str = "") -> dict:
@@ -205,6 +243,9 @@ class Handler(BaseHTTPRequestHandler):
         if route == "/state":
             with self.lock:
                 return self._json(snapshot(self.console.game, self.console.here))
+        if route == "/options":
+            with self.lock:
+                return self._json(options(self.console.game, self.console.here))
         if route == "/march":
             good = (urlparse(self.path).query.split("good=")[-1].split("&")[0]
                     if "good=" in self.path else "bread")
