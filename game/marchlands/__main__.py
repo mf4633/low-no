@@ -68,8 +68,8 @@ def main(argv=None) -> int:
     if args.web:
         from .web import main as web_main
         return web_main(game, port=args.port, open_browser=not args.no_browser)
-    con = play(game, autosave=args.autosave)
-    return 0 if con else 0
+    play(game, autosave=args.autosave)
+    return 0
 
 
 if __name__ == "__main__":

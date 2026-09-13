@@ -79,6 +79,22 @@ class Console:
             return w.settlements[k]
         return w.settlements[self.here]
 
+    def _which(self, args: List[str], usage: str) -> Optional[int]:
+        """Read the number a command was given, or explain what it wanted.
+
+        Eight commands used to say "list index out of range" when handed
+        nothing and "invalid literal for int()" when handed a word. That is
+        Python talking to a player, which is never the right voice.
+        """
+        if not args:
+            self.err(usage)
+            return None
+        try:
+            return int(args[0])
+        except ValueError:
+            self.err(f"{args[0]!r} is not a number -- {usage}")
+            return None
+
     def _node(self, text: str, shrines: bool = False) -> str:
         return self.game.world.resolve(text, shrines=shrines)
 
@@ -749,13 +765,19 @@ class Console:
         self.say("  " + self.game.build(town, key))
 
     def cmd_raze(self, args: List[str]) -> None:
+        uid = self._which(args, "raze <building>")
+        if uid is None:
+            return
         s = self.settlement()
-        b = s.demolish(int(args[0]))
+        b = s.demolish(uid)
         self.say(f"  {b.spec.name} pulled down" if b else "  no such building")
 
     def cmd_close(self, args: List[str]) -> None:
+        uid = self._which(args, "close <building>")
+        if uid is None:
+            return
         s = self.settlement()
-        b = s.find(int(args[0]))
+        b = s.find(uid)
         if not b:
             return self.err("no such building")
         b.enabled = not b.enabled
@@ -1078,13 +1100,18 @@ class Console:
         self.say("  " + self.game.raid(int(args[0])))
 
     def cmd_recall(self, args: List[str]) -> None:
-        a = self.game.army(int(args[0]))
+        uid = self._which(args, "recall <host>")
+        if uid is None:
+            return
+        a = self.game.army(uid)
         if not a:
             return self.err("no such host")
         self.say("  " + self.game.march(a.uid, a.home))
 
     def cmd_standdown(self, args: List[str]) -> None:
-        self.say("  " + self.game.disband_host(int(args[0])))
+        uid = self._which(args, "standdown <host>")
+        if uid is not None:
+            self.say("  " + self.game.disband_host(uid))
 
     def cmd_war(self, args: List[str]) -> None:
         g = self.game
@@ -1235,7 +1262,10 @@ class Console:
                  f"({c.capacity:.0f} units at {c.speed:.0f} leagues/day)")
 
     def cmd_guards(self, args: List[str]) -> None:
-        c = self.game.caravan(int(args[0]))
+        uid = self._which(args, "guards <cart> <n>")
+        if uid is None:
+            return
+        c = self.game.caravan(uid)
         if not c:
             return self.err("no such caravan")
         c.guards = max(0, int(args[1]))
@@ -1278,7 +1308,10 @@ class Console:
         self.say(f"  {c.name} put on: " + opp.describe(self._name))
 
     def cmd_go(self, args: List[str]) -> None:
-        c = self.game.caravan(int(args[0]))
+        uid = self._which(args, "go <cart>")
+        if uid is None:
+            return
+        c = self.game.caravan(uid)
         if not c:
             return self.err("no such caravan")
         if not c.route:
@@ -1287,14 +1320,19 @@ class Console:
         self.say(f"  {c.name} sets out")
 
     def cmd_stop(self, args: List[str]) -> None:
-        c = self.game.caravan(int(args[0]))
+        uid = self._which(args, "stop <cart>")
+        if uid is None:
+            return
+        c = self.game.caravan(uid)
         if not c:
             return self.err("no such caravan")
         c.halt()
         self.say(f"  {c.name} will stand down at its next stop")
 
     def cmd_disband(self, args: List[str]) -> None:
-        self.say("  " + self.game.disband(int(args[0])))
+        uid = self._which(args, "disband <cart>")
+        if uid is not None:
+            self.say("  " + self.game.disband(uid))
 
     def cmd_scan(self, args: List[str]) -> None:
         sea = any(a.lower() in ("sea", "ship", "cog") for a in args)

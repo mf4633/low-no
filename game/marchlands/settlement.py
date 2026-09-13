@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 from . import config as C
 from .buildings import BUILDINGS, Building, building
@@ -220,7 +220,7 @@ class Settlement:
         return next((b for b in self.buildings if b.uid == uid), None)
 
     # ---------------------------------------------------------------- a day
-    TARGET_SCALE = {"food": 0.45, "drink": 0.30, "raw": 0.55, "material": 0.45,
+    TARGET_SCALE: ClassVar[Dict[str, float]] = {"food": 0.45, "drink": 0.30, "raw": 0.55, "material": 0.45,
                     "finished": 0.20, "luxury": 0.06}
 
     def update_market_targets(self) -> None:
@@ -257,7 +257,7 @@ class Settlement:
     #: Where a building stands in the queue for hands. The queue is the whole
     #: game once a town has more jobs than people, which happens early and
     #: never stops happening -- there is no order that serves everything.
-    BANDS = {"first": 2, "early": 1, "normal": 0, "late": -1, "last": -2}
+    BANDS: ClassVar[Dict[str, int]] = {"first": 2, "early": 1, "normal": 0, "late": -1, "last": -2}
 
     def band(self, key: str) -> int:
         return self.priority.get(key, 0)

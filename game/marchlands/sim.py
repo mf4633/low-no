@@ -8,7 +8,7 @@ without ever reading a price they are wrong in the other direction.
 from __future__ import annotations
 
 import argparse
-from typing import Dict, List, Optional
+from typing import ClassVar, Dict, List, Optional
 
 from . import config as C
 from .advisor import FAST_STEPS, route_from, scan
@@ -418,7 +418,7 @@ class Conqueror(Bot):
     is decoration. If this one stops taking towns, the conquest path is broken.
     """
 
-    WAR_PLAN = [
+    WAR_PLAN: ClassVar[List[str]] = [
         "farm", "mill", "bakery", "quarry", "orchard", "granary", "woodcutter",
         "farm", "mill", "bakery", "poleturner", "sawmill", "trading_post",
         "farm", "mill", "bakery", "cottage", "guildhall", "poleturner",

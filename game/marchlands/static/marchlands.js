@@ -480,6 +480,89 @@ function drawFolk(f, i, t) {
   ctx.beginPath(); ctx.arc(sx, sy - 11.6 - bob, 2.7, 0, 7); ctx.fill();
 }
 
+/* A sack has a colour. Grain is pale, iron is dark, cloth is dyed -- so you
+ * can read what the town is moving without being told. */
+const SACK = {
+  wheat: '#d8bf6a', flour: '#e6dcc0', bread: '#b98545', apples: '#a8432f',
+  cheese: '#e0cf86', wool: '#e3dbcb', cloth: '#8a5f86', wood: '#7a5c38',
+  planks: '#a8834e', stone: '#9a968b', clay: '#9a6742', charcoal: '#33302c',
+  iron_ore: '#6f5a4a', iron: '#5d5a58', salt: '#eae4d6', hops: '#7f9a45',
+  ale: '#b07a2c', pottery: '#a8613c', tools: '#7d7468', weapons: '#6a6e74',
+  armour: '#7a7e86', spears: '#8a6a44', bows: '#86603a',
+};
+
+function haulAt(h, i, t, at) {
+  // Where the carrier has got to this instant, in tiles, following the street
+  // route the layout worked out. The scene is painted back to front, so this
+  // has to be the sort key -- using the midpoint of the two buildings put
+  // every carrier at the wrong depth and buried them all.
+  const a = at[h.frm], b = at[h.to];
+  if (!a || !b) return null;
+  const way = (h.path && h.path.length > 1)
+    ? h.path : [{ x: a.x, y: a.y }, { x: b.x, y: b.y }];
+  const legs = [];
+  let total = 0;
+  for (let k = 1; k < way.length; k++) {
+    const d = Math.hypot(way[k].x - way[k - 1].x, way[k].y - way[k - 1].y);
+    legs.push(d); total += d;
+  }
+  if (total <= 0) return { x: a.x, y: a.y, out: true, back: false };
+  const period = total / 1.5 + 1.2;
+  const phase = ((t + i * 1.7) % (period * 2)) / period;
+  const out = phase < 1;
+  let want = (out ? phase : 2 - phase) * total;
+  for (let k = 0; k < legs.length; k++) {
+    if (want <= legs[k] || k === legs.length - 1) {
+      const f = legs[k] > 0 ? Math.min(1, want / legs[k]) : 0;
+      const p0 = way[k], p1 = way[k + 1];
+      return { x: p0.x + (p1.x - p0.x) * f, y: p0.y + (p1.y - p0.y) * f,
+               out, back: (out ? p1.x - p0.x : p0.x - p1.x) < 0 };
+    }
+    want -= legs[k];
+  }
+  return { x: b.x, y: b.y, out, back: false };
+}
+
+function drawHaul(h, i, t, at, pos) {
+  const p = pos || haulAt(h, i, t, at);
+  if (!p) return;
+  const [x, y] = iso(p.x, p.y);
+  const out = p.out;
+  const bob = Math.abs(Math.sin(t * 4.2 + i)) * 1.7;
+
+  // Big enough to be a person rather than a dot. This is the thing people
+  // remember about the game it is borrowed from; drawn small it reads as
+  // dust, and the whole point is that you can see what is being carried.
+  const step = Math.sin(t * 5.4 + i * 2.1);
+  ctx.fillStyle = 'rgba(0,0,0,.26)';
+  ctx.beginPath(); ctx.ellipse(x, y + 1, 5, 2.3, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#4a3a26'; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 6 - bob); ctx.lineTo(x - 2.4 * step, y - bob);
+  ctx.moveTo(x, y - 6 - bob); ctx.lineTo(x + 2.4 * step, y - bob);
+  ctx.stroke();
+  const coat = ['#7a5a3c', '#6a6450', '#8a6a4a', '#5c5442'][i % 4];
+  poly([[x - 3.4, y - 6 - bob], [x + 3.4, y - 6 - bob],
+        [x + 2.6, y - 14 - bob], [x - 2.6, y - 14 - bob]], coat);
+  ctx.fillStyle = '#e6d8b6';
+  ctx.beginPath(); ctx.arc(x, y - 16.6 - bob, 3.3, 0, 7); ctx.fill();
+  if (out) {
+    const sx2 = x + (p.back ? 6.4 : -6.4);
+    ctx.strokeStyle = coat; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 12 - bob); ctx.lineTo(sx2, y - 11 - bob); ctx.stroke();
+    ctx.fillStyle = SACK[h.good] || '#b09a6a';
+    ctx.beginPath();
+    ctx.ellipse(sx2, y - 9 - bob, 4.6, 5.6, 0, 0, 7);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(40,30,16,.45)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = 'rgba(40,30,16,.55)'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(sx2 - 2, y - 14 - bob); ctx.lineTo(sx2 + 2, y - 14 - bob);
+    ctx.stroke();
+  }
+}
+
 function puff(x, y, t) {
   if (Math.random() < 0.12) smoke.push({ x, y, born: t, drift: Math.random() - 0.5 });
 }
@@ -949,11 +1032,18 @@ function frame() {
     for (const b of plan.buildings) things.push({ d: b.x + b.y, kind: 'b', b });
     for (const w2 of plan.walls) things.push({ d: w2.x + w2.y, kind: 'w', w: w2 });
     plan.folk.forEach((f, i) => things.push({ d: f.x + f.y, kind: 'f', f, i }));
+    const at = {};
+    for (const b of plan.buildings) at[b.uid] = b;
+    (plan.hauls || []).forEach((h, i) => {
+      const p = haulAt(h, i, t, at);
+      if (p) things.push({ d: p.x + p.y + 0.4, kind: 'h', h, i, at, pos: p });
+    });
     things.sort((a, b) => a.d - b.d);
     for (const it of things) {
       if (it.kind === 'wood') drawTrees(it.x, it.y);
       else if (it.kind === 'b') drawBuilding(it.b, t);
       else if (it.kind === 'w') drawWall(it.w, t);
+      else if (it.kind === 'h') drawHaul(it.h, it.i, t, it.at, it.pos);
       else drawFolk(it.f, it.i, t);
     }
     drawEffects(t);
@@ -1039,7 +1129,14 @@ function meter(el, frac, warnAt, badAt) {
 }
 
 function paint(s) {
+  const wasAge = state && state.age;
   state = s; plan = s.plan;
+  if (window.Sound) {
+    Sound.feed(s);
+    // A bell for the things worth stopping to hear.
+    if (wasAge && s.age !== wasAge) Sound.mark('bell');
+    if (s.over) Sound.mark('bell');
+  }
   $('place').textContent = s.town.name;
   $('date').textContent = `${s.date} · ${s.age}`;
   $('purse').textContent = Math.round(s.treasury).toLocaleString() + 'c';
@@ -1124,6 +1221,11 @@ function setMode(next) {
   $('tip').hidden = true;
   if (mode === 'march') loadMarch();
 }
+$('ear').addEventListener('click', () => {
+  const on = Sound.toggle();
+  $('ear').setAttribute('aria-pressed', String(!!on));
+  if (on) say('The town has a sound now. It follows what is happening in it.');
+});
 $('v-town').addEventListener('click', () => setMode('town'));
 $('v-march').addEventListener('click', () => setMode('march'));
 $('good').addEventListener('change', e => { good = e.target.value; loadMarch(); });

@@ -131,6 +131,75 @@ class TestLayout(unittest.TestCase):
         self.assertIn("precinct", back)
 
 
+class TestWhatIsBeingCarried(unittest.TestCase):
+    """The little men with sacks, which is the thing people actually describe.
+
+    A load exists only where something running wants what something running
+    makes, so what crosses the street is what the ledger is doing.
+    """
+
+    def test_a_working_town_has_loads_on_the_move(self):
+        _g, s = grown()
+        self.assertTrue(plan_for(s).hauls)
+
+    def test_every_load_goes_from_a_maker_to_a_wanter(self):
+        _g, s = grown()
+        plan = plan_for(s)
+        at = {b.uid: b for b in plan.buildings}
+        for h in plan.hauls:
+            src, dst = s.find(h.frm), s.find(h.to)
+            self.assertIn(h.good, src.spec.outputs, f"{src.key} does not make {h.good}")
+            self.assertIn(h.good, dst.spec.inputs, f"{dst.key} does not want {h.good}")
+            self.assertIn(h.frm, at)
+            self.assertIn(h.to, at)
+
+    def test_nothing_is_carried_to_a_shut_workshop(self):
+        _g, s = grown()
+        for b in s.buildings:
+            b.enabled = False
+            b.throughput = 0.0
+        self.assertEqual(plan_for(s).hauls, [])
+
+    def test_a_load_never_leaves_from_where_it_arrives(self):
+        _g, s = grown()
+        for h in plan_for(s).hauls:
+            self.assertNotEqual(h.frm, h.to)
+
+    def test_the_same_pair_is_not_drawn_twice_over(self):
+        _g, s = grown()
+        seen = [(h.frm, h.to, h.good) for h in plan_for(s).hauls]
+        self.assertEqual(len(seen), len(set(seen)))
+
+    def test_a_town_with_forty_chains_is_not_forty_carriers(self):
+        _g, s = grown(days=900)
+        self.assertLessEqual(len(plan_for(s).hauls), 14)
+
+    def test_they_keep_to_the_street(self):
+        """A carrier who walks the straight line spends it inside other roofs."""
+        _g, s = grown()
+        plan = plan_for(s)
+        self.assertTrue(plan.hauls)
+        walked = [h for h in plan.hauls
+                  if any(plan.tile(int(x), int(y)) == ROAD for x, y in h.path[1:-1])]
+        self.assertTrue(walked, "no carrier ever found a street")
+
+    def test_a_route_starts_where_it_starts_and_ends_where_it_ends(self):
+        _g, s = grown()
+        plan = plan_for(s)
+        at = {b.uid: b for b in plan.buildings}
+        for h in plan.hauls:
+            self.assertEqual(tuple(h.path[0]), (at[h.frm].x, at[h.frm].y))
+            self.assertEqual(tuple(h.path[-1]), (at[h.to].x, at[h.to].y))
+
+    def test_they_survive_the_trip_to_the_browser(self):
+        _g, s = grown()
+        back = json.loads(json.dumps(plan_for(s).to_dict()))
+        self.assertTrue(back["hauls"])
+        for h in back["hauls"]:
+            self.assertIn("good", h)
+            self.assertGreaterEqual(len(h["path"]), 2)
+
+
 class TestSnapshot(unittest.TestCase):
     def test_it_carries_what_the_picture_needs(self):
         g, _s = grown()

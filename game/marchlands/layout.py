@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 GRASS, FIELD, FOREST, HILL, CLAY, WATER, ROAD, YARD = (
     "grass", "field", "forest", "hill", "clay", "water", "road", "yard")
@@ -43,6 +43,29 @@ class Placed:
 
 
 @dataclass
+class Haul:
+    """One load going from where it was made to where it is wanted.
+
+    This is the thing people actually describe when they describe Stronghold:
+    not the popularity dial, the little man carrying wheat to the mill. It is
+    read off the real production graph -- a haul exists only where a building
+    that is running wants something a building that is running makes -- so
+    what you watch crossing the street is what the ledger is doing.
+    """
+    frm: int
+    to: int
+    good: str
+    #: The way round, not the way through. A carrier who walks the straight
+    #: line between two buildings spends the journey inside other people's
+    #: roofs, which is both wrong and invisible.
+    path: List[Tuple[float, float]] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {"frm": self.frm, "to": self.to, "good": self.good,
+                "path": [{"x": x, "y": y} for x, y in self.path]}
+
+
+@dataclass
 class Plan:
     w: int
     h: int
@@ -50,6 +73,7 @@ class Plan:
     buildings: List[Placed] = field(default_factory=list)
     walls: List[Tuple[int, int, str]] = field(default_factory=list)
     folk: List[Tuple[float, float]] = field(default_factory=list)
+    hauls: List[Haul] = field(default_factory=list)
     precinct: Tuple[int, int, int, int] = (0, 0, 0, 0)
 
     def tile(self, x: int, y: int) -> str:
@@ -63,6 +87,7 @@ class Plan:
                 "buildings": [b.to_dict() for b in self.buildings],
                 "walls": [{"x": x, "y": y, "kind": k} for x, y, k in self.walls],
                 "folk": [{"x": x, "y": y} for x, y in self.folk],
+                "hauls": [h.to_dict() for h in self.hauls],
                 "precinct": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
 
@@ -72,6 +97,31 @@ def _ring(x0: int, y0: int, x1: int, y1: int) -> List[Tuple[int, int]]:
     out += [(x, y1) for x in range(x1 - 1, x0 - 1, -1)]
     out += [(x0, y) for y in range(y1 - 1, y0, -1)]
     return out
+
+
+def _walk(plan: Plan, a: "Placed", b: "Placed") -> List[Tuple[float, float]]:
+    """A route from one door to another that keeps to the street.
+
+    Not a pathfinder -- the streets are a cross through the middle of the
+    precinct and a road out of the gate, so the way round is: step to the
+    nearest lane, follow it, step off at the other end. That is enough to make
+    a carrier read as somebody going somewhere rather than a dot sliding
+    through a roof.
+    """
+    roads = [(x, y) for y in range(plan.h) for x in range(plan.w)
+             if plan.tiles[y][x] == ROAD]
+    if not roads:
+        return [(a.x, a.y), (b.x, b.y)]
+    near = lambda p: min(roads, key=lambda r: abs(r[0] - p.x) + abs(r[1] - p.y))
+    r1, r2 = near(a), near(b)
+    if r1 == r2:
+        return [(a.x, a.y), (float(r1[0]), float(r1[1])), (b.x, b.y)]
+    # Along the lane in two straight runs, which is how a grid of streets is
+    # actually walked.
+    corner = (r1[0], r2[1]) if plan.tile(r1[0], r2[1]) == ROAD else (r2[0], r1[1])
+    return [(a.x, a.y), (float(r1[0]), float(r1[1])),
+            (float(corner[0]), float(corner[1])),
+            (float(r2[0]), float(r2[1])), (b.x, b.y)]
 
 
 def plan_for(settlement, *, size: int = 0) -> Plan:
@@ -211,6 +261,37 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
         if best is not None:
             used.add(best)
             _place(b, best[0], best[1])
+
+    # --- what is being carried, and where from -----------------------------
+    # A load only exists where something running wants what something running
+    # makes. Nothing decorative crosses this street.
+    placed = {b.uid: b for b in plan.buildings}
+    makers: Dict[str, List[int]] = {}
+    for b in standing:
+        if not (b.complete and b.enabled) or b.uid not in placed:
+            continue
+        for good_key in b.spec.outputs:
+            makers.setdefault(good_key, []).append(b.uid)
+    seen_pairs = set()
+    for b in standing:
+        if not (b.complete and b.enabled and b.throughput > 0.05):
+            continue
+        if b.uid not in placed:
+            continue
+        for good_key in b.spec.inputs:
+            for src in makers.get(good_key, []):
+                if src == b.uid or (src, b.uid, good_key) in seen_pairs:
+                    continue
+                seen_pairs.add((src, b.uid, good_key))
+                plan.hauls.append(Haul(frm=src, to=b.uid, good=good_key,
+                                       path=_walk(plan, placed[src], placed[b.uid])))
+                break
+    # A town with forty chains running is a town you cannot see. Keep the
+    # nearest loads, which are the ones that read as a street rather than a
+    # diagram.
+    plan.hauls.sort(key=lambda h: abs(placed[h.frm].x - placed[h.to].x)
+                    + abs(placed[h.frm].y - placed[h.to].y))
+    del plan.hauls[14:]
 
     # --- people in the streets --------------------------------------------
     roads = [(x, y) for y in range(side) for x in range(side)

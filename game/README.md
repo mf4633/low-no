@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 424 tests, ~5min
+python3 -m unittest discover -s tests          # 433 tests, ~5min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -164,6 +164,33 @@ seeing from a view:
   join, the best one labelled with its coin per day and what it carries
 * the fog on it: a town you have never sent a cart to is labelled *never
   visited* rather than given a number it has not earned
+
+### The thing people actually describe
+
+Ask anybody what they remember about Stronghold and they will not start with
+the popularity dial. They will tell you about the sound, and about watching
+the little men carry wheat to the mill and flour to the bakery.
+
+**Carriers.** A load exists only where something running wants what something
+running makes — the hauls are read straight off the production graph — so what
+you watch crossing the street is what the ledger is doing. The sack is the
+colour of what is in it: flour pale, charcoal near-black, cloth dyed. They
+walk the lanes rather than the straight line, because a carrier who takes the
+short way spends the trip inside other people's roofs, where you cannot see
+him and he has no business being.
+
+**Sound.** There are no audio files here for the same reason there are no
+images: every layer is synthesised. The wind is filtered noise and it opens up
+in winter. The crowd is noise with a formant on it, and it sits brighter when
+the town is content and duller when it is not. A hammer is a click envelope,
+and there is one for every few workshops actually running. Birds, but not in
+winter. A crackle for each roof alight, a drum under a siege, and a bell for an
+age beginning or a game ending. Press **sound**; browsers will not make a noise
+until you have clicked something.
+
+Both follow the state, which is the whole discipline of this renderer: a town
+that is working sounds busy, a town in winter sounds bare, and neither the
+picture nor the noise can flatter a town that is starving.
 
 ### Clicking things
 
@@ -576,7 +603,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `fire.py` | what catches, how it spreads, and what puts it out |
 | `layout.py` | where everything stands, so a renderer can draw a place |
 | `web.py` | a stdlib server and the browser's view of the game |
-| `static/` | the canvas renderer: every roof a vector path |
+| `static/` | the canvas renderer: every roof a vector path, every sound an oscillator |
 | `campaign.py` | six chapters, what crosses between them, the Count |
 | `chronicle.py` | what happened, written down as it happened |
 | `cli.py` | the terminal interface |
