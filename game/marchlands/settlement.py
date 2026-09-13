@@ -93,7 +93,7 @@ class Settlement:
     lord_home: bool = False   # your lord keeps his hall here today
     lord_lost: bool = False   # and nobody at all keeps it
     steward_mood: float = 0.0  # what whoever governs here is worth, set daily
-    queue_mood: float = 0.0    # what standing in one for bread costs, set daily
+    assize_mood: float = 0.0   # cheap bread, or the queue for it: set daily
     raid_pressure: float = 0.0   # how much of it they got through today
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
@@ -509,8 +509,29 @@ class Settlement:
             rep.repaired = stone * 9.0
 
     def _taxes(self) -> float:
+        """What the reeve brings in, which is not what the rate asks for.
+
+        A tax is a lever on behaviour before it is a lever on revenue. At a
+        heavy rate the day that is taxed away stops being worked, goods go
+        over the wall instead of through the market, and the books get
+        creative -- so the take per head falls as the rate climbs and total
+        revenue peaks somewhere in the middle. A rate you cannot collect is
+        not a rate.
+        """
         rate, _mood = C.TAX_LEVELS[self.tax_level]
-        return rate * self.population
+        if rate <= 0:
+            return rate * self.population          # largesse is always paid
+        return rate * self.population * C.TAX_COMPLIANCE.get(self.tax_level, 1.0)
+
+    def tax_take(self, band: Optional[int] = None) -> float:
+        """What a band would bring in here today, so bands can be compared."""
+        was = self.tax_level
+        if band is not None:
+            self.tax_level = band
+        try:
+            return self._taxes()
+        finally:
+            self.tax_level = was
 
     def _labour_bill(self) -> Tuple[float, float]:
         wages = C.WAGE * self.employed
@@ -588,8 +609,9 @@ class Settlement:
             out.append(("no lord in the hall", -C.LORD_MOOD * 1.5))
         if abs(self.steward_mood) >= 0.05:
             out.append(("who governs here", self.steward_mood))
-        if self.queue_mood <= -0.05:
-            out.append(("queuing for it", self.queue_mood))
+        if abs(self.assize_mood) >= 0.05:
+            out.append(("the assize" if self.assize_mood > 0 else "queuing for it",
+                        self.assize_mood))
         if self.fires:
             out.append(("the town is burning", -9.0 - 9.0 * self.fires.worst()))
         if self.raided:

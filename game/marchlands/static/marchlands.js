@@ -1660,6 +1660,16 @@ function paint(s) {
                            ['wages', -L.wages], ['upkeep', -L.upkeep], ['net', L.net]]
     .map(([k, v]) => `<li><label>${k}</label><span class="${v >= 0 ? 'up' : 'down'}">` +
                      `${v >= 0 ? '+' : ''}${num(v)}</span></li>`).join('');
+  // The race, projected. A game whose result you only learn on the last day
+  // is one you could not have played differently.
+  const race = (s.pace || []).filter(r => r.now > 0);
+  $('race').innerHTML = race.map(r => {
+    const short = r.land < r.want * 0.995;
+    return `<li><label>${r.what}</label><span class="${short ? 'down' : 'up'}">` +
+      `${num(r.now)}<em>/${num(r.want)}</em> →${num(r.land)}</span></li>`;
+  }).join('');
+  $('racing').hidden = !race.length;
+
   // The house. A name, an age, and what the years in that job made of them --
   // which is the only reason to care which of them takes the seat.
   $('kinlist').innerHTML = (s.kin || []).map(p =>

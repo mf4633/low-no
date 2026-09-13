@@ -177,6 +177,11 @@ def snapshot(game, here: str = "") -> dict:
         "chapter": game.chapter,
         "treasury": round(game.treasury, 1),
         "net_worth": round(game.net_worth(), 1),
+        # Where the race stands, projected. The same reading the console
+        # gives, because two interfaces that disagree about whether you are
+        # winning are worse than one.
+        "pace": [{"what": w, "now": round(n, 1), "want": round(k, 1),
+                  "land": round(l, 1)} for w, n, k, l in game.pace()],
         "goals": {"net_worth": game.goals.net_worth,
                   "population": game.goals.population,
                   "towns": game.goals.towns,

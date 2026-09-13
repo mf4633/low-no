@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 571 tests, ~6min
+python3 -m unittest discover -s tests          # 593 tests, ~7min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -922,6 +922,115 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
 
+## Fair play
+
+A pass spent measuring rather than adding, on the three things a player is
+entitled to: that the rules are consistent, that the systems agree with each
+other, and that the game can be lost but not stolen. Four findings, all of
+them measured before they were fixed.
+
+### You could print the win
+
+Net worth counts the chest and the granary at today's prices, and the goal was
+net worth. So `mint 20000` raised the score by twenty thousand the instant the
+dies came down, against a target of a hundred and twenty — no strategy, a
+hole.
+
+The goal is now measured in the coin of the first year, and the divisor is the
+money you have *struck* rather than how far prices have caught up with it.
+Prices lag a year or two and that lag is the whole reason anybody debases, but
+a goal measured against the lagging number could be crossed by minting on the
+last afternoon.
+
+What this does **not** do is make debasement worthless, and it should not:
+seigniorage is a real tax really collected. What it does is give it the shape
+it has in life —
+
+| when | what minting the limit does to the goal number |
+|---|---|
+| day 300, worth 21,591c | **+9,602** |
+| day 900, worth 100,337c | **−10,084** |
+
+— worth most to a poor house with nothing to lose, and a straight loss to a
+rich one, because a third more coin against a hundred thousand of holdings
+takes more than the twenty thousand it hands you. And a debased penny is now
+dearer in Ostmark too: leaving foreign prices alone had made minting a
+standing subsidy on imports, which is an arbitrage the mint itself printed.
+
+### The tax dial had seven bands and one that worked
+
+Measured over six seeds and three years each, holding one band the whole game:
+
+| band | net worth | souls | wins |
+|---|---|---|---|
+| none | 2,224 | 91 | 0 |
+| light | 9,065 | 151 | 0 |
+| **normal** | **110,137** | **476** | **3** |
+| heavy | 238,760 | 343 | 1 |
+| cruel | **466,926** | 197 | 0 |
+
+Cruel collected **four times** what normal did. The only thing stopping it
+being the obvious answer was that the win also wants souls — a thin guard on a
+dial where a player optimising coin would find the wrong end of it immediately.
+
+The fix is the one the book gives: a tax is a lever on *behaviour* before it is
+a lever on revenue. The day that is taxed away stops being worked, goods go
+over the wall instead of through the market, and the reeve's books get
+creative. `TAX_COMPLIANCE` makes the take per head fall as the rate climbs, so
+total revenue peaks in the middle — cruel now collects **less** than heavy,
+which makes it a genuinely wrong answer instead of a hidden right one.
+
+Nothing leaks at the rates the game was actually tuned around, and that is
+deliberate: this economy runs thin enough that **three per cent off the tax
+roll compounds into half the net worth over three years**. A first attempt put
+a 0.97 on "normal" and halved the baseline. There is a test that holds the
+middle bands at exactly what they always collected.
+
+And `tax` with no argument now prices every band before you pull it — what it
+asks for, what it collects, what it costs in goodwill, and which one is the
+most there is to collect today. A dial whose bands you cannot compare in
+advance is not a decision, it is a surprise.
+
+### The assize was a trap, not a choice
+
+A price ceiling is usually a bad idea, which is not the same as never being any
+use — but as built it had **no upside whatever**: capping bread cost five
+sixths of the run's net worth and bought nothing. A lever that is always wrong
+is decoration.
+
+It is a transfer now: cheap bread is a real transfer to real people and they
+are grateful for it, right up until there is none and they are standing in a
+queue your proclamation put them in. So it runs **+11 mood while there is
+stock, −15 once there is not**, and the decree says at the moment you make it
+how long that will be — "about 11 days" on a thin granary, "about 52" on a
+full one. A price control is a transfer out of a granary, so its whole life is
+however much is in the granary; saying so up front is the difference between a
+decision and an ambush.
+
+### The race was invisible until the last day
+
+The map is identical across seeds — same deposits, same land, same best trade
+route — and outcomes still ranged from 23,035c to 134,043c. The cause is
+structural rather than random: income and costs are both roughly proportional
+to population, so the *surplus* is a small difference between two big numbers,
+and a run that misses the early window never compounds its way back. One seed
+finished at a fifth of the goal without a single disaster in its log.
+
+That is a legitimate difficulty spread. What was not legitimate is that the
+player could not see it. `status` now carries the race:
+
+```
+  the race     net worth 18,856/120,000 →17,700   souls 197/450 →212   (660d left, at this rate)
+```
+
+A straight line through the last half-year, which is crude and is the point:
+it is the arithmetic a steward would do on the back of the tax roll, and it is
+enough to say in the first winter that the second year will not be enough.
+Paths you have not started on are dim rather than red, because they are other
+ways to win and not clauses you are failing. The hint ranks it at 68, above
+almost everything else, and the browser panel carries the same reading —
+two interfaces that disagree about whether you are winning are worse than one.
+
 ## Tuning
 
 All balance lives in `config.py` and the data tables. The one number to respect
@@ -931,12 +1040,15 @@ are per-scenario (`engine.Goals`), not global.
 
 Several tests are balance guards rather than correctness tests. The important
 one is `test_the_goal_is_reachable_but_not_assured`: the trading bot in `sim.py`
-plays the economic game competently and no better, and over four seeds it should
-take the crown **sometimes and not always**. At the time of writing it wins four
-of eight seeds on the default scenario, usually in the last few months, with the
-rest finishing between 21k and 83k of a 120,000c target. A target nobody can
-reach is decoration; one that falls out of an ordinary policy every time is a
-formality.
+plays the economic game competently and no better, and over twelve seeds it
+should take the crown **sometimes and not always**. Over sixteen seeds it wins
+six, and the rest finish between 23k and 125k of a 120,000c target. A target
+nobody can reach is decoration; one that falls out of an ordinary policy every
+time is a formality.
+
+The median run lands within a tenth of a per cent of the goal, which is not an
+accident and is the calibration: the bot plays adequately and finishes on the
+line, so a better player wins and a worse one does not.
 
 The others: every scenario must be survivable by that bot and none of them a
 walkover; the lords must take towns off each other; the second and third ages

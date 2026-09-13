@@ -196,6 +196,42 @@ class GameState:
                 worth += sum(UNITS[k].coin * n * 0.5 for k, n in a.units.items())
         return worth
 
+    def real_worth(self) -> float:
+        """Net worth in the coin of the first year, which is the only kind
+        that can be a goal.
+
+        The chest and the granary are both counted at today's prices, so a
+        debasement raises net worth the instant it is struck -- twenty
+        thousand coins of it, on a goal of a hundred and twenty. The target
+        was therefore reachable by printing, which is not a strategy, it is a
+        hole. Dividing the mint back out closes it: you cannot mint your way
+        to a fortune, only to a larger number of smaller coins.
+
+        Deliberately the price *level* and not the index. The index also
+        carries how dear this particular town's basket is, which is a real
+        fact about a place that grows wheat and buys everything else -- and
+        deflating by it would have made every wealth goal in the game
+        unreachable by a factor of four. The mint is the only thing that ought
+        to be divided out, so the mint is the only thing that is.
+
+        The divisor is the money you have *struck*, not the price level that
+        has so far caught up with it. Prices lag by a year or two and that lag
+        is the whole reason anybody debases -- but a goal measured against the
+        lagging number could be crossed by minting on the last afternoon,
+        before a single price had noticed. Measured against the money supply
+        the debasement counts the moment the dies come down, which is when the
+        decision was actually made.
+
+        This does not make a debasement worthless, and it should not:
+        seigniorage is a real tax really collected, and a lord who strikes
+        light coin really is better off at the expense of everyone holding the
+        old. It makes it *honest*, and gives it the shape it has in life --
+        worth most to a poor house with nothing to lose, and a straight loss
+        to a rich one, because a third more coin against a hundred thousand of
+        holdings takes more than the twenty thousand it hands you.
+        """
+        return self.net_worth() / max(1.0, self.economy.money / MONEY_BASE)
+
     @property
     def population(self) -> float:
         return sum(s.population for s in self.world.settlements.values())
@@ -838,8 +874,9 @@ class GameState:
         return []
 
     # ------------------------------------------------------------ the money
-    ASSIZE_DRAIN = 0.09          # of stock a day, at a cap that bites entirely
-    ASSIZE_MOOD = 11.0           # what queuing for bread does to a town
+    ASSIZE_DRAIN = 0.035         # of stock a day, at a cap that bites entirely
+    ASSIZE_RELIEF = 13.0         # what cheap bread is worth while there is any
+    ASSIZE_MOOD = 16.0           # ...and what queuing for it costs when there is not
     SMUGGLE_SHARE = 0.55         # of the drained goods that leave for a profit
     MINT_MOOD = 9.0              # what a debased penny costs you in goodwill
 
@@ -859,17 +896,32 @@ class GameState:
         for s in self.world.settlements.values():
             s.market.level = econ.price_level
             s.market.caps = dict(econ.assize)
-            s.queue_mood = 0.0
+            s.assize_mood = 0.0
+        # And every market your carts deal with, because there is one coin on
+        # this march and it is yours. A debased penny buys less in Ostmark
+        # too; leaving foreign prices alone would have made minting a standing
+        # subsidy on imports, which is an arbitrage the mint itself printed.
+        for t in self.world.towns.values():
+            t.market.level = econ.price_level
         for key, cap in list(econ.assize.items()):
             bite = max(s.market.binding(key)
                        for s in self.world.settlements.values())
             econ.shortage[key] = bite
             if bite <= 0.01:
                 continue
-            # Queues. A town that has to stand in one for its bread knows
-            # exactly whose proclamation put it there.
+            # Both halves of it, which is the whole point of the lever. Cheap
+            # bread is a real transfer to real people and they are grateful
+            # for it -- right up until there is none, and then they are
+            # standing in a queue that your proclamation put them in. A price
+            # control that only ever hurt was not a decision, it was a trap;
+            # this one is a month of goodwill bought against the granary.
             for s in self.world.settlements.values():
-                s.queue_mood = min(s.queue_mood, -self.ASSIZE_MOOD * bite)
+                want = max(1.0, s.market.target.get(key, 0.0) * 0.6)
+                plenty = min(1.0, s.market.stock.get(key, 0.0) / want)
+                relief = self.ASSIZE_RELIEF * bite * plenty
+                queue = self.ASSIZE_MOOD * bite * (1.0 - plenty)
+                s.assize_mood = min(s.assize_mood, relief - queue) \
+                    if s.assize_mood else relief - queue
             for s in self.world.settlements.values():
                 # A shelf empties from both ends: everyone wants more of it at
                 # that price, and the back door is open to anyone who will pay
@@ -937,9 +989,35 @@ class GameState:
         short = 100.0 * (1.0 - price / worth)
         return self.note(
             f"{spec.name} is held at {price:,.1f}c against the {worth:,.1f}c it "
-            f"is worth. Bread is cheaper for whoever gets to the front; "
-            f"{short:.0f}% under is a queue, an empty shelf, and a back door.",
-            MOMENTOUS)
+            f"is worth -- {short:.0f}% under. Cheap for whoever gets to the "
+            f"front, and {self._assize_days(key, price)} before the shelves "
+            f"are bare.", MOMENTOUS)
+
+    def _assize_days(self, key: str, price: float) -> str:
+        """How long the goodwill lasts, which is the only thing worth knowing.
+
+        A price control is a transfer out of a granary, so its whole life is
+        however much is in the granary. Saying so at the moment of the decree
+        is the difference between a decision and an ambush -- and for a good
+        that is eaten every day, the honest answer is usually "a fortnight".
+        """
+        home = self.home()
+        stock = home.market.stock.get(key, 0.0)
+        # Both ways it leaves: eaten off the ration, and used up by the sheds.
+        # Missing the first of those made a forecast for bread that ignored
+        # the town eating the bread.
+        gone = (max(0.0, home.report.eaten.get(key, 0.0))
+                + max(0.0, home.report.consumed.get(key, 0.0)))
+        worth = home.market.fundamental(key)
+        bite = max(0.0, 1.0 - price / worth) if worth > 0 else 0.0
+        made = max(0.0, home.report.produced.get(key, 0.0))
+        net = gone - made + stock * self.ASSIZE_DRAIN * bite
+        if net <= 0.01:
+            return "no sign of running out on today's trade"
+        days = stock / net
+        if days >= 90:
+            return "a season or more"
+        return f"about {days:.0f} days"
 
     def relics_held(self, owner: str = "player") -> int:
         return sum(1 for sh in self.world.shrines.values() if sh.holder == owner)
@@ -1584,6 +1662,51 @@ class GameState:
         return (f"{town.lord} of {town.name} pays {paid:,.0f}c and remembers it")
 
     # -------------------------------------------------------------- endings
+    def pace(self) -> List[Tuple[str, float, float, float]]:
+        """Where you stand against each clause of the goal, and where the
+        rate you are actually going will put you by the last day.
+
+        A game whose result you only learn on the final day is a game where
+        the player could not have done anything about it -- and this one is
+        decided long before then, because a thin surplus over near-fixed costs
+        compounds. The projection is a straight line through the last season,
+        which is crude and is the point: it is the same arithmetic a steward
+        would do on the back of the tax roll, and it is enough to tell you in
+        the first year that the second one will not be enough.
+
+        Each row is (what, where you are, what is wanted, where you land).
+        """
+        rows: List[Tuple[str, float, float, float]] = []
+        left = max(0, self.goals.days - self.day)
+        span = min(len(self.history), int(C.DAYS_PER_YEAR / 2))
+
+        def rate(field: str, now: float) -> float:
+            if span < 30:
+                return 0.0
+            then = self.history[-span]
+            return (now - then.get(field, now)) / span
+
+        if "wealth" in self.goals.paths:
+            worth = self.real_worth()
+            rows.append(("net worth", worth, self.goals.net_worth,
+                         worth + rate("worth", worth) * left))
+            pop = self.population
+            rows.append(("souls", pop, float(self.goals.population),
+                         pop + rate("pop", pop) * left))
+        if "dominion" in self.goals.paths:
+            held = float(len(self.world.vassals()))
+            rows.append(("towns sworn", held, float(self.goals.towns), held))
+        if "reliquary" in self.goals.paths:
+            held = float(self.relics_held())
+            rows.append(("relics", held, float(self.goals.relics), held))
+        if "commons" in self.goals.paths and self.goals.mood:
+            seat = self.home()
+            rows.append(("mood held", float(self.mood_days),
+                         float(self.goals.mood_days),
+                         self.mood_days + (left if seat.popularity
+                                           >= self.goals.mood else 0)))
+        return rows
+
     def _check_ending(self) -> List[str]:
         if self.over:
             return [self.over]
@@ -1621,11 +1744,12 @@ class GameState:
                 self.over = ("The cathedral stands and the bells have rung for "
                              "half a year. The marches are yours.")
                 return [self.note(self.over, MOMENTOUS)]
-        worth = self.net_worth()
+        worth = self.real_worth()
         if ("wealth" in self.goals.paths and worth >= self.goals.net_worth
                 and self.population >= self.goals.population):
-            self.over = (f"Triumph. {worth:,.0f}c of house and holdings, "
-                         f"{self.population:.0f} souls, in {self.day} days.")
+            self.over = (f"Triumph. {worth:,.0f}c of house and holdings in the "
+                         f"coin of the first year, {self.population:.0f} souls, "
+                         f"in {self.day} days.")
             return [self.note(self.over, MOMENTOUS)]
         if "commons" in self.goals.paths and self.goals.mood:
             seat = self.world.settlements.get(
@@ -1826,6 +1950,8 @@ class GameState:
         for s in g.world.settlements.values():
             s.market.level = g.economy.price_level
             s.market.caps = dict(g.economy.assize)
+        for t in g.world.towns.values():
+            t.market.level = g.economy.price_level
         g.chronicle = Chronicle.from_dict(d.get("chronicle", {}))
         g.chapter = d.get("chapter", "")
         g.over = d.get("over", "")

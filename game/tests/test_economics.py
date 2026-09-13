@@ -146,12 +146,19 @@ class TestTheAssize(unittest.TestCase):
             self.g.tick()
         self.assertLess(self.m.stock["bread"], stock * 0.5)
 
-    def test_and_the_town_knows_who_made_it_queue(self):
+    def test_the_town_is_grateful_and_then_it_is_not(self):
+        """A control is a transfer out of the granary, so its whole life is
+        however much is in the granary. Cheap bread first, a queue after."""
         self.g.decree("bread", self.m.fundamental("bread") * 0.3)
         self.g.tick()
-        factors = dict(self.g.home().mood_factors(self.g.progress))
-        self.assertIn("queuing for it", factors)
-        self.assertLess(factors["queuing for it"], 0)
+        first = dict(self.g.home().mood_factors(self.g.progress))
+        self.assertIn("the assize", first)
+        self.assertGreater(first["the assize"], 0)
+        for _ in range(150):
+            self.g.tick()
+        later = dict(self.g.home().mood_factors(self.g.progress))
+        self.assertIn("queuing for it", later)
+        self.assertLess(later["queuing for it"], 0)
 
     def test_the_index_does_not_show_the_shortage(self):
         """Which is the point. Measured prices fall while the shelf empties --

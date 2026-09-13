@@ -148,6 +148,27 @@ class Console:
                                f"at the assize price", ink.BLOOD))
         if notes:
             self.say("  " + ink.c("the accounts ", ink.DIM) + " · ".join(notes))
+        # Where the race actually stands. A game whose result you only learn
+        # on the last day is one you could not have played differently.
+        rows = g.pace()
+        if rows and g.day > 60 and not g.over:
+            left = max(0, g.goals.days - g.day)
+            # Several of these are alternative ways to win rather than
+            # clauses you are failing, so a path you have not started on is
+            # dim rather than red. Red is only for a race you are in.
+            live = [r for r in rows if r[1] > 0] or rows
+            parts = []
+            for what, now, want, land in live:
+                short = land < want * 0.995
+                started = now > 0
+                parts.append(
+                    ink.c(f"{what} {now:,.0f}", ink.PARCH if started else ink.DIM)
+                    + ink.c(f"/{want:,.0f}", ink.DIM)
+                    + ink.c(f" →{land:,.0f}",
+                            (ink.BLOOD if short else ink.LEAF) if started
+                            else ink.FAINT))
+            self.say(f"  {ink.c('the race', ink.DIM)}     " + "   ".join(parts)
+                     + ink.c(f"   ({left}d left, at this rate)", ink.DIM))
         busy = []
         if p.advancing:
             busy.append(f"climbing to the {AGES[p.age + 1].name} ({p.advancing}d)")
@@ -696,6 +717,19 @@ class Console:
                             f"there is none to be had at any price. `assize "
                             f"{key} off` lets it find its own."))
                 break
+        # The most actionable thing there is: you are going to fall short, and
+        # there are still two years to do something about it.
+        left = g.goals.days - g.day
+        if g.day > 150 and left > 120:
+            for what, now, want, land in g.pace():
+                if now <= 0 or land >= want * 0.9:
+                    continue
+                out.append((68.0, f"At the rate of the last season you finish "
+                            f"with {land:,.0f} {what} against {want:,.0f}, and "
+                            f"there are {left} days left. Something has to "
+                            f"change before it is arithmetic. `status` keeps "
+                            f"the count."))
+                break
         a = g.accounts
         if a.inflation > 12 and g.economy.minted > 0:
             out.append((64.0, f"Prices are running {a.inflation:.0f}% a year "
@@ -1009,12 +1043,37 @@ class Console:
         self.say(f"  {s.name} now on {C.RATION_LABELS[s.ration_level]} rations")
 
     def cmd_tax(self, args: List[str]) -> None:
-        """What you take. Mood follows that too."""
+        """What you take, what it collects, and what it costs in goodwill."""
         s = self.settlement()
-        if not args:
-            return self.say(f"  tax at {s.name}: {C.TAX_LABELS[s.tax_level]}")
-        s.tax_level = _level(args[0], C.TAX_LABELS)
-        self.say(f"  {s.name} now on {C.TAX_LABELS[s.tax_level]} taxes")
+        if args:
+            s.tax_level = _level(args[0], C.TAX_LABELS)
+            return self.say(f"  {s.name} now on {C.TAX_LABELS[s.tax_level]} taxes")
+        # Every band, priced. A dial whose bands you cannot compare before
+        # pulling it is not a decision, it is a surprise -- and two of these
+        # collect less than the band below them, which nobody would guess.
+        self.say(ink.head(f"THE TAX AT {s.name.upper()}",
+                          f"{s.population:,.0f} souls"))
+        self.say(ink.c("  band        asks    collects    mood    ", ink.DIM))
+        best = max(C.TAX_LEVELS, key=lambda b: s.tax_take(b))
+        for band in sorted(C.TAX_LEVELS):
+            rate, mood = C.TAX_LEVELS[band]
+            asks, gets = rate * s.population, s.tax_take(band)
+            here = band == s.tax_level
+            note = []
+            if band == best:
+                note.append(ink.c("the most there is to collect today", ink.GOLD))
+            if gets < asks - 0.5:
+                note.append(ink.c(f"{100 * (1 - gets / max(asks, 1e-9)):.0f}% of it "
+                                  f"never reaches you", ink.RUST))
+            self.say(f"  {ink.c(ink.pad(C.TAX_LABELS[band], 10), ink.PARCH if here else ink.INK)}"
+                     f"{asks:>7,.0f}c{gets:>10,.0f}c"
+                     f"{ink.c(f'{mood:>+8.0f}', ink.LEAF if mood > 0 else ink.BLOOD)}"
+                     + ("  " + ink.c("<-- here", ink.GOLD) if here else "")
+                     + ("   " + " · ".join(note) if note else ""))
+        self.say("", ink.c("  A heavy rate is a lever on behaviour before it is a "
+                           "lever on revenue: the day that is\n  taxed away stops "
+                           "being worked, and the goods go over the wall instead "
+                           "of through\n  the market. `tax <band>` sets it.", ink.DIM))
 
     def cmd_garrison(self, args: List[str]) -> None:
         """Soldiers at home, and what they are costing you."""

@@ -27,14 +27,37 @@ WORKING_FRACTION = 0.55     # share of population available for jobs
 # Tax is deliberately thin. A population is labour, not a revenue farm: it
 # costs more to feed than it ever pays in coin, and the profit has to come off
 # the back of a cart. Fatten these and the game turns into a tax-slider idler.
-TAX_LEVELS = {              # coins per head per day, and the mood it costs
-    -2: (-0.80, +6.0),      # largesse: you pay them
-    -1: (-0.35, +3.0),
-    0: (0.00, +0.5),
+TAX_LEVELS = {              # coins per head per day, and the mood it moves
+    -2: (-0.80, +14.0),     # largesse: you pay them
+    -1: (-0.35, +8.0),
+    0: (0.00, +3.0),
     1: (0.45, -1.0),
     2: (0.85, -3.5),
     3: (1.35, -7.0),
     4: (2.10, -13.0),
+}
+# What a rate actually collects, as a share of what it asks for.
+#
+# Mankiw's chapter on the costs of taxation, made into a dial: a tax is not a
+# lever on revenue, it is a lever on *behaviour*, and a heavy one changes the
+# thing it is taxing. People work less of the day that is taxed away, they
+# trade over the wall instead of in the market, and the reeve's books get
+# creative. So the take per head falls as the rate climbs, and total revenue
+# has a peak somewhere in the middle rather than at the end.
+#
+# Without this the dial had one usable setting out of seven: cruel collected
+# four times what normal did, and the only thing stopping it being the obvious
+# answer was that the win also wants souls.
+# Nothing leaks until a rate is worth evading, which also keeps the tuned
+# middle of the game exactly where it was: this economy runs thin enough that
+# three per cent off the tax roll compounds into half the net worth over three
+# years, so the middle bands are left alone on purpose.
+TAX_COMPLIANCE = {
+    -2: 1.00, -1: 1.00, 0: 1.00,
+    1: 1.00,            # light: nobody bothers hiding this
+    2: 1.00,            # normal: the rate the books were written for
+    3: 0.76,            # heavy: the first real evasion
+    4: 0.44,            # cruel: more than half of it never reaches you
 }
 TAX_LABELS = {-2: "largesse", -1: "gifts", 0: "none", 1: "light",
               2: "normal", 3: "heavy", 4: "cruel"}
