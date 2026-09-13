@@ -9,7 +9,7 @@ om_metno      5925    21  -1.40  2.24  2.86    54%
 om_ecmwf      6048    21  -0.98  3.04  3.97    43%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 127 calls, est $1.8098 spent, $3.19 left (~223 calls)
+spend: 140 calls, est $1.9950 spent, $3.00 left (~210 calls)
 rung-obs 47204 -> 786 independent units over 36 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  48   0     0%   5.7%     0%     7%    -5.7      open
@@ -57,21 +57,22 @@ station guide bias (guide - CLI): {'LAX': -2.81, 'NYC': 1.6, 'BOS': -1.33, 'AUS'
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-12': 1} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
 PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
   HYPOTHESIS REFUTED 2026-08-27: hot-bias premise was a CLI parser artifact. Measured rate 3.1% vs breakeven 2.6% (LCB 1.5%). No station clears the bias gate, so the pilot correctly trades nothing. NO SEED. See CANDIDATE.md.
-  status.json written (lowno.status/1): 36 days, 5 hypothesis bar(s) still short
+  status.json written (lowno.status/1): 36 days, 6 hypothesis bar(s) still short
 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [####################] 36/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
-  H4b   market lag on curve_dev    [################....] 419/200 events  +16/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 19/60 city-day units  +supply only; scoring waits on H4a (12 days since 2026-09-01)
-  H6    market prices off the stale print [########............] 81/200 print transitions  +10/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
+  H4b   market lag on curve_dev    [#################...] 455/200 events  +17/20 distinct days
+  H5    contested band 81-95c (blocked on H4a) [....................] 22/60 city-day units  +supply only; scoring waits on H4a (12 days since 2026-09-01)
+  H6    market prices off the stale print [########............] 89/200 print transitions  +11/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
   H8    run_max/temp_now gap (H4a x H7) [#####...............] 42/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
+  H15   LAX marine-layer regime not in the price [....................] 0/20 distinct LAX marine-stratum days with a book  +registered 2026-09-12, full text docs/H15.md, classifier lax_regime.py FROZEN the same day on free weather data with no price data in the loop. NO HARNESS YET -- have=0 is a placeholder, not a measured zero. Marine strata are 29% of Sep-Dec days, so 20 of them needs ~70 calendar days from 2026-09-12: bar reached ~2026-11-20, 41 days before the stop. Reads logs/poll_lax/, NOT logs/poll/
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced

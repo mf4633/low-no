@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-12T11:38:54.285481Z",
+ "generated": "2026-09-13T03:21:14.141224Z",
  "hypotheses": [
   {
    "id": "H4a",
@@ -18,21 +18,21 @@
   {
    "id": "H4b",
    "name": "market lag on curve_dev",
-   "have": 419,
+   "have": 455,
    "need": 200,
    "unit": "events",
    "also": {
-    "have": 16,
+    "have": 17,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": false,
-   "note": "16/20 distinct days"
+   "note": "17/20 distinct days"
   },
   {
    "id": "H5",
    "name": "contested band 81-95c (blocked on H4a)",
-   "have": 19,
+   "have": 22,
    "need": 60,
    "unit": "city-day units",
    "also": {
@@ -46,16 +46,16 @@
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 81,
+   "have": 89,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 10,
+    "have": 11,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": false,
-   "note": "10/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "11/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
@@ -79,6 +79,20 @@
    "unit": "samples in 'climbing_off'",
    "ready": false,
    "note": "fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop"
+  },
+  {
+   "id": "H15",
+   "name": "LAX marine-layer regime not in the price",
+   "have": 0,
+   "need": 20,
+   "unit": "distinct LAX marine-stratum days with a book",
+   "also": {
+    "have": 0,
+    "need": 2,
+    "unit": "baselines beaten (market, clear-day control)"
+   },
+   "ready": false,
+   "note": "registered 2026-09-12, full text docs/H15.md, classifier lax_regime.py FROZEN the same day on free weather data with no price data in the loop. NO HARNESS YET -- have=0 is a placeholder, not a measured zero. Marine strata are 29% of Sep-Dec days, so 20 of them needs ~70 calendar days from 2026-09-12: bar reached ~2026-11-20, 41 days before the stop. Reads logs/poll_lax/, NOT logs/poll/"
   },
   {
    "id": "H1",
