@@ -17,6 +17,14 @@ from . import config as C
 from .goods import ALL_KEYS, good
 
 MIN_STOCK = 0.5
+#: An order is filled in at most this many steps along the curve. Small trades
+#: still move in MARKET_LOT units; a four-hundred-unit hull does not need a
+#: hundred and thirty of them to be priced correctly.
+MAX_STEPS = 16
+
+
+def _lot_size(quantity: float, steps: int = MAX_STEPS) -> float:
+    return max(C.MARKET_LOT, quantity / max(1, steps))
 
 
 @dataclass
@@ -51,6 +59,7 @@ class Market:
     tariff_rate: float = 0.0
     history: Dict[str, List[float]] = field(default_factory=dict)
     tradeable: Tuple[str, ...] = ALL_KEYS
+    max_steps: int = MAX_STEPS      # a scratch copy can walk the curve coarsely
 
     def __post_init__(self) -> None:
         for k in ALL_KEYS:
@@ -108,20 +117,31 @@ class Market:
         # A market never sells its last crumb.
         available = max(0.0, self.stock[key] - max(MIN_STOCK, 0.02 * self.target.get(key, 0.0)))
         remaining = min(quantity, available)
+        step = _lot_size(remaining, self.max_steps)
         p0 = self.curve(key, self.stock[key])
         while remaining > 1e-9:
-            lot = min(C.MARKET_LOT, remaining)
+            lot = min(step, remaining)
+            # Price the lot at the price it leaves behind, not the one it found.
+            # Charging the pre-trade price would hand the trader the whole step
+            # for free, and with coarse lots that is enough to make a round trip
+            # pay -- which would be an arbitrage the market itself printed.
+            self.stock[key] -= lot
+            self._reprice_after_trade(key, p0)
             unit = self.price(key) * (1.0 + self.spread / 2.0)
             if max_price is not None and unit > max_price + 1e-9:
+                self.stock[key] += lot          # put it back, the price is dear
+                self.posted[key] = self._posted_at(key, p0)
                 break
             cost = unit * lot
             if budget is not None and fill.net + cost * (1 + self.tariff_rate) > budget:
-                affordable = max(0.0, (budget - fill.net) / (unit * (1 + self.tariff_rate)))
+                affordable = max(0.0, (budget - fill.net)
+                                 / (unit * (1 + self.tariff_rate)))
                 if affordable < 1e-6:
+                    self.stock[key] += lot
+                    self.posted[key] = self._posted_at(key, p0)
                     break
+                self.stock[key] += lot - affordable
                 lot, cost = affordable, unit * affordable
-            self.stock[key] -= lot
-            self._reprice_after_trade(key, p0)
             p0 = self.curve(key, self.stock[key])
             fill.quantity += lot
             fill.value += cost
@@ -138,14 +158,17 @@ class Market:
             fill.price_end = fill.price_start
             return fill
         remaining = quantity
+        step = _lot_size(remaining, self.max_steps)
         p0 = self.curve(key, self.stock[key])
         while remaining > 1e-9:
-            lot = min(C.MARKET_LOT, remaining)
-            unit = self.price(key) * (1.0 - self.spread / 2.0)
-            if min_price is not None and unit < min_price - 1e-9:
-                break
+            lot = min(step, remaining)
             self.stock[key] += lot
             self._reprice_after_trade(key, p0)
+            unit = self.price(key) * (1.0 - self.spread / 2.0)
+            if min_price is not None and unit < min_price - 1e-9:
+                self.stock[key] -= lot          # put it back, the price is poor
+                self.posted[key] = self._posted_at(key, p0)
+                break
             p0 = self.curve(key, self.stock[key])
             fill.quantity += lot
             fill.value += unit * lot
@@ -156,12 +179,16 @@ class Market:
 
     def _reprice_after_trade(self, key: str, price_before: float) -> None:
         """Move the posted price by the same factor the curve moved."""
+        self.posted[key] = self._posted_at(key, price_before)
+
+    def _posted_at(self, key: str, price_before: float) -> float:
         after = self.curve(key, self.stock[key])
-        if price_before > 0:
-            g = good(key)
-            self.posted[key] = _clamp(self.posted[key] * (after / price_before),
-                                      g.base_price * C.PRICE_FLOOR_MULT,
-                                      g.base_price * C.PRICE_CEIL_MULT)
+        if price_before <= 0:
+            return self.posted[key]
+        g = good(key)
+        return _clamp(self.posted[key] * (after / price_before),
+                      g.base_price * C.PRICE_FLOOR_MULT,
+                      g.base_price * C.PRICE_CEIL_MULT)
 
     # -- moving your own goods ----------------------------------------------
     def transfer_out(self, key: str, quantity: float,
@@ -171,11 +198,12 @@ class Market:
         is what stops a cart emptying a granary the town is about to need."""
         moved = 0.0
         remaining = max(0.0, quantity)
+        step = _lot_size(remaining, self.max_steps)
         while remaining > 1e-9 and self.stock.get(key, 0.0) > MIN_STOCK:
             if limit_price is not None and self.ask(key) > limit_price + 1e-9:
                 break
             p0 = self.curve(key, self.stock[key])
-            lot = min(C.MARKET_LOT, remaining, self.stock[key])
+            lot = min(step, remaining, self.stock[key])
             self.stock[key] -= lot
             self._reprice_after_trade(key, p0)
             moved += lot
@@ -184,9 +212,10 @@ class Market:
 
     def transfer_in(self, key: str, quantity: float) -> float:
         remaining = max(0.0, quantity)
+        step = _lot_size(remaining, self.max_steps)
         while remaining > 1e-9:
             p0 = self.curve(key, self.stock[key])
-            lot = min(C.MARKET_LOT, remaining)
+            lot = min(step, remaining)
             self.stock[key] += lot
             self._reprice_after_trade(key, p0)
             remaining -= lot

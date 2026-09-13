@@ -1,4 +1,4 @@
-"""Caravans: the only way value moves between markets.
+"""Caravans and cogs: the only way value moves between markets.
 
 A caravan runs a standing route -- a ring of stops, each with sell and buy
 orders -- and repeats it until told otherwise. Distance costs days, days cost
@@ -20,6 +20,9 @@ from .market import Market
 IDLE = "idle"
 MOVING = "moving"
 TRADING = "trading"
+
+CART = "cart"
+SHIP = "ship"
 
 
 @dataclass
@@ -72,6 +75,7 @@ class Caravan:
     bound_for: str = ""
     days_left: float = 0.0
     running: bool = False
+    kind: str = CART
     capacity: float = C.CARAVAN_BASE_CAPACITY
     speed: float = C.CARAVAN_BASE_SPEED
     trip_profit: float = 0.0
@@ -90,8 +94,13 @@ class Caravan:
         return max(0.0, self.capacity - self.load)
 
     @property
+    def sails(self) -> bool:
+        return self.kind == SHIP
+
+    @property
     def daily_cost(self) -> float:
-        return C.CARAVAN_UPKEEP + C.GUARD_COST * self.guards
+        base = C.SHIP_UPKEEP if self.sails else C.CARAVAN_UPKEEP
+        return base + C.GUARD_COST * self.guards
 
     def note(self, msg: str) -> None:
         self.log.append(msg)
@@ -130,6 +139,7 @@ class TradeEngine:
     def __init__(self, world, rng: random.Random) -> None:
         self.world = world
         self.rng = rng
+        self.season = "spring"      # the engine sets this each day
 
     # ------------------------------------------------------------------ day
     def tick(self, caravans: List[Caravan], treasury: float) -> Tuple[float, List[str]]:
@@ -148,6 +158,10 @@ class TradeEngine:
 
     def _refresh_stats(self, c: Caravan) -> None:
         home = self.world.settlements.get(c.home)
+        if c.sails:
+            c.capacity = C.SHIP_CAPACITY
+            c.speed = C.SHIP_SPEED
+            return
         if home:
             c.capacity = C.CARAVAN_BASE_CAPACITY + home.effect("caravan_capacity")
             c.speed = C.CARAVAN_BASE_SPEED + home.effect("caravan_speed")
@@ -156,8 +170,12 @@ class TradeEngine:
         msgs: List[str] = []
         c.days_left -= 1.0
         origin = c.at or c.home
-        risk = self.world.danger(origin, c.bound_for)
-        risk *= max(0.0, 1.0 - C.GUARD_PROTECTION * c.guards)
+        if c.sails:
+            # The sea does not care how many guards you hired.
+            risk = self.world.storm_risk(origin, c.bound_for, self.season)
+        else:
+            risk = self.world.danger(origin, c.bound_for)
+            risk *= max(0.0, 1.0 - C.GUARD_PROTECTION * c.guards)
         if self.rng.random() < risk:
             lost_value = 0.0
             take = 0.25 + 0.35 * self.rng.random()
@@ -166,11 +184,15 @@ class TradeEngine:
                 c.cargo[k] -= lost
                 mk = self.world.market_of(c.bound_for)
                 lost_value += lost * (mk.bid(k) if mk else good(k).base_price)
-            purse = 60.0 * self.rng.random() * c.guards
-            treasury -= purse
-            msg = (f"{c.name} was set upon on the road to "
-                   f"{self.world.node_name(c.bound_for)}: "
-                   f"{lost_value:.0f}c of goods gone")
+            if c.sails:
+                msg = (f"{c.name} met foul weather off "
+                       f"{self.world.node_name(c.bound_for)}: "
+                       f"{lost_value:.0f}c of cargo over the side")
+            else:
+                treasury -= 60.0 * self.rng.random() * c.guards
+                msg = (f"{c.name} was set upon on the road to "
+                       f"{self.world.node_name(c.bound_for)}: "
+                       f"{lost_value:.0f}c of goods gone")
             c.note(msg)
             msgs.append(msg)
         if c.days_left <= 0:
@@ -196,7 +218,13 @@ class TradeEngine:
         if nxt.node == here:
             c.state = IDLE          # standing orders: it works this stop again tomorrow
             return treasury, msgs
-        dist = self.world.distance(here, nxt.node)
+        if c.sails and not self.world.can_sail(here, nxt.node):
+            c.running = False
+            msgs.append(f"{c.name} cannot sail to "
+                        f"{self.world.node_name(nxt.node)} -- there is no harbour there")
+            return treasury, msgs
+        dist = (self.world.sea_distance(here, nxt.node) if c.sails
+                else self.world.distance(here, nxt.node))
         c.bound_for = nxt.node
         c.days_left = max(1.0, dist / max(c.speed, 1.0))
         c.state = MOVING

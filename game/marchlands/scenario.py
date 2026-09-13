@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import random
 
+from typing import Dict, List, Optional, Tuple
+
 from . import config as C
 from .engine import GameState
 from .events import EventEngine, RivalCompany
@@ -17,51 +19,21 @@ from .goods import ALL_KEYS
 from .market import Market
 from .settlement import Settlement
 from .tech import HOUSES, Progress
-from .world import Site, World, make_town
+from .world import ForeignTown, Site, World, make_town
 
 
-def _home_market(name: str, pop: float) -> Market:
-    m = Market(name=name, stock={}, target={})
-    start = {"wheat": 180, "flour": 60, "bread": 220, "apples": 120, "cheese": 60,
-             "wood": 280, "stone": 180, "planks": 60, "clay": 20, "ale": 30,
-             "cloth": 20, "pottery": 20, "salt": 15, "iron": 20, "tools": 6,
-             "spears": 20, "bows": 12}
-    for k in ALL_KEYS:
-        m.stock[k] = float(start.get(k, 0))
-        m.target[k] = max(25.0, 0.45 * pop)
-        m.posted[k] = m.curve(k, m.stock[k])
-    return m
+#: What a seat has in its stores on the first morning.
+OPENING_STORES = {
+    "wheat": 180, "flour": 60, "bread": 220, "apples": 120, "cheese": 60,
+    "wood": 280, "stone": 180, "planks": 60, "clay": 20, "ale": 30,
+    "cloth": 20, "pottery": 20, "salt": 15, "iron": 20, "tools": 6,
+    "spears": 20, "bows": 12,
+}
 
 
-def new_game(seed: int = 7, house: str = "plough") -> GameState:
-    if house not in HOUSES:
-        raise KeyError(f"no house called {house!r}; "
-                       f"choose from {', '.join(HOUSES)}")
-    world = World()
-
-    # ---------------------------------------------------------------- home
-    pop = 130.0
-    home = Settlement(
-        name="Aldworth",
-        terrain={"fertile": 9, "forest": 5, "hills": 2, "clay": 3, "coast": 0,
-                 "urban": 30, "rampart": 14},
-        market=_home_market("Aldworth", pop),
-        population=pop,
-        units={"spearman": 4, "archer": 3},
-        deposits={"stone": 9000.0, "iron_ore": 5200.0},
-    )
-    home.update_market_targets()
-    # The seat comes with roofs over most heads and the old lord's stores.
-    for key in ("keep", "palisade", "barracks", "cottage", "cottage", "cottage",
-                "cottage", "cottage", "farm", "farm", "woodcutter", "granary",
-                "warehouse"):
-        inst = home.start_build(key)
-        inst.days_left = 0                       # already standing at day one
-    world.settlements["aldworth"] = home
-    world.place("aldworth", 0.0, 0.0)
-
-    # ------------------------------------------------------------- the road
-    towns = [
+def _towns() -> List[ForeignTown]:
+    """The seven towns of the march, and the shore beyond them."""
+    return [
         make_town("dunmere", "Dunmere", 30, 15,
                   produces={"wood": 14, "clay": 10},
                   consumes={"bread": 5, "salt": 2, "tools": 1.2, "ale": 3},
@@ -96,33 +68,33 @@ def new_game(seed: int = 7, house: str = "plough") -> GameState:
                   lord="Warden Ulf", walls=620, muster=1.1,
                   blurb="A mining camp in the highlands. Feed it and it pays in ore."),
         make_town("havnhold", "Havnhold", 60, 110,
-                  produces={"salt": 7, "spice": 4, "silk": 2.5},
+                  produces={"salt": 10, "spice": 5},
                   consumes={"wheat": 8, "wood": 12, "iron": 4, "pottery": 4,
-                            "planks": 6},
+                            "planks": 6, "cloth": 5},
                   appetite=1.2, lawlessness=0.009, tariff=0.08, wealth=1.3,
-                  lord="Portreeve Maren", walls=700, muster=1.2,
+                  lord="Portreeve Maren", walls=700, muster=1.2, port=True,
                   blurb="A salt port with ships from the south. The only spice on the coast."),
         make_town("marchand", "Marchand", -150, 90,
-                  produces={"silk": 4, "spice": 6, "cloth": 5},
-                  consumes={"weapons": 3, "tools": 4, "salt": 4, "cheese": 5,
-                            "iron": 4, "pottery": 4},
+                  produces={"silk": 5, "spice": 6, "cloth": 7},
+                  consumes={"weapons": 3, "tools": 4, "salt": 6, "cheese": 5,
+                            "iron": 4, "pottery": 4, "wool": 10},
                   appetite=1.4, lawlessness=0.007, tariff=0.10, wealth=1.6,
-                  lord="the Count of Marchand", walls=1100, muster=1.8,
-                  blurb="The great fair, nine days out. Steep tolls, deep pockets."),
+                  lord="the Count of Marchand", walls=1100, muster=1.8, port=True,
+                  blurb="The great fair, nine days out by road, four by sea."),
+        make_town("caer_ithel", "Caer Ithel", -120, 150,
+                  produces={"wool": 14, "cheese": 8, "salt": 5},
+                  consumes={"iron": 4, "tools": 3, "ale": 5, "pottery": 4,
+                            "planks": 5},
+                  appetite=1.1, lawlessness=0.012, tariff=0.07, wealth=1.1,
+                  lord="the Lady of Caer Ithel", walls=640, muster=1.0, port=True,
+                  blurb="A wool haven on the western shore. No road worth the "
+                        "name reaches it -- come by sea or not at all."),
     ]
-    stagger = random.Random(seed * 7919)
-    for t in towns:
-        # No two lords take offence at the same rate, and none of them start
-        # from the same place -- otherwise they all declare on one morning.
-        t.temper = 0.55 + 0.95 * stagger.random()
-        t.aggression = 0.45 + 1.20 * stagger.random()
-        t.hostility = 12.0 + 48.0 * stagger.random()
-        t.ambition = 20.0 * stagger.random()
-        world.towns[t.key] = t
-        world.place(t.key, t.x, t.y)
 
-    # ------------------------------------------------------------- frontier
-    for site in [
+
+def _sites() -> List[Site]:
+    """Land nobody holds, for a price."""
+    return [
         Site("sealow", "Sealow", 55, 75,
              {"fertile": 4, "forest": 3, "hills": 1, "clay": 2, "coast": 3,
               "urban": 16, "rampart": 8}, 2800,
@@ -133,18 +105,99 @@ def new_game(seed: int = 7, house: str = "plough") -> GameState:
               "urban": 16, "rampart": 8}, 3200,
              "Iron and stone under the moor. Nothing much grows.",
              deposits={"stone": 42000.0, "iron_ore": 28000.0}),
-    ]:
+    ]
+
+
+def build_towns(world: World, seed: int, *, temper: Tuple[float, float] = (0.55, 1.50),
+                aggression: Tuple[float, float] = (0.45, 1.65),
+                hostility: Tuple[float, float] = (12.0, 60.0)) -> None:
+    """Put the seven towns and the shore on the map.
+
+    A scenario can turn the dials on the lords' patience without redrawing the
+    geography: the same march, in a better or a worse decade.
+    """
+    for t in _towns():
+        world.towns[t.key] = t
+        world.place(t.key, t.x, t.y)
+    stagger = random.Random(seed * 7919)
+    for t in world.towns.values():
+        # No two lords take offence at the same rate, and none of them start
+        # from the same place -- otherwise they all declare on one morning.
+        t.temper = temper[0] + (temper[1] - temper[0]) * stagger.random()
+        t.aggression = aggression[0] + (aggression[1] - aggression[0]) * stagger.random()
+        t.hostility = hostility[0] + (hostility[1] - hostility[0]) * stagger.random()
+        t.ambition = 20.0 * stagger.random()
+
+
+def build_sites(world: World) -> None:
+    """Unclaimed land -- minus anything a scenario has already settled."""
+    for site in _sites():
+        if site.key in world.settlements:
+            continue
         world.sites[site.key] = site
 
-    game = GameState(world=world, treasury=1800.0, seed=seed, house=house,
-                     progress=Progress(researched={house}))
-    game.events = EventEngine(rivals=[
+
+def found_seat(world: World, key: str, name: str, terrain: Dict[str, int],
+               coords: Tuple[float, float], *, population: float,
+               deposits: Dict[str, float], standing: Tuple[str, ...],
+               stock: Dict[str, float],
+               units: Optional[Dict[str, float]] = None) -> Settlement:
+    """Raise a starting settlement with what it already has standing."""
+    market = Market(name=name, stock={}, target={})
+    home = Settlement(name=name, terrain=dict(terrain), market=market,
+                      population=population, units=dict(units or {}),
+                      deposits=dict(deposits))
+    home.update_market_targets()
+    for b in standing:
+        home.start_build(b).days_left = 0
+    # Stock the stores *after* raising what is already standing, so the opening
+    # inventory is exactly what it says on the tin rather than whatever the
+    # pre-built keep left behind.
+    for k in ALL_KEYS:
+        market.stock[k] = float(stock.get(k, 0))
+        market.posted[k] = market.curve(k, market.stock[k])
+    world.settlements[key] = home
+    world.place(key, *coords)
+    return home
+
+
+def default_rivals() -> EventEngine:
+    return EventEngine(rivals=[
         RivalCompany("the Vellani House", reach=1.3, nerve=0.10),
         RivalCompany("the Ostmark Guild", reach=0.9, nerve=0.16),
         RivalCompany("the Brotherhood of the Sea", reach=1.6, nerve=0.22),
     ])
+
+
+def new_game(seed: int = 7, house: str = "plough") -> GameState:
+    if house not in HOUSES:
+        raise KeyError(f"no house called {house!r}; "
+                       f"choose from {', '.join(HOUSES)}")
+    world = World()
+
+    home = found_seat(
+        world, "aldworth", "Aldworth",
+        {"fertile": 9, "forest": 5, "hills": 2, "clay": 3, "coast": 0,
+         "urban": 30, "rampart": 14}, (0.0, 0.0),
+        population=130.0,
+        deposits={"stone": 9000.0, "iron_ore": 5200.0},
+        units={"spearman": 4, "archer": 3},
+        # The seat comes with roofs over most heads and the old lord's stores.
+        standing=("keep", "palisade", "barracks", "cottage", "cottage", "cottage",
+                  "cottage", "cottage", "farm", "farm", "woodcutter", "granary",
+                  "warehouse"),
+        stock=OPENING_STORES)
+
+    # ------------------------------------------------------------- the road
+    build_towns(world, seed)
+    build_sites(world)
+
+    game = GameState(world=world, treasury=1800.0, seed=seed, house=house,
+                     progress=Progress(researched={house}))
+    game.events = default_rivals()
     home.wall_hp = home.wall_max(game.progress)
     # One cart to start, so the first day has a decision in it.
-    car, _ = game.new_caravan("aldworth", "Old Mare")
+    game.new_caravan("aldworth", "Old Mare")
     game.treasury += C.CARAVAN_COST      # the first one is a gift
+    game._outlay = 0.0                   # ...and the ledger should not bill it
     return game

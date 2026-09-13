@@ -115,6 +115,45 @@ class TestConsole(unittest.TestCase):
                               "host aldworth spearman 900")
         self.assertGreaterEqual(out.count("!"), 4)
 
+    def test_onboarding_commands(self):
+        out = self.run_script("briefing", "scenarios", "hint")
+        self.assertIn("Marchlands", out)
+        self.assertIn("salt_road", out)
+        self.assertIn("*", out)          # the hints are bulleted
+
+    def test_hints_point_at_what_is_actually_wrong(self):
+        g = self.con.game
+        s = g.world.settlements["aldworth"]
+        for k in ("bread", "apples", "cheese", "wheat", "flour"):
+            s.market.stock[k] = 0.0
+        hints = " ".join(self.con.hints())
+        self.assertIn("food", hints.lower())
+
+    def test_autosave_writes_after_every_turn(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "auto.save")
+            self.run_script(f"autosave {path}", "next 2")
+            self.assertTrue(os.path.exists(path))
+            self.run_script("autosave off")
+            os.remove(path)
+            self.run_script("next 1")
+            self.assertFalse(os.path.exists(path))
+
+    def test_the_sea(self):
+        g = self.con.game
+        g.treasury = 60_000
+        g.progress.age = 2
+        g.found("sealow")
+        s = g.world.settlements["sealow"]
+        for k, q in (("wood", 300), ("planks", 200), ("stone", 300)):
+            s.market.add(k, q)
+        g.build("sealow", "harbour")
+        s.buildings[-1].days_left = 0
+        out = self.run_script("scan sea 3", "new ship sealow", "caravans", "map")
+        self.assertIn("hull of", out)
+        self.assertIn("launched at", out)
+        self.assertTrue(any(c.sails for c in g.caravans))
+
     def test_quit_sets_the_flag(self):
         self.run_script("quit")
         self.assertTrue(self.con.quit)

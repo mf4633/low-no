@@ -84,6 +84,13 @@ CARAVAN_COST = 300.0            # coins to outfit
 CARAVAN_UPKEEP = 4.0            # coins per day, whether it moves or not
 GUARD_COST = 3.0                # coins per guard per day
 GUARD_PROTECTION = 0.22         # share of banditry removed per guard
+SHIP_COST = 900.0               # coins to build and rig a cog
+SHIP_CAPACITY = 420.0           # a hull holds what four carts hold
+SHIP_SPEED = 60.0               # sea leagues per day
+SHIP_UPKEEP = 11.0              # coins per day, crew and caulking
+SEA_DIRECTNESS = 0.80           # sea miles against land miles between two ports
+STORM_RISK = 0.018              # per sailing day in fair season
+STORM_WINTER = 3.0              # and how much worse the winter sea is
 BASE_TARIFF = 0.06              # foreign toll on both sides of a deal
 TRADING_POST_TARIFF_RELIEF = 0.45
 

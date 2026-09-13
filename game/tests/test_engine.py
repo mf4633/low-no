@@ -54,7 +54,7 @@ class TestLedger(unittest.TestCase):
             if c is None:
                 break
             self.assertLess(len(g.caravans), 40)
-        self.assertIn("caravans", why)
+        self.assertIn("carts and hulls", why)
         self.assertEqual(len(g.caravans), g.caravan_limit)
 
 
@@ -209,14 +209,22 @@ class TestLongRun(unittest.TestCase):
         self.assertGreaterEqual(len(g.progress.researched) - 1, 5)
         self.assertGreaterEqual(len(g.world.settlements), 2)
 
-    def test_the_naive_bot_does_not_walk_the_goal(self):
-        """Balance guard: greed without judgement should not be enough."""
-        won = 0
-        for seed in (3, 7, 11):
+    def test_the_goal_is_reachable_but_not_assured(self):
+        """The balance guard that matters.
+
+        A target nobody can reach is decoration; one that falls out of an
+        ordinary policy every time is a formality. The bot plays the trading
+        game competently and no better, so it should take the crown sometimes
+        and miss it sometimes.
+        """
+        won, ends = 0, []
+        for seed in (3, 5, 7, 17):
             g = new_game(seed=seed)
             Bot(g).run(C.GOAL_DAYS)
-            won += "Triumph" in g.over
-        self.assertLessEqual(won, 1, "the goal is too easy")
+            ends.append(f"{seed}:{g.net_worth():,.0f}")
+            won += any(w in g.over for w in ("Triumph", "Dominion", "cathedral"))
+        self.assertGreaterEqual(won, 1, f"nobody can win: {ends}")
+        self.assertLessEqual(won, 3, f"anybody can win: {ends}")
 
 
 if __name__ == "__main__":

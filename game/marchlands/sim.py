@@ -11,12 +11,11 @@ import argparse
 from typing import Dict, List, Optional
 
 from . import config as C
-from .advisor import route_from, scan
+from .advisor import FAST_STEPS, route_from, scan
 from .engine import GameState
 from .goods import RATION_GOODS, good, nourishment
 from .military import UNITS, host_strength
-from .scenario import new_game
-from .trade import Order, Stop
+from .trade import SHIP, Order, Stop
 
 # Feed the town, then work up the chain. Order is a preference, not a queue --
 # the bot takes the first thing it can actually afford and has land for.
@@ -37,9 +36,9 @@ HOME_PLAN = [
     "guardhouse", "townhouse", "siege_yard", "townhouse", "cottage",
 ]
 COLONY_PLAN = [
-    "woodcutter", "cottage", "farm", "quarry", "saltworks", "clay_pit",
-    "orchard", "cottage", "mill", "bakery", "granary", "iron_mine",
-    "charcoal_burner", "smelter", "cottage", "market", "palisade",
+    "woodcutter", "cottage", "farm", "sawmill", "quarry", "saltworks",
+    "orchard", "harbour", "cottage", "mill", "bakery", "clay_pit", "granary",
+    "iron_mine", "charcoal_burner", "smelter", "cottage", "market", "palisade",
     "townhouse", "barracks", "poleturner", "stone_wall", "townhouse",
 ]
 
@@ -60,6 +59,8 @@ class Bot:
         self.home = next(iter(game.world.settlements))
         self.supply_cart: Optional[int] = None
         self.errand: Optional[tuple] = None    # (cart uid, good, target stock)
+        self._survey: List = []                # the last market survey
+        self._scanned_on = -99
 
     def plan_for(self, key: str) -> List[str]:
         if key not in self.plans:
@@ -269,12 +270,24 @@ class Bot:
     def _errand_cart(self) -> Optional[int]:
         return self.errand[0] if self.errand else None
 
+    def _port(self) -> Optional[str]:
+        """One of yours with a quay, if the coast has been settled."""
+        return next((k for k, s in self.game.world.settlements.items()
+                     if s.effect("port")), None)
+
     def _carts(self) -> None:
         g = self.game
-        if len(g.caravans) < g.caravan_limit and g.treasury > C.CARAVAN_COST * 4:
-            cart, _why = g.new_caravan(self.home)
-            if cart:
-                cart.guards = 3
+        port = self._port()
+        if len(g.caravans) < g.caravan_limit:
+            # A hull carries four carts' worth and outruns them; once there is
+            # a quay it is the better buy.
+            if port and g.treasury > C.SHIP_COST * 2.5 and not any(
+                    c.sails for c in g.caravans):
+                g.new_caravan(port, kind=SHIP)
+            elif g.treasury > C.CARAVAN_COST * 4:
+                cart, _why = g.new_caravan(self.home)
+                if cart:
+                    cart.guards = 3
         colonies = [k for k in g.world.settlements if k != self.home]
         idle: List = []
         for c in g.caravans:
@@ -315,13 +328,25 @@ class Bot:
             # trade: three carts on one route is three carts crushing one price.
             # Trading capital is not capital spending: a cart spends and
             # recovers within the trip, so it draws on the whole treasury.
-            opts = scan(g.world, self.home, capacity=idle[0].capacity,
-                        speed=idle[0].speed, budget=max(0.0, g.treasury * 0.5),
-                        top=3 + len(idle))
+            # The survey keeps for a few days. Prices move, but not that fast,
+            # and pricing every trade in the march is the expensive part.
+            if g.day - self._scanned_on >= 3 or not self._survey:
+                self._survey = scan(g.world, self.home, capacity=idle[0].capacity,
+                                    speed=idle[0].speed, steps=FAST_STEPS,
+                                    budget=max(0.0, g.treasury * 0.5),
+                                    top=3 + len(idle))
+                self._scanned_on = g.day
+            opts = self._survey
             taken = {tuple(sorted(s.node for s in c.route)) for c in g.caravans
                      if c.running and c.route}
             for c in idle:
-                for opp in opts:
+                shopping = opts
+                if c.sails:
+                    shopping = scan(g.world, c.at or c.home, capacity=c.capacity,
+                                    speed=c.speed, sails=True, steps=FAST_STEPS,
+                                    daily_cost=c.daily_cost,
+                                    budget=max(0.0, g.treasury * 0.5), top=4)
+                for opp in shopping:
                     sig = tuple(sorted((opp.frm, opp.to)))
                     if sig in taken or opp.per_day <= 0:
                         continue
@@ -574,9 +599,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--days", type=int, default=C.GOAL_DAYS)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--every", type=int, default=180, help="report interval")
+    ap.add_argument("--scenario", default="marchlands")
+    ap.add_argument("--war", action="store_true", help="run the conqueror instead")
     args = ap.parse_args(argv)
-    game = new_game(seed=args.seed)
-    bot = Bot(game)
+    from .scenarios import start
+    game = start(args.scenario, seed=args.seed)
+    bot = (Conqueror if args.war else Bot)(game)
     for _ in range(args.days):
         bot.step()
         game.tick()

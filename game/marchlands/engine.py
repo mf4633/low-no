@@ -24,11 +24,39 @@ from .military import (BESIEGING, GARRISON, MARCHING, RETURNING, UNITS, Army,
                        host_strength, recruit_cost, siege_day, unit)
 from .settlement import Settlement
 from .tech import AGES, TECHS, Progress
-from .trade import Caravan, TradeEngine, caravan_from_dict, caravan_to_dict
+from .trade import (CART, SHIP, Caravan, TradeEngine, caravan_from_dict,
+                    caravan_to_dict)
 from .world import World
 
 SAVE_VERSION = 2
 CATHEDRAL_HOLD = 180
+
+
+@dataclass
+class Goals:
+    """What this game is played for. A scenario sets its own."""
+    net_worth: float = C.GOAL_NET_WORTH
+    population: int = C.GOAL_POPULATION
+    towns: int = C.GOAL_TOWNS
+    days: int = C.GOAL_DAYS
+    bankruptcy: float = C.BANKRUPTCY_FLOOR
+    wonder: bool = True               # may the cathedral win it?
+    paths: Tuple[str, ...] = ("wealth", "dominion", "bells")
+
+    @property
+    def years(self) -> int:
+        return max(1, round(self.days / C.DAYS_PER_YEAR))
+
+    def to_dict(self) -> dict:
+        d = self.__dict__.copy()
+        d["paths"] = list(self.paths)
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Goals":
+        d = dict(d)
+        d["paths"] = tuple(d.get("paths", ("wealth", "dominion", "bells")))
+        return cls(**d)
 
 
 @dataclass
@@ -65,7 +93,11 @@ class GameState:
     armies: List[Army] = field(default_factory=list)
     events: EventEngine = field(default_factory=EventEngine)
     progress: Progress = field(default_factory=Progress)
+    goals: Goals = field(default_factory=Goals)
     house: str = ""
+    scenario: str = "marchlands"
+    briefing: str = ""
+    start_month: int = C.START_MONTH
     seed: int = 7
     next_caravan_uid: int = 1
     next_army_uid: int = 1
@@ -85,7 +117,7 @@ class GameState:
     # ------------------------------------------------------------- calendar
     @property
     def _calendar_day(self) -> int:
-        return self.day + (C.START_MONTH - 1) * C.DAYS_PER_MONTH
+        return self.day + (self.start_month - 1) * C.DAYS_PER_MONTH
 
     @property
     def year(self) -> int:
@@ -191,6 +223,7 @@ class GameState:
 
         # 5. Caravans move and deal.
         before_trade = self.treasury
+        self.trade_engine.season = self.season
         caravan_cost = sum(c.daily_cost for c in self.caravans)
         self.treasury, tmsgs = self.trade_engine.tick(self.caravans, self.treasury)
         led.caravans = caravan_cost
@@ -838,7 +871,7 @@ class GameState:
     def _check_ending(self) -> List[str]:
         if self.over:
             return [self.over]
-        if self.treasury < C.BANKRUPTCY_FLOOR:
+        if self.treasury < self.goals.bankruptcy:
             self.over = "Ruined. Your debts outran your carts."
             return [self.over]
         if self.population < 5:
@@ -846,11 +879,12 @@ class GameState:
                          "nothing left to rule.")
             return [self.over]
         vassals = self.world.vassals()
-        if len(vassals) >= C.GOAL_TOWNS:
+        if "dominion" in self.goals.paths and len(vassals) >= self.goals.towns:
             self.over = (f"Dominion. {len(vassals)} towns of the march answer to you: "
                          f"{', '.join(self.world.node_name(v) for v in vassals)}.")
             return [self.over]
-        if any(s.effect("wonder") for s in self.world.settlements.values()):
+        if self.goals.wonder and any(s.effect("wonder")
+                                     for s in self.world.settlements.values()):
             self.cathedral_days += 1
             if self.cathedral_days == 1:
                 return [f"The cathedral is finished. Hold it {CATHEDRAL_HOLD} days."]
@@ -859,31 +893,39 @@ class GameState:
                              "half a year. The marches are yours.")
                 return [self.over]
         worth = self.net_worth()
-        if worth >= C.GOAL_NET_WORTH and self.population >= C.GOAL_POPULATION:
+        if ("wealth" in self.goals.paths and worth >= self.goals.net_worth
+                and self.population >= self.goals.population):
             self.over = (f"Triumph. {worth:,.0f}c of house and holdings, "
                          f"{self.population:.0f} souls, in {self.day} days.")
             return [self.over]
-        if self.day >= C.GOAL_DAYS:
+        if self.day >= self.goals.days:
             self.over = (f"Time called. You end with {worth:,.0f}c against a goal of "
-                         f"{C.GOAL_NET_WORTH:,.0f}c, {self.population:.0f} of "
-                         f"{C.GOAL_POPULATION} souls and {len(vassals)} of "
-                         f"{C.GOAL_TOWNS} towns.")
+                         f"{self.goals.net_worth:,.0f}c, {self.population:.0f} of "
+                         f"{self.goals.population} souls and {len(vassals)} of "
+                         f"{self.goals.towns} towns.")
             return [self.over]
         return []
 
     # ------------------------------------------------------------- caravans
-    def new_caravan(self, home: str, name: str = "") -> Tuple[Optional[Caravan], str]:
+    def new_caravan(self, home: str, name: str = "",
+                    kind: str = CART) -> Tuple[Optional[Caravan], str]:
         if home not in self.world.settlements:
             return None, f"{home} is not yours to outfit from"
         if len(self.caravans) >= self.caravan_limit:
-            return None, (f"you can run {self.caravan_limit} caravans; "
-                          f"build a trading post for another")
-        if self.treasury < C.CARAVAN_COST:
-            return None, f"outfitting costs {C.CARAVAN_COST:.0f}c"
-        self.treasury -= C.CARAVAN_COST
+            return None, (f"you can run {self.caravan_limit} carts and hulls; "
+                          f"build a trading post or a harbour for another")
+        if kind == SHIP and not self.world.settlements[home].effect("port"):
+            return None, f"{self.world.node_name(home)} has no harbour to build a cog in"
+        cost = C.SHIP_COST if kind == SHIP else C.CARAVAN_COST
+        if self.treasury < cost:
+            return None, f"that costs {cost:,.0f}c and you have {self.treasury:,.0f}c"
+        self.treasury -= cost
+        self._outlay += cost
         uid = self.next_caravan_uid
         self.next_caravan_uid += 1
-        c = Caravan(uid=uid, name=name or f"Caravan {uid}", home=home, at=home)
+        label = "Cog" if kind == SHIP else "Caravan"
+        c = Caravan(uid=uid, name=name or f"{label} {uid}", home=home, at=home,
+                    kind=kind)
         self.caravans.append(c)
         return c, ""
 
@@ -901,7 +943,7 @@ class GameState:
             for k, q in list(c.cargo.items()):
                 market.add(k, q)
         self.caravans.remove(c)
-        self.treasury += C.CARAVAN_COST * 0.4
+        self.treasury += (C.SHIP_COST if c.sails else C.CARAVAN_COST) * 0.4
         return f"{c.name} disbanded at {self.world.node_name(c.at)}"
 
     # -------------------------------------------------------------- building
@@ -927,6 +969,9 @@ class GameState:
         site = self.world.sites.get(site_key)
         if not site:
             return f"no unclaimed site called {site_key!r}"
+        if site.key in self.world.settlements:
+            del self.world.sites[site_key]
+            return f"{site.name} is already yours"
         if self.treasury < site.coin_cost:
             return (f"settling {site.name} costs {site.coin_cost:,.0f}c; "
                     f"you have {self.treasury:,.0f}c")
@@ -954,6 +999,8 @@ class GameState:
             "version": SAVE_VERSION, "day": self.day, "treasury": self.treasury,
             "seed": self.seed, "next_caravan_uid": self.next_caravan_uid,
             "next_army_uid": self.next_army_uid, "house": self.house,
+            "goals": self.goals.to_dict(), "scenario": self.scenario,
+            "briefing": self.briefing, "start_month": self.start_month,
             "over": self.over, "world": self.world.to_dict(),
             "caravans": [caravan_to_dict(c) for c in self.caravans],
             "armies": [a.to_dict() for a in self.armies],
@@ -970,7 +1017,11 @@ class GameState:
     @classmethod
     def from_dict(cls, d: dict) -> "GameState":
         g = cls(world=World.from_dict(d["world"]), treasury=d["treasury"],
-                day=d["day"], seed=d["seed"], house=d.get("house", ""))
+                day=d["day"], seed=d["seed"], house=d.get("house", ""),
+                goals=Goals.from_dict(d.get("goals", {})),
+                scenario=d.get("scenario", "marchlands"),
+                briefing=d.get("briefing", ""),
+                start_month=d.get("start_month", C.START_MONTH))
         g.caravans = [caravan_from_dict(c) for c in d["caravans"]]
         g.armies = [Army.from_dict(a) for a in d.get("armies", [])]
         g.events = EventEngine.from_dict(d["events"])

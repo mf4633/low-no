@@ -61,6 +61,7 @@ class ForeignTown:
     muster: float = 1.0           # how big a host this town can put in the field
     temper: float = 1.0           # how quickly this lord takes offence
     prosperity: float = 1.0       # grows in peace, falls when stormed
+    harbour: bool = False         # ships may call here
 
     @property
     def mine(self) -> bool:
@@ -143,7 +144,7 @@ class ForeignTown:
                 "garrison": dict(self.garrison), "wall_hp": self.wall_hp,
                 "wall_max": self.wall_max, "wall_base": self.wall_base,
                 "muster": self.muster, "temper": self.temper,
-                "prosperity": self.prosperity}
+                "prosperity": self.prosperity, "harbour": self.harbour}
 
     @classmethod
     def from_dict(cls, d: dict) -> "ForeignTown":
@@ -159,7 +160,7 @@ class ForeignTown:
         t.wall_hp = d.get("wall_hp", 0.0)
         t.wall_max = d.get("wall_max", 0.0)
         for name in ("ambition", "aggression", "truce_days", "favour", "muster",
-                     "temper", "prosperity", "wall_base"):
+                     "temper", "prosperity", "wall_base", "harbour"):
             if name in d:
                 setattr(t, name, d[name])
         return t
@@ -198,6 +199,30 @@ class World:
     def distance(self, a: str, b: str) -> float:
         (ax, ay), (bx, by) = self.coords[a], self.coords[b]
         return math.hypot(ax - bx, ay - by)
+
+    # ------------------------------------------------------------- the sea
+    def is_port(self, key: str) -> bool:
+        """A foreign harbour, or one of yours once the quay is built."""
+        t = self.towns.get(key)
+        if t is not None:
+            return t.harbour
+        s = self.settlements.get(key)
+        return bool(s and s.effect("port"))
+
+    def ports(self) -> List[str]:
+        return [k for k in self.all_nodes() if self.is_port(k)]
+
+    def sea_distance(self, a: str, b: str) -> float:
+        return self.distance(a, b) * C.SEA_DIRECTNESS
+
+    def can_sail(self, a: str, b: str) -> bool:
+        return self.is_port(a) and self.is_port(b)
+
+    def storm_risk(self, a: str, b: str, season: str) -> float:
+        """The sea is quicker and cheaper, and it drowns people in winter."""
+        rough = C.STORM_WINTER if season == "winter" else (
+            1.6 if season == "autumn" else 1.0)
+        return C.STORM_RISK * rough * (0.5 + self.sea_distance(a, b) / 260.0)
 
     def danger(self, a: str, b: str) -> float:
         """Chance per travelling day that a caravan meets trouble."""
@@ -309,7 +334,8 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
               wealth: float = 1.0, blurb: str = "",
               trades: Optional[Iterable[str]] = None,
               lord: str = "", walls: float = 500.0, muster: float = 1.0,
-              garrison: Optional[Dict[str, float]] = None) -> ForeignTown:
+              garrison: Optional[Dict[str, float]] = None,
+              port: bool = False) -> ForeignTown:
     """Build a foreign town from a surplus/deficit sketch.
 
     Targets are set so that the town's own flow leaves it visibly long of what
@@ -339,4 +365,5 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
                        garrison=dict(garrison or {
                            "spearman": round(11 * muster), "archer": round(8 * muster),
                            "man_at_arms": round(4 * muster)}),
-                       wall_hp=walls, wall_max=walls, wall_base=walls, muster=muster)
+                       wall_hp=walls, wall_max=walls, wall_base=walls, muster=muster,
+                       harbour=port)

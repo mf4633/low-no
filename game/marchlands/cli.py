@@ -11,13 +11,13 @@ from .advisor import route_from, scan, shortage_report
 from .buildings import ALL_BUILDING_KEYS, BUILDINGS, building
 from .buildings import resolve as resolve_building
 from .engine import GameState
-from .goods import ALL_KEYS, good
+from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
 from .military import UNITS, describe, host_strength, host_upkeep
 from .military import resolve as resolve_unit
-from .scenario import new_game
+from .scenarios import CAMPAIGN, SCENARIOS, start as start_scenario
 from .tech import AGES, HOUSES, TECHS
-from .trade import IDLE, MOVING, TRADING, Order, Stop
+from .trade import CART, IDLE, MOVING, SHIP, TRADING, Order, Stop
 
 BARS = " ▁▂▃▄▅▆▇█"
 RULE = "-" * 72
@@ -43,6 +43,7 @@ class Console:
         self.out = out
         self.here = next(iter(game.world.settlements))
         self.quit = False
+        self.autosave_path = ""
 
     # ------------------------------------------------------------------ i/o
     def say(self, *lines: str) -> None:
@@ -74,10 +75,10 @@ class Console:
         vassals = g.world.vassals()
         self.say(RULE,
                  f"  {g.date_str():<38}  treasury {g.treasury:>10,.0f}c",
-                 f"  net worth {g.net_worth():>10,.0f}c of {C.GOAL_NET_WORTH:,.0f}"
-                 f"      souls {g.population:>6,.0f} of {C.GOAL_POPULATION}",
+                 f"  net worth {g.net_worth():>10,.0f}c of {g.goals.net_worth:,.0f}"
+                 f"      souls {g.population:>6,.0f} of {g.goals.population}",
                  f"  {p.age_name():<24} {HOUSES[g.house].name if g.house else '':<26}"
-                 f"  towns sworn {len(vassals)} of {C.GOAL_TOWNS}",
+                 f"  towns sworn {len(vassals)} of {g.goals.towns}",
                  RULE)
         for s in g.world.settlements.values():
             bar = "#" * int(s.popularity / 5) + "." * (20 - int(s.popularity / 5))
@@ -275,9 +276,12 @@ class Console:
         if uid is None:
             self.say(RULE, f"  caravans ({len(g.caravans)}/{g.caravan_limit})", RULE)
             for c in g.caravans:
-                state = {IDLE: "idle", MOVING: "on the road", TRADING: "in town"}[c.state]
-                self.say(f"  [{c.uid}] {c.name:<12} {state:<12} {c.where():<22}"
-                         f" {c.guards} guards  {c.total_profit:+,.0f}c lifetime")
+                state = {IDLE: "idle", MOVING: "on the road" if not c.sails else "at sea",
+                         TRADING: "in port" if c.sails else "in town"}[c.state]
+                self.say(f"  [{c.uid}] {c.name:<12} {'cog' if c.sails else 'cart':<5}"
+                         f"{state:<12} {c.where():<20}"
+                         f" {c.load:>4.0f}/{c.capacity:<4.0f}"
+                         f" {c.total_profit:+,.0f}c lifetime")
                 if c.route:
                     self.say("       route: " + "  ->  ".join(
                         s.describe() for s in c.route) + ("  (looping)" if c.running else "  (halted)"))
@@ -296,16 +300,29 @@ class Console:
         for line in c.log[-8:]:
             self.say(f"     . {line}")
 
-    def scan_view(self, top: int = 8) -> None:
+    def scan_view(self, top: int = 8, sails: bool = False) -> None:
         g = self.game
-        cap = C.CARAVAN_BASE_CAPACITY + self.settlement().effect("caravan_capacity")
-        spd = C.CARAVAN_BASE_SPEED + self.settlement().effect("caravan_speed")
-        self.say(RULE, f"  the counting house  (cart of {cap:.0f} units at {spd:.0f} leagues/day,"
-                 f" all costs in)", RULE)
-        for o in scan(g.world, self.here, capacity=cap, speed=spd,
-                      budget=max(0.0, g.treasury), top=top):
+        if sails:
+            cap, spd = C.SHIP_CAPACITY, C.SHIP_SPEED
+            cost = C.SHIP_UPKEEP + C.GUARD_COST
+            what = f"hull of {cap:.0f} units at {spd:.0f} sea leagues/day"
+        else:
+            cap = C.CARAVAN_BASE_CAPACITY + self.settlement().effect("caravan_capacity")
+            spd = C.CARAVAN_BASE_SPEED + self.settlement().effect("caravan_speed")
+            cost = C.CARAVAN_UPKEEP + C.GUARD_COST
+            what = f"cart of {cap:.0f} units at {spd:.0f} leagues/day"
+        self.say(RULE, f"  the counting house  ({what}, all costs in)", RULE)
+        rows = scan(g.world, self.here, capacity=cap, speed=spd, daily_cost=cost,
+                    budget=max(0.0, g.treasury), top=top, sails=sails)
+        for o in rows:
             self.say("  " + o.describe(self._name))
-        self.say("  (`auto <caravan>` puts a cart on the best of these)")
+        if not rows:
+            self.say("  nothing worth the wheels today")
+        if not sails and g.world.ports():
+            mine = any(x.effect("port") for x in g.world.settlements.values())
+            self.say("  (`scan sea` prices the same trades for a cog"
+                     + ("" if mine else " -- you need a harbour first") + ")")
+        self.say("  (`auto <caravan>` puts a cart or a hull on the best of these)")
 
     def map_view(self) -> None:
         g = self.game
@@ -332,11 +349,13 @@ class Console:
 
         labels: List[str] = []
         for key, (x, y) in sorted(g.world.coords.items()):
-            plot(x, y, ("@" if g.world.is_mine(key) else "o") + self._name(key))
+            mark = "@" if g.world.is_mine(key) else ("~" if g.world.is_port(key) else "o")
+            plot(x, y, mark + self._name(key))
             labels.append(f"{self._name(key):<10} {g.world.distance(self.here, key):>4.0f} leagues")
         for key, site in g.world.sites.items():
             plot(site.x, site.y, "+" + site.name)
-        self.say(RULE, "  the marchlands   (@ yours, o foreign, + unclaimed)", RULE)
+        self.say(RULE, "  the marchlands   (@ yours, o foreign, ~ port, "
+                 "+ unclaimed)", RULE)
         for row in grid:
             self.say("  " + "".join(row).rstrip())
         self.say(RULE)
@@ -380,14 +399,131 @@ class Console:
     def cmd_help(self, args: List[str]) -> None:
         if args:
             topic = args[0].lower()
+            if topic in ("win", "goal", "goals"):
+                return self.say(self.win_text())
             if topic in HELP_TOPICS:
                 return self.say(HELP_TOPICS[topic])
         self.say(HELP)
+
+    def win_text(self) -> str:
+        g = self.game
+        goals = g.goals
+        lines = [""]
+        ways = []
+        if "wealth" in goals.paths:
+            ways.append(f"    WEALTH    {goals.net_worth:,.0f}c of net worth with "
+                        f"{goals.population} souls under your rule.")
+        if "dominion" in goals.paths:
+            ways.append(f"    DOMINION  {goals.towns} towns sworn to you -- "
+                        f"and still held at the end.")
+        if "bells" in goals.paths and goals.wonder:
+            ways.append("    THE BELLS Finish the cathedral and hold it half a year.")
+        word = {1: "One way", 2: "Two ways", 3: "Three ways"}.get(len(ways), "Ways")
+        lines.append(f"  {word}, inside {goals.years} years:")
+        lines.append("")
+        lines += ways
+        lines += ["",
+                  f"  You lose if your debts pass {abs(goals.bankruptcy):,.0f}c, or there is",
+                  "  nowhere left that you hold. Being stormed is survivable: the keep",
+                  "  comes down and the town is gutted, but a lord with a second",
+                  "  settlement is still a lord."]
+        return "\n".join(lines)
 
     def cmd_next(self, args: List[str]) -> None:
         n = int(args[0]) if args else 1
         self.game.advance(n)
         self.status()
+        self._autosave()
+
+    def _autosave(self) -> None:
+        if not self.autosave_path:
+            return
+        try:
+            self.game.save(self.autosave_path)
+        except OSError as exc:                       # pragma: no cover - disk
+            self.err(f"could not autosave: {exc}")
+
+    def cmd_autosave(self, args: List[str]) -> None:
+        if args and args[0].lower() in ("off", "no", "stop"):
+            self.autosave_path = ""
+            return self.say("  autosave off")
+        self.autosave_path = args[0] if args else "marchlands.autosave"
+        self._autosave()
+        self.say(f"  autosaving to {self.autosave_path} after every `next`")
+
+    def cmd_scenarios(self, args: List[str]) -> None:
+        self.say(RULE, "  scenarios", RULE)
+        for i, key in enumerate(CAMPAIGN, 1):
+            sc = SCENARIOS[key]
+            here = "  <- you are here" if key == self.game.scenario else ""
+            self.say(f"  {i}. {sc.key:<14} {sc.name:<20} {sc.years:g}y{here}")
+            self.say(f"     {sc.blurb}")
+        self.say("", "  start one with:  python3 -m marchlands --scenario <key>")
+
+    def cmd_briefing(self, args: List[str]) -> None:
+        g = self.game
+        sc = SCENARIOS.get(g.scenario)
+        self.say(RULE, f"  {sc.name if sc else g.scenario}", RULE)
+        for line in (g.briefing or "").splitlines():
+            self.say(f"  {line}")
+        self.say(self.win_text())
+
+    def cmd_hint(self, args: List[str]) -> None:
+        for line in self.hints():
+            self.say(f"  * {line}")
+
+    def hints(self) -> List[str]:
+        """What a patient steward would point at, in the order he would."""
+        g = self.game
+        out: List[str] = []
+        s = self.settlement()
+        p = g.progress
+        food = nourishment({k: s.market.stock[k] for k in RATION_GOODS})
+        days = food / max(0.2 * s.population, 1e-6)
+        coming = [a for a in g.armies if a.owner != "player"]
+        if coming:
+            a = coming[0]
+            out.append(f"{a.name} is {a.where()} with {describe(a.units)}. "
+                       f"`garrison` shows what you have; `recruit` adds to it.")
+        if days < 12:
+            out.append(f"{s.name} has about {days:.0f} days of food. Build a farm, "
+                       f"a mill and a bakery -- or buy bread in from Vantry.")
+        if s.popularity < 40:
+            out.append(f"Mood at {s.name} is {s.popularity:.0f}. `town` lists what is "
+                       f"pulling it down; rations and taxes are the two big levers.")
+        if s.housing(p) < s.population + 5:
+            out.append(f"No roofs to spare at {s.name} -- nobody new will come. "
+                       f"Build cottages (or townhouses, from the third age).")
+        idle = [c for c in g.caravans if not c.running]
+        if idle:
+            out.append(f"Caravan {idle[0].uid} is standing idle. `scan`, then "
+                       f"`auto {idle[0].uid}` puts it on the best trade going.")
+        if not p.advancing and p.next_age():
+            nxt = p.next_age()
+            coin = nxt.cost.get("coin", 0)
+            if g.treasury > coin:
+                out.append(f"You can afford the {nxt.name} ({coin:,.0f}c). "
+                           f"`age` shows what else it wants; `age begin` starts it.")
+        if p.age >= 2 and not p.researching and any(
+                x.effect("research") for x in g.world.settlements.values()):
+            out.append("The guildhall is idle. `tech` lists what it could take up.")
+        if p.age >= 2 and not any(x.effect("research")
+                                  for x in g.world.settlements.values()):
+            out.append("No guildhall yet -- without one nothing is ever researched.")
+        coastal = [x for x in g.world.settlements.values()
+                   if x.terrain.get("coast") and not x.effect("port")]
+        if coastal and p.age >= 2:
+            out.append(f"{coastal[0].name} is on the water. A harbour there opens "
+                       f"the sea, and a hull carries four carts' worth.")
+        if g.world.sites and g.treasury > 6000:
+            key = min(g.world.sites, key=lambda k: g.world.sites[k].coin_cost)
+            site = g.world.sites[key]
+            out.append(f"You could settle {site.name} for {site.coin_cost:,.0f}c. "
+                       f"One hill will not hold {g.goals.population} souls.")
+        if not out:
+            out.append("Nothing pressing. `scan` for a better route, `war` to see "
+                       "who is arming, `age` for the long game.")
+        return out[:4]
 
     def cmd_status(self, args: List[str]) -> None:
         self.status()
@@ -662,10 +798,19 @@ class Console:
         self.caravan_view(int(args[0]) if args else None)
 
     def cmd_new(self, args: List[str]) -> None:
+        """new [cart|ship] [town] [name]"""
+        kind = CART
+        if args and args[0].lower() in ("ship", "cog", "cart", "caravan"):
+            kind = SHIP if args[0].lower() in ("ship", "cog") else CART
+            args = args[1:]
         town = self._node(args[0]) if args else self.here
         name = args[1] if len(args) > 1 else ""
-        c, why = self.game.new_caravan(town, name)
-        self.say(f"  {c.name} outfitted at {self._name(town)}" if c else f"  ! {why}")
+        c, why = self.game.new_caravan(town, name, kind=kind)
+        if not c:
+            return self.err(why)
+        what = "launched at" if c.sails else "outfitted at"
+        self.say(f"  {c.name} {what} {self._name(town)} "
+                 f"({c.capacity:.0f} units at {c.speed:.0f} leagues/day)")
 
     def cmd_guards(self, args: List[str]) -> None:
         c = self.game.caravan(int(args[0]))
@@ -700,8 +845,9 @@ class Console:
         c = g.caravan(int(args[0]))
         if not c:
             return self.err("no such caravan")
-        opts = scan(g.world, self.here, capacity=c.capacity, speed=c.speed,
-                    budget=max(0.0, g.treasury), top=3)
+        opts = scan(g.world, self.here if not c.sails else c.at,
+                    capacity=c.capacity, speed=c.speed, sails=c.sails,
+                    daily_cost=c.daily_cost, budget=max(0.0, g.treasury), top=3)
         if not opts:
             return self.err("the counting house finds nothing worth the road today")
         opp = opts[0]
@@ -729,7 +875,9 @@ class Console:
         self.say("  " + self.game.disband(int(args[0])))
 
     def cmd_scan(self, args: List[str]) -> None:
-        self.scan_view(int(args[0]) if args else 8)
+        sea = any(a.lower() in ("sea", "ship", "cog") for a in args)
+        nums = [a for a in args if a.isdigit()]
+        self.scan_view(int(nums[0]) if nums else 8, sails=sea)
 
     def cmd_needs(self, args: List[str]) -> None:
         for s in self.game.world.settlements.values():
@@ -824,6 +972,9 @@ COMMANDS = {
     "disband": Console.cmd_disband, "scan": Console.cmd_scan, "needs": Console.cmd_needs,
     "map": Console.cmd_map, "chart": Console.cmd_chart, "log": Console.cmd_log,
     "save": Console.cmd_save, "load": Console.cmd_load, "quit": Console.cmd_quit,
+    "hint": Console.cmd_hint, "hints": Console.cmd_hint,
+    "autosave": Console.cmd_autosave, "scenarios": Console.cmd_scenarios,
+    "briefing": Console.cmd_briefing,
     "exit": Console.cmd_quit,
 }
 
@@ -837,7 +988,8 @@ HELP = """
   THE MARKET        market <town>   prices <good>          chain <good>
                     scan [n]        map                    chart [metric]
   THE ROAD          caravans / c    caravan <id>           new [town] [name]
-                    auto <id>       go <id>                stop <id>
+                    new ship [town] scan sea                auto <id>
+                    go <id>         stop <id>
                     guards <id> <n> disband <id>
                     route <id> add <town> buy <good> <qty>[@max] sell <good> all[@min]
                     route <id> clear | show
@@ -846,7 +998,8 @@ HELP = """
                     march <id> <place>   recall <id>       standdown <id>
                     war             battles [n]
                     gift <town> <coin>   truce <town> [days]   demand <town>
-  ELSE              log [n]   save [file]   load [file]   quit
+  ELSE              hint            briefing               scenarios
+                    log [n]   save [file]   load [file]   autosave [file]   quit
                     help trade | help town | help war | help win
 """
 
@@ -902,25 +1055,24 @@ HELP_TOPICS = {
   is for founding a second settlement before you need one. You are only
   finished when there is nowhere left.
 """,
-    "win": f"""
-  Three ways, inside {C.GOAL_DAYS // C.DAYS_PER_YEAR} years:
-
-    WEALTH    {C.GOAL_NET_WORTH:,.0f}c of net worth with {C.GOAL_POPULATION} souls under your rule.
-    DOMINION  {C.GOAL_TOWNS} of the seven towns sworn to you -- and still held at the end.
-    THE BELLS Finish the cathedral and hold it half a year.
-
-  You lose if your debts pass {abs(C.BANKRUPTCY_FLOOR):,.0f}c, or there is
-  nowhere left that you hold. Being stormed is survivable: the keep comes down
-  and the town is gutted, but a lord with a second settlement is still a lord.
-""",
 }
 
 
+
 def play(game: Optional[GameState] = None, script: Optional[Sequence[str]] = None,
-         out=sys.stdout) -> Console:
-    con = Console(game or new_game(), out=out)
+         out=sys.stdout, autosave: Optional[str] = None) -> Console:
+    con = Console(game or start_scenario(), out=out)
+    if autosave:
+        con.autosave_path = autosave
     con.say(BANNER)
+    sc = SCENARIOS.get(con.game.scenario)
+    if sc:
+        con.say(f"  {sc.name.upper()}")
+    for line in (con.game.briefing or "").splitlines():
+        con.say(f"  {line}")
+    con.say("")
     con.status()
+    con.say("", "  `hint` if you are not sure what to do next; `help` for the rest.")
     if script is not None:
         for line in script:
             con.say(f"\n> {line}")

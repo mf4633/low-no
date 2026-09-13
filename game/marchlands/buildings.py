@@ -155,6 +155,11 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
        {"coin": 300, "wood": 40, "planks": 15, "stone": 20}, 9, {}, {}, upkeep=4.0,
        effects={"caravan_slots": 1, "tariff_relief": 1.0},
        note="Each post cuts foreign tolls and lets you run another caravan.", age=2),
+    _b("harbour", "Harbour", CIVIC, COAST, 2,
+       {"coin": 420, "wood": 60, "planks": 40, "stone": 60}, 10, {}, {}, upkeep=4.0,
+       age=2, effects={"port": 1.0, "caravan_slots": 1, "storage": 200},
+       note="A quay, a crane and a customs shed. Ships may call, and one hull "
+            "carries what four carts carry."),
     _b("stable", "Stables", CIVIC, URBAN, 1,
        {"coin": 200, "wood": 35, "planks": 10}, 6, {}, {}, upkeep=3.0,
        effects={"caravan_speed": 5.0, "caravan_capacity": 50.0}, age=3),
