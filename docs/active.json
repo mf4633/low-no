@@ -1,5 +1,78 @@
 {
- "at": "2026-09-13T15:24:46.987567Z",
- "tracked": [],
+ "at": "2026-09-13T16:26:14.930765Z",
+ "tracked": [
+  {
+   "city": "OKC",
+   "station": "KOKC",
+   "ticker": "KXHIGHTOKC-26SEP13-T97",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 96,
+   "run_max": 87.8,
+   "gap_to_clear": 8.2,
+   "already_cleared": false,
+   "guide": 100,
+   "pop": 13,
+   "no_ask": 0.92,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-13T16:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T16:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:52:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-13T15:25:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 6.0,
+    "q50": 9.0,
+    "q90": 12.8
+   },
+   "projected_max": {
+    "q10": 93.8,
+    "q50": 96.8,
+    "q90": 100.6
+   },
+   "p_exceed_empirical": 0.5,
+   "emp_n": 64,
+   "convergence_hour": 15,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
