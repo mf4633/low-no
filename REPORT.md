@@ -8,11 +8,5 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **EWR** DEAD_SCAVENGE @ 0.98 ceil 75 guide 80 -> CLI 80 :: **WIN**
-- **TTN** QUALIFIED @ 0.97 ceil 77 guide 81 -> CLI 81 :: **WIN**
-- **SAT** QUALIFIED @ 0.93 ceil 98 guide 102 -> CLI 100 :: **WIN**
-- **AUS** QUALIFIED @ 0.93 ceil 98 guide 104 -> CLI 101 :: **WIN**
-- **DEN** QUALIFIED @ 0.92 ceil 79 guide 83 -> CLI 79 :: **BOUNDARY**  _max register premium +1/+2F over hourlies; min -1/-3. Outflow guillotines. KCFO twin-check -1.5F._
-- **SAN** QUALIFIED @ 0.74 ceil 79 guide 83 -> CLI 79 :: **BOUNDARY**
 
-**4/6 hit** (67%) vs 98.2% breakeven at 0.98
+no qualified flags today -- a complete and acceptable outcome
