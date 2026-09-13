@@ -149,5 +149,58 @@ class TestForeignTowns(unittest.TestCase):
         self.assertAlmostEqual(t.market.bid("cloth"), dear, delta=dear * 0.3)
 
 
+class TestACartSaysWhenItHasStopped(unittest.TestCase):
+    """A route wearing out is by design; hiding it is not.
+
+    A cart that has worked its route out stops itself and keeps its cargo and
+    its lifetime profit on the line, so a stopped cart read exactly like a
+    working one -- and the hint telling you it was idle read like a bug in the
+    hint rather than news about the cart.
+    """
+
+    def test_a_running_cart_just_says_where_it_is(self):
+        g = new_game(seed=7)
+        c = g.caravans[0]
+        c.running = True
+        c.state = "idle"
+        c.at = "dunmere"
+        self.assertEqual(c.where(), "dunmere")
+
+    def test_a_stopped_one_says_so(self):
+        g = new_game(seed=7)
+        c = g.caravans[0]
+        c.running = False
+        c.state = "idle"
+        c.at = "dunmere"
+        self.assertIn("idle", c.where())
+
+    def test_a_cart_on_the_road_says_where_it_is_going(self):
+        g = new_game(seed=7)
+        c = g.caravans[0]
+        c.running = True
+        c.state = MOVING
+        c.bound_for = "dunmere"
+        c.days_left = 2.0
+        self.assertIn("dunmere", c.where())
+        self.assertNotIn("idle", c.where())
+
+    def test_the_status_line_and_the_hint_agree(self):
+        import io
+        from marchlands.cli import Console
+        g = new_game(seed=7)
+        con = Console(g, out=io.StringIO())
+        con.do("scan")
+        con.do("auto 1")
+        out = io.StringIO()
+        con.out = out
+        con.do("next 30")
+        con.do("status")
+        con.do("hint")
+        text = out.getvalue()
+        stopped = [c for c in g.caravans if not c.running]
+        if stopped:
+            self.assertIn("(idle)", text,
+                          "a cart stopped earning and the status line hid it")
+
 if __name__ == "__main__":
     unittest.main()

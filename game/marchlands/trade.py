@@ -114,9 +114,19 @@ class Caravan:
                          if q > 0.05) or "empty"
 
     def where(self) -> str:
+        """Where it is, and -- crucially -- whether it is doing anything.
+
+        A cart that has worked its route out stops itself, which is by design.
+        Saying only where it is standing makes a stopped cart look exactly
+        like a working one: same cargo on the line, same profit to date, and
+        no sign at all that it stopped earning a fortnight ago.
+        """
         if self.state == MOVING:
             return f"{self.days_left:.1f}d from {self.bound_for}"
-        return self.at or self.home
+        here = self.at or self.home
+        if not self.running:
+            return f"{here} (idle)"
+        return here
 
     # ------------------------------------------------------------- route ops
     def set_route(self, stops: List[Stop]) -> None:
