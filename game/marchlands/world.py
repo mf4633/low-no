@@ -64,6 +64,8 @@ class ForeignTown:
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
     last_pilgrimage: int = -999   # day this lord last sent men to a shrine
+    seen_day: int = -999          # when you last had eyes on this place
+    seen: Dict[str, float] = field(default_factory=dict)
 
     @property
     def mine(self) -> bool:
@@ -76,14 +78,18 @@ class ForeignTown:
     def tribute(self) -> float:
         return (C.TRIBUTE_BASE + C.TRIBUTE_PER_WEALTH * self.wealth) * self.prosperity
 
-    def works(self) -> Works:
+    def works(self, prosperity: Optional[float] = None) -> Works:
         """The castle a foreign lord has, read off how old and rich his seat is.
 
         There are no building lists out there, so a great seat is simply
         assumed to have spent its centuries the way a great seat would: a
         market town has a gate and a ditch, and Marchand has everything.
+
+        Pass the prosperity you *saw* rather than the one he has, and you get
+        the castle as it stood when you last looked at it.
         """
-        grade = self.wall_base * (0.6 + 0.4 * self.prosperity)
+        grade = self.wall_base * (0.6 + 0.4 * (self.prosperity if prosperity is None
+                                               else prosperity))
         return Works(
             moat=1 if grade >= 600 else 0,
             pitch=1 if grade >= 450 else 0,
@@ -93,6 +99,32 @@ class ForeignTown:
             gate=grade >= 380,
             stone=grade >= 300,
         )
+
+    def observe(self, day: int) -> None:
+        """Write down what the place looks like today.
+
+        Everything a player is told about a rival comes out of this snapshot,
+        not out of the town itself -- so what you know is what you last saw,
+        and it goes stale while the lord goes on building.
+        """
+        self.seen_day = day
+        self.seen = {
+            "garrison": sum(self.garrison.values()),
+            "wall_hp": self.wall_hp,
+            "wall_max": self.wall_max,
+            "muster": self.muster,
+            "prosperity": self.prosperity,
+            "hostility": self.hostility,
+        }
+
+    def faith(self) -> float:
+        """How well churched a foreign town is, and so how deaf to preaching.
+
+        Read off wealth and prosperity for the same reason its castle is: a
+        rich old seat has a minster, and a market town has a parish priest.
+        """
+        return max(0.0, min(0.95, 0.25 + 0.30 * self.wealth
+                            + 0.25 * (self.prosperity - 1.0)))
 
     def rebuild_walls(self, share: float = 0.02) -> None:
         self.wall_hp = min(self.wall_max, self.wall_hp + self.wall_max * share)
@@ -163,6 +195,7 @@ class ForeignTown:
                 "truce_days": self.truce_days, "favour": self.favour,
                 "garrison": dict(self.garrison), "wall_hp": self.wall_hp,
                 "wall_max": self.wall_max, "wall_base": self.wall_base,
+                "seen": dict(self.seen), "seen_day": self.seen_day,
                 "muster": self.muster, "temper": self.temper,
                 "prosperity": self.prosperity, "harbour": self.harbour}
 
@@ -177,11 +210,12 @@ class ForeignTown:
         t.owner = d.get("owner", "")
         t.hostility = d.get("hostility", 0.0)
         t.garrison = dict(d.get("garrison", {}))
+        t.seen = dict(d.get("seen", {}))
         t.wall_hp = d.get("wall_hp", 0.0)
         t.wall_max = d.get("wall_max", 0.0)
         for name in ("ambition", "aggression", "truce_days", "favour", "muster",
                      "temper", "prosperity", "wall_base", "harbour",
-                     "last_pilgrimage"):
+                     "last_pilgrimage", "seen_day"):
             if name in d:
                 setattr(t, name, d[name])
         return t

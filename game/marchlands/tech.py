@@ -103,6 +103,9 @@ TECHS: Dict[str, Tech] = {t.key: t for t in [
        {"attack": 1.05}, unlocks=("crossbowman",)),
 
     # --- Age of the Castle --------------------------------------------------
+    _t("preaching", "The Preaching Orders", 3,
+       {"coin": 950, "cloth": 30, "bread": 60}, 24,
+       {}, unlocks=("friar",)),
     _t("blast_bellows", "Blast Bellows", 3, {"coin": 900, "iron": 45}, 26,
        {"yield_craft": 1.15}),
     _t("deep_shafts", "Deep Shafts", 3, {"coin": 1000, "planks": 60, "tools": 20}, 26,

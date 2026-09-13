@@ -887,7 +887,14 @@ class Console:
             key = self._node(args[0])
             if key in g.world.towns:
                 t = g.world.towns[key]
-                works, name = t.works(), t.name
+                seen, age = g.known(key)
+                if age < 0:
+                    return self.err(f"you have never had eyes on {t.name}. "
+                                    f"Send a cart or a host and look.")
+                works, name = t.works(seen.get("prosperity")), t.name
+                if age > 30:
+                    self.say(ink.c(f"  (this is {age} days out of date -- he has "
+                                   f"had a season to dig)", ink.AMBER))
             elif key in g.world.settlements:
                 s = g.world.settlements[key]
                 works = Works.of([b.key for b in s.buildings
@@ -1033,34 +1040,48 @@ class Console:
 
     def cmd_war(self, args: List[str]) -> None:
         g = self.game
-        self.say(ink.head("THE STATE OF THE MARCH"),
+        self.say(ink.head("THE STATE OF THE MARCH", "as last reported"),
                  "  town          lord                    sworn to    walls"
-                 "  could field   mood toward you")
+                 "  could field   last word")
         for key, t in g.world.towns.items():
+            seen, age = g.known(key)
+            liege = ("you" if t.mine else
+                     g.world.node_name(t.owner) if t.owner else "-")
+            if age < 0:
+                # Never looked. Say so rather than inventing a number: half of
+                # knowing a march is knowing which parts of it you do not.
+                self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)} "
+                         f"{ink.c(ink.pad(t.lord, 23), ink.DIM)} {liege:<10}"
+                         f" {'?':>6}  {'?':>10}   "
+                         + ink.c("you have never sent anyone", ink.DIM))
+                continue
+            hostile = seen.get("hostility", 0.0)
             if t.mine:
                 state = "sworn to you"
             elif t.truce_days:
                 state = f"truce ({t.truce_days}d)"
-            elif t.hostility > 70:
+            elif hostile > 70:
                 state = "arming"
-            elif t.hostility > 40:
+            elif hostile > 40:
                 state = "cold"
             else:
                 state = "civil"
-            liege = ("you" if t.mine else
-                     g.world.node_name(t.owner) if t.owner else "-")
-            might = host_strength(g.likely_host(key))
+            might = host_strength(g.believed_host(key))
             mood = (ink.LEAF if t.mine else ink.SEA if t.truce_days else
-                    ink.BLOOD if t.hostility > 70 else
-                    ink.AMBER if t.hostility > 40 else ink.INK)
+                    ink.BLOOD if hostile > 70 else
+                    ink.AMBER if hostile > 40 else ink.INK)
+            stale = ("today" if age <= 1 else f"{age}d ago")
             self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)} "
                      f"{ink.c(ink.pad(t.lord, 23), ink.DIM)} {liege:<10}"
-                     f" {t.wall_hp:>6,.0f}  {might:>10,.0f}   "
-                     + ink.c(f"{state} ({t.hostility:.0f})", mood))
+                     f" {seen.get('wall_hp', 0.0):>6,.0f}  {might:>10,.0f}   "
+                     + ink.c(f"{state} ({hostile:.0f})", mood)
+                     + ink.c(f"  {stale}", ink.DIM if age <= 30 else ink.AMBER))
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "
                  f"{len(g.world.settlements)} settlements and {len(g.armies)} hosts")
+        self.say(ink.c("  What you know is what you last saw. A cart that calls "
+                       "somewhere looks around while it is there.", ink.DIM))
         for a in g.armies:
             who = "yours" if a.owner == "player" else self._name(a.home)
             self.say(f"  host: {a.name} ({who}) -- {a.where()}, {describe(a.units)}")
@@ -1402,6 +1423,14 @@ HELP_TOPICS = {
   drinking nothing: the same building, bought again, is what success costs.
   An inn with no ale in it, or no hand in it, serves nobody at all.
 
+  Towns are made of timber and they burn. Ovens and kilns start fires by
+  themselves now and then, raiders bring torches, and men who get over a wall
+  set light to what is behind it. Everyone runs at a fire, so the water scales
+  with the town -- but the hands carrying it are hands not working, and a
+  building you save still wants days of work. Summer is the dangerous season.
+  Past about eight roofs alight at once the town cannot find enough people and
+  the fire is simply winning.
+
   Hands are shorter than jobs and always will be. `work` shows the queue --
   who gets people first when there are not enough -- and `work <building>
   first` reorders it. Something goes short every morning; you only get to
@@ -1458,6 +1487,17 @@ HELP_TOPICS = {
   and a stretch of wall, riding with a host he is worth a sixth of its
   strength and he is where the arrows are. He can fall, and he can be taken
   and ransomed, and the line is not endless.
+
+  The Preaching Orders, in the third age, buy you friars: they talk men off a
+  wall and onto your side, a few a day. What stops them is a church -- a
+  defender's faith coverage is exactly what blunts preaching, so a great seat
+  with a minster is deaf to it and a market town is not. Friars count as siege,
+  which means cavalry ride them down.
+
+  You do not see the march; you see what you last looked at. Your carts are
+  your intelligence service. `war` reports what you know and how old it is, and
+  says plainly when you have never sent anyone -- and old word always
+  understates a lord, because he grows while you are not watching.
 
   You need not meet all of it with soldiers. A `gift` cools a temper, a `truce`
   buys a fixed number of quiet days outright, and a `demand` squeezes tribute

@@ -479,6 +479,7 @@ class GameState:
             if a.size <= 0 and a in self.armies:
                 msgs.append(f"{a.name} is no more")
                 self.armies.remove(a)
+        self._look_around()
         msgs += self._lord_day()
         msgs += self._shrine_day()
         msgs += self._shrine_race()
@@ -770,6 +771,10 @@ class GameState:
         for k in list(s.market.stock):
             s.market.take(k, s.market.stock[k] * C.RAID_LOOT * worked)
         s.population = max(4.0, s.population * (1.0 - C.RAID_FLIGHT * worked))
+        # Raiders carry torches. This is the cheapest way there is to hurt a
+        # town you cannot take, and the reason a stone town sleeps better.
+        if self.rng.random() < C.RAID_TORCH * worked:
+            msgs.extend(s.kindle(self.rng, 1 + int(2 * worked)))
         if self.day % 4 == 0:
             msgs.append(f"{s.name} is being raided: {lines[0]}")
         if lost:
@@ -831,7 +836,8 @@ class GameState:
                                   patient=a.siege_days > 8)
         wall, _la, _ld, lines = siege_day(besieger, holder, town.wall_hp, self.rng,
                                           town.name, wall_max=town.wall_max,
-                                          works=works, state=a.siege)
+                                          works=works, state=a.siege,
+                                          faith=town.faith())
         town.wall_hp = wall
         if player:
             town.hostility = C.HOSTILITY_WAR
@@ -893,7 +899,8 @@ class GameState:
         wall, _la, _ld, lines = siege_day(besieger, holder, s.wall_hp, self.rng, s.name,
                                           wall_max=s.wall_max(self.progress),
                                           works=works, state=a.siege,
-                                          have_pitch=s.market.stock.get("charcoal", 0) >= 5)
+                                          have_pitch=s.market.stock.get("charcoal", 0) >= 5,
+                                          faith=s.coverage("faith_reach"))
         if a.siege.plan == INVEST:
             s.blockaded = True
         s.wall_hp = wall
@@ -905,6 +912,9 @@ class GameState:
             res = fight(besieger, holder, rng=self.rng, place=s.name)
             msgs.append(f"ASSAULT ON {s.name.upper()}: the {res.winner} holds the "
                         f"ground after {res.rounds} rounds")
+            # Men who get over a wall set light to what is behind it, whether
+            # or not they end up holding the ground.
+            msgs.extend(s.kindle(self.rng, self.rng.randrange(2, 6)))
             s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
             a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
             if res.winner == "attacker":
@@ -1111,6 +1121,46 @@ class GameState:
 
     def war_pressure(self) -> float:
         return min(2.6, 1.0 + self.day / (1.7 * C.DAYS_PER_YEAR))
+
+    def _look_around(self) -> None:
+        """Refresh what you know about the march.
+
+        Your carts are your intelligence service, which is the right answer for
+        this game in particular: the map you can see is the map you trade with,
+        and a lord you have never sent a cart to is a lord you are guessing
+        about. A host of yours standing somewhere sees it too, and a town sworn
+        to you reports every day.
+        """
+        for t in self.world.towns.values():
+            if t.mine:
+                t.observe(self.day)
+        for c in self.caravans:
+            node = getattr(c, "at", "") or ""
+            if node in self.world.towns:
+                self.world.towns[node].observe(self.day)
+        for a in self.armies:
+            if a.owner == "player" and a.at in self.world.towns:
+                self.world.towns[a.at].observe(self.day)
+
+    def known(self, town_key: str) -> Tuple[Dict[str, float], int]:
+        """What you believe about a town, and how many days old it is."""
+        t = self.world.towns[town_key]
+        if t.seen_day < 0:
+            return {}, -1
+        return dict(t.seen), self.day - t.seen_day
+
+    def believed_host(self, town_key: str) -> Dict[str, float]:
+        """The host you think that town could field, from what you last saw."""
+        town = self.world.towns[town_key]
+        if town.mine:
+            return {}
+        seen, age = self.known(town_key)
+        if age < 0:
+            return {}                      # you have no idea, and should not pretend
+        pressure = self.war_pressure()
+        scale = seen.get("muster", 1.0) * pressure * (
+            0.6 + 0.5 * seen.get("prosperity", 1.0))
+        return {"spearman": round(10 * scale), "archer": round(7 * scale)}
 
     def likely_host(self, town_key: str) -> Dict[str, float]:
         """The host that town could put in the field today. Look before you

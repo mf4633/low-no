@@ -12,7 +12,7 @@ python3 -m marchlands                          # play the default scenario
 python3 -m marchlands --list                   # the four scenarios and five houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 293 tests, ~4min
+python3 -m unittest discover -s tests          # 336 tests, ~4min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -324,6 +324,58 @@ strength, and he is where the arrows are. If that host breaks he may fall, in
 which case the whole holding mourns and the hall stands empty until an heir is
 raised — or he may be taken alive, and then somebody names a price.
 
+### Fire
+
+Timber and thatch burn, and a town is mostly timber and thatch. Ovens, kilns
+and charcoal heaps start fires by themselves now and then; raiders carry
+torches on purpose; men who get over a wall set light to what is behind it
+whether or not they end up holding the ground.
+
+Three rules do all the work. What is made of wood catches and what is made of
+stone mostly does not. A fire reaches for one roof at a time, not for the whole
+town — spread that rolls every blaze against every building is quadratic, and a
+quadratic fire has exactly two outcomes with nothing in between worth playing.
+And the only thing that puts it out is hands, which is the one thing the town
+never has enough of.
+
+That last rule is where the cost lands. Everybody runs at a fire, not just the
+payroll, so the *water* scales with the town; but the hands that carry it are
+hands not working, so the *bill* is a bite out of the day. A building you save
+still wants days of work afterwards — a fire has taken hold before anyone
+reaches it, so nothing is free. Summer is the dangerous season and winter the
+forgiving one.
+
+Past the point where a town can mobilise about half of itself the fire is
+simply winning, so eight roofs alight is an expensive afternoon and eighteen is
+the end of the town.
+
+### The friars
+
+The Preaching Orders, in the third age, unlock a unit whose attack is that the
+enemy stops being the enemy. Friars with a besieging host talk men off the wall
+and onto your side, a few a day, never more than a small share of a garrison at
+once — and the answer is the one the period actually used: a man with a church
+of his own is much harder to preach at. A defender's *faith coverage*, the same
+number his chapels and his cathedral set, is what blunts it. A great seat with a
+minster is deaf to preaching; a market town is not.
+
+They count as siege for the purpose of the counter triangle, which means
+cavalry ride them down. That is deliberate, and it is what Age of Empires did.
+
+### What you know
+
+You do not see the march. You see what you last looked at.
+
+Your carts are your intelligence service, which is the right answer for this
+game in particular: a lord you have never sent a cart to is a lord you are
+guessing about, and `war` will say so rather than invent a number. A town you
+traded with this morning is current. A town you passed through two seasons ago
+is a report with a date on it, and the report is always *optimistic*, because
+lords grow while you are not watching.
+
+`plans <town>` refuses a castle you have never had eyes on, and warns you when
+what it is describing is a season out of date — he has had time to dig.
+
 ## Scenarios
 
 Four games on the same rules. `--list` describes them; they are meant to be
@@ -388,6 +440,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `view.py` | the same holding as a flat plan |
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
+| `fire.py` | what catches, how it spreads, and what puts it out |
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |

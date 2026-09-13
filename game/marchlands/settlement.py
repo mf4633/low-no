@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Tuple
 
 from . import config as C
 from .buildings import BUILDINGS, Building, building
+from .fire import Fires, burn, hands_wanted
 from .goods import ALL_KEYS, COMFORT_GOODS, LUXURY_GOODS, RATION_GOODS, good
 from .market import Market
 from .military import UNITS, describe, host_size, host_strength, host_upkeep
@@ -85,6 +86,8 @@ class Settlement:
     deposits: Dict[str, float] = field(default_factory=dict)
     besieged: bool = False
     priority: Dict[str, int] = field(default_factory=dict)
+    fires: Fires = field(default_factory=Fires)
+    fire_labour: float = 0.0  # hands pulled off work to fight it
     blockaded: bool = False   # the roads are cut: no cart comes or goes
     raided: bool = False      # somebody is burning the country outside
     lord_home: bool = False   # your lord keeps his hall here today
@@ -167,6 +170,9 @@ class Settlement:
         if self.raid_pressure:
             # You cannot reap a field with horsemen in it.
             base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
+        if self.fire_labour and self.workforce:
+            # The bucket chain is made of the people who were working.
+            base *= max(0.25, 1.0 - self.fire_labour / self.workforce)
         return max(0.0, base)
 
     # ------------------------------------------------------------ build/raze
@@ -235,6 +241,7 @@ class Settlement:
         self._feed(rep)
         self._comforts(rep)
         self._spoil(rep, mods)
+        self._burn(rep, season, rng)
         self._mend_walls(rep, mods)
         rep.taxes = self._taxes()
         rep.wages, rep.upkeep = self._labour_bill()
@@ -304,6 +311,9 @@ class Settlement:
         for b in self.buildings:
             spec = b.spec
             if not (b.complete and b.enabled) or not (spec.inputs or spec.outputs):
+                continue
+            if self.fires.burning(b.uid):
+                b.idle_reason = "on fire"
                 continue
             staff_ratio = (b.staffed / spec.jobs) if spec.jobs else 1.0
             scale = (staff_ratio * prod * self._season_multiplier(spec, season)
@@ -395,6 +405,73 @@ class Settlement:
             if got > 0:
                 rep.consumed[k] = rep.consumed.get(k, 0.0) + got
                 self._luxury_score += (got / want) if want else 0.0
+
+    #: Odds on a day that something catches by itself. Ovens, kilns and
+    #: charcoal heaps are what a town burns down around.
+    SPARK_ODDS = 0.00025
+
+    def hearths(self) -> int:
+        return sum(1 for b in self.buildings if b.complete
+                   and b.spec.key in ("bakery", "kiln", "smelter", "brewery",
+                                      "charcoal_burner", "blacksmith",
+                                      "armourer", "sawmill"))
+
+    def kindle(self, rng: random.Random, n: int = 1, *, exclude_walls: bool = True
+               ) -> List[str]:
+        """Set fire to something. Used by accident, by raiders, and by sieges."""
+        out: List[str] = []
+        options = [b for b in self.buildings
+                   if b.complete and not self.fires.burning(b.uid)
+                   and not (exclude_walls and b.spec.terrain == "rampart")]
+        rng.shuffle(options)
+        for b in options[:max(0, n)]:
+            if self.fires.light(b.uid):
+                out.append(f"{self.name}: the {b.spec.name} is alight")
+        return out
+
+    def _burn(self, rep: DayReport, season: str, rng: random.Random) -> None:
+        # Something lit by itself, in proportion to how many fires the town
+        # keeps going in order to be worth living in.
+        hearth = self.hearths()
+        if hearth and rng.random() < self.SPARK_ODDS * hearth:
+            rep.notes.extend(self.kindle(rng))
+        if not self.fires:
+            self.fire_labour = 0.0
+            return
+        # Everyone who can be spared goes at it, and "spared" means taken off
+        # whatever they were doing. That is the real cost of a fire: you pay it
+        # in a day's work whether or not the building is saved.
+        # A town does not fight a fire with its payroll: everyone runs at it,
+        # which is why the response scales with the blaze instead of hitting a
+        # ceiling and falling off a cliff. What it cannot do is find more than
+        # about half of itself, and past that point the fire is winning.
+        # Two different quantities, and conflating them is what turns a fire
+        # into a death spiral. How much water gets thrown is a question about
+        # the whole town -- everybody runs at a fire, not just the payroll. How
+        # much *work* is lost is a question about the workforce, and it has to
+        # be bounded: a town that stops working entirely never recovers, so the
+        # fire takes a bite out of the day rather than the day itself.
+        want = min(hands_wanted(len(self.fires.blazes)), 0.5 * self.population)
+        idle = max(0.0, self.workforce - self.employed)
+        self.fire_labour = min(0.40 * self.workforce, max(0.0, want - idle))
+        standing = [(b.uid, b.spec.build_cost, b.complete) for b in self.buildings]
+        lost, scarred, lines = burn(self.fires, standing, hands=want,
+                                    season=season, rng=rng)
+        for uid, share in scarred.items():
+            b = self.find(uid)
+            if b is not None and b.complete:
+                b.days_left = max(1, int(b.spec.build_days * share))
+                rep.notes.append(f"{self.name}: the {b.spec.name} is saved, "
+                                 f"but wants {b.days_left} days' work")
+        for uid in lost:
+            b = self.find(uid)
+            if b is not None:
+                rep.notes.append(f"{self.name}: the {b.spec.name} burns to the ground")
+                if b.spec.terrain == "rampart":
+                    self.wall_hp = max(0.0, self.wall_hp
+                                       - b.spec.effects.get("wall", 0.0))
+                self.buildings.remove(b)
+        rep.notes.extend(f"{self.name}: {ln}" for ln in lines)
 
     def _spoil(self, rep: DayReport, mods: Progress) -> None:
         preserve = (1.0 - min(0.75, self.effect("preserve"))) * mods.mult("spoilage")
@@ -507,6 +584,8 @@ class Settlement:
             out.append(("the lord in his hall", C.LORD_MOOD))
         elif self.lord_lost:
             out.append(("no lord in the hall", -C.LORD_MOOD * 1.5))
+        if self.fires:
+            out.append(("the town is burning", -9.0 - 9.0 * self.fires.worst()))
         if self.raided:
             out.append(("the country is burning", -12.0 * max(0.35, self.raid_pressure)))
         jobless = self.workforce - self.employed
@@ -551,7 +630,7 @@ class Settlement:
             "tax_level": self.tax_level, "units": dict(self.units),
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
             "besieged": self.besieged, "priority": dict(self.priority),
-            "raided": self.raided, "blockaded": self.blockaded, "next_uid": self.next_uid,
+            "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
         }
 
@@ -564,6 +643,7 @@ class Settlement:
                 units=dict(d.get("units", {})), wall_hp=d.get("wall_hp", 0.0),
                 deposits=dict(d.get("deposits", {})),
                 besieged=d.get("besieged", False), priority=dict(d.get("priority", {})),
-                raided=d.get("raided", False), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
+                raided=d.get("raided", False),
+                fires=Fires.from_dict(d.get("fires", {})), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         return s

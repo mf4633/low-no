@@ -77,6 +77,10 @@ UNITS: Dict[str, UnitType] = {u.key: u for u in [
        needs_tech="plate_armour", blurb="Fast, dear, and ruinous to an archer line."),
     _u("engineer", "Engineer", 3, 48, {"tools": 1}, 3, 3, 14, SIEGE, 18, 1.0,
        blurb="No engineers, no engines: rams and trebuchets need crews."),
+    _u("friar", "Friar", 3, 54, {"cloth": 1, "bread": 4}, 2, 4, 15, SIEGE, 18, 1.1,
+       needs_tech="preaching",
+       blurb="Talks men off a wall. Slowly, and not to men who have a "
+             "cathedral of their own."),
     _u("ram", "Battering Ram", 3, 140, {"planks": 20, "iron": 4},
        4, 9, 65, SIEGE, 12, 2.0, siege_power=26,
        blurb="Walks a gate down while the towers shoot at it."),
@@ -216,7 +220,8 @@ def _apply(side: Side, damage: float, rng: random.Random) -> Dict[str, float]:
 def siege_day(besieger: Side, defender: Side, wall_hp: float,
               rng: random.Random, place: str = "the walls",
               wall_max: float = 0.0, works: Optional["Works"] = None,
-              state: Optional["SiegeState"] = None, have_pitch: bool = True
+              state: Optional["SiegeState"] = None, have_pitch: bool = True,
+              faith: float = 0.0
               ) -> Tuple[float, Dict[str, float], Dict[str, float], List[str]]:
     """One day of a siege: engines work on the stone, bowmen trade at a distance.
 
@@ -262,11 +267,48 @@ def siege_day(besieger: Side, defender: Side, wall_hp: float,
             besieger.units[k] *= max(0.0, 1.0 - burst)
     lost_a = _apply(besieger, fire_d, rng)
     lost_d = _apply(defender, fire_a, rng)
+    _won, preach = convert(besieger, defender, faith=faith, rng=rng)
+    lines.extend(preach)
     if lost_a or lost_d:
         lines.append(f"skirmishing: {describe({k: round(v) for k, v in lost_a.items()})}"
                      f" lost outside, {describe({k: round(v) for k, v in lost_d.items()})}"
                      f" lost within")
     return wall, lost_a, lost_d, lines
+
+
+def convert(preachers: Side, flock: Side, *, faith: float,
+            rng: random.Random) -> Tuple[Dict[str, float], List[str]]:
+    """Friars talk men off a wall and onto your side.
+
+    Age of Empires' monks, which are the strangest and best thing in it: a
+    unit whose attack is that the enemy stops being the enemy. The answer is
+    the one the period actually used -- a man with a church of his own is a
+    great deal harder to preach at, so a defender's *faith coverage* is what
+    blunts this, which is the same number his ale and his chapels set.
+    """
+    friars = preachers.units.get("friar", 0.0)
+    lines: List[str] = []
+    if friars < 1 or flock.alive() <= 0:
+        return {}, lines
+    swayed = friars * C.CONVERT_PER_FRIAR * max(0.0, 1.0 - faith)
+    swayed *= 0.7 + 0.6 * rng.random()
+    swayed = min(swayed, flock.alive() * C.CONVERT_CEILING)
+    if swayed < 1:
+        return {}, lines
+    won: Dict[str, float] = {}
+    total = flock.alive()
+    for k, n in list(flock.units.items()):
+        share = swayed * (n / total)
+        share = min(share, n)
+        if share <= 0:
+            continue
+        flock.units[k] = n - share
+        preachers.units[k] = preachers.units.get(k, 0.0) + share
+        won[k] = share
+    if won:
+        lines.append(f"the friars bring {describe({k: round(v) for k, v in won.items()})}"
+                     f" over the wall to your side")
+    return won, lines
 
 
 def raid_day(raiders: Side, garrison: Side, *, out_of_doors: float,

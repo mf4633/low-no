@@ -272,7 +272,10 @@ class Bot:
         # roughly double, so parity is not the target -- half of it is.
         # Arm to the temper of the march, not to its worst imaginable day: a
         # garrison raised in a quiet year is a year of fields not worked.
-        worst = max((host_strength(g.likely_host(k))
+        # The bot judges the march by what it has actually seen, same as a
+        # player: it runs carts everywhere, so its intelligence is usually
+        # fresh, which is the point of tying the two together.
+        worst = max((host_strength(g.believed_host(k))
                      * (0.15 + 0.85 * (t.hostility / C.HOSTILITY_WAR) ** 1.5)
                      for k, t in g.world.towns.items() if not t.mine), default=0.0)
         threat = max(0.55 * worst,
