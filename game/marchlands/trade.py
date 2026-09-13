@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from . import config as C
 from .goods import cargo_weight, good
@@ -107,13 +107,29 @@ class Caravan:
         if len(self.log) > 40:
             del self.log[:-40]
 
-    def manifest(self) -> str:
-        if not self.cargo:
-            return "empty"
-        return ", ".join(f"{q:.0f} {good(k).name}" for k, q in sorted(self.cargo.items())
-                         if q > 0.05) or "empty"
+    def manifest(self, width: int = 0) -> str:
+        """What is in the cart, in at most `width` characters.
 
-    def where(self) -> str:
+        Cut at a comma, never through a load: a status line that ends
+        `15 Salt, 34` has invented a cargo of thirty-four nothings.
+        """
+        bits = [f"{q:.0f} {good(k).name}"
+                for k, q in sorted(self.cargo.items()) if q > 0.05]
+        if not bits:
+            return "empty"
+        if width <= 0:
+            return ", ".join(bits)
+        kept: List[str] = []
+        for i, bit in enumerate(bits):
+            left = len(bits) - i - 1
+            trial = ", ".join(kept + [bit]) + (f", +{left} more" if left else "")
+            if kept and len(trial) > width:
+                break
+            kept.append(bit)
+        left = len(bits) - len(kept)
+        return ", ".join(kept) + (f", +{left} more" if left else "")
+
+    def where(self, name_of: Optional[Callable[[str], str]] = None) -> str:
         """Where it is, and -- crucially -- whether it is doing anything.
 
         A cart that has worked its route out stops itself, which is by design.
@@ -121,9 +137,10 @@ class Caravan:
         like a working one: same cargo on the line, same profit to date, and
         no sign at all that it stopped earning a fortnight ago.
         """
+        name = name_of or (lambda k: k)
         if self.state == MOVING:
-            return f"{self.days_left:.1f}d from {self.bound_for}"
-        here = self.at or self.home
+            return f"{self.days_left:.1f}d from {name(self.bound_for)}"
+        here = name(self.at or self.home)
         if not self.running:
             return f"{here} (idle)"
         return here

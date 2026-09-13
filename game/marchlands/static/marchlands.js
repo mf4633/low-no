@@ -18,6 +18,18 @@ const ctx = canvas.getContext('2d');
 let state = null, plan = null, t0 = performance.now(), smoke = [], flames = [];
 let camera = { x: 0, y: 0, zoom: 1 }, hover = null, dpr = 1;
 
+/* Some people cannot watch a scene that never stops moving. Asked to be still,
+ * the town holds one frozen instant -- smoke does not rise, sails do not turn,
+ * nobody walks -- and the picture still redraws whenever the day does. */
+const STILL = !!(window.matchMedia &&
+                 window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const clock = () => STILL ? 9 : (performance.now() - t0) / 1000;
+/* Matches the stylesheet's one breakpoint: past it the panel lies down. */
+const NARROW = () => canvas.clientWidth <= 720;
+/* Every number a player reads is grouped. `+1488` in a ledger beside `2,989c`
+ * in the purse is two people writing the same page. */
+const num = v => Math.round(v).toLocaleString();
+
 /* ---------------------------------------------------------------- palette */
 const SEASON = {
   spring: { sky: ['#9dc4e8', '#dfe9f2'], grass: '#6f8f4a', crop: '#8fae52',
@@ -72,16 +84,21 @@ const iso = (x, y) => [(x - y) * TW / 2, (x + y) * TH / 2];
 /* Accepts what it returns. Shading an already-shaded colour used to give NaN,
  * which canvas paints as black -- every forest and every road came out as a
  * hole in the ground until this took rgb() as well as #rrggbb. */
-const shade = (colour, f) => {
-  let r, g, b;
+const rgbOf = colour => {
   if (colour[0] === '#') {
     const n = parseInt(colour.slice(1), 16);
-    r = (n >> 16) & 255; g = (n >> 8) & 255; b = n & 255;
-  } else {
-    const m = colour.match(/-?\d+(\.\d+)?/g) || [0, 0, 0];
-    r = +m[0]; g = +m[1]; b = +m[2];
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
-  const c = [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v * f))));
+  const m = colour.match(/-?\d+(\.\d+)?/g) || [0, 0, 0];
+  return [+m[0], +m[1], +m[2]];
+};
+const shade = (colour, f) => {
+  const c = rgbOf(colour).map(v => Math.max(0, Math.min(255, Math.round(v * f))));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+};
+const mix = (a, b, f) => {
+  const x = rgbOf(a), y = rgbOf(b);
+  const c = x.map((v, i) => Math.round(v + (y[i] - v) * f));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 };
 function poly(pts, fill, stroke) {
@@ -104,7 +121,9 @@ function drawTile(x, y, kind) {
   const d = [[sx, sy - TH / 2], [sx + TW / 2, sy], [sx, sy + TH / 2], [sx - TW / 2, sy]];
   let base = p.grass;
   if (kind === 'field') base = p.crop;
-  else if (kind === 'forest') base = shade(p.tree, 0.75);
+  // A wood is grass with less light on it. Painted at the leaf colour it read
+  // as a dark diamond stamped into the field, which is a hole, not a wood.
+  else if (kind === 'forest') base = mix(p.grass, shade(p.tree, 0.88), 0.52);
   else if (kind === 'hill') base = '#8e8a80';
   else if (kind === 'clay') base = '#9a6742';
   else if (kind === 'water') base = p.water;
@@ -133,7 +152,7 @@ function drawTile(x, y, kind) {
       ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 1, by - 3); ctx.stroke();
     }
   } else if (kind === 'water') {
-    const t = (performance.now() - t0) / 1000;
+    const t = clock();
     ctx.strokeStyle = 'rgba(255,255,255,.20)';
     ctx.lineWidth = 1;
     for (let i = 0; i < 2; i++) {
@@ -141,6 +160,15 @@ function drawTile(x, y, kind) {
       ctx.beginPath();
       ctx.moveTo(sx - 13, wy); ctx.quadraticCurveTo(sx, wy - 2.5, sx + 13, wy);
       ctx.stroke();
+    }
+  } else if (kind === 'forest') {
+    // Dapple, so the edge of the wood is leaf shadow rather than a drawn line.
+    ctx.fillStyle = 'rgba(22,36,14,.17)';
+    for (let i = 0; i < 4; i++) {
+      const bx = sx + (rnd(x, y, i + 41) - 0.5) * TW * 0.74;
+      const by = sy + (rnd(x, y, i + 43) - 0.5) * TH * 0.74;
+      ctx.beginPath();
+      ctx.ellipse(bx, by, 6 + rnd(x, y, i + 47) * 6, 3.2, 0, 0, 7); ctx.fill();
     }
   } else if (kind === 'hill') {
     ctx.fillStyle = shade(base, 0.84);
@@ -168,6 +196,8 @@ function drawTrees(x, y) {
     const tx = sx + (rnd(x, y, i + 23) - 0.5) * 34;
     const ty = sy + (rnd(x, y, i + 29) - 0.5) * 15;
     const h = 16 + rnd(x, y, i + 31) * 10;
+    ctx.fillStyle = 'rgba(20,30,12,.20)';
+    ctx.beginPath(); ctx.ellipse(tx, ty + 1, 9, 4, 0, 0, 7); ctx.fill();
     ctx.strokeStyle = '#4a3722'; ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty - h); ctx.stroke();
     const leaf = state && state.season === 'winter' ? null : p.tree;
@@ -564,10 +594,12 @@ function drawHaul(h, i, t, at, pos) {
 }
 
 function puff(x, y, t) {
-  if (Math.random() < 0.12) smoke.push({ x, y, born: t, drift: Math.random() - 0.5 });
+  if (!STILL && Math.random() < 0.12) {
+    smoke.push({ x, y, born: t, drift: Math.random() - 0.5 });
+  }
 }
 function burn(x, y, t) {
-  if (Math.random() < 0.55) {
+  if (!STILL && Math.random() < 0.55) {
     flames.push({ x: x + (Math.random() - 0.5) * 16, y, born: t });
     smoke.push({ x, y: y - 10, born: t, drift: Math.random() - 0.5, dark: true });
   }
@@ -629,9 +661,11 @@ function drawWeather(w, h, t) {
     }
   }
   // The vignette is what makes it read as a place rather than a diagram.
-  const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.42,
-                                     w / 2, h / 2, Math.max(w, h) * 0.78);
-  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(12,9,6,.55)');
+  // Enough to seat the picture on the page, not enough to muddy its corners.
+  // At .55 it read as a smudge wherever it met the panel.
+  const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.54,
+                                     w / 2, h / 2, Math.max(w, h) * 0.82);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(12,9,6,.34)');
   ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
 }
 
@@ -647,12 +681,14 @@ function mapFit(w, h) {
   const x0 = Math.min(...xs), x1 = Math.max(...xs);
   const y0 = Math.min(...ys), y1 = Math.max(...ys);
   const pad = 96;
-  const k = Math.min((w - 300 - pad) / Math.max(1, x1 - x0),
-                     (h - 200 - pad) / Math.max(1, y1 - y0));
-  return { k, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w, h };
+  const side = NARROW() ? 24 : 300, below = NARROW() ? 300 : 200;
+  const k = Math.min((w - side - pad) / Math.max(1, x1 - x0),
+                     (h - below - pad) / Math.max(1, y1 - y0));
+  return { k, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w, h,
+           dx: NARROW() ? 0 : 90, dy: NARROW() ? -45 : -30 };
 }
-const mapXY = (n, f) => [f.w / 2 + 90 + (n.x - f.cx) * f.k,
-                         f.h / 2 - 30 - (n.y - f.cy) * f.k];
+const mapXY = (n, f) => [f.w / 2 + f.dx + (n.x - f.cx) * f.k,
+                         f.h / 2 + f.dy - (n.y - f.cy) * f.k];
 
 function priceBand(nodes) {
   const vs = nodes.filter(n => n.price > 0).map(n => n.price).sort((a, b) => a - b);
@@ -684,6 +720,15 @@ function drawMarch(w, h, t) {
   const f = mapFit(w, h);
   const by = {}; for (const n of world.nodes) by[n.key] = n;
   const band = priceBand(world.nodes);
+
+  // Every name on a real map is cut out of whatever it crosses. Without the
+  // halo, a road or a route arc runs straight through the lettering.
+  const label = (text, x, y, colour) => {
+    ctx.lineWidth = 3.5; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(230,219,189,.88)';
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = colour; ctx.fillText(text, x, y);
+  };
 
   // Roads: each place joined to its nearest few, which is how roads happen.
   const trade = world.nodes.filter(n => n.kind !== 'shrine' && n.kind !== 'site');
@@ -757,10 +802,9 @@ function drawMarch(w, h, t) {
       }
     }
     if (c.load > 0) {
-      ctx.fillStyle = '#4a3a1e';
       ctx.font = '10px ui-monospace, Menlo, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`${c.load}`, x, y - 13 + bob);
+      label(`${c.load}`, x, y - 13 + bob, '#4a3a1e');
       ctx.textAlign = 'left';
     }
   }
@@ -811,23 +855,22 @@ function drawMarch(w, h, t) {
         ctx.stroke();
       }
     }
-    ctx.fillStyle = n.kind === 'mine' ? '#4a3607' : '#3c3323';
     ctx.font = (n.kind === 'mine' ? '600 13px ' : '12px ') +
                '"Iowan Old Style", Palatino, Georgia, serif';
     ctx.textAlign = 'center';
-    ctx.fillText(n.name, x, y + 19);
+    label(n.name, x, y + 19, n.kind === 'mine' ? '#4a3607' : '#3c3323');
     if (n.kind === 'town' && n.known < 0) {
-      ctx.fillStyle = 'rgba(70,58,36,.72)';
       ctx.font = 'italic 11px Georgia, serif';
-      ctx.fillText('never visited', x, y + 32);
+      label('never visited', x, y + 32, 'rgba(70,58,36,.72)');
     } else if (n.price > 0) {
-      ctx.fillStyle = priceColour(n.price, band);
       ctx.font = '600 11px ui-monospace, Menlo, monospace';
-      ctx.fillText(`${n.price.toFixed(1)}c`, x, y + 32);
+      label(`${n.price.toFixed(1)}c`, x, y + 32, priceColour(n.price, band));
     }
     ctx.textAlign = 'left';
   }
-  // A compass, because every map of a march has one.
+  // A compass, because every map of a march has one -- unless the screen is
+  // narrow enough that the console is already standing where it would go.
+  if (NARROW()) return;
   ctx.strokeStyle = 'rgba(90,70,40,.6)'; ctx.lineWidth = 1.4;
   ctx.beginPath(); ctx.arc(w - 74, h - 148, 22, 0, 7); ctx.stroke();
   poly([[w - 74, h - 168], [w - 69, h - 146], [w - 74, h - 150],
@@ -857,6 +900,7 @@ function paintTrade() {
       ? `${nameOf(c.from)} → ${nameOf(c.to)}, ${Math.round(c.done * 100)}%`
       : `standing at ${nameOf(c.from)}`} · ${c.load}/${c.capacity}</span></li>`
   ).join('') : '<li><span>no carts on the road</span></li>';
+  scrollCue();
 }
 function nameOf(key) {
   const n = world && world.nodes.find(x => x.key === key);
@@ -914,6 +958,9 @@ function townNodeAt(ev) {
 
 function openWrit(title, html, ev) {
   const writ = $('writ');
+  // The hover tip is the same fact in fewer words. Two of them, one showing
+  // faintly through the other, is how the panel used to open.
+  $('tip').hidden = true;
   $('writ-title').textContent = title;
   $('writ-body').innerHTML = html;
   writ.hidden = false;
@@ -969,7 +1016,7 @@ function plotWrit(x, y, ev) {
     <button data-do="build ${b.key}" ${b.can ? '' : 'disabled'}
             title="${b.can ? (b.note || b.name) : b.why}">
       <span>${b.name}</span>
-      <em>${b.can ? Math.round(b.coin) + 'c · ' + b.days + 'd' : b.why}</em>
+      <em>${b.can ? num(b.coin) + 'c · ' + b.days + 'd' : b.why}</em>
     </button>`).join('');
   const room = Object.entries(opts.slots)
     .filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ');
@@ -1008,12 +1055,12 @@ for (const btn of document.querySelectorAll('#clock button')) {
 
 /* ------------------------------------------------------------------ frame */
 function frame() {
-  const t = (performance.now() - t0) / 1000;
+  const t = clock();
   const w = canvas.width / dpr, h = canvas.height / dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (mode === 'march') {
     drawMarch(w, h, t);
-    requestAnimationFrame(frame);
+    nextFrame();
     return;
   }
   drawSky(w, h, t);
@@ -1050,14 +1097,24 @@ function frame() {
     ctx.restore();
   }
   drawWeather(w, h, t);
-  requestAnimationFrame(frame);
+  nextFrame();
+}
+/* Still means still: one redraw every so often is enough to pick up a new day. */
+function nextFrame() {
+  if (STILL) setTimeout(frame, 500); else requestAnimationFrame(frame);
 }
 
 /* ------------------------------------------------------------------- shell */
+let wasNarrow = null;
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = canvas.clientWidth * dpr;
   canvas.height = canvas.clientHeight * dpr;
+  scrollCue();
+  // Crossing the breakpoint changes the shape of the room the town is in.
+  const now = NARROW();
+  if (wasNarrow !== null && now !== wasNarrow && mode === 'town') frameTown();
+  wasNarrow = now;
 }
 window.addEventListener('resize', resize);
 
@@ -1138,13 +1195,16 @@ function paint(s) {
     if (s.over) Sound.mark('bell');
   }
   $('place').textContent = s.town.name;
+  // A browser tab full of identical "Marchlands" is no use to anyone playing
+  // two chapters at once.
+  document.title = `${s.town.name} · Marchlands`;
   $('date').textContent = `${s.date} · ${s.age}`;
-  $('purse').textContent = Math.round(s.treasury).toLocaleString() + 'c';
-  $('souls').textContent = `${Math.round(s.town.population)} of ${Math.round(s.town.housing)} roofs`;
+  $('purse').textContent = num(s.treasury) + 'c';
+  $('souls').textContent = `${num(s.town.population)} of ${num(s.town.housing)} roofs`;
   meter($('moodbar'), s.town.popularity / 100, 0.45, 0.25);
-  $('hands').textContent = `${Math.round(s.town.employed)} of ${Math.round(s.town.workforce)}`;
+  $('hands').textContent = `${num(s.town.employed)} of ${num(s.town.workforce)}`;
   meter($('wallbar'), s.town.wall_max ? s.town.wall_hp / s.town.wall_max : 0, 0.6, 0.3);
-  $('soldiers').textContent = s.town.soldiers;
+  $('soldiers').textContent = num(s.town.soldiers);
   $('mood').innerHTML = s.town.mood.map(m =>
     `<li><label>${m.what}</label><span class="${m.by > 0 ? 'up' : 'down'}">` +
     `${m.by > 0 ? '+' : ''}${m.by}</span></li>`).join('');
@@ -1152,13 +1212,22 @@ function paint(s) {
   $('ledger').innerHTML = [['taxes', L.taxes], ['trade', L.trade], ['tribute', L.tribute],
                            ['wages', -L.wages], ['upkeep', -L.upkeep], ['net', L.net]]
     .map(([k, v]) => `<li><label>${k}</label><span class="${v >= 0 ? 'up' : 'down'}">` +
-                     `${v >= 0 ? '+' : ''}${Math.round(v)}</span></li>`).join('');
+                     `${v >= 0 ? '+' : ''}${num(v)}</span></li>`).join('');
   const alarm = $('alarm');
   const bad = s.town.besieged ? 'under siege' : s.town.raided ? 'the country is burning'
     : s.town.fires ? `${s.town.fires} roofs alight`
     : s.town.blockaded ? 'the roads are cut' : s.over ? s.over : '';
   alarm.textContent = bad; alarm.hidden = !bad;
+  scrollCue();
 }
+
+/* A panel that quietly stops mid-list is a lie about what it is showing. When
+ * there is more below the fold, the bottom edge says so. */
+function scrollCue() {
+  const el = $('panel');
+  el.classList.toggle('more', el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+}
+$('panel').addEventListener('scroll', scrollCue);
 
 function say(text, cls) {
   if (!text.trim()) return;
@@ -1202,13 +1271,17 @@ function frameTown() {
   x0 -= 1; y0 -= 1; x1 += 1; y1 += 1;
   const wide = (x1 - x0 + y1 - y0) * TW / 2;
   const tall = (x1 - x0 + y1 - y0) * TH / 2 + 120;
-  const vw = canvas.clientWidth - 300, vh = canvas.clientHeight - 230;
+  // What the furniture leaves for the picture. On a narrow screen the panel
+  // lies along the bottom instead of standing at the side, so the room the
+  // town gets is a different shape and the town has to be fitted to it.
+  const vw = canvas.clientWidth - (NARROW() ? 34 : 300);
+  const vh = canvas.clientHeight - (NARROW() ? 350 : 230);
   camera.zoom = Math.max(0.5, Math.min(1.9, Math.min(vw / wide, vh / tall)));
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const [mx, my] = iso(cx, cy);
   const [ox, oy] = [-(plan.w - plan.h) * TW / 4, -(plan.w + plan.h) * TH / 4];
-  camera.x = 120 - (mx + ox) * camera.zoom;
-  camera.y = -40 - (my + oy) * camera.zoom;
+  camera.x = (NARROW() ? 0 : 120) - (mx + ox) * camera.zoom;
+  camera.y = (NARROW() ? -50 : -40) - (my + oy) * camera.zoom;
 }
 
 function setMode(next) {
@@ -1219,6 +1292,7 @@ function setMode(next) {
   $('goodpick').hidden = mode !== 'march';
   $('trade').hidden = mode !== 'march';
   $('tip').hidden = true;
+  scrollCue();
   if (mode === 'march') loadMarch();
 }
 $('ear').addEventListener('click', () => {
@@ -1244,5 +1318,5 @@ $('good').innerHTML = GOODS.map(g =>
   say('Marchlands. Drag to move, scroll to zoom. Click a roof to do something '
       + 'with it, or an empty plot to raise something on it.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
-  requestAnimationFrame(frame);
+  nextFrame();
 })();

@@ -7,7 +7,7 @@ from marchlands import config as C
 from marchlands.advisor import route_from, scan
 from marchlands.goods import good
 from marchlands.scenario import new_game
-from marchlands.trade import MOVING, Caravan, Order, Stop
+from marchlands.trade import CART, MOVING, Caravan, Order, Stop
 from marchlands.world import make_town
 
 
@@ -201,6 +201,42 @@ class TestACartSaysWhenItHasStopped(unittest.TestCase):
         if stopped:
             self.assertIn("(idle)", text,
                           "a cart stopped earning and the status line hid it")
+
+class TestAManifestFitsOrSaysSo(unittest.TestCase):
+    """A cargo cut off mid-number reads as a cargo of nothing."""
+
+    def cart(self, cargo):
+        c = Caravan(uid=1, name="Old Mare", kind=CART, home="aldworth",
+                    at="aldworth")
+        c.cargo = dict(cargo)
+        return c
+
+    def test_an_empty_cart_says_empty(self):
+        self.assertEqual(self.cart({}).manifest(), "empty")
+        self.assertEqual(self.cart({}).manifest(20), "empty")
+
+    def test_no_width_asked_for_means_the_whole_load(self):
+        c = self.cart({"wheat": 40, "salt": 15})
+        self.assertEqual(c.manifest(), "15 Salt, 40 Wheat")
+
+    def test_a_load_that_fits_is_not_touched(self):
+        c = self.cart({"wheat": 40, "salt": 15})
+        self.assertEqual(c.manifest(34), "15 Salt, 40 Wheat")
+
+    def test_what_does_not_fit_is_counted_not_chopped(self):
+        c = self.cart({"cheese": 19, "planks": 13, "salt": 15, "wheat": 34})
+        out = c.manifest(34)
+        self.assertLessEqual(len(out), 34)
+        self.assertTrue(out.endswith("more"), out)
+        self.assertNotIn(", 3", out[-6:])           # no half-written load
+        for part in out.split(", "):
+            self.assertTrue(part[0].isdigit() or part.startswith("+"), part)
+
+    def test_the_count_of_what_is_left_is_right(self):
+        c = self.cart({"cheese": 19, "planks": 13, "salt": 15, "wheat": 34})
+        self.assertIn("+2 more", c.manifest(34))
+        self.assertIn("+3 more", c.manifest(14))
+
 
 if __name__ == "__main__":
     unittest.main()

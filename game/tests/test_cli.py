@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 
+from marchlands.chronicle import MOMENTOUS, ROUTINE
 from marchlands.cli import Console, sparkline
 from marchlands.scenario import new_game
 
@@ -239,6 +240,39 @@ class TestBadSaves(unittest.TestCase):
         self.out.seek(0)
         self.con.do(f"save {os.path.join(self.tmp.name, 'no', 'such', 'dir.json')}")
         self.assertIn("could not write", self.out.getvalue())
+
+
+class TestTheChronicleCountsWhatItShows(unittest.TestCase):
+    """The head used to count the whole book while the page showed only the
+    days worth telling, so a reader saw `4 entries` above one line."""
+
+    def setUp(self):
+        self.buf = io.StringIO()
+        self.game = new_game(seed=5)
+        self.con = Console(self.game, out=self.buf)
+        g = self.game
+        for text, weight in [("a quiet day", ROUTINE), ("another", ROUTINE),
+                             ("the keep fell", MOMENTOUS)]:
+            g.chronicle.record(day=g.day, year=g.year, season=g.season,
+                               text=text, weight=weight)
+
+    def said(self, line):
+        self.buf.truncate(0)
+        self.buf.seek(0)
+        self.con.do(line)
+        return self.buf.getvalue()
+
+    def test_a_filtered_page_says_how_much_it_is_hiding(self):
+        out = self.said("chronicle")
+        self.assertIn("of 3 entries", out)
+        self.assertIn("chronicle all", out)
+
+    def test_the_whole_book_is_counted_plainly(self):
+        out = self.said("chronicle all")
+        self.assertIn("3 entries", out)
+        self.assertNotIn("of 3 entries", out)
+        self.assertNotIn("chronicle all` reads", out)
+
 
 if __name__ == "__main__":
     unittest.main()

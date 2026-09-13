@@ -102,6 +102,10 @@ class Console:
     def _name(self, key: str) -> str:
         return self.game.world.node_name(key)
 
+    def _where(self, thing) -> str:
+        """Where a host or a cart is, with every key turned into a name."""
+        return thing.where(self._name)
+
     # ================================================================ views
     def status(self) -> None:
         g = self.game
@@ -139,12 +143,12 @@ class Console:
                      + (f", {len(g.armies)} in the field" if g.armies else ""))
         for a in g.armies:
             if a.owner != "player":
-                self.say(f"  ! {a.name} out of {self._name(a.home)}: {a.where()}")
+                self.say(f"  ! {a.name} out of {self._name(a.home)}: {self._where(a)}")
         if g.caravans:
             self.say("")
             for c in g.caravans:
-                self.say(f"  [{c.uid}] {c.name:<12} {c.where():<22} "
-                         f"{c.load:>3.0f}/{c.capacity:<3.0f} {c.manifest()[:34]:<34}"
+                self.say(f"  [{c.uid}] {c.name:<12} {self._where(c):<22} "
+                         f"{c.load:>3.0f}/{c.capacity:<3.0f} {c.manifest(34):<34}"
                          f" {c.total_profit:+,.0f}c")
         self.say("",
                  f"  day's ledger   taxes {ink.coin(led.taxes, 7, True)}"
@@ -240,29 +244,71 @@ class Console:
                  f"  (strength {s.defense(p):.0f})")
         self.say("")
         self.say(ink.c("   id  building            staff  running  note", ink.DIM))
-        for b in sorted(s.buildings, key=lambda b: (b.spec.category, b.key)):
+        headings = {"castle": "the castle", "civic": "the town",
+                    "industry": "the workshops", "primary": "the land"}
+        def row(b):
             if not b.complete:
-                run = f"{b.days_left}d to raise"
-            elif not b.enabled:
-                run = "closed"
-            elif b.spec.is_producer or b.spec.inputs:
-                run = f"{100 * b.throughput:>3.0f}%"
-            else:
-                run = "  -"
-            jobs = f"{b.staffed}/{b.spec.jobs}" if b.spec.jobs else "  -"
-            glyph, colour = GLYPHS.get(b.key, ("·", ink.DIM))
-            note = ink.c(b.idle_reason, ink.AMBER if b.idle_reason else ink.DIM)
-            self.say(f"  {b.uid:>3}  {ink.c(glyph, colour)} "
-                     f"{ink.pad(b.spec.name, 18)}{jobs:>5}  {run:>9}  {note}")
+                return f"{b.days_left}d to raise", ""
+            if not b.enabled:
+                # It said "closed" in the running column and "closed" again in
+                # the note. Once is enough.
+                return "closed", ""
+            if b.spec.is_producer or b.spec.inputs:
+                return f"{100 * b.throughput:>3.0f}%", b.idle_reason
+            return "  -", b.idle_reason
+
+        # Seven identical cottages are seven identical lines, and a table of
+        # forty-five of those is a table nobody reads. Fold rows that are the
+        # same in every respect you can see, and keep their numbers, because
+        # the numbers are what `close` and `raze` take.
+        last, group = None, []
+
+        def flush():
+            if not group:
+                return
+            first = group[0]
+            run, note = row(first)
+            jobs = f"{first.staffed}/{first.spec.jobs}" if first.spec.jobs else "  -"
+            glyph, colour = GLYPHS.get(first.key, ("·", ink.DIM))
+            uids = [b.uid for b in group]
+            tag = f"{uids[0]:>3}" if len(uids) == 1 else f"{len(uids):>2}x"
+            name = first.spec.name
+            line = (f"  {tag}  {ink.c(glyph, colour)} "
+                    f"{ink.pad(name, 18)}{jobs:>5}  {run:>9}")
+            if note:
+                line += "  " + ink.c(note, ink.AMBER)
+            if len(uids) > 1:
+                line += ink.c(f"   {', '.join(str(u) for u in uids)}", ink.DIM)
+            self.say(line)
+            group.clear()
+
+        for b in sorted(s.buildings, key=lambda b: (b.spec.category, b.key, b.uid)):
+            if b.spec.category != last:
+                flush()
+                last = b.spec.category
+                self.say(ink.c(f"  -- {headings.get(last, last)}", ink.DIM))
+            if group and (group[0].key != b.key or row(group[0]) != row(b)
+                          or group[0].staffed != b.staffed):
+                flush()
+            group.append(b)
+        flush()
         self.say("")
-        self.say("  mood    " + "  ".join(f"{k} {v:+.0f}"
-                                          for k, v in s.mood_factors(p)))
+        factors = [(k, v) for k, v in s.mood_factors(p) if abs(v) >= 0.5]
+        self.say("  mood    " + ("  ".join(f"{k} {v:+.0f}" for k, v in factors)
+                                 or "nothing either way"))
         if s.fear:
             self.say(f"  fear    {s.fear:.0f} -- work runs "
                      f"{3.5 * s.fear:.0f}% harder and the people like it that much less")
+        # Anything actually alight outranks everything else on this screen.
+        if s.fires:
+            alight = [b.spec.name for b in s.buildings if s.fires.burning(b.uid)]
+            self.say("  " + ink.c(f"ON FIRE  {len(alight)} alight: "
+                                  f"{', '.join(sorted(set(alight))[:5])}", ink.BLOOD))
+        # "burning" meant running down faster than you make it, which was a fair
+        # word for it until the town could literally be on fire.
         short = shortage_report(s)[:6]
         if short:
-            self.say("  burning " + ", ".join(
+            self.say("  using up " + ", ".join(
                 f"{good(k).name} {net:+.1f}/day (stock {stock:.0f})"
                 for k, net, stock in short))
 
@@ -392,7 +438,7 @@ class Console:
                 state = {IDLE: "idle", MOVING: "on the road" if not c.sails else "at sea",
                          TRADING: "in port" if c.sails else "in town"}[c.state]
                 self.say(f"  [{c.uid}] {c.name:<12} {'cog' if c.sails else 'cart':<5}"
-                         f"{state:<12} {c.where():<20}"
+                         f"{state:<12} {self._where(c):<20}"
                          f" {c.load:>4.0f}/{c.capacity:<4.0f}"
                          f" {c.total_profit:+,.0f}c lifetime")
                 if c.route:
@@ -403,7 +449,7 @@ class Console:
         if not c:
             return self.err(f"no caravan {uid}")
         self.say(ink.head(c.name, "cog" if c.sails else "cart"),
-                 f"  where     {c.where()}",
+                 f"  where     {self._where(c)}",
                  f"  cargo     {c.manifest()}  ({c.load:.0f}/{c.capacity:.0f} cart units)",
                  f"  guards    {c.guards}  ({c.daily_cost:.0f}c/day all in)",
                  f"  earned    {c.total_profit:+,.0f}c lifetime")
@@ -611,7 +657,7 @@ class Console:
         coming = [a for a in g.armies if a.owner != "player"]
         if coming:
             a = coming[0]
-            out.append(f"{a.name} is {a.where()} with {describe(a.units)}. "
+            out.append(f"{a.name} is {self._where(a)} with {describe(a.units)}. "
                        f"`garrison` shows what you have; `recruit` adds to it.")
             # What they can try is decided by what you dug, and a ditch is days
             # of work where a tower is a season -- so it is worth saying now.
@@ -632,7 +678,7 @@ class Console:
                        f"`plans {a.at}` shows what stands against that, and "
                        f"`siege {a.uid} <plan>` changes it.")
         if days < 12:
-            out.append(f"{s.name} has about {days:.0f} days of food. Build a farm, "
+            out.append(f"{s.name} has about {ink.count(days, 'day')} of food. Build a farm, "
                        f"a mill and a bakery -- or buy bread in from Vantry.")
         if s.popularity < 40:
             out.append(f"Mood at {s.name} is {s.popularity:.0f}. `town` lists what is "
@@ -655,8 +701,9 @@ class Console:
                        f"Ale is worth up to {C.ALE_MOOD:.0f} of mood.")
         free = [sh for sh in g.world.shrines.values() if not sh.taken]
         if free and not g.relics_held() and g.day > 120:
-            out.append(f"{len(free)} shrines still hold their relics. Six days' "
-                       f"standing lifts one and they pay every day after. `relics`.")
+            out.append(f"{ink.count(len(free), 'shrine')} still hold their "
+                       f"relics. Six days' standing lifts one and they pay "
+                       f"every day after. `relics`.")
         if g.lord.captured:
             out.append(f"{g.lord.name} is held at {g.lord.ransom:,.0f}c. "
                        f"`lord ransom` buys him back.")
@@ -885,8 +932,8 @@ class Console:
             a = g.army(int(args[0]))
             if not a:
                 return self.err(f"no host {args[0]}")
-            self.say(ink.head(a.name, a.where()),
-                     f"  where     {a.where()}",
+            self.say(ink.head(a.name, self._where(a)),
+                     f"  where     {self._where(a)}",
                      f"  strength  {host_strength(a.units):.0f}"
                      f"   upkeep {a.upkeep:.0f}c/day"
                      f"   siege {a.siege_power:.0f}",
@@ -897,7 +944,7 @@ class Console:
         self.say(ink.head("HOSTS IN THE FIELD"))
         for a in g.armies:
             side = "yours" if a.owner == "player" else f"{self._name(a.home)}"
-            self.say(f"  [{a.uid}] {a.name:<22} {side:<12} {a.where():<24}"
+            self.say(f"  [{a.uid}] {a.name:<22} {side:<12} {self._where(a):<24}"
                      f" {describe(a.units)}")
         for key, s in g.world.settlements.items():
             if s.units:
@@ -920,7 +967,7 @@ class Console:
                                     f"Send a cart or a host and look.")
                 works, name = t.works(seen.get("prosperity")), t.name
                 if age > 30:
-                    self.say(ink.c(f"  (this is {age} days out of date -- he has "
+                    self.say(ink.c(f"  (this is {ink.count(age, 'day')} out of date -- he has "
                                    f"had a season to dig)", ink.AMBER))
             elif key in g.world.settlements:
                 s = g.world.settlements[key]
@@ -973,7 +1020,7 @@ class Console:
             self.say(ink.head("SIEGE ORDERS"))
             for a in hosts:
                 self.say(f"  [{a.uid}] {a.name:<22} "
-                         f"{PLANS[a.siege.plan].name:<22} {a.where()}")
+                         f"{PLANS[a.siege.plan].name:<22} {self._where(a)}")
             return
         if len(args) < 2:
             return self.err("siege <host> <" + "|".join(PLANS) + ">")
@@ -1029,7 +1076,12 @@ class Console:
             return self.say(ink.head("THE CHRONICLE"),
                             ink.c("  Nothing worth writing down has happened yet.",
                                   ink.DIM))
-        self.say(ink.head("THE CHRONICLE", f"{len(g.chronicle)} entries"))
+        # The head used to count the whole book while the page showed only the
+        # days worth telling, which made it look as though entries were lost.
+        total = len(g.chronicle)
+        right = (ink.count(total, "entry") if len(entries) == total
+                 else f"{len(entries)} of {ink.count(total, 'entry')}")
+        self.say(ink.head("THE CHRONICLE", right))
         chapter = None
         for e in entries:
             if e.chapter != chapter:
@@ -1041,6 +1093,9 @@ class Console:
             colour = ink.BONE if e.weight >= MOMENTOUS else ink.DIM
             self.say(f"  {ink.c(ink.pad(e.stamp(), 13), ink.PLUM)} "
                      + ink.c(e.text.strip("* "), colour))
+        if len(entries) < total:
+            self.say("", ink.c("  `chronicle all` reads the quiet days too.",
+                               ink.DIM))
 
     def cmd_lord(self, args: List[str]) -> None:
         """Your lord: where he is, what he is worth there, and the risk of it."""
@@ -1118,7 +1173,7 @@ class Console:
         g = self.game
         self.say(ink.head("THE STATE OF THE MARCH", "as last reported"),
                  "  town          lord                    sworn to    walls"
-                 "  could field   last word")
+                 "  could field  as they stood    last word")
         for key, t in g.world.towns.items():
             seen, age = g.known(key)
             liege = ("you" if t.mine else
@@ -1150,17 +1205,19 @@ class Console:
             self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)} "
                      f"{ink.c(ink.pad(t.lord, 23), ink.DIM)} {liege:<10}"
                      f" {seen.get('wall_hp', 0.0):>6,.0f}  {might:>10,.0f}   "
-                     + ink.c(f"{state} ({hostile:.0f})", mood)
-                     + ink.c(f"  {stale}", ink.DIM if age <= 30 else ink.AMBER))
+                     + ink.c(ink.pad(f"{state} ({hostile:.0f})", 16), mood)
+                     + ink.c(stale, ink.DIM if age <= 30 else ink.AMBER))
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "
-                 f"{len(g.world.settlements)} settlements and {len(g.armies)} hosts")
+                 f"{ink.count(len(g.world.settlements), 'settlement')} and "
+                 f"{ink.count(len(g.armies), 'host')}")
         self.say(ink.c("  What you know is what you last saw. A cart that calls "
                        "somewhere looks around while it is there.", ink.DIM))
         for a in g.armies:
             who = "yours" if a.owner == "player" else self._name(a.home)
-            self.say(f"  host: {a.name} ({who}) -- {a.where()}, {describe(a.units)}")
+            self.say(f"  host: {a.name} ({who}) · {self._where(a)}, "
+                     f"{describe(a.units)}")
 
     def cmd_gift(self, args: List[str]) -> None:
         if len(args) < 2:
@@ -1200,7 +1257,7 @@ class Console:
                  "  " + ink.c(AGES[p.age].blurb, ink.DIM))
         if p.advancing:
             return self.say(f"  climbing to the {AGES[p.age + 1].name}: "
-                            f"{p.advancing} days to go")
+                            f"{ink.count(p.advancing, 'day')} to go")
         if not nxt:
             return self.say("  there is nothing above this.")
         cost = ", ".join(f"{v:,.0f} {'coin' if k == 'coin' else good(k).name}"
@@ -1225,7 +1282,7 @@ class Console:
         self.say(ink.head("THE GUILDHALL", p.age_name()))
         if p.researching:
             self.say(f"  studying {TECHS[p.researching].name}, "
-                     f"{p.research_left:.0f} days to go", "")
+                     f"{ink.count(p.research_left, 'day')} to go", "")
         for t in p.available():
             cost = " ".join(f"{v:g}{k[:5]}" for k, v in t.cost.items())
             self.say(f"  {t.key:<18} {t.name:<22} {t.days:>3}d  {cost}")

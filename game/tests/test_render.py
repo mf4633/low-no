@@ -107,5 +107,45 @@ class TestTownPlan(unittest.TestCase):
         self.assertTrue(rows)
 
 
+class TestCountingThings(unittest.TestCase):
+    """One of everything is the common case in this game, so the text has to
+    survive it. `1 settlements` is the tell that nobody read the output."""
+
+    def test_one_is_singular_and_everything_else_is_not(self):
+        self.assertEqual(ink.count(1, "settlement"), "1 settlement")
+        self.assertEqual(ink.count(2, "settlement"), "2 settlements")
+        self.assertEqual(ink.count(0, "settlement"), "0 settlements")
+
+    def test_a_y_takes_ies(self):
+        self.assertEqual(ink.count(1, "entry"), "1 entry")
+        self.assertEqual(ink.count(4, "entry"), "4 entries")
+
+    def test_an_irregular_plural_can_be_given(self):
+        self.assertEqual(ink.count(3, "man", "men"), "3 men")
+
+    def test_big_numbers_are_grouped_like_every_other_number_here(self):
+        self.assertEqual(ink.count(1200, "day"), "1,200 days")
+
+    def test_a_vowel_before_the_y_keeps_the_y(self):
+        self.assertEqual(ink.count(2, "day"), "2 days")
+        self.assertEqual(ink.count(2, "journey"), "2 journeys")
+
+    def test_nothing_costs_minus_zero(self):
+        """A quiet day used to bill the treasury `-0`."""
+        self.assertIn("+0", ink.coin(-0.2, 8, True))
+        self.assertNotIn("-0", ink.coin(-0.2, 8, True))
+        self.assertNotIn("-0", ink.coin(0.0, 8, True))
+        self.assertIn("-3", ink.coin(-3.0, 8, True))
+
+    def test_the_war_table_never_says_one_settlements(self):
+        g = start("marchlands", seed=4)
+        out = io.StringIO()
+        Console(g, out=out).do("war")
+        text = out.getvalue()
+        self.assertIn("1 settlement and", text)
+        self.assertNotIn("1 settlements", text)
+        self.assertNotIn("1 hosts", text)
+
+
 if __name__ == "__main__":
     unittest.main()

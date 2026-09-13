@@ -416,10 +416,37 @@ class TestItShips(unittest.TestCase):
         import re
         from marchlands.web import STATIC
         page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
-        wanted = re.findall(r'(?:src|href)="([^"/][^"]*)"', page)
+        wanted = [w for w in re.findall(r'(?:src|href)="([^"/][^"]*)"', page)
+                  if ":" not in w.split("?")[0]]     # not a data: or http: URI
         self.assertTrue(wanted)
         for name in wanted:
             self.assertTrue(os.path.isfile(os.path.join(STATIC, name)), name)
+
+    def test_the_page_asks_the_network_for_nothing(self):
+        """No dependency list, and that includes fonts and CDNs. A game you
+        can play on a train is worth more than a webfont."""
+        import re
+        from marchlands.web import STATIC
+        page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+        for url in re.findall(r'(?:src|href)="([^"]*)"', page):
+            self.assertFalse(url.startswith(("http:", "https:", "//")), url)
+
+    def test_the_tab_has_a_name_and_a_mark_of_its_own(self):
+        from marchlands.web import STATIC
+        page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+        self.assertIn("<title>", page)
+        self.assertIn('rel="icon"', page)
+        self.assertIn("data:image/svg+xml,", page)    # drawn, not downloaded
+        self.assertIn('name="theme-color"', page)
+
+    def test_a_narrow_screen_still_shows_the_numbers(self):
+        """The stylesheet used to answer a phone by hiding the panel, which is
+        where souls, mood, hands and the wall live."""
+        from marchlands.web import STATIC
+        css = open(os.path.join(STATIC, "marchlands.css"), encoding="utf-8").read()
+        narrow = css[css.index("@media (max-width: 720px)"):]
+        self.assertNotIn("#panel { display: none", narrow)
+        self.assertIn("#panel", narrow)
 
     def test_the_wheel_is_told_to_carry_them(self):
         """The one line whose absence caused this, asserted directly."""

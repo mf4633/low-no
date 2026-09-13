@@ -77,6 +77,16 @@ def c(text: str, colour: Optional[int] = None, *, bold: bool = False,
     return f"\033[{';'.join(parts)}m{text}\033[0m"
 
 
+def count(n: float, word: str, plural: str = "") -> str:
+    """`1 settlement`, `4 settlements`. One of everything is common enough in
+    this game -- one town, one host, one day left -- that getting it wrong is
+    the most visible sloppiness the text has."""
+    # -y takes -ies only after a consonant: entries, but days and journeys.
+    ies = word.endswith("y") and word[-2:-1] not in "aeiou"
+    many = plural or (word[:-1] + "ies" if ies else word + "s")
+    return f"{n:,.0f} {word if abs(n - 1) < 1e-9 else many}"
+
+
 def width(text: str) -> int:
     """Printable width, ignoring escape codes."""
     out, i = 0, 0
@@ -144,6 +154,9 @@ def bar(value: float, top: float, n: int = 20, good_high: bool = True) -> str:
 
 
 def coin(value: float, width_: int = 8, plus: bool = False) -> str:
+    # A day with no war in it costs `-0`, which is not a number anyone writes.
+    if abs(value) < 0.5:
+        value = 0.0
     text = f"{value:+,.0f}" if plus else f"{value:,.0f}"
     text = pad(text, width_, ">")
     if abs(value) < 0.5:

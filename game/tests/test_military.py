@@ -5,7 +5,8 @@ import unittest
 
 from marchlands import config as C
 from marchlands.military import (UNITS, Side, describe, fight, host_speed,
-                                 host_strength, host_upkeep, siege_day)
+                                 host_strength, host_upkeep, plural,
+                                 siege_day)
 from marchlands.scenario import new_game
 
 
@@ -274,6 +275,32 @@ class TestDefence(unittest.TestCase):
                 count += sum(m.startswith("WAR:") for m in g.tick())
             wars[label] = count
         self.assertGreater(wars["fat"], wars["lean"])
+
+
+class TestHowAHostReads(unittest.TestCase):
+    """A host is named in every report of the war. It has to read like English."""
+
+    def test_one_of_a_thing_keeps_its_own_name(self):
+        self.assertEqual(describe({"spearman": 1}), "1 Spearman")
+        self.assertEqual(describe({"man_at_arms": 1}), "1 Man-at-Arms")
+
+    def test_more_than_one_is_pluralised(self):
+        self.assertEqual(describe({"spearman": 20}), "20 Spearmen")
+        self.assertEqual(describe({"man_at_arms": 10}), "10 Men-at-Arms")
+        self.assertEqual(describe({"archer": 14}), "14 Archers")
+
+    def test_a_militia_and_a_troop_of_horse_are_the_same_word_either_way(self):
+        self.assertEqual(describe({"militia": 40}), "40 Levy Militia")
+        self.assertEqual(describe({"border_horse": 9}), "9 Border Horse")
+
+    def test_every_unit_in_the_book_has_a_plural(self):
+        for u in UNITS.values():
+            many = plural(u.name)
+            self.assertTrue(many, u.key)
+            self.assertNotIn("mans", many, u.key)
+
+    def test_an_empty_host_is_still_a_sentence(self):
+        self.assertEqual(describe({}), "no one")
 
 
 if __name__ == "__main__":

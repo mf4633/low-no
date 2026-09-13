@@ -5,7 +5,11 @@
   --gold: #c9a227;
   --blood: #9b2c2c;
   --leaf: #5f8a3f;
-  --panel: rgba(20, 17, 13, 0.82);
+  /* Opaque enough to read against a bright field on its own. The panels used
+     to blur their backdrop as well, which costs a composited layer per frame
+     over a canvas that never stops drawing, for a blur nobody can see through
+     nine tenths of an inch of ink. A shadow seats them instead. */
+  --panel: rgba(18, 15, 11, 0.90);
   --edge: rgba(201, 162, 39, 0.28);
 }
 * { box-sizing: border-box; }
@@ -19,22 +23,29 @@ body {
 
 #bar {
   position: absolute; top: 0; left: 0; right: 0; z-index: 3;
-  display: flex; gap: 14px; align-items: baseline;
-  padding: 10px 16px;
-  background: linear-gradient(rgba(13,11,9,.85), rgba(13,11,9,0));
+  display: flex; gap: 16px; align-items: center;
+  padding: 10px 16px 18px;
+  /* Deeper and taller than it was. The date used to fade out over a bright
+     sky, which is exactly where it needed to be readable. */
+  background: linear-gradient(rgba(13,11,9,.92) 0%, rgba(13,11,9,.72) 55%,
+                              rgba(13,11,9,0) 100%);
   pointer-events: none;
 }
-#place { font-size: 19px; letter-spacing: .09em; text-transform: uppercase; color: var(--gold); }
-#purse { color: var(--gold); font-variant-numeric: tabular-nums; }
+#place { font-size: 19px; letter-spacing: .09em; text-transform: uppercase;
+         color: var(--gold); text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+#purse { color: var(--gold); font-variant-numeric: tabular-nums;
+         font-size: 15px; padding-left: 4px;
+         text-shadow: 0 1px 3px rgba(0,0,0,.55); }
 .grow { flex: 1; }
 .dim { color: var(--dim); }
+#date { color: #a8997c; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 
 #panel {
   position: absolute; top: 52px; left: 14px; z-index: 3;
   width: 236px; max-height: calc(100% - 190px); overflow: auto;
   padding: 12px 14px;
   background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
-  backdrop-filter: blur(3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.32);
 }
 #panel h2 {
   margin: 14px 0 7px; font-size: 10px; font-weight: normal;
@@ -53,12 +64,34 @@ body {
 .meter.warn i { background: var(--gold); }
 .meter.bad i  { background: var(--blood); }
 .up { color: var(--leaf); } .down { color: var(--blood); }
+/* Set by the page whenever the panel has more in it than it can show. A list
+   that simply stops at the fold looks like the whole list. */
+#panel.more { box-shadow: inset 0 -26px 20px -21px rgba(6,5,3,.95),
+                          0 8px 24px rgba(0,0,0,.32); }
+
+/* The furniture is dark parchment; the platform's own scrollbars are not. */
+#panel, #log, #writ-body {
+  scrollbar-width: thin; scrollbar-color: rgba(201,162,39,.34) transparent;
+}
+#panel::-webkit-scrollbar, #log::-webkit-scrollbar,
+#writ-body::-webkit-scrollbar { width: 7px; height: 7px; }
+#panel::-webkit-scrollbar-thumb, #log::-webkit-scrollbar-thumb,
+#writ-body::-webkit-scrollbar-thumb {
+  background: rgba(201,162,39,.30); border-radius: 4px;
+}
+#panel::-webkit-scrollbar-thumb:hover, #log::-webkit-scrollbar-thumb:hover,
+#writ-body::-webkit-scrollbar-thumb:hover { background: rgba(201,162,39,.55); }
+#panel::-webkit-scrollbar-track, #log::-webkit-scrollbar-track,
+#writ-body::-webkit-scrollbar-track { background: transparent; }
 
 #console {
   position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 3;
   background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
-  backdrop-filter: blur(3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.32);
 }
+/* The prompt is focused from the moment the page loads, so a ring around the
+   input would be permanent furniture. The frame brightens instead. */
+#console:focus-within { border-color: rgba(201,162,39,.52); }
 #log {
   margin: 0; padding: 9px 13px 4px; list-style: none;
   max-height: 132px; overflow: auto;
@@ -90,11 +123,6 @@ body {
   background: rgba(155,44,44,.88); border-radius: 2px;
 }
 [hidden] { display: none !important; }
-
-@media (max-width: 720px) {
-  #panel { display: none; }
-  #console { left: 8px; right: 8px; }
-}
 
 /* the view switch, and the trade panel that comes with the march */
 .views { display: flex; gap: 2px; pointer-events: auto; }
@@ -128,8 +156,10 @@ body.march #ear { color: #6b5c3e; background: rgba(235,224,194,.75);
 /* The march is drawn on parchment, so the furniture over it has to change
    colour or it is dark ink on a dark scrim over a light ground. */
 body.march #bar {
-  background: linear-gradient(rgba(222,208,172,.95), rgba(222,208,172,0));
+  background: linear-gradient(rgba(222,208,172,.96) 0%, rgba(222,208,172,.78) 55%,
+                              rgba(222,208,172,0) 100%);
 }
+body.march #place, body.march #date, body.march #purse { text-shadow: none; }
 body.march #place { color: #5e4712; }
 body.march #date, body.march #goodpick { color: #6b5c3e; }
 body.march #purse { color: #6b5212; }
@@ -144,7 +174,7 @@ body.march #goodpick select { color: #3c3323; background: rgba(235,224,194,.9);
   position: absolute; z-index: 5; width: 290px; max-height: 60%;
   display: flex; flex-direction: column;
   background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
-  backdrop-filter: blur(4px); box-shadow: 0 10px 28px rgba(0,0,0,.4);
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
 }
 #writ header {
   display: flex; align-items: center; gap: 8px; padding: 9px 8px 9px 13px;
@@ -163,6 +193,12 @@ body.march #goodpick select { color: #3c3323; background: rgba(235,224,194,.9);
   font: 12px/1 inherit; padding: 7px 10px; cursor: pointer;
   color: var(--parch); background: rgba(232,220,196,.09);
   border: 1px solid var(--edge); border-radius: 2px;
+}
+/* The writ's buttons sit on a panel; the clock's sit on the sky. */
+#clock button { background: rgba(20,17,13,.62); }
+.acts button:focus-visible, #clock button:focus-visible,
+#writ-close:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 1px;
 }
 .acts button:hover, #clock button:hover { background: var(--gold); color: #14110d; }
 .acts button:disabled { opacity: .35; cursor: not-allowed; }
@@ -183,4 +219,27 @@ body.march #goodpick select { color: #3c3323; background: rgba(235,224,194,.9);
 body.march #clock button { color: #6b5c3e; background: rgba(235,224,194,.8);
                            border-color: rgba(120,96,58,.35); }
 body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
-@media (max-width: 720px) { #writ { width: calc(100% - 28px); left: 14px !important; } }
+/* Narrow. The panel used to be hidden outright, which took the four numbers
+   the game is actually played on off the screen. It lies down instead. */
+@media (max-width: 720px) {
+  #bar { flex-wrap: wrap; gap: 8px 10px; padding: 8px 10px 12px; }
+  #place { font-size: 16px; }
+  #panel {
+    top: auto; bottom: 0; left: 8px; right: 8px; width: auto;
+    max-height: none; overflow: hidden; padding: 7px 10px;
+  }
+  #panel, #panel.more { box-shadow: none; }
+  #panel h2, #panel #trade,
+  #panel section:nth-of-type(3), #panel section:nth-of-type(4) { display: none; }
+  #panel section { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  #panel .row { padding: 0; gap: 5px; font-size: 12px; }
+  #panel .meter { width: 52px; }
+  /* Stacked from the bottom edge up: vitals, console, clock. The log is given
+     a fixed height rather than a cap so those three stack to a known total
+     instead of sliding about as the log fills. */
+  #console { left: 8px; right: 8px; bottom: 65px; }
+  #log { height: 84px; max-height: none; }
+  #clock { right: 8px; top: auto; bottom: 196px; flex-wrap: wrap;
+           justify-content: flex-end; max-width: calc(100% - 16px); }
+  #writ { width: calc(100% - 28px); left: 14px !important; }
+}

@@ -303,7 +303,7 @@ def route_from(opp: Opportunity, safety: float = 1.0,
 
 
 def shortage_report(settlement) -> List[Tuple[str, float, float]]:
-    """Goods your own town is burning faster than it makes them."""
+    """Goods your own town is using up faster than it makes them."""
     rep = settlement.report
     rows = []
     for k in ALL_KEYS:

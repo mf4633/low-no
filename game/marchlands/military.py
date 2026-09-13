@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from . import config as C
 from .castle import SiegeState, Works, approach
@@ -146,8 +146,25 @@ def host_speed(units: Dict[str, float]) -> float:
     return min(live) if live else C.CARAVAN_BASE_SPEED
 
 
+# Two spearmen are not "2 Spearman". The rule covers every name in UNITS:
+# -man goes to -men wherever it falls, a militia and a troop of horse are the
+# same word however many of them there are, and everything else takes an s.
+_SAME = ("Militia", "Horse")
+
+
+def plural(name: str) -> str:
+    if name.endswith(_SAME):
+        return name
+    if name.endswith("man"):
+        return name[:-3] + "men"
+    if "Man-at-Arms" in name:
+        return name.replace("Man-at-Arms", "Men-at-Arms")
+    return name + "s"
+
+
 def describe(units: Dict[str, float]) -> str:
-    bits = [f"{int(n)} {UNITS[k].name}" for k, n in sorted(units.items()) if n >= 1]
+    bits = [f"{int(n)} {UNITS[k].name if int(n) == 1 else plural(UNITS[k].name)}"
+            for k, n in sorted(units.items()) if n >= 1]
     return ", ".join(bits) if bits else "no one"
 
 
@@ -438,14 +455,21 @@ class Army:
     def siege_power(self) -> float:
         return sum(UNITS[k].siege_power * n for k, n in self.units.items())
 
-    def where(self) -> str:
+    def where(self, name_of: Optional[Callable[[str], str]] = None) -> str:
+        """Where the host is, in words a player uses.
+
+        Given a resolver it says "besieging Dunmere" and "raiding St Brannoc";
+        without one it falls back to the keys, which is fine for a log and was
+        never fine on the status screen.
+        """
+        name = name_of or (lambda k: k)
         if self.state == MARCHING:
-            return f"{self.days_left:.0f}d from {self.bound_for}"
+            return f"{self.days_left:.0f}d from {name(self.bound_for)}"
         if self.state == BESIEGING:
-            return f"besieging {self.at}"
+            return f"besieging {name(self.at)}"
         if self.state == RAIDING:
-            return f"raiding {self.at}"
-        return self.at
+            return f"raiding {name(self.at)}"
+        return name(self.at) if self.at else ""
 
     def note(self, msg: str) -> None:
         self.log.append(msg)

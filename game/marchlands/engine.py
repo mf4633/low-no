@@ -159,7 +159,9 @@ class GameState:
         return C.SEASON_OF_MONTH[self.month]
 
     def date_str(self) -> str:
-        return (f"day {self.day_of_month:>2} of month {self.month:>2}, "
+        # No padding. The rule beside it takes up the slack, and `month  4`
+        # with a hole in the middle of it is the sort of thing a reader sees.
+        return (f"day {self.day_of_month} of month {self.month}, "
                 f"{self.year} ({self.season})")
 
     # ------------------------------------------------------------- economics

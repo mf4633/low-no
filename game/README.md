@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 452 tests, ~5min
+python3 -m unittest discover -s tests          # 474 tests, ~5min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -176,6 +176,27 @@ seeing from a view:
 * the fog on it: a town you have never sent a cart to is labelled *never
   visited* rather than given a number it has not earned
 
+#### Fit and finish
+
+The parts nobody names when they work:
+
+* **Names are cut out of the map.** Every place name, price and cart load is
+  drawn with a parchment halo, so a road or a route arc passes behind the
+  lettering instead of through it.
+* **A panel that has more in it says so.** The side panel darkens along its
+  bottom edge when the list continues below the fold; a list that simply stops
+  looks like the whole list.
+* **It fits a phone.** Under 720px the panel lies down along the bottom as a
+  strip of the four numbers the game is played on — souls, mood, hands, wall —
+  rather than hiding itself, and the town is re-fitted to the different shape
+  of room that leaves. Cross the breakpoint and it re-frames.
+* **Asked to hold still, it holds still.** With `prefers-reduced-motion`, smoke
+  does not rise, sails do not turn and nobody walks; the picture still redraws
+  when the day does.
+* **The page asks the network for nothing.** No font host, no CDN, no favicon
+  file — the tab's mark is a drawn `data:` URI. A test asserts it, because the
+  easiest way to acquire a dependency is to add one link to an HTML head.
+
 ### The thing people actually describe
 
 Ask anybody what they remember about Stronghold and they will not start with
@@ -245,38 +266,39 @@ itself:
                        ·                            ·
                               ♣♣
                               ┃┃ ♣♣
-                           ≋≋    ┃┃
-                     ♠♠ ≋≋    ≋≋    ▀▀
-                  ♠♠ ┃┃    ≋≋    ≋≋ ▄▀▄▀▀˛◣◢
-                  ┃┃    ≋≋    ▀▀ ██ █████ ██˛
-                      ˛˛   ▀▀ ██ ▛▜ █████ ██ ▀▀
-                    ˛   ▀▀ ██ ██ ██ ███▟▙ ██ ██ ▀▀
-          ˛          ▀▀ ██ ██ ▟▙ ██ ▟▙ ██ ▟▙ ██ ██ ▀▀
-              ˛   ▀▀ ██ ██ ▟▙ ▛▜ ▟▙ ██ ▟▙ ██ ▬▬ ██ ██ ▀▀
-   ◡◡          ˛  ██ ██ ▬▬ ██ ██ ██ ▄▄ ██ ▄▄ ▒▒ ▬▬ ██·██
-˛              ▀▀ █Î ▄▄ ▒✻ ▄▄ █✻ ▄▄ §✻ ▄▄ ¤✻ ▄▄ ▒▒ ▄▄ ██ ▀▀ ˛˛
-         ˛     ██ ▀▀ ▓▓ ██ ▓▓ ██ ▓▓ ██ ▓▓ ██ ▓▓ ▄▄ ▓▓ ▀▀ ██      ˛
-      ˛           ██ ▀▀ █Î ▄▄ ██    ██    ██    ▓▓ ▀▀ ██      ˛
-                 ˛   ██ ▀▀ ▓▓          í        ▀▀ ██
-             ˛          ██·▀▀  Î     î       ▀▀ ██
-                      ˛˛   ██ ▀▀         ì▀▀ ██                  ˛
-                    ˛         ██ ▀▀    ▀▀ ██
-                                 ██ ▀▀ ██     ˛           ˛
-                                    ██          ˛       ˛
-                           ˛                       ˛ ˛
-                                    ˛ ˛
+                           ≋≋    ┃┃  ▲
+                     ♠♠ ≋≋    ≋≋    ▀▄≈
+                  ♠♠ ┃┃    ≋≋    ≋≋≈▄▀▄▀▀≈◣◢
+                  ┃┃    ≋≋    ᵕᵕ≈██ █████ ██≈◣◢
+                      ˛˛   ▀▀≈██ ▛▜ █████ ██ ██≈
+                    ˛   ▀▀≈██ ██ ██ ███▟▙ ██ ██ ▀▀≈
+          ˛          ▀▀≈██ ██ ▟▙ ██ ▟▙ ██ ▟▙ ██ ██ ▀▀≈
+              ˛   ▀▀≈██ ██ ▟▙ ▛▜ ▟▙ ██ ▟▙ ██ ▬▬ ██ ██ ▀▀≈
+   ◡◡          ≈≈≈██ ██ ▬▬ █° ██ █˙ ▟▙ █° ▄▄ ▒˙ ▄▄ ██·██ ≈≈≈
+˛           ≈≈≈▀▀ █Î ▬▬ ▒▒ ▄▄ █˚ ▄▄ ∪✻ ▄▄ §✻ ▄▄ ¤✻ ▄▄ ██ ▀▀ ≈≈≈
+         ≈≈≈   ██ ▀▀ ▒▒ ▄▄ ▓✻ ▄▄ ▓▓ ██ ▓▓ ██ ▓▓ ██ ▓▓ ▀▀ ██    ≈≈≈
+      ˛     ≈≈≈   ██ ▀▀ ▓Î ██ ▓▓ ▄▄ ██ ▄▄ ██ ▄▄ ██ ▀▀ ██    ≈≈≈
+               ≈≈≈   ██ ▀▀ ██ ▄▄ ▓▓    ▓▓    ▓▓ ▀▀ ██    ≈≈≈
+             ˛    ≈≈≈   ██·▀▀ ▓Î    î       ì▀▀ ██    ≈≈≈
+                     ≈≈≈   ██ ▀▀  î     ï ▀▀ ██    ≈≈≈           ˛
+                    ˛   ≈≈≈   ██ ▀▀ í  ▀▀ ██    ≈≈≈
+                           ≈≈≈   ██ ▀▀ ██    ≈≈≈          ˛
+                              ≈≈≈   ██    ≈≈≈   ˛       ˛
+                           ˛     ≈≈≈   ≈≈≈         ˛ ˛
+                                    ≈≈≈
                                   ˛
                                           ˛
 
-  souls      178 of 197 roofs     mood █████████·····  61     normal rations
-  wall    ██████████████   560/560    garrison 10 Archer, 51 Spearman
-  standing 7x Cottage Row · 6x Wheat Farm · 4x Bakery · 4x Windmill · 2x Granary · 2x Orchard · 2x Woodcutter's Hut   (23 idle)
+  souls      190 of 197 roofs     mood ██████████····  72     normal rations
+  wall    ██████████████ 1,944/1,944  garrison 27 Archers, 44 Spearmen
+  standing 7x Cottage Row · 6x Wheat Farm · 4x Bakery · 4x Windmill · 2x Granary · 2x Orchard · 2x Poleturner   (20 idle)
 ```
 
 That is a real render, not a mock-up -- seed 7, two hundred and twenty days
 in. The keep stands over the curtain wall, the near walls are drawn low so you
-can see into your own town, windmills rise above the workshops, and there are
-people (`î`) in the streets when there are people. Ovens that are lit put up
+can see into your own town, the moat (`≈`) runs round the outside of them,
+windmills rise above the workshops, and there are people (`î`) in the streets
+when there are people. Ovens that are lit put up
 smoke; the mill's sails turn a frame a day. Dwellings have pitched roofs,
 workshops have shallow ones, stores are flat, civic halls are two storeys --
 so the skyline tells you what kind of town you have built before you read a
