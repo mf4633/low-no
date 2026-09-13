@@ -676,6 +676,10 @@ def report(game: GameState) -> str:
                      f" roofs {s.housing(p):>5,.0f} wall {s.wall_hp:>5,.0f}"
                      f" works {len(s.buildings):>3}"
                      f"  | " + ", ".join(f"{k} {v:.0f}" for v, k in stock[:5]))
+    a = game.accounts
+    lines.append(f"  prices    {a.cpi:>12,.0f}   inflation {a.inflation:>+6.1f}%"
+                 f"   idle {a.unemployment:>4.0f}%"
+                 f"   real out {a.real:>8,.0f}")
     lord = game.kin.lord
     if lord is not None:
         best = sorted(SKILLS, key=lambda sk: -lord.xp.get(sk, 0.0))

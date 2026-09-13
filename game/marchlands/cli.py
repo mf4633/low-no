@@ -589,6 +589,7 @@ class Console:
 
     # -- individual commands --------------------------------------------
     def cmd_help(self, args: List[str]) -> None:
+        """Everything there is, or `help <topic>` for one of them."""
         if args:
             topic = args[0].lower()
             if topic in ("win", "goal", "goals"):
@@ -711,6 +712,7 @@ class Console:
         return next(iter(g.world.settlements), "")
 
     def cmd_next(self, args: List[str]) -> None:
+        """Let days pass. `next 7` is a week."""
         n = int(args[0]) if args else 1
         self.game.advance(n)
         self.status()
@@ -725,6 +727,7 @@ class Console:
             self.err(f"could not autosave: {exc}")
 
     def cmd_autosave(self, args: List[str]) -> None:
+        """Write the game out after every day from now on."""
         if args and args[0].lower() in ("off", "no", "stop"):
             self.autosave_path = ""
             return self.say("  autosave off")
@@ -733,6 +736,7 @@ class Console:
         self.say(f"  autosaving to {self.autosave_path} after every `next`")
 
     def cmd_scenarios(self, args: List[str]) -> None:
+        """The maps you can start on, and the houses you can start as."""
         self.say(ink.head("SCENARIOS"))
         for i, key in enumerate(CAMPAIGN, 1):
             sc = SCENARIOS[key]
@@ -742,6 +746,7 @@ class Console:
         self.say("", "  start one with:  python3 -m marchlands --scenario <key>")
 
     def cmd_briefing(self, args: List[str]) -> None:
+        """Why you are here, in the words it was put to you."""
         g = self.game
         sc = SCENARIOS.get(g.scenario)
         self.say(ink.head((sc.name if sc else g.scenario).upper()))
@@ -750,6 +755,7 @@ class Console:
         self.say(self.win_text())
 
     def cmd_hint(self, args: List[str]) -> None:
+        """What a patient steward would point at next."""
         for line in self.hints():
             self.say(f"  * {line}")
 
@@ -857,9 +863,11 @@ class Console:
         return picked
 
     def cmd_status(self, args: List[str]) -> None:
+        """The day at a glance: purse, souls, towns, carts, the ledger."""
         self.status()
 
     def cmd_town(self, args: List[str]) -> None:
+        """One settlement in full: what stands, who works it, what moves the mood."""
         if args:
             key = self._node(args[0])
             if key in self.game.world.settlements:
@@ -867,6 +875,7 @@ class Console:
         self.town_view()
 
     def cmd_view(self, args: List[str]) -> None:
+        """The holding drawn in perspective, from the corner."""
         flat = any(a.lower() in ("flat", "plan", "map") for a in args)
         places = [a for a in args if a.lower() not in ("flat", "plan", "map")]
         if places:
@@ -898,32 +907,39 @@ class Console:
         self.status()
 
     def cmd_stores(self, args: List[str]) -> None:
+        """What is in the granary, what it fetches, and what is running down."""
         self.stores(self._node(args[0]) if args else None)
 
     def cmd_market(self, args: List[str]) -> None:
+        """One town's prices and what it is short of."""
         if not args:
             return self.err("market <town>")
         self.market_view(args[0])
 
     def cmd_prices(self, args: List[str]) -> None:
+        """One good's price everywhere you have eyes."""
         if not args:
             return self.err("prices <good>")
         self.price_view(args[0])
 
     def cmd_chain(self, args: List[str]) -> None:
+        """What a good is made of, and what it goes into."""
         if not args:
             return self.err("chain <good>")
         self.chain_view(args[0])
 
     def cmd_buildings(self, args: List[str]) -> None:
+        """Everything you could raise, and what each wants."""
         self.buildings_view(args[0] if args else "")
 
     def cmd_info(self, args: List[str]) -> None:
+        """One building in full: land, hands, recipe, effects."""
         if not args:
             return self.err("info <building>")
         self.building_info(args[0])
 
     def cmd_build(self, args: List[str]) -> None:
+        """Raise something. It costs coin, materials and days."""
         if not args:
             return self.err("build <building> [town]")
         key = resolve_building(args[0])
@@ -931,6 +947,7 @@ class Console:
         self.say("  " + self.game.build(town, key))
 
     def cmd_raze(self, args: List[str]) -> None:
+        """Pull something down and take back what you can."""
         uid = self._which(args, "raze <building>")
         if uid is None:
             return
@@ -939,6 +956,7 @@ class Console:
         self.say(f"  {b.spec.name} pulled down" if b else "  no such building")
 
     def cmd_close(self, args: List[str]) -> None:
+        """Shut a shed, or open it again. Wages stop; so does the output."""
         uid = self._which(args, "close <building>")
         if uid is None:
             return
@@ -983,6 +1001,7 @@ class Console:
         self.say("  " + st.set_band(key, args[1].lower()))
 
     def cmd_ration(self, args: List[str]) -> None:
+        """How much the town eats. Mood follows."""
         s = self.settlement()
         if not args:
             return self.say(f"  rations at {s.name}: {C.RATION_LABELS[s.ration_level]}")
@@ -990,6 +1009,7 @@ class Console:
         self.say(f"  {s.name} now on {C.RATION_LABELS[s.ration_level]} rations")
 
     def cmd_tax(self, args: List[str]) -> None:
+        """What you take. Mood follows that too."""
         s = self.settlement()
         if not args:
             return self.say(f"  tax at {s.name}: {C.TAX_LABELS[s.tax_level]}")
@@ -997,6 +1017,7 @@ class Console:
         self.say(f"  {s.name} now on {C.TAX_LABELS[s.tax_level]} taxes")
 
     def cmd_garrison(self, args: List[str]) -> None:
+        """Soldiers at home, and what they are costing you."""
         s = self.settlement(self._node(args[0]) if args else None)
         p = self.game.progress
         self.say(ink.head(f"{s.name} garrison"),
@@ -1008,6 +1029,7 @@ class Console:
                  f"   battlements {s.effect('battlement'):.0f}")
 
     def cmd_units(self, args: List[str]) -> None:
+        """Every soldier you could raise, what beats what, and the price."""
         p = self.game.progress
         self.say(ink.head("WHO YOU MAY MUSTER", p.age_name()),
                  "  key            name              age  coin  arms              "
@@ -1023,6 +1045,7 @@ class Console:
         self.say("  (- means a later age; arms come out of your own stores)")
 
     def cmd_recruit(self, args: List[str]) -> None:
+        """Arm and pay men. They come out of your own workforce."""
         if not args:
             return self.err("recruit <soldier> [number] [town]")
         key = resolve_unit(args[0])
@@ -1045,6 +1068,7 @@ class Console:
         self.say(f"  {a.name} stands ready at {self._name(town)}: {describe(a.units)}")
 
     def cmd_army(self, args: List[str]) -> None:
+        """Your hosts, where they are and what they are doing."""
         g = self.game
         if args:
             a = g.army(int(args[0]))
@@ -1130,6 +1154,7 @@ class Console:
                            ink.DIM))
 
     def cmd_siege(self, args: List[str]) -> None:
+        """Choose how a host of yours goes at a wall."""
         g = self.game
         if not args:
             hosts = [a for a in g.armies if a.owner == "player"]
@@ -1158,6 +1183,7 @@ class Console:
         self.say(f"  {ink.c(plan.blurb, ink.DIM)}")
 
     def cmd_march(self, args: List[str]) -> None:
+        """Send a host somewhere, or bring it home."""
         if len(args) < 2:
             return self.err("march <host> <place>")
         self.say("  " + self.game.march(int(args[0]),
@@ -1184,6 +1210,23 @@ class Console:
         self.say(f"  you brought    {ink.coin(carry.purse)}c, "
                  f"{len(carry.techs)} things your house had already worked out",
                  f"  renown         {carry.renown}")
+        # The house is the part of a campaign that is actually a campaign, so
+        # it belongs on the screen that is about the campaign.
+        k = self.game.kin
+        lord = k.lord
+        if lord is not None:
+            years = carry.days // C.DAYS_PER_YEAR
+            best = max(kinly.SKILLS, key=lambda sk: lord.xp.get(sk, 0.0))
+            reads = (f", {best} {lord.level(best)}" if lord.level(best)
+                     else ", untried")
+            self.say(f"  your house     {lord.name}, {lord.age(self.game.day)}"
+                     f"{reads} · {len(k.living())} of the line"
+                     + (f" · {years} years in" if years else ""))
+            posted = [p for p in k.living() if p.post and p.post != "head"]
+            if posted:
+                self.say("  " + ink.c("               " + "; ".join(
+                    f"{p.name} {p.doing(self._name)}" for p in posted[:3]),
+                    ink.DIM))
 
     def cmd_chronicle(self, args: List[str]) -> None:
         """Your reign, read back to you."""
@@ -1641,11 +1684,13 @@ class Console:
                            f"{C.RELIC_DAYS} days to lift one.", ink.DIM))
 
     def cmd_raid(self, args: List[str]) -> None:
+        """Burn the country instead of the walls."""
         if not args:
             return self.err("raid <host>")
         self.say("  " + self.game.raid(int(args[0])))
 
     def cmd_recall(self, args: List[str]) -> None:
+        """Order a host home."""
         uid = self._which(args, "recall <host>")
         if uid is None:
             return
@@ -1655,11 +1700,13 @@ class Console:
         self.say("  " + self.game.march(a.uid, a.home))
 
     def cmd_standdown(self, args: List[str]) -> None:
+        """Disband a host back into the garrison it came from."""
         uid = self._which(args, "standdown <host>")
         if uid is not None:
             self.say("  " + self.game.disband_host(uid))
 
     def cmd_war(self, args: List[str]) -> None:
+        """The state of the march, as far as anyone of yours has seen it."""
         g = self.game
         self.say(ink.head("THE STATE OF THE MARCH", "as last reported"),
                  "  town          lord                    sworn to    walls"
@@ -1710,11 +1757,13 @@ class Console:
                      f"{describe(a.units)}")
 
     def cmd_gift(self, args: List[str]) -> None:
+        """Buy a lord's goodwill. Cheaper than a wall, and it does not last."""
         if len(args) < 2:
             return self.err("gift <town> <coin>")
         self.say("  " + self.game.gift(self._node(args[0]), float(args[1])))
 
     def cmd_truce(self, args: List[str]) -> None:
+        """Buy peace by the day."""
         if not args:
             return self.err("truce <town> [days]")
         key = self._node(args[0])
@@ -1726,11 +1775,13 @@ class Console:
         self.say("  " + self.game.truce(key, days))
 
     def cmd_demand(self, args: List[str]) -> None:
+        """Demand tribute. It works on a weaker lord and enrages any other."""
         if not args:
             return self.err("demand <town>")
         self.say("  " + self.game.demand(self._node(args[0])))
 
     def cmd_battles(self, args: List[str]) -> None:
+        """What has been fought, and how it went."""
         n = int(args[0]) if args else 12
         for line in self.game.battles[-n:]:
             self.say(f"  * {line}")
@@ -1738,6 +1789,7 @@ class Console:
             self.say("  the march has been quiet")
 
     def cmd_age(self, args: List[str]) -> None:
+        """The age you are in, the next one, and what it wants."""
         g = self.game
         p = g.progress
         if args and args[0].lower() in ("begin", "go", "climb"):
@@ -1759,6 +1811,7 @@ class Console:
                  "  (`age begin` to start the work)")
 
     def cmd_tech(self, args: List[str]) -> None:
+        """The guildhall: what is being studied and what could be."""
         g = self.game
         p = g.progress
         if args:
@@ -1786,12 +1839,14 @@ class Console:
                      f"       {HOUSES[g.house].blurb}")
 
     def cmd_found(self, args: List[str]) -> None:
+        """Settle unclaimed land. Expensive, and it starts hungry."""
         if not args:
             sites = ", ".join(self.game.world.sites) or "none left"
             return self.say(f"  unclaimed: {sites}")
         self.say("  " + self.game.found(args[0].lower()))
 
     def cmd_caravans(self, args: List[str]) -> None:
+        """Your carts and cogs: where they are and what they have earned."""
         self.caravan_view(int(args[0]) if args else None)
 
     def cmd_new(self, args: List[str]) -> None:
@@ -1810,6 +1865,7 @@ class Console:
                  f"({c.capacity:.0f} units at {c.speed:.0f} leagues/day)")
 
     def cmd_guards(self, args: List[str]) -> None:
+        """Hire or pay off a cart's escort."""
         uid = self._which(args, "guards <cart> <n>")
         if uid is None:
             return
@@ -1820,6 +1876,7 @@ class Console:
         self.say(f"  {c.name} rides with {c.guards} guards ({c.daily_cost:.0f}c/day)")
 
     def cmd_route(self, args: List[str]) -> None:
+        """Give a cart a standing round to walk."""
         if len(args) < 2:
             return self.err("route <caravan> add <town> [buy|sell <good> <qty> [@price]] ...")
         c = self.game.caravan(int(args[0]))
@@ -1839,6 +1896,7 @@ class Console:
         self.say(f"  {c.name}: {stop.describe()}")
 
     def cmd_auto(self, args: List[str]) -> None:
+        """Put a cart on the best run the scanner can find."""
         if not args:
             return self.err("auto <caravan>")
         g = self.game
@@ -1856,6 +1914,7 @@ class Console:
         self.say(f"  {c.name} put on: " + opp.describe(self._name))
 
     def cmd_go(self, args: List[str]) -> None:
+        """Set a cart running on the route it has."""
         uid = self._which(args, "go <cart>")
         if uid is None:
             return
@@ -1868,6 +1927,7 @@ class Console:
         self.say(f"  {c.name} sets out")
 
     def cmd_stop(self, args: List[str]) -> None:
+        """Stand a cart down where it is."""
         uid = self._which(args, "stop <cart>")
         if uid is None:
             return
@@ -1878,16 +1938,19 @@ class Console:
         self.say(f"  {c.name} will stand down at its next stop")
 
     def cmd_disband(self, args: List[str]) -> None:
+        """Sell a cart off."""
         uid = self._which(args, "disband <cart>")
         if uid is not None:
             self.say("  " + self.game.disband(uid))
 
     def cmd_scan(self, args: List[str]) -> None:
+        """The best runs on the march today, by coin a day."""
         sea = any(a.lower() in ("sea", "ship", "cog") for a in args)
         nums = [a for a in args if a.isdigit()]
         self.scan_view(int(nums[0]) if nums else 8, sails=sea)
 
     def cmd_needs(self, args: List[str]) -> None:
+        """What your own town is short of, and where it is cheap."""
         for s in self.game.world.settlements.values():
             rows = shortage_report(s)
             self.say(f"  {s.name}: " + (", ".join(
@@ -1896,17 +1959,21 @@ class Console:
                 or "nothing running down"))
 
     def cmd_map(self, args: List[str]) -> None:
+        """The march as a chart of who is where."""
         self.map_view()
 
     def cmd_chart(self, args: List[str]) -> None:
+        """One measure of yours, drawn over time."""
         self.chart(args[0] if args else "worth")
 
     def cmd_log(self, args: List[str]) -> None:
+        """The last lines of what happened."""
         n = int(args[0]) if args else 15
         for m in self.game.events.log[-n:]:
             self.say(f"  * {m}")
 
     def cmd_save(self, args: List[str]) -> None:
+        """Write the game to a file."""
         try:
             self.say("  " + self.game.save(args[0] if args else "marchlands.save"))
         except OSError as exc:
@@ -1940,6 +2007,7 @@ class Console:
         self.status()
 
     def cmd_quit(self, args: List[str]) -> None:
+        """Leave. Nothing is written unless you asked for it."""
         self.quit = True
 
 
@@ -2071,6 +2139,31 @@ HELP = """
                     log [n]   save [file]   load [file]   autosave [file]   quit
                     help trade | help town | help war | help win
 """
+
+def catalogue() -> list:
+    """Every command, with the one line its own docstring gives it.
+
+    Built from the registry rather than written out beside it, so a command
+    that exists is a command the palette offers and a command that is renamed
+    cannot go on being listed under the old name. Aliases are folded into the
+    entry they point at.
+    """
+    # The first spelling in the registry is the real one; everything after it
+    # is an alias, because that is the order they were written in and the
+    # order somebody chose on purpose.
+    by_fn: dict = {}
+    for name, fn in COMMANDS.items():
+        entry = by_fn.setdefault(fn, {"name": name, "aliases": [], "help": ""})
+        if name != entry["name"]:
+            entry["aliases"].append(name)
+    out = []
+    for fn, entry in by_fn.items():
+        doc = (fn.__doc__ or "").strip().split("\n")[0]
+        entry["help"] = doc
+        entry["aliases"] = sorted(entry["aliases"])
+        out.append(entry)
+    return sorted(out, key=lambda e: e["name"])
+
 
 HELP_TOPICS = {
     "trade": f"""

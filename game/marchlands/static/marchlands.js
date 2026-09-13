@@ -1214,6 +1214,10 @@ function openWrit(title, html, ev) {
   const y = Math.min(Math.max(52, ev.clientY - r.top - 30), r.height - 260);
   writ.style.left = x + 'px';
   writ.style.top = y + 'px';
+  // How much room is actually left under it. A flat 60% of the window put the
+  // foot of a long build list below the bottom of the screen, where the only
+  // way to reach it was a scrollbar nobody could see.
+  writ.style.maxHeight = Math.max(160, r.height - y - 18) + 'px';
   for (const btn of writ.querySelectorAll('[data-do]')) {
     btn.addEventListener('click', async () => {
       await send(btn.dataset.do);
@@ -1239,8 +1243,20 @@ function buildingWrit(b, ev) {
   picked = { kind: 'building', uid: b.uid };
   const how = !b.complete ? 'being built'
     : b.burning ? 'on fire' : b.running ? 'working' : 'idle';
+  // What the next hand here is worth against the wage. The one number that
+  // decides whether this shed should be open, attached to the shed.
+  const m = state && state.margin ? state.margin[b.uid] : null;
+  let worth = '';
+  if (m && b.complete) {
+    const good = m.net > m.wage;
+    worth = `<p class="why ${good ? 'up' : 'down'}">a hand here makes ` +
+      `<b>${m.net.toFixed(2)}c</b> a day against a wage of ` +
+      `${m.wage.toFixed(2)}c — ${good ? 'worth working' : 'it loses money open'}` +
+      `${m.jobs ? ` · ${m.staffed} of ${m.jobs} hands` : ''}</p>`;
+  }
   openWrit(b.name, `
     <p>${how}${b.terrain === 'urban' ? ' · inside the wall' : ''}</p>
+    ${worth}
     <div class="acts">
       <button data-do="close ${b.uid}">${b.running || b.idle ? 'close / open' : 'close'}</button>
       <button data-do="raze ${b.uid}">pull down</button>
@@ -1361,6 +1377,164 @@ function nextFrame() {
   if (STILL) setTimeout(frame, 500); else requestAnimationFrame(frame);
 }
 
+/* ---------------------------------------------------------------- palette
+ * A command line is the fastest interface there is for somebody who knows the
+ * commands and the worst for somebody who does not. The palette is the bridge:
+ * the same seventy commands, searchable, each with the one line its own
+ * docstring gives it, fetched from the console's registry so it cannot drift
+ * from what the game will actually accept.
+ */
+let commands = [], palHot = 0, shown = [];
+
+async function loadCommands() {
+  try { commands = await (await fetch('/commands')).json(); }
+  catch (e) { commands = []; }
+}
+
+/* Subsequence match, the way every palette worth using does it: `mkt` finds
+ * `market`. Scored so a prefix beats a scatter and a name beats a blurb. */
+function score(needle, hay) {
+  if (!needle) return 1;
+  const n = needle.toLowerCase(), h = hay.toLowerCase();
+  if (h.startsWith(n)) return 1000 - h.length;
+  let i = 0, gaps = 0, last = -1;
+  for (const ch of n) {
+    const at = h.indexOf(ch, i);
+    if (at < 0) return 0;
+    if (last >= 0) gaps += at - last - 1;
+    last = at; i = at + 1;
+  }
+  return Math.max(1, 400 - gaps * 8 - h.length);
+}
+
+function rankCommands(q) {
+  const typed = q.trim();
+  const head = typed.split(/\s+/)[0] || '';
+  const rows = [];
+  for (const c of commands) {
+    const names = [c.name].concat(c.aliases || []);
+    let best = 0;
+    for (const nm of names) best = Math.max(best, score(head, nm));
+    // The blurb is searched by whole words only. A loose subsequence over a
+    // sentence matches nearly everything -- "mar" found "Open a saved game,
+    // and survive it not being one" -- which is the fastest way to make a
+    // palette useless while looking like it works.
+    let inBlurb = 0;
+    if (head.length > 1) {
+      for (const word of (c.help || '').toLowerCase().split(/[^a-z]+/)) {
+        if (word.startsWith(head.toLowerCase())) { inBlurb = 120; break; }
+      }
+    }
+    const s = Math.max(best, inBlurb);
+    if (s > 0) rows.push({ c, s });
+  }
+  rows.sort((a, b) => b.s - a.s || a.c.name.localeCompare(b.c.name));
+  return rows.slice(0, 14).map(r => r.c);
+}
+
+function paintPalette() {
+  const q = $('palette-q').value;
+  shown = rankCommands(q);
+  palHot = Math.max(0, Math.min(palHot, shown.length - 1));
+  const rest = q.trim().split(/\s+/).slice(1).join(' ');
+  $('palette-list').innerHTML = shown.map((c, i) => {
+    const args = rest ? ` <em>${esc(rest)}</em>` : '';
+    return `<li role="option" id="pal-${i}" aria-selected="${i === palHot}"` +
+      `${i === palHot ? ' class="on"' : ''} data-i="${i}">` +
+      `<b>${esc(c.name)}</b>${args}` +
+      `<span>${esc(c.help || '')}</span></li>`;
+  }).join('') || '<li class="none">nothing by that name</li>';
+  const on = $('pal-' + palHot);
+  if (on) on.scrollIntoView({ block: 'nearest' });
+  $('palette-q').setAttribute('aria-activedescendant', on ? on.id : '');
+}
+
+const esc = t => String(t).replace(/[&<>"]/g,
+  ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+function openPalette(seed) {
+  const box = $('palette');
+  box.hidden = false;
+  const q = $('palette-q');
+  q.value = seed || '';
+  palHot = 0;
+  paintPalette();
+  q.focus();
+  q.select();
+}
+
+function closePalette() {
+  $('palette').hidden = true;
+  $('line').focus();
+}
+
+function runPicked() {
+  const chosen = shown[palHot];
+  if (!chosen) return;
+  const rest = $('palette-q').value.trim().split(/\s+/).slice(1).join(' ');
+  closePalette();
+  send(rest ? `${chosen.name} ${rest}` : chosen.name);
+}
+
+$('palette-q').addEventListener('input', () => { palHot = 0; paintPalette(); });
+$('palette-q').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || (e.key === 'n' && e.ctrlKey)) {
+    palHot = Math.min(palHot + 1, shown.length - 1); paintPalette(); e.preventDefault();
+  } else if (e.key === 'ArrowUp' || (e.key === 'p' && e.ctrlKey)) {
+    palHot = Math.max(palHot - 1, 0); paintPalette(); e.preventDefault();
+  } else if (e.key === 'Enter') {
+    runPicked(); e.preventDefault();
+  } else if (e.key === 'Escape') {
+    closePalette(); e.preventDefault();
+  } else if (e.key === 'Tab' && shown[palHot]) {
+    $('palette-q').value = shown[palHot].name + ' ';
+    paintPalette(); e.preventDefault();
+  }
+});
+$('palette-list').addEventListener('click', e => {
+  const li = e.target.closest('li[data-i]');
+  if (!li) return;
+  palHot = +li.dataset.i;
+  runPicked();
+});
+$('palette').addEventListener('mousedown', e => {
+  if (e.target === $('palette')) closePalette();
+});
+
+/* ------------------------------------------------------------------- keys
+ * Unmodified keys only when the cursor is not in a text field, which is the
+ * only rule that lets a game with a command prompt in it also have shortcuts.
+ */
+const typing = () => {
+  const el = document.activeElement;
+  return el && (el.tagName === 'INPUT' || el.tagName === 'SELECT'
+                || el.isContentEditable);
+};
+const KEYS = {
+  ' ': 'next', w: 'next 7', m: 'next 30', h: 'hint',
+};
+document.addEventListener('keydown', e => {
+  const meta = e.metaKey || e.ctrlKey;
+  if (meta && (e.key === 'k' || e.key === 'K' || e.key === 'p')) {
+    openPalette(''); e.preventDefault(); return;
+  }
+  if (e.key === 'Escape') {
+    if (!$('palette').hidden) { closePalette(); return; }
+    if (!$('keys').hidden) { $('keys').hidden = true; $('line').focus(); return; }
+    closeWrit();
+    return;
+  }
+  if (meta || e.altKey) return;
+  if (e.key === '/' && !typing()) { $('line').focus(); e.preventDefault(); return; }
+  if (typing()) return;
+  if (e.key === '?') { $('keys').hidden = !$('keys').hidden; e.preventDefault(); return; }
+  if (e.key === 't' || e.key === 'T') { setMode('town'); return; }
+  if (e.key === 'r' || e.key === 'R') { setMode('march'); return; }
+  const line = KEYS[e.key.toLowerCase()] || (e.key === ' ' ? 'next' : '');
+  if (line) { send(line); e.preventDefault(); }
+});
+$('keys').addEventListener('click', () => { $('keys').hidden = true; });
+
 /* ------------------------------------------------------------------- shell */
 let wasNarrow = null;
 function resize() {
@@ -1436,6 +1610,22 @@ canvas.addEventListener('mousemove', e => {
 });
 
 /* -------------------------------------------------------------------- data */
+/* A number that moved is the only number worth looking at after a month has
+ * passed. It says so for a second and then stops, because a panel where
+ * everything is always highlighted highlights nothing. */
+const wasShowing = {};
+function show(id, text) {
+  const el = $(id);
+  if (el.textContent === text) return;
+  if (wasShowing[id] !== undefined) {
+    el.classList.remove('moved');
+    void el.offsetWidth;                 // restart the animation, not queue it
+    el.classList.add('moved');
+  }
+  wasShowing[id] = text;
+  el.textContent = text;
+}
+
 function meter(el, frac, warnAt, badAt) {
   el.classList.toggle('warn', frac < warnAt);
   el.classList.toggle('bad', frac < badAt);
@@ -1456,12 +1646,12 @@ function paint(s) {
   // two chapters at once.
   document.title = `${s.town.name} · Marchlands`;
   $('date').textContent = `${s.date} · ${s.age}`;
-  $('purse').textContent = num(s.treasury) + 'c';
-  $('souls').textContent = `${num(s.town.population)} of ${num(s.town.housing)} roofs`;
+  show('purse', num(s.treasury) + 'c');
+  show('souls', `${num(s.town.population)} of ${num(s.town.housing)} roofs`);
   meter($('moodbar'), s.town.popularity / 100, 0.45, 0.25);
-  $('hands').textContent = `${num(s.town.employed)} of ${num(s.town.workforce)}`;
+  show('hands', `${num(s.town.employed)} of ${num(s.town.workforce)}`);
   meter($('wallbar'), s.town.wall_max ? s.town.wall_hp / s.town.wall_max : 0, 0.6, 0.3);
-  $('soldiers').textContent = num(s.town.soldiers);
+  show('soldiers', num(s.town.soldiers));
   $('mood').innerHTML = s.town.mood.map(m =>
     `<li><label>${m.what}</label><span class="${m.by > 0 ? 'up' : 'down'}">` +
     `${m.by > 0 ? '+' : ''}${m.by}</span></li>`).join('');
@@ -1495,6 +1685,22 @@ function scrollCue() {
 }
 $('panel').addEventListener('scroll', scrollCue);
 
+/* The console keeps everything; a toast catches the one line in a month that
+ * you would have been sorry to scroll past. Only what the chronicle itself
+ * thought was momentous -- the game already marks those with stars. */
+function toast(text) {
+  const bar = $('toasts');
+  const li = document.createElement('li');
+  li.textContent = text.replace(/^\*+\s*|\s*\*+$/g, '');
+  bar.appendChild(li);
+  requestAnimationFrame(() => li.classList.add('in'));
+  setTimeout(() => {
+    li.classList.remove('in');
+    setTimeout(() => li.remove(), 600);
+  }, 6000 + Math.min(4000, li.textContent.length * 40));
+  while (bar.children.length > 4) bar.firstChild.remove();
+}
+
 function say(text, cls) {
   if (!text.trim()) return;
   const log = $('log');
@@ -1502,6 +1708,7 @@ function say(text, cls) {
     const li = document.createElement('li');
     li.textContent = line; if (cls) li.className = cls;
     log.appendChild(li);
+    if (cls === 'said' && line.trim().startsWith('***')) toast(line.trim());
   }
   while (log.children.length > 220) log.removeChild(log.firstChild);
   log.scrollTop = log.scrollHeight;
@@ -1581,6 +1788,7 @@ $('good').innerHTML = GOODS.map(g =>
   paint(await (await fetch('/state')).json());
   frameTown();
   loadOptions();
+  loadCommands();
   say('Marchlands. Drag to move, scroll to zoom. Click a roof to do something '
       + 'with it, or an empty plot to raise something on it.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');

@@ -448,6 +448,35 @@ class TestItShips(unittest.TestCase):
         self.assertNotIn("#panel { display: none", narrow)
         self.assertIn("#panel", narrow)
 
+    def test_every_command_is_offered_with_a_line_about_itself(self):
+        """The palette is built from the registry, so it cannot drift from
+        what the game will accept -- and a command with no line about it is a
+        command nobody will ever find."""
+        from marchlands.cli import COMMANDS, catalogue
+        rows = catalogue()
+        # One row per command, not per spelling: aliases fold into the entry
+        # they point at, so `economy` and `accounts` are one thing.
+        self.assertEqual(len(rows), len(set(COMMANDS.values())))
+        names = {r["name"] for r in rows} | {a for r in rows for a in r["aliases"]}
+        self.assertEqual(names, set(COMMANDS))
+        for row in rows:
+            self.assertTrue(row["help"], f"{row['name']} says nothing about itself")
+            self.assertLess(len(row["help"]), 90, row["name"])
+
+    def test_the_first_spelling_in_the_registry_is_the_real_one(self):
+        from marchlands.cli import catalogue
+        by = {r["name"]: r for r in catalogue()}
+        self.assertIn("economy", by)          # not "accounts"
+        self.assertIn("accounts", by["economy"]["aliases"])
+        self.assertIn("army", by)             # not "armies"
+
+    def test_the_page_carries_the_palette_and_the_keys(self):
+        from marchlands.web import STATIC
+        page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+        for bit in ('id="palette"', 'id="palette-q"', 'id="keys"',
+                    'id="toasts"', 'aria-live'):
+            self.assertIn(bit, page, bit)
+
     def test_the_light_is_laid_down_after_the_world_and_before_the_glows(self):
         """Order is the whole trick, and it is invisible when it is wrong.
 
@@ -508,6 +537,14 @@ class TestServer(unittest.TestCase):
             self.assertEqual(status, 200, path)
             self.assertIn(kind, ctype, path)
             self.assertTrue(body)
+
+    def test_the_palette_asks_the_server_and_gets_the_registry(self):
+        status, kind, body = self.get("/commands")
+        self.assertEqual(status, 200)
+        self.assertIn("json", kind)
+        rows = json.loads(body)
+        self.assertTrue(any(r["name"] == "margin" for r in rows))
+        self.assertTrue(all(r["help"] for r in rows))
 
     def test_the_state_is_the_state(self):
         _s, _c, body = self.get("/state")

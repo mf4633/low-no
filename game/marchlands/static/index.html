@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="app">
-  <canvas id="view"></canvas>
+  <canvas id="view" tabindex="0" aria-label="the town, drawn. Drag to move, scroll to zoom, click a roof to act on it."></canvas>
 
   <header id="bar">
     <span id="place">—</span>
@@ -61,6 +61,42 @@
 
   <div id="tip" hidden></div>
 
+  <!-- Everything the console will take, searchable. The one screen that
+       makes a command line discoverable instead of a memory test. -->
+  <div id="palette" hidden role="dialog" aria-modal="true"
+       aria-label="commands">
+    <div id="palette-box">
+      <input id="palette-q" type="text" autocomplete="off" spellcheck="false"
+             placeholder="what would you like to do?" aria-controls="palette-list"
+             aria-autocomplete="list">
+      <ul id="palette-list" role="listbox" aria-label="commands"></ul>
+      <footer id="palette-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> choose</span>
+        <span><kbd>↵</kbd> run</span>
+        <span><kbd>esc</kbd> close</span>
+      </footer>
+    </div>
+  </div>
+
+  <div id="keys" hidden role="dialog" aria-modal="true" aria-label="keys">
+    <div id="keys-box">
+      <h3>Keys</h3>
+      <dl>
+        <dt><kbd>⌘</kbd><kbd>K</kbd></dt><dd>every command, searchable</dd>
+        <dt><kbd>space</kbd></dt><dd>a day passes</dd>
+        <dt><kbd>W</kbd></dt><dd>a week</dd>
+        <dt><kbd>M</kbd></dt><dd>a month</dd>
+        <dt><kbd>T</kbd> / <kbd>R</kbd></dt><dd>the town / the march</dd>
+        <dt><kbd>H</kbd></dt><dd>what now?</dd>
+        <dt><kbd>/</kbd></dt><dd>type a command</dd>
+        <dt><kbd>?</kbd></dt><dd>this</dd>
+        <dt><kbd>esc</kbd></dt><dd>close whatever is open</dd>
+      </dl>
+      <p class="dim">The keys work when the prompt does not have the cursor.
+        Click the picture to put it back.</p>
+    </div>
+  </div>
+
   <div id="writ" hidden>
     <header><span id="writ-title"></span>
       <button id="writ-close" type="button" aria-label="close">×</button></header>
@@ -74,9 +110,10 @@
     <button type="button" data-do="hint">what now?</button>
   </div>
   <div id="alarm" hidden></div>
+  <ul id="toasts" role="status" aria-live="polite"></ul>
 
   <footer id="console">
-    <ul id="log"></ul>
+    <ul id="log" role="log" aria-live="polite" aria-label="what happened"></ul>
     <form id="ask" autocomplete="off">
       <span class="prompt">&gt;</span>
       <input id="line" type="text" placeholder="next 7 · build cottage · hint · help" autofocus>

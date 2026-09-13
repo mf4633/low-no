@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 565 tests, ~6min
+python3 -m unittest discover -s tests          # 571 tests, ~6min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -438,6 +438,41 @@ The parts nobody names when they work:
 * **The page asks the network for nothing.** No font host, no CDN, no favicon
   file — the tab's mark is a drawn `data:` URI. A test asserts it, because the
   easiest way to acquire a dependency is to add one link to an HTML head.
+
+### Finding out what you can do
+
+```
+⌘K / ctrl-K      every command, searchable
+space W M        a day, a week, a month
+T / R            the town / the march
+H                what now?      /  type a command      ?  the keys
+```
+
+A command line is the fastest interface there is for somebody who knows the
+commands and the worst for somebody who does not. The palette is the bridge:
+all seventy, searchable by subsequence (`mkt` finds `market`), each with the
+one line its own docstring gives it — **fetched from the console's own
+registry**, so it cannot drift from what the game will actually accept and a
+renamed command cannot go on being offered under the old name. A test asserts
+that every command says something about itself, because one that does not is
+one nobody will ever find.
+
+The blurbs are searched by whole word only. A loose subsequence over a
+sentence matches nearly everything — `mar` found *"Open a saved game, and
+survive it not being one"* — which is the fastest way to make a palette
+useless while looking like it works.
+
+Unmodified keys fire only when the cursor is not in a text field, which is the
+one rule that lets a game with a command prompt in it also have shortcuts.
+
+Three smaller things that are only noticeable when they are missing: a number
+that **moved** says so for a second and then stops, because a panel where
+everything is always highlighted highlights nothing; anything the chronicle
+thought was **momentous** — a birth, a death, an age beginning — gets a toast,
+because the console keeps everything and you would still have scrolled past
+it; and clicking a roof now tells you **what the next hand in it is worth
+against the wage**, which is the one number that decides whether the shed
+should be open, attached to the shed.
 
 ### The thing people actually describe
 

@@ -27,7 +27,9 @@ from io import StringIO
 from typing import Tuple
 from urllib.parse import urlparse
 
-from .cli import Console
+from .cli import Console, catalogue
+from . import config as C
+from .economics import marginal_hands
 from .kin import SKILLS
 from .layout import plan_for
 
@@ -205,6 +207,12 @@ def snapshot(game, here: str = "") -> dict:
                       for k, v in game.economy.shortage.items() if v > 0.01],
         },
         "here": key,
+        # What the next hand in each shed would be worth, so a roof you click
+        # can tell you whether it is paying for itself. The same reading
+        # `margin` gives, attached to the thing it is about.
+        "margin": {r.uid: {"net": round(r.net, 2), "wage": C.WAGE,
+                           "staffed": r.staffed, "jobs": r.jobs}
+                   for r in marginal_hands(s)},
         "settlements": list(game.world.settlements),
         "town": {
             "name": s.name,
@@ -273,6 +281,10 @@ class Handler(BaseHTTPRequestHandler):
         if route == "/state":
             with self.lock:
                 return self._json(snapshot(self.console.game, self.console.here))
+        if route == "/commands":
+            # Straight off the console's own registry, so the palette cannot
+            # drift from what the game will actually accept.
+            return self._json(catalogue())
         if route == "/options":
             with self.lock:
                 return self._json(options(self.console.game, self.console.here))
