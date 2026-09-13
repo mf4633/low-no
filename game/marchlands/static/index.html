@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marchlands</title>
+<link rel="stylesheet" href="marchlands.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+
+  <header id="bar">
+    <span id="place">—</span>
+    <span id="date" class="dim">—</span>
+    <span class="grow"></span>
+    <span id="purse">—</span>
+  </header>
+
+  <aside id="panel">
+    <section>
+      <h2>the town</h2>
+      <div class="row"><label>souls</label><span id="souls">—</span></div>
+      <div class="row"><label>mood</label><span id="moodbar" class="meter"><i></i></span></div>
+      <div class="row"><label>hands</label><span id="hands">—</span></div>
+      <div class="row"><label>wall</label><span id="wallbar" class="meter"><i></i></span></div>
+      <div class="row"><label>soldiers</label><span id="soldiers">—</span></div>
+    </section>
+    <section>
+      <h2>what moves the mood</h2>
+      <ul id="mood"></ul>
+    </section>
+    <section>
+      <h2>the day's ledger</h2>
+      <ul id="ledger"></ul>
+    </section>
+  </aside>
+
+  <div id="tip" hidden></div>
+  <div id="alarm" hidden></div>
+
+  <footer id="console">
+    <ul id="log"></ul>
+    <form id="ask" autocomplete="off">
+      <span class="prompt">&gt;</span>
+      <input id="line" type="text" placeholder="next 7 · build cottage · hint · help" autofocus>
+    </form>
+  </footer>
+</div>
+<script src="marchlands.js"></script>
+</body>
+</html>

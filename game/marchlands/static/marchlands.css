@@ -1,0 +1,97 @@
+:root {
+  --ink: #14110d;
+  --parch: #e8dcc4;
+  --dim: #8a7f6a;
+  --gold: #c9a227;
+  --blood: #9b2c2c;
+  --leaf: #5f8a3f;
+  --panel: rgba(20, 17, 13, 0.82);
+  --edge: rgba(201, 162, 39, 0.28);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0b09; }
+body {
+  font: 14px/1.45 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  color: var(--parch);
+}
+#app { position: relative; height: 100%; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+#bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+  display: flex; gap: 14px; align-items: baseline;
+  padding: 10px 16px;
+  background: linear-gradient(rgba(13,11,9,.85), rgba(13,11,9,0));
+  pointer-events: none;
+}
+#place { font-size: 19px; letter-spacing: .09em; text-transform: uppercase; color: var(--gold); }
+#purse { color: var(--gold); font-variant-numeric: tabular-nums; }
+.grow { flex: 1; }
+.dim { color: var(--dim); }
+
+#panel {
+  position: absolute; top: 52px; left: 14px; z-index: 3;
+  width: 236px; max-height: calc(100% - 190px); overflow: auto;
+  padding: 12px 14px;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  backdrop-filter: blur(3px);
+}
+#panel h2 {
+  margin: 14px 0 7px; font-size: 10px; font-weight: normal;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--dim);
+}
+#panel section:first-child h2 { margin-top: 0; }
+#panel ul { margin: 0; padding: 0; list-style: none; }
+#panel li, .row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 13px; padding: 1px 0;
+}
+#panel label { color: var(--dim); }
+.meter { position: relative; width: 108px; height: 9px; align-self: center;
+         background: rgba(232,220,196,.13); border-radius: 1px; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--leaf); }
+.meter.warn i { background: var(--gold); }
+.meter.bad i  { background: var(--blood); }
+.up { color: var(--leaf); } .down { color: var(--blood); }
+
+#console {
+  position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 3;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  backdrop-filter: blur(3px);
+}
+#log {
+  margin: 0; padding: 9px 13px 4px; list-style: none;
+  max-height: 132px; overflow: auto;
+  font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap; color: #cdc2a8;
+}
+#log li.said { color: var(--parch); }
+#log li.you { color: var(--gold); }
+#ask { display: flex; gap: 8px; align-items: center; padding: 7px 13px 9px;
+       border-top: 1px solid rgba(201,162,39,.16); }
+.prompt { color: var(--gold); }
+#line {
+  flex: 1; background: none; border: 0; outline: none; color: var(--parch);
+  font: 14px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+#line::placeholder { color: #6d6455; }
+
+#tip {
+  position: absolute; z-index: 4; pointer-events: none;
+  padding: 5px 9px; font-size: 12.5px;
+  background: rgba(13,11,9,.93); border: 1px solid var(--edge); border-radius: 2px;
+}
+#tip b { color: var(--gold); font-weight: normal; }
+
+#alarm {
+  position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 4;
+  padding: 7px 18px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: 12px; color: #f3e4c6;
+  background: rgba(155,44,44,.88); border-radius: 2px;
+}
+[hidden] { display: none !important; }
+
+@media (max-width: 720px) {
+  #panel { display: none; }
+  #console { left: 8px; right: 8px; }
+}

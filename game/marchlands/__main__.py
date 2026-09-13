@@ -22,6 +22,11 @@ def main(argv=None) -> int:
     ap.add_argument("--autosave", metavar="FILE",
                     help="save after every `next`")
     ap.add_argument("--load", metavar="FILE", help="resume a saved game")
+    ap.add_argument("--web", action="store_true",
+                    help="play in a browser, with the town drawn rather than spelled")
+    ap.add_argument("--port", type=int, default=8731, help="port for --web")
+    ap.add_argument("--no-browser", action="store_true",
+                    help="with --web, do not open a browser window")
     ap.add_argument("--campaign", action="store_true",
                     help="play the Marcher Chronicle: six linked chapters")
     ap.add_argument("--campaign-file", metavar="FILE", default="chronicle.campaign",
@@ -60,6 +65,9 @@ def main(argv=None) -> int:
         return 0
     game = (GameState.load(args.load) if args.load
             else start(args.scenario, seed=args.seed, house=args.house))
+    if args.web:
+        from .web import main as web_main
+        return web_main(game, port=args.port, open_browser=not args.no_browser)
     con = play(game, autosave=args.autosave)
     return 0 if con else 0
 

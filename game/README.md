@@ -8,12 +8,13 @@ Pure Python, standard library only, runs in a terminal.
 
 ```bash
 cd game
+python3 -m marchlands --web                    # play it in a browser, drawn
 python3 -m marchlands --campaign               # the six-chapter campaign
 python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 376 tests, ~4min
+python3 -m unittest discover -s tests          # 404 tests, ~5min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -122,10 +123,37 @@ where the game is played.
 
 ## How it looks
 
-It is a terminal game, so it will never be beautiful the way Stronghold was
-beautiful -- there are no hand-painted sprites and nobody is carrying a sack
-anywhere. What it does have is the thing Stronghold was actually selling: a
-place you can look at, from the corner, and tell how it is doing.
+### In a browser
+
+```bash
+python3 -m marchlands --web
+```
+
+The town, drawn. Timber frames and daub, thatch on the poor roofs and tile on
+the comfortable ones, a stone curtain with merlons along it, water in the
+ditch, mill sails turning, smoke from the ovens that are lit, windows glowing
+where somebody is working, people on the road, and snow in winter with the
+trees gone bare.
+
+Everything is a vector path. There are no images in this repository and there
+is still no dependency list — the thatch is a row of arcs, the stone is a
+clipped brick pattern, the smoke is forty particles with a lifetime. The rule
+that this game installs with nothing was worth more than a texture atlas.
+
+The server is `http.server` from the standard library, and the browser is a
+view with a command line in it: every command the console takes works there,
+because it is the same `Console` underneath. Drag to move, scroll to zoom,
+hover a roof to ask what it is.
+
+Where a building actually stands is decided in Python (`layout.py`), not in
+the drawing code, for one reason: layout is a decision and decisions should be
+testable. The renderer's only job is to make it look like somewhere.
+
+### In a terminal
+
+The terminal is still the game's native habitat, and it has the thing
+Stronghold was actually selling: a place you can look at, from the corner, and
+tell how it is doing.
 
 `view` draws the holding in perspective, painted back to front, from the state
 itself:
@@ -503,6 +531,9 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
 | `fire.py` | what catches, how it spreads, and what puts it out |
+| `layout.py` | where everything stands, so a renderer can draw a place |
+| `web.py` | a stdlib server and the browser's view of the game |
+| `static/` | the canvas renderer: every roof a vector path |
 | `campaign.py` | six chapters, what crosses between them, the Count |
 | `chronicle.py` | what happened, written down as it happened |
 | `cli.py` | the terminal interface |
