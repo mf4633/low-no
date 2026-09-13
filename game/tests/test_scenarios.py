@@ -49,7 +49,8 @@ class TestEachScenario(unittest.TestCase):
         self.assertEqual(salt.goals.paths, ("wealth",))
         self.assertIn("dominion", iron.goals.paths)
         self.assertFalse(iron.goals.wonder)
-        self.assertEqual(len(march.goals.paths), 3)
+        self.assertEqual(set(march.goals.paths),
+                         {"wealth", "dominion", "bells", "reliquary"})
         self.assertLess(salt.goals.days, march.goals.days)
 
     def test_the_salt_road_opens_on_the_water(self):

@@ -141,11 +141,14 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
        note="Halves spoilage across the settlement. Cheaper than a second farm."),
     _b("chapel", "Chapel", CIVIC, URBAN, 0,
        {"coin": 200, "wood": 15, "stone": 45}, 8, {}, {}, upkeep=3.0,
-       effects={"mood": 5.0}, age=2),
+       effects={"faith_reach": 260.0}, age=2,
+       note="Holds a congregation, not a county. A town that outgrows it is a "
+            "town half of which never hears a service."),
     _b("inn", "Inn", CIVIC, URBAN, 1,
        {"coin": 180, "wood": 30, "planks": 8}, 6, {"ale": 3.0}, {}, upkeep=2.0,
-       effects={"mood": 7.0},
-       note="Only cheers anyone up on days the ale actually arrives."),
+       effects={"ale_reach": 200.0},
+       note="Serves so many and no more, and only on days the ale arrives. "
+            "Grow past it and you are brewing for half a town."),
     _b("market", "Market Square", CIVIC, URBAN, 2,
        {"coin": 220, "wood": 25, "stone": 30}, 7, {}, {}, upkeep=2.0,
        effects={"spread": -0.03, "mood": 2.0},
@@ -224,7 +227,7 @@ BUILDINGS: Dict[str, Building] = {b.key: b for b in [
     _b("cathedral", "Cathedral", CIVIC, URBAN, 3,
        {"coin": 6000, "stone": 900, "planks": 250, "iron": 120, "tools": 60}, 120,
        {}, {}, upkeep=12.0, age=4,
-       effects={"mood": 15.0, "wonder": 1.0},
+       effects={"mood": 6.0, "faith_reach": 900.0, "wonder": 1.0},
        note="A lifetime's work. Finish it, hold it, and the marches are yours."),
 
     # --- carrot and stick ---------------------------------------------------

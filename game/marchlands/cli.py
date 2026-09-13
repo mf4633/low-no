@@ -15,6 +15,7 @@ from .castle import PLANS, SiegeState, Works
 from .engine import GameState
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
+from . import lord as lordly
 from . import render as ink
 from .military import UNITS, describe, host_strength, host_upkeep
 from .military import resolve as resolve_unit
@@ -74,8 +75,8 @@ class Console:
             return w.settlements[k]
         return w.settlements[self.here]
 
-    def _node(self, text: str) -> str:
-        return self.game.world.resolve(text)
+    def _node(self, text: str, shrines: bool = False) -> str:
+        return self.game.world.resolve(text, shrines=shrines)
 
     def _name(self, key: str) -> str:
         return self.game.world.node_name(key)
@@ -440,13 +441,19 @@ class Console:
 
         labels: List[str] = []
         for key, (x, y) in sorted(g.world.coords.items()):
+            if key in g.world.shrines:
+                sh = g.world.shrines[key]
+                colour = (ink.GOLD if sh.holder == "player"
+                          else ink.DIM if sh.taken else ink.PLUM)
+                plot(x, y, "+" + self._name(key), colour)
+                continue
             mark = "@" if g.world.is_mine(key) else ("~" if g.world.is_port(key) else "o")
             plot(x, y, mark + self._name(key), _node_colour(g, key))
             labels.append(f"{self._name(key):<10} {g.world.distance(self.here, key):>4.0f} leagues")
         for key, site in g.world.sites.items():
             plot(site.x, site.y, "+" + site.name, ink.LEAF)
         self.say(ink.head("THE MARCHLANDS",
-                          "@ yours   ~ port   o foreign   + unclaimed"))
+                          "@ yours   ~ port   o foreign   + land or shrine"))
         for row in grid:
             line, run, colour = [], [], None
             for ch, col in row:
@@ -612,6 +619,26 @@ class Console:
         if s.housing(p) < s.population + 5:
             out.append(f"No roofs to spare at {s.name} -- nobody new will come. "
                        f"Build cottages (or townhouses, from the third age).")
+        jobs = sum(b.spec.jobs for b in s.buildings if b.complete and b.enabled)
+        if jobs > s.workforce * 1.25:
+            starved = next((b.spec.name for b in s.buildings
+                            if b.complete and b.enabled and b.spec.jobs
+                            and not b.staffed), "")
+            if starved:
+                out.append(f"{s.name} has {s.workforce:.0f} hands for {jobs} jobs and "
+                           f"the {starved} has none. `work` shows the queue; "
+                           f"`work <building> first` reorders it.")
+        if s.count("inn") and s.coverage("ale_reach", needs_running=True) < 0.5:
+            out.append(f"The inn at {s.name} is serving under half the town -- "
+                       f"either the ale is not arriving or nobody is working it. "
+                       f"Ale is worth up to {C.ALE_MOOD:.0f} of mood.")
+        free = [sh for sh in g.world.shrines.values() if not sh.taken]
+        if free and not g.relics_held() and g.day > 120:
+            out.append(f"{len(free)} shrines still hold their relics. Six days' "
+                       f"standing lifts one and they pay every day after. `relics`.")
+        if g.lord.captured:
+            out.append(f"{g.lord.name} is held at {g.lord.ransom:,.0f}c. "
+                       f"`lord ransom` buys him back.")
         idle = [c for c in g.caravans if not c.running]
         if idle:
             out.append(f"Caravan {idle[0].uid} is standing idle. `scan`, then "
@@ -729,6 +756,39 @@ class Console:
             return self.err("no such building")
         b.enabled = not b.enabled
         self.say(f"  {b.spec.name} {'opened' if b.enabled else 'closed'}")
+
+    def cmd_work(self, args: List[str]) -> None:
+        """Who gets hands first when there are not enough of them."""
+        st = self.settlement()
+        if not args:
+            self.say(ink.head("WHO GETS HANDS FIRST", st.name.upper()),
+                     f"  {st.workforce:.0f} hands for "
+                     f"{sum(b.spec.jobs for b in st.buildings if b.complete and b.enabled)}"
+                     f" jobs")
+            bands: Dict[int, List[str]] = {}
+            for b in st.buildings:
+                if b.complete and b.spec.jobs:
+                    bands.setdefault(st.band(b.key), []).append(b.spec.name)
+            for value, label in sorted(((v, k) for k, v in st.BANDS.items()),
+                                       reverse=True):
+                names = sorted(set(bands.get(value, [])))
+                if names:
+                    self.say(f"  {label:<7} {ink.c(', '.join(names), ink.DIM)}")
+            starved = sorted({b.spec.name for b in st.buildings
+                              if b.complete and b.enabled and b.spec.jobs
+                              and b.staffed < b.spec.jobs})
+            if starved:
+                self.say("", "  going short  "
+                         + ink.c(", ".join(starved), ink.AMBER))
+            self.say("", ink.c("  work <building> first|early|normal|late|last",
+                               ink.DIM))
+            return
+        if len(args) < 2:
+            return self.err("work <building> first|early|normal|late|last")
+        key = resolve_building(args[0])
+        if not key:
+            return self.err(f"no building called {args[0]}")
+        self.say("  " + st.set_band(key, args[1].lower()))
 
     def cmd_ration(self, args: List[str]) -> None:
         s = self.settlement()
@@ -901,7 +961,66 @@ class Console:
     def cmd_march(self, args: List[str]) -> None:
         if len(args) < 2:
             return self.err("march <host> <place>")
-        self.say("  " + self.game.march(int(args[0]), self._node(args[1])))
+        self.say("  " + self.game.march(int(args[0]),
+                                        self._node(args[1], shrines=True)))
+
+    def cmd_lord(self, args: List[str]) -> None:
+        """Your lord: where he is, what he is worth there, and the risk of it."""
+        g = self.game
+        if args and args[0].lower() == "ransom":
+            return self.say("  " + g.ransom_lord())
+        if args and args[0].lower() in ("home", "recall"):
+            return self.say("  " + g.lead(0))
+        if args:
+            return self.say("  " + g.lead(int(args[0])))
+        self.say(ink.head(g.lord.name.upper(), g.lord.standing()))
+        if g.lord.at_home:
+            worth = (f"+{C.LORD_MOOD:.0f} mood, "
+                     f"+{lordly.HOME_DEFENCE:.0f} on the wall")
+            self.say("  in his hall   " + ink.c(worth, ink.LEAF))
+        elif g.lord.in_the_field:
+            self.say("  in the field  "
+                     + ink.c(f"+{lordly.FIELD_ATTACK * 100:.0f}% to the host he "
+                             f"rides with -- and he is where the arrows are",
+                             ink.AMBER))
+        elif g.lord.captured:
+            self.say("  " + ink.c(f"ransom {g.lord.ransom:,.0f}c -- "
+                                  f"`lord ransom` pays it", ink.BLOOD))
+        elif not g.lord.alive:
+            self.say("  " + ink.c(f"{g.lord.heirs} of the line left", ink.BLOOD))
+        self.say("", ink.c("  lord <host> sends him out, lord home brings him back.",
+                           ink.DIM))
+
+    def cmd_relics(self, args: List[str]) -> None:
+        """Where the bones are, and whose they are today."""
+        g = self.game
+        self.say(ink.head("THE RELICS OF THE MARCH",
+                          f"you hold {g.relics_held()} of {len(g.world.shrines)}"))
+        for key, sh in g.world.shrines.items():
+            if not sh.holder:
+                dist = min((g.world.distance(k, key)
+                            for k in g.world.settlements), default=0.0)
+                where = ink.c(f"still there, {dist:.0f} leagues off", ink.LEAF)
+            elif sh.holder == "player":
+                where = ink.c("yours", ink.GOLD)
+            else:
+                where = ink.c(f"held by {g.world.node_name(sh.holder)}", ink.BLOOD)
+            self.say(f"  {sh.name:<26} {sh.relic:<30} {where}")
+            self.say(f"     {ink.c(sh.blurb, ink.DIM)}")
+        if g.relic_income():
+            self.say("", f"  offerings  {ink.coin(g.relic_income())} a day"
+                         + ink.c("  (a cathedral is worth half again)", ink.DIM))
+        if "reliquary" in g.goals.paths:
+            terms = (f"Hold {g.goals.relics} of them for {g.goals.relic_days} "
+                     f"days and the march is yours ({g.relic_days} so far).")
+            self.say("  " + ink.c(terms, ink.DIM))
+        self.say("", ink.c("  march <host> <shrine> and stand there "
+                           f"{C.RELIC_DAYS} days to lift one.", ink.DIM))
+
+    def cmd_raid(self, args: List[str]) -> None:
+        if not args:
+            return self.err("raid <host>")
+        self.say("  " + self.game.raid(int(args[0])))
 
     def cmd_recall(self, args: List[str]) -> None:
         a = self.game.army(int(args[0]))
@@ -1205,12 +1324,15 @@ COMMANDS = {
     "market": Console.cmd_market, "prices": Console.cmd_prices,
     "chain": Console.cmd_chain, "buildings": Console.cmd_buildings,
     "info": Console.cmd_info, "build": Console.cmd_build, "raze": Console.cmd_raze,
-    "close": Console.cmd_close, "ration": Console.cmd_ration, "tax": Console.cmd_tax,
+    "close": Console.cmd_close, "ration": Console.cmd_ration,
+    "work": Console.cmd_work, "hands": Console.cmd_work, "tax": Console.cmd_tax,
     "garrison": Console.cmd_garrison, "found": Console.cmd_found,
     "units": Console.cmd_units, "recruit": Console.cmd_recruit,
     "host": Console.cmd_host, "army": Console.cmd_army, "armies": Console.cmd_army,
     "march": Console.cmd_march, "recall": Console.cmd_recall,
     "siege": Console.cmd_siege, "plans": Console.cmd_plans,
+    "raid": Console.cmd_raid, "relics": Console.cmd_relics,
+    "lord": Console.cmd_lord,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,
     "gift": Console.cmd_gift, "truce": Console.cmd_truce,
@@ -1248,7 +1370,8 @@ HELP = """
   WAR               units           recruit <who> [n]      garrison [town]
                     host <town> <who> <n> ...              army [id]
                     march <id> <place>   recall <id>       standdown <id>
-                    plans [place]   siege [<id> <plan>]
+                    plans [place]   siege [<id> <plan>]   raid <id>
+                    lord [<id>|home|ransom]     relics
                     war             battles [n]
                     gift <town> <coin>   truce <town> [days]   demand <town>
   ELSE              hint            briefing               scenarios
@@ -1271,9 +1394,18 @@ HELP_TOPICS = {
 """,
     "town": """
   People need a roof, food, and a reason not to leave. Rations and taxes are
-  the two levers; comforts (ale, cloth, pottery, salt) and a chapel or inn do
-  the rest. Mood sets productivity -- at 50 your workers run at full, at 100
-  half again, below 18 they down tools altogether.
+  the two levers. Mood sets productivity -- at 50 your workers run at full, at
+  100 half again, below 18 they down tools altogether.
+
+  Ale and a service are *coverage*, not cheer. An inn serves so many souls and
+  a chapel so many, so a town that grows past them is a town half of which is
+  drinking nothing: the same building, bought again, is what success costs.
+  An inn with no ale in it, or no hand in it, serves nobody at all.
+
+  Hands are shorter than jobs and always will be. `work` shows the queue --
+  who gets people first when there are not enough -- and `work <building>
+  first` reorders it. Something goes short every morning; you only get to
+  choose what.
 
   Land is the real constraint. You have so many fertile, forest, hill and clay
   slots, and no settlement has all four in quantity. What you cannot grow you
@@ -1310,6 +1442,22 @@ HELP_TOPICS = {
   well as against you: leave the march alone long enough and one of them will
   swallow his neighbours -- your sworn towns included. `war` shows who answers
   to whom and what each could field today.
+
+  You need not take a castle to beat the man in it. `raid <host>` looses a host
+  on the country instead: the fields stop being worked, the people leave, and
+  a rival loses prosperity, which is the number his walls and his muster are
+  both computed from. A garrison that is clearly stronger will come out after
+  you, which is what a raider wants if he is stronger still.
+
+  Five shrines stand out on the map with relics in them. Six days' standing
+  lifts one; `relics` says where they are and who holds what. They pay
+  offerings daily, four of them held for a hundred and twenty days wins the
+  march, and the other lords send parties of their own.
+
+  Your lord is a man. `lord` says where he is: in his hall he is worth mood
+  and a stretch of wall, riding with a host he is worth a sixth of its
+  strength and he is where the arrows are. He can fall, and he can be taken
+  and ransomed, and the line is not endless.
 
   You need not meet all of it with soldiers. A `gift` cools a temper, a `truce`
   buys a fixed number of quiet days outright, and a `demand` squeezes tribute

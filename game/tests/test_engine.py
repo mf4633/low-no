@@ -209,6 +209,13 @@ class TestLongRun(unittest.TestCase):
         self.assertGreaterEqual(len(g.progress.researched) - 1, 5)
         self.assertGreaterEqual(len(g.world.settlements), 2)
 
+    #: Twelve seeds, not four. A win is a rare event -- the naive bot takes the
+    #: crown about two games in twelve -- and a four-seed sample of a rare
+    #: event is a tripwire, not a measurement: it went off twice during this
+    #: project for balance changes that had made the bot *better*. Twelve costs
+    #: about two minutes and actually measures the thing.
+    BALANCE_SEEDS = (3, 5, 7, 17, 11, 23, 29, 31, 41, 47, 53, 59)
+
     def test_the_goal_is_reachable_but_not_assured(self):
         """The balance guard that matters.
 
@@ -217,30 +224,30 @@ class TestLongRun(unittest.TestCase):
         game competently and no better, so it should take the crown sometimes
         and miss it sometimes.
 
-        Be careful reading the win count. Measured over twelve seeds the naive
-        bot takes the crown about one game in twelve, so four seeds is a thin
-        sample and this one leans on seed 17 being the winner in it. The band
-        below is the sturdier half of the guard: it is the *distance* from the
-        goal that says whether the game is calibrated, and it moves long before
-        a win appears or disappears.
+        Read the two halves differently. The win count is the headline but it
+        moves in whole numbers on a rare event, so its bounds are wide on
+        purpose. The distance band underneath is the sensitive half: it says an
+        ordinary policy finishes within reach of the goal without walking it,
+        and it moves long before a win appears or disappears.
         """
         won, ends, worth = 0, [], []
-        for seed in (3, 5, 7, 17):
+        for seed in self.BALANCE_SEEDS:
             g = new_game(seed=seed)
             Bot(g).run(C.GOAL_DAYS)
             ends.append(f"{seed}:{g.net_worth():,.0f}")
             worth.append(g.net_worth())
-            won += any(w in g.over for w in ("Triumph", "Dominion", "cathedral"))
+            won += any(w in g.over for w in
+                       ("Triumph", "Dominion", "cathedral", "Reliquary"))
         self.assertGreaterEqual(won, 1, f"nobody can win: {ends}")
-        self.assertLessEqual(won, 3, f"anybody can win: {ends}")
-        # An ordinary policy should finish within reach of the goal without
-        # walking it: a mean far below says the economy has been broken, a mean
-        # above says the goal has stopped being a goal.
+        self.assertLessEqual(won, 6, f"anybody can win: {ends}")
         mean = sum(worth) / len(worth)
         goal = C.GOAL_NET_WORTH
-        self.assertGreater(mean, 0.40 * goal, f"the economy is too punishing: {ends}")
+        self.assertGreater(mean, 0.45 * goal, f"the economy is too punishing: {ends}")
         self.assertLess(mean, 1.05 * goal, f"the goal is a formality: {ends}")
-
+        self.assertGreater(max(worth), 0.80 * goal,
+                           f"the goal is out of an ordinary policy's reach: {ends}")
+        self.assertLess(min(worth), goal,
+                        f"every ordinary policy walks it: {ends}")
 
 if __name__ == "__main__":
     unittest.main()

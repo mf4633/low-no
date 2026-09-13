@@ -29,6 +29,7 @@ GARRISON = "garrison"
 MARCHING = "marching"
 BESIEGING = "besieging"
 RETURNING = "returning"
+RAIDING = "raiding"
 
 
 @dataclass(frozen=True)
@@ -268,6 +269,38 @@ def siege_day(besieger: Side, defender: Side, wall_hp: float,
     return wall, lost_a, lost_d, lines
 
 
+def raid_day(raiders: Side, garrison: Side, *, out_of_doors: float,
+             rng: random.Random) -> Tuple[float, float, Dict[str, float], List[str]]:
+    """One day of a host working the countryside instead of the walls.
+
+    A raid is the other half of medieval war and the half games usually leave
+    out: you do not have to take a castle to beat the man in it, you have to
+    take his harvest. The walls are irrelevant -- everything that matters is
+    standing outside them -- so the only answer is to come out, which is
+    exactly what the raider wants if he is the stronger.
+
+    Returns how much of the country was worked over (0..1), how hard the
+    garrison was hurt if it sortied, what the raiders lost, and the story.
+    """
+    lines: List[str] = []
+    horse = sum(n for k, n in raiders.units.items() if UNITS[k].unit_class == HORSE)
+    strength = raiders.alive() + 1.5 * horse      # horse burn more in a day
+    # Hands in the fields cannot be burned faster than there are riders to do
+    # it, and a big country takes longer to ruin than a small one.
+    worked = min(1.0, strength / max(60.0, out_of_doors))
+    lines.append(f"the country is burning: {worked * 100:.0f}% of it worked over")
+
+    losses: Dict[str, float] = {}
+    # A garrison that is clearly stronger comes out; one that is not, watches.
+    if garrison.alive() > raiders.alive() * 1.25:
+        hurt = _damage(garrison, raiders, ranged_only=False, cover=0.0) * C.RAID_SORTIE
+        losses = _apply(raiders, hurt, rng)
+        back = _damage(raiders, garrison, ranged_only=False, cover=0.0) * C.RAID_SORTIE
+        _apply(garrison, back, rng)
+        lines.append("the garrison comes out and the raiders are caught at it")
+    return worked, 0.0, losses, lines
+
+
 def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
           rng: Optional[random.Random] = None, max_rounds: int = 14,
           place: str = "the field") -> BattleResult:
@@ -367,6 +400,8 @@ class Army:
             return f"{self.days_left:.0f}d from {self.bound_for}"
         if self.state == BESIEGING:
             return f"besieging {self.at}"
+        if self.state == RAIDING:
+            return f"raiding {self.at}"
         return self.at
 
     def note(self, msg: str) -> None:

@@ -12,8 +12,8 @@ from typing import Callable, Dict, List
 
 from . import config as C
 from .engine import Goals, GameState
-from .scenario import (OPENING_STORES, build_sites, build_towns, default_rivals,
-                       found_seat, new_game)
+from .scenario import (OPENING_STORES, build_shrines, build_sites, build_towns,
+                       default_rivals, found_seat, new_game)
 from .tech import HOUSES, Progress
 from .world import World
 
@@ -68,6 +68,7 @@ def _salt_road(seed: int, house: str) -> GameState:
     build_towns(world, seed, temper=(0.9, 2.0), aggression=(0.2, 0.7),
                 hostility=(0.0, 25.0))
     build_sites(world)                       # Sealow is yours, so it is not listed
+    build_shrines(world)
     g = GameState(world=world, treasury=2200.0, seed=seed, house=house,
                   progress=Progress(age=2, researched={house}),
                   goals=Goals(net_worth=70000.0, population=260, towns=3,
@@ -107,6 +108,7 @@ def _iron_marches(seed: int, house: str) -> GameState:
     build_towns(world, seed, temper=(1.1, 2.2), aggression=(0.9, 2.1),
                 hostility=(35.0, 85.0))
     build_sites(world)                       # Greyfell is yours, so it is not listed
+    build_shrines(world)
     g = GameState(world=world, treasury=2600.0, seed=seed, house=house,
                   progress=Progress(age=2, researched={house}),
                   goals=Goals(net_worth=75000.0, population=350, towns=3,

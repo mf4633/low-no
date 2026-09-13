@@ -63,6 +63,7 @@ class ForeignTown:
     temper: float = 1.0           # how quickly this lord takes offence
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
+    last_pilgrimage: int = -999   # day this lord last sent men to a shrine
 
     @property
     def mine(self) -> bool:
@@ -179,10 +180,42 @@ class ForeignTown:
         t.wall_hp = d.get("wall_hp", 0.0)
         t.wall_max = d.get("wall_max", 0.0)
         for name in ("ambition", "aggression", "truce_days", "favour", "muster",
-                     "temper", "prosperity", "wall_base", "harbour"):
+                     "temper", "prosperity", "wall_base", "harbour",
+                     "last_pilgrimage"):
             if name in d:
                 setattr(t, name, d[name])
         return t
+
+
+@dataclass
+class Shrine:
+    """A wayside shrine with a saint's bones in it.
+
+    Age of Empires put five relics on the map and made you leave home to get
+    them, which is the cheapest way ever invented to stop a strategy game
+    being two players farming in separate corners. These do the same work: the
+    offerings are steady coin, the shrines are nowhere near your walls, and
+    the other lords want them too.
+    """
+    key: str
+    name: str
+    x: float
+    y: float
+    short: str = ""             # what it is called on a map, where room is short
+    relic: str = ""             # what rests here; empty once it is carried off
+    holder: str = ""            # '' | 'player' | a town key
+    blurb: str = ""
+
+    @property
+    def taken(self) -> bool:
+        return bool(self.holder)
+
+    def to_dict(self) -> dict:
+        return self.__dict__.copy()
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Shrine":
+        return cls(**d)
 
 
 @dataclass
@@ -210,6 +243,7 @@ class World:
     towns: Dict[str, ForeignTown] = field(default_factory=dict)
     coords: Dict[str, Tuple[float, float]] = field(default_factory=dict)
     sites: Dict[str, "Site"] = field(default_factory=dict)
+    shrines: Dict[str, "Shrine"] = field(default_factory=dict)
 
     # ------------------------------------------------------------- geography
     def place(self, key: str, x: float, y: float) -> None:
@@ -264,6 +298,8 @@ class World:
             return self.settlements[key].name
         if key in self.towns:
             return self.towns[key].name
+        if key in self.shrines:
+            return self.shrines[key].short or self.shrines[key].name
         return key
 
     def is_mine(self, key: str) -> bool:
@@ -285,11 +321,17 @@ class World:
         return min(pool, key=lambda k: self.distance(key, k)) if pool else None
 
     def all_nodes(self) -> List[str]:
+        """Everywhere a cart can trade. Shrines are not on this list: they have
+        no market, and a caravan sent to one would have nothing to do there."""
         return list(self.settlements.keys()) + list(self.towns.keys())
 
-    def resolve(self, prefix: str) -> str:
+    def march_nodes(self) -> List[str]:
+        """Everywhere a host can walk to, which does include the shrines."""
+        return self.all_nodes() + list(self.shrines.keys())
+
+    def resolve(self, prefix: str, shrines: bool = False) -> str:
         p = prefix.strip().lower().replace(" ", "_")
-        nodes = self.all_nodes()
+        nodes = self.march_nodes() if shrines else self.all_nodes()
         if p in nodes:
             return p
         hits = [n for n in nodes if n.startswith(p)]
@@ -335,7 +377,8 @@ class World:
         return {"settlements": {k: s.to_dict() for k, s in self.settlements.items()},
                 "towns": {k: t.to_dict() for k, t in self.towns.items()},
                 "coords": {k: list(v) for k, v in self.coords.items()},
-                "sites": {k: v.to_dict() for k, v in self.sites.items()}}
+                "sites": {k: v.to_dict() for k, v in self.sites.items()},
+                "shrines": {k: v.to_dict() for k, v in self.shrines.items()}}
 
     @classmethod
     def from_dict(cls, d: dict) -> "World":
@@ -344,6 +387,7 @@ class World:
         w.towns = {k: ForeignTown.from_dict(v) for k, v in d["towns"].items()}
         w.coords = {k: tuple(v) for k, v in d["coords"].items()}
         w.sites = {k: Site(**v) for k, v in d.get("sites", {}).items()}
+        w.shrines = {k: Shrine.from_dict(v) for k, v in d.get("shrines", {}).items()}
         return w
 
 

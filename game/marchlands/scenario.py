@@ -19,7 +19,7 @@ from .goods import ALL_KEYS
 from .market import Market
 from .settlement import Settlement
 from .tech import HOUSES, Progress
-from .world import ForeignTown, Site, World, make_town
+from .world import ForeignTown, Shrine, Site, World, make_town
 
 
 #: What a seat has in its stores on the first morning.
@@ -129,6 +129,41 @@ def build_towns(world: World, seed: int, *, temper: Tuple[float, float] = (0.55,
         t.ambition = 20.0 * stagger.random()
 
 
+#: Five shrines, well away from anybody's walls. Reaching one means sending a
+#: host somewhere it is not defending anything, which is the entire point.
+def _shrines() -> List["Shrine"]:
+    return [
+        Shrine("st_ceol", "Shrine of St Ceolwulf", -8, 52,
+               short="St Ceolwulf",
+               relic="the arm of St Ceolwulf",
+               blurb="On the high moor road, where the pilgrims still go."),
+        Shrine("st_wina", "Chapel of St Wina", 62, 18,
+               short="St Wina",
+               relic="the veil of St Wina",
+               blurb="A chapel in the marsh, three days from any wall."),
+        Shrine("holy_thorn", "The Holy Thorn", -48, -14,
+               short="Holy Thorn",
+               relic="a thorn of the Crown",
+               blurb="It flowers at midwinter, they say, and they are lying."),
+        Shrine("st_brannoc", "St Brannoc's Cell", 24, -58,
+               short="St Brannoc",
+               relic="the bell of St Brannoc",
+               blurb="A hermit's cell above the southern cliffs."),
+        Shrine("drowned_abbey", "The Drowned Abbey", 78, -30,
+               short="Drowned Abbey",
+               relic="the psalter of the Drowned Abbey",
+               blurb="Half in the estuary. The tide decides who visits."),
+    ]
+
+
+def build_shrines(world: World) -> None:
+    for sh in _shrines():
+        if sh.key in world.coords:
+            continue
+        world.shrines[sh.key] = sh
+        world.place(sh.key, sh.x, sh.y)
+
+
 def build_sites(world: World) -> None:
     """Unclaimed land -- minus anything a scenario has already settled."""
     for site in _sites():
@@ -191,6 +226,7 @@ def new_game(seed: int = 7, house: str = "plough") -> GameState:
     # ------------------------------------------------------------- the road
     build_towns(world, seed)
     build_sites(world)
+    build_shrines(world)
 
     game = GameState(world=world, treasury=1800.0, seed=seed, house=house,
                      progress=Progress(researched={house}))

@@ -19,10 +19,13 @@ from .buildings import building
 from .castle import INVEST, Works, choose, storms_now
 from .events import EventEngine
 from .goods import ALL_KEYS, good
+from . import lord as lordly
+from .lord import Lord, name_for
 from .market import Market
-from .military import (BESIEGING, GARRISON, MARCHING, RETURNING, UNITS, Army,
+from .military import (BESIEGING, GARRISON, MARCHING, RAIDING, RETURNING,
+                       UNITS, Army,
                        Side, can_recruit, describe, fight, host_speed,
-                       host_strength, recruit_cost, siege_day, unit)
+                       host_strength, raid_day, recruit_cost, siege_day, unit)
 from .settlement import Settlement
 from .tech import AGES, TECHS, Progress
 from .trade import (CART, SHIP, Caravan, TradeEngine, caravan_from_dict,
@@ -39,10 +42,12 @@ class Goals:
     net_worth: float = C.GOAL_NET_WORTH
     population: int = C.GOAL_POPULATION
     towns: int = C.GOAL_TOWNS
+    relics: int = C.GOAL_RELICS
+    relic_days: int = C.RELIC_HOLD_DAYS
     days: int = C.GOAL_DAYS
     bankruptcy: float = C.BANKRUPTCY_FLOOR
     wonder: bool = True               # may the cathedral win it?
-    paths: Tuple[str, ...] = ("wealth", "dominion", "bells")
+    paths: Tuple[str, ...] = ("wealth", "dominion", "bells", "reliquary")
 
     @property
     def years(self) -> int:
@@ -56,7 +61,8 @@ class Goals:
     @classmethod
     def from_dict(cls, d: dict) -> "Goals":
         d = dict(d)
-        d["paths"] = tuple(d.get("paths", ("wealth", "dominion", "bells")))
+        d["paths"] = tuple(d.get("paths",
+                                  ("wealth", "dominion", "bells", "reliquary")))
         return cls(**d)
 
 
@@ -65,6 +71,8 @@ class Ledger:
     taxes: float = 0.0
     trade: float = 0.0
     tribute: float = 0.0
+    plunder: float = 0.0
+    offerings: float = 0.0
     interest: float = 0.0
     wages: float = 0.0
     upkeep: float = 0.0
@@ -74,12 +82,13 @@ class Ledger:
 
     @property
     def income(self) -> float:
-        return self.taxes + self.tribute + self.interest + max(0.0, self.trade)
+        return (self.taxes + self.tribute + self.plunder + self.offerings
+                + self.interest + max(0.0, self.trade))
 
     @property
     def net(self) -> float:
-        return (self.taxes + self.trade + self.tribute + self.interest
-                - self.wages - self.upkeep - self.caravans - self.building - self.war)
+        return (self.taxes + self.trade + self.tribute + self.plunder
+                + self.offerings + self.interest - self.wages - self.upkeep - self.caravans - self.building - self.war)
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -107,6 +116,8 @@ class GameState:
     history: List[dict] = field(default_factory=list)
     battles: List[str] = field(default_factory=list)
     cathedral_days: int = 0
+    relic_days: int = 0
+    lord: Lord = field(default_factory=Lord)
     over: str = ""              # '' while playing, else the ending
 
     def __post_init__(self) -> None:
@@ -114,6 +125,11 @@ class GameState:
         self.trade_engine = TradeEngine(self.world, self.rng)
         self._outlay = 0.0        # coin spent between ticks, for the ledger
         self._war_outlay = 0.0
+        self._plunder = 0.0
+        if self.lord.name == Lord.name and self.world.settlements:
+            # A lord of your own, named once, seated in whatever you hold.
+            self.lord.name = name_for(random.Random(self.seed * 104729))
+            self.lord.seat = next(iter(self.world.settlements))
 
     # ------------------------------------------------------------- calendar
     @property
@@ -202,6 +218,7 @@ class GameState:
         led.building, self._outlay = self._outlay, 0.0
         led.war += self._war_outlay
         self._war_outlay = 0.0
+        led.plunder, self._plunder = self._plunder, 0.0
 
         # 2. Pay the wage bill; an unpaid day costs you the town's goodwill.
         payroll = led.wages + led.upkeep + led.war
@@ -210,9 +227,11 @@ class GameState:
                 s.report.unpaid = True
             msgs.append("THE COFFERS ARE EMPTY -- wages went unpaid today")
         led.tribute = sum(t.tribute() for t in self.world.towns.values() if t.mine)
+        led.offerings = self.relic_income()
         if self.treasury > 0:
             led.interest = self.treasury * self.progress.bonus("interest")
-        self.treasury += led.taxes + led.tribute + led.interest - payroll
+        self.treasury += (led.taxes + led.tribute + led.offerings + led.interest
+                          - payroll)
 
         # 3. Markets at home relax toward their fundamentals.
         for s in self.world.settlements.values():
@@ -438,6 +457,8 @@ class GameState:
         for s in self.world.settlements.values():
             s.besieged = False
             s.blockaded = False
+            s.raided = False
+            s.raid_pressure = 0.0
         for a in list(self.armies):
             if a.owner != "player" and self.world.towns[a.owner].mine:
                 msgs.append(f"{a.name} turns for home -- {self.world.node_name(a.owner)} "
@@ -452,10 +473,15 @@ class GameState:
                     msgs.append(self._arrive(a))
             elif a.state == BESIEGING:
                 msgs += self._siege(a)
+            elif a.state == RAIDING:
+                msgs += self._raid(a)
             a.prune()
             if a.size <= 0 and a in self.armies:
                 msgs.append(f"{a.name} is no more")
                 self.armies.remove(a)
+        msgs += self._lord_day()
+        msgs += self._shrine_day()
+        msgs += self._shrine_race()
         msgs += self._lords_and_hosts()
         msgs = [m for m in msgs if m]
         self.battles += [m for m in msgs if m]
@@ -466,6 +492,16 @@ class GameState:
     def _arrive(self, a: Army) -> str:
         """What happens when a host walks up to a place."""
         node = a.at
+        if node in self.world.shrines:
+            sh = self.world.shrines[node]
+            a.state = GARRISON
+            a.siege_days = 0
+            if sh.taken:
+                if a.owner != "player":
+                    self.march(a.uid, a.home)
+                return f"{a.name} reaches {sh.name}. The shrine is already stripped."
+            return (f"{a.name} reaches {sh.name}. "
+                    f"{C.RELIC_DAYS} days to lift {sh.relic}.")
         if a.owner == "player":
             if self.world.is_friendly(node):
                 a.state = GARRISON
@@ -486,6 +522,14 @@ class GameState:
             return ""
         s = self.world.settlements.get(node)
         if s is not None:
+            # A captain who cannot carry the walls does not throw his men at
+            # them: he burns the country instead and rides home richer. This
+            # is the half of medieval war that actually happened.
+            if host_strength(a.units) < host_strength(s.units) * 0.9:
+                a.state = RAIDING
+                s.raided = True
+                return (f"Riders out of {self.world.node_name(a.home)} are loose "
+                        f"in the country around {s.name}! {describe(a.units)}")
             a.state = BESIEGING
             s.besieged = True
             return (f"A host out of {self.world.node_name(a.home)} is before "
@@ -519,12 +563,253 @@ class GameState:
         s = self.world.settlements.get(a.at)
         return self._siege_settlement(a, s) if s else []
 
+    def _shrine_day(self) -> List[str]:
+        """Hosts standing at a shrine lift what is in it, given long enough.
+
+        There is no garrison to fight -- the contest is simply whether you
+        were willing to send men somewhere that defends nothing.
+        """
+        msgs: List[str] = []
+        for key, sh in self.world.shrines.items():
+            if sh.taken:
+                continue
+            here = [a for a in self.armies if a.at == key and a.state == GARRISON]
+            if not here:
+                continue
+            if len({a.owner for a in here}) > 1:
+                # Two parties at one shrine and nobody is praying. Somebody has
+                # to leave, and it is decided the usual way.
+                here.sort(key=lambda x: host_strength(x.units), reverse=True)
+                winner, loser = here[0], here[1]
+                res = fight(Side(winner.units), Side(loser.units), rng=self.rng,
+                            place=sh.name)
+                winner.prune()
+                if res.winner == "attacker":
+                    beaten, kept = loser, winner
+                else:
+                    beaten, kept = winner, loser
+                msgs.append(f"Men come to blows at {sh.name}; "
+                            f"{beaten.name} is driven off")
+                if beaten.owner == "player":
+                    self.march(beaten.uid, beaten.home)
+                elif beaten in self.armies:
+                    self.armies.remove(beaten)
+                kept.siege_days = 0
+                continue
+            a = here[0]
+            a.siege_days += 1
+            if a.siege_days > C.RELIC_DAYS * 3 and a.owner != "player":
+                # Nobody waits at a shrine for ever.
+                self.march(a.uid, a.home)
+                continue
+            if a.siege_days < C.RELIC_DAYS:
+                continue
+            sh.holder = a.owner
+            a.siege_days = 0
+            who = "You have" if a.owner == "player" else \
+                f"{self.world.node_name(a.owner)} has"
+            msgs.append(f"*** {who} lifted {sh.relic} from {sh.name}. ***")
+            # Everyone goes home afterwards. A party left standing at a shrine
+            # is a lord who counts as having his host out for ever, and a lord
+            # whose host is out never declares on anybody.
+            self.march(a.uid, a.home)
+        return msgs
+
+    #: Chance per day that some lord remembers the shrines are unguarded.
+    SHRINE_RACE_ODDS = 0.010     # measured: the five go between roughly day 120
+                                 # and day 800, which leaves a real window to
+                                 # contest rather than a scramble in the first
+                                 # season and nothing afterwards
+    SHRINE_COOLDOWN = 150        # days before one lord goes relic-hunting again
+    SHRINE_GRACE = 90            # nobody thinks of the shrines before this
+
+    def _shrine_race(self) -> List[str]:
+        """Somebody else also wants the bones.
+
+        Without this the shrines are a standing gift to whoever bothers, which
+        is not a contest. A lord with ambition and no war on will send a small
+        party, and a small party is enough -- there is nothing there to fight.
+        """
+        if self.day < self.SHRINE_GRACE:
+            return []
+        free = [k for k, sh in self.world.shrines.items() if not sh.taken]
+        if not free or self.rng.random() > self.SHRINE_RACE_ODDS:
+            return []
+        busy = {a.owner for a in self.armies}
+        # A pilgrimage is a party of spearmen, not a war: it must not spend the
+        # ambition a lord has been saving to move on his neighbour, or the
+        # march quietly stops rearranging itself.
+        # And it must not be the lord who is about to move on a neighbour: a
+        # party away at a shrine counts as his host being out, so choosing the
+        # most ambitious man on the march would quietly keep the peace.
+        lords = [t for k, t in self.world.towns.items()
+                 if not t.mine and k not in busy
+                 and 20.0 < t.ambition < C.HOSTILITY_WAR * 0.6
+                 and self.day - t.last_pilgrimage > self.SHRINE_COOLDOWN]
+        if not lords:
+            return []
+        town = lords[self.rng.randrange(len(lords))]
+        # Do not send men where somebody is already standing: that is how a
+        # march ends up with seven parties at one shrine and no lord at home.
+        standing = {a.at for a in self.armies}
+        open_ones = [k for k in free if k not in standing]
+        if not open_ones:
+            return []
+        target = min(open_ones, key=lambda k: self.world.distance(town.key, k))
+        party = {"spearman": max(6.0, 14.0 * town.muster)}
+        a = Army(uid=self.next_army_uid, name=f"{town.lord}'s pilgrimage",
+                 owner=town.key, units=party, at=town.key, home=town.key)
+        self.next_army_uid += 1
+        self.armies.append(a)
+        a.bound_for = target
+        a.days_left = max(1.0, self.world.distance(town.key, target)
+                          / max(host_speed(party), 1.0))
+        a.state = MARCHING
+        town.last_pilgrimage = self.day
+        return [f"{town.lord} of {town.name} sends men to "
+                f"{self.world.shrines[target].name}"]
+
+    def lead(self, uid: int) -> str:
+        """Send your lord out with a host, for what that is worth both ways."""
+        if self.lord.gone:
+            return f"{self.lord.name} is {self.lord.standing()}"
+        if uid == 0:
+            self.lord.riding = 0
+            return f"{self.lord.name} returns to his hall"
+        a = self.army(uid)
+        if not a or a.owner != "player":
+            return f"no host of yours numbered {uid}"
+        self.lord.riding = uid
+        return (f"{self.lord.name} rides with {a.name}. The men will fight "
+                f"harder and stand longer, and he is where the arrows are.")
+
+    def ransom_lord(self) -> str:
+        if not self.lord.captured:
+            return f"{self.lord.name} is {self.lord.standing()}"
+        if self.treasury < self.lord.ransom:
+            return (f"They want {self.lord.ransom:,.0f}c for {self.lord.name} "
+                    f"and you have {self.treasury:,.0f}c")
+        self.treasury -= self.lord.ransom
+        self.ledger.war += self.lord.ransom
+        self.lord.captured = False
+        self.lord.ransom = 0.0
+        return f"{self.lord.name} is bought back and rides in at the gate"
+
+    def _lord_day(self) -> List[str]:
+        msgs = self.lord.day()
+        if self.lord.riding and self.army(self.lord.riding) is None:
+            self.lord.riding = 0        # the host he rode with is gone
+        seat = self.lord.seat or next(iter(self.world.settlements), "")
+        for key, st in self.world.settlements.items():
+            st.lord_home = self.lord.at_home and key == seat
+            st.lord_lost = self.lord.gone and key == seat
+        return msgs
+
+    def relics_held(self, owner: str = "player") -> int:
+        return sum(1 for sh in self.world.shrines.values() if sh.holder == owner)
+
+    def relic_income(self) -> float:
+        """Pilgrims' offerings. A cathedral is where they are meant to rest."""
+        held = self.relics_held()
+        if not held:
+            return 0.0
+        housed = any(s.count("cathedral") for s in self.world.settlements.values())
+        return C.RELIC_COIN * held * (1.6 if housed else 1.0)
+
+    RAID_PATIENCE = 12           # days a host will work a country before going home
+
+    def raid(self, uid: int) -> str:
+        """Order a host of yours to burn the country instead of the walls."""
+        a = self.army(uid)
+        if not a:
+            return f"no host {uid}"
+        if a.owner != "player":
+            return "that host is not yours to order"
+        if a.state not in (BESIEGING, GARRISON, RAIDING):
+            return f"{a.name} is on the road; it must arrive first"
+        if self.world.is_friendly(a.at):
+            return f"{a.name} stands in friendly country -- there is nothing to burn"
+        a.state = RAIDING
+        a.siege_days = 0
+        return f"{a.name} looses on the country around {self.world.node_name(a.at)}"
+
+    def _raid(self, a: Army) -> List[str]:
+        a.siege_days += 1
+        if a.siege_days > self.RAID_PATIENCE:
+            a.siege_days = 0
+            where = self.world.node_name(a.at)
+            if a.owner == "player":
+                self.march(a.uid, a.home)
+                return [f"{a.name} has stripped the country round {where} and turns for home"]
+            if a in self.armies:
+                self.armies.remove(a)
+            return [f"The raiders around {where} ride off with what they could carry"]
+        if a.at in self.world.towns:
+            return self._raid_town(a, self.world.towns[a.at])
+        s = self.world.settlements.get(a.at)
+        return self._raid_settlement(a, s) if s else []
+
+    def _raid_settlement(self, a: Army, s: Settlement) -> List[str]:
+        """Somebody burning *your* country. The walls do not enter into it."""
+        msgs: List[str] = []
+        s.raided = True
+        raiders = Side(a.units)
+        garrison = Side(s.units, attack_mult=self.progress.mult("attack"),
+                        defense_mult=self.progress.mult("defense"))
+        # Everything a settlement has outside its walls is what is at risk.
+        outside = sum(b.spec.jobs for b in s.buildings
+                      if b.complete and b.spec.terrain in ("fertile", "forest",
+                                                           "hills", "clay", "coast"))
+        worked, _hurt, lost, lines = raid_day(
+            raiders, garrison, out_of_doors=6.0 * max(1.0, outside), rng=self.rng)
+        s.raid_pressure = max(s.raid_pressure, worked)
+        a.units = {k: v for k, v in raiders.units.items() if v >= 0.5}
+        s.units = {k: v for k, v in garrison.units.items() if v >= 0.5}
+        # Stores carried off, people driven off the land.
+        for k in list(s.market.stock):
+            s.market.take(k, s.market.stock[k] * C.RAID_LOOT * worked)
+        s.population = max(4.0, s.population * (1.0 - C.RAID_FLIGHT * worked))
+        if self.day % 4 == 0:
+            msgs.append(f"{s.name} is being raided: {lines[0]}")
+        if lost:
+            msgs.append(f"Sortie from {s.name}: "
+                        f"{describe({k: round(v) for k, v in lost.items()})} cut down")
+        return msgs
+
+    def _raid_town(self, a: Army, town) -> List[str]:
+        """You, burning somebody else's country. Loot comes home as coin."""
+        msgs: List[str] = []
+        raiders = Side(a.units, attack_mult=self.progress.mult("attack")
+                       if a.owner == "player" else 1.0)
+        garrison = Side(dict(town.garrison))
+        worked, _hurt, lost, lines = raid_day(
+            raiders, garrison, out_of_doors=90.0 * town.prosperity, rng=self.rng)
+        a.units = {k: v for k, v in raiders.units.items() if v >= 0.5}
+        town.garrison = {k: v for k, v in garrison.units.items() if v >= 0.5}
+        # A raid does not take a town; it makes the town poorer and the lord
+        # angrier, which is the point of it.
+        town.prosperity = max(0.35, town.prosperity - C.RAID_PROSPERITY * worked)
+        town.hostility = min(C.HOSTILITY_WAR, town.hostility + 6.0 * worked)
+        if a.owner == "player":
+            loot = C.RAID_LOOT_COIN * worked * town.prosperity * town.wealth
+            self.treasury += loot
+            self._plunder += loot
+            if self.day % 4 == 0:
+                msgs.append(f"{a.name} strips the country round {town.name}: "
+                            f"{loot:,.0f}c and {lines[0]}")
+        if lost:
+            msgs.append(f"{town.name}'s garrison sorties: "
+                        f"{describe({k: round(v) for k, v in lost.items()})} lost raiding")
+        return msgs
+
     def _siege_town(self, a: Army, town) -> List[str]:
         """Anyone besieging a foreign town -- you, or one lord besieging another."""
         msgs: List[str] = []
         player = a.owner == "player"
         besieger = Side(a.units,
-                        attack_mult=self.progress.mult("attack") * self.progress.mult("siege")
+                        attack_mult=(self.progress.mult("attack")
+                                     * self.progress.mult("siege")
+                                     * lordly.attack_bonus(self.lord, a.uid))
                         if player else 1.0,
                         defense_mult=self.progress.mult("defense") if player else 1.0)
         # Your own hosts standing in a sworn town fight for it.
@@ -563,6 +848,13 @@ class GameState:
             elif player:
                 a.state = RETURNING
                 msgs.append(f"{a.name} is thrown back from {town.name}")
+                # He was standing where the arrows were. Sometimes that tells.
+                if self.lord.riding == a.uid:
+                    self.lord.ransom = min(9000.0, 900.0 + 0.06 * self.net_worth())
+                    msgs += self.lord.falls(self.rng, name_for(self.rng))
+                    for st in self.world.settlements.values():
+                        if not self.lord.alive:
+                            st.popularity = max(0.0, st.popularity - lordly.MOURNING)
                 self.march(a.uid, a.home)
             else:
                 a.state = RETURNING
@@ -584,9 +876,11 @@ class GameState:
         msgs: List[str] = []
         s.besieged = True
         besieger = Side(a.units)
+        at_home = self.lord.at_home and self.lord.seat in ("", s.name)
         holder = Side(s.units, attack_mult=self.progress.mult("attack"),
                       defense_mult=self.progress.mult("defense"),
-                      battlement=6.0 + s.effect("battlement"))   # cover, even bare
+                      battlement=6.0 + s.effect("battlement")
+                      + (lordly.HOME_DEFENCE if at_home else 0.0))
         works = Works.of([b.key for b in s.buildings
                           if b.complete and b.spec.terrain == "rampart"])
         if a.owner != "player":
@@ -631,6 +925,10 @@ class GameState:
         for founding a second settlement before you need one.
         """
         keep = next((b for b in s.buildings if b.key == "keep"), None)
+        # Relics go where the strongbox goes.
+        for sh in self.world.shrines.values():
+            if sh.holder == "player":
+                sh.holder = a.owner
         loot = 0.0
         share = 0.60 if keep else 0.45
         for k in ALL_KEYS:
@@ -654,6 +952,12 @@ class GameState:
 
     def _take_town(self, town, a: Army) -> str:
         was_mine = town.mine
+        # Whatever bones that lord had lifted are in his minster, and his
+        # minster has just changed hands.
+        taker = "player" if a.owner == "player" else a.owner
+        for sh in self.world.shrines.values():
+            if sh.holder == town.key:
+                sh.holder = taker
         town.owner = "player" if a.owner == "player" else a.owner
         town.hostility = 0.0
         town.ambition = 0.0
@@ -905,6 +1209,19 @@ class GameState:
             self.over = (f"Dominion. {len(vassals)} towns of the march answer to you: "
                          f"{', '.join(self.world.node_name(v) for v in vassals)}.")
             return [self.over]
+        if "reliquary" in self.goals.paths and self.relics_held() >= self.goals.relics:
+            self.relic_days += 1
+            if self.relic_days == 1:
+                return [f"You hold {self.relics_held()} of the march's relics. "
+                        f"Keep them {self.goals.relic_days} days."]
+            if self.relic_days >= self.goals.relic_days:
+                self.over = (f"The Reliquary. {self.relics_held()} of the march's "
+                             f"relics have rested in your keeping for "
+                             f"{self.goals.relic_days} days, and the pilgrims "
+                             f"come to you.")
+                return [self.over]
+        else:
+            self.relic_days = 0
         if self.goals.wonder and any(s.effect("wonder")
                                      for s in self.world.settlements.values()):
             self.cathedral_days += 1
@@ -1029,6 +1346,8 @@ class GameState:
             "events": self.events.to_dict(), "progress": self.progress.to_dict(),
             "history": self.history[-400:], "battles": self.battles[-40:],
             "cathedral_days": self.cathedral_days,
+            "relic_days": self.relic_days,
+            "lord": self.lord.to_dict(),
         }
 
     def save(self, path: str) -> str:
@@ -1053,6 +1372,8 @@ class GameState:
         g.history = list(d.get("history", []))
         g.battles = list(d.get("battles", []))
         g.cathedral_days = d.get("cathedral_days", 0)
+        g.relic_days = d.get("relic_days", 0)
+        g.lord = Lord.from_dict(d["lord"]) if "lord" in d else Lord()
         g.over = d.get("over", "")
         g.rng = random.Random(d["seed"] + d["day"])
         g.trade_engine = TradeEngine(g.world, g.rng)

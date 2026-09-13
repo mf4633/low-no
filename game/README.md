@@ -12,7 +12,7 @@ python3 -m marchlands                          # play the default scenario
 python3 -m marchlands --list                   # the four scenarios and five houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 212 tests, ~110s
+python3 -m unittest discover -s tests          # 293 tests, ~4min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -33,11 +33,32 @@ unit types that beat each other in a triangle, resource patches that run dry, a
 civilisation bonus and a unique unit, rival lords who develop and fight each
 other, and more than one way to win.
 
+Three of its less-copied ideas matter more than the ages do. **Labour is
+always short** — a town has more jobs than hands from early on and never stops
+having them, so `work <building> first` is the real economic lever and idle
+capacity is the standing cost of everything you built. **You can win by
+hurting an economy rather than a wall**: `raid` burns the country, stops the
+fields being worked, drives people off the land and rides home with the
+contents, and a lord who cannot carry your wall will do it to you. And the
+**relics** put something on the map worth leaving home for — five shrines, far
+from anybody's walls, paying pilgrims' offerings to whoever holds them, which
+is the cheapest way ever invented to stop a strategy game being two players
+farming in separate corners.
+
 **From Stronghold** — popularity as the master dial, rations and taxes as the
-two levers on it, ale and a chapel and a garden against gallows and stocks, a
-weapons industry that *is* the army (coin plus a sword your own smith made), and
+two levers on it, a garden and a maypole against gallows and stocks, a weapons
+industry that *is* the army (coin plus a sword your own smith made), and
 castles that are designs rather than hit-point pools — moats, pitch ditches,
 killing pits and oil, each answering a different way in.
+
+Two of its ideas are implemented the way Stronghold actually did them rather
+than the way they are usually summarised. **Ale and religion are coverage, not
+cheer**: an inn serves two hundred souls and a chapel two hundred and sixty, so
+a town that grows past them is a town half of which is drinking nothing — the
+same building, bought again, is the price of success. And **the lord is a
+man**, not a flag: he is worth real numbers in his hall, worth more riding with
+a host, and he is then standing where the arrows are. He can fall, or be taken
+and ransomed, and there are only so many of his line.
 
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
@@ -114,6 +135,14 @@ ground, plus town plots and a separate castle perimeter. A quarry needs hills; a
 farm needs fields; a harbour needs a shore. No site has enough of everything, so
 no site closes every chain alone. Quarries and mines work a *seam*: the hill
 holds a finite amount, and when it is gone the sheds stand idle for good.
+
+Labour is the tighter constraint of the two, and permanently. A settled town
+runs something like forty-four hands against seventy jobs, so a third of what
+you have built is standing idle on any given morning and the question is never
+*whether* something goes short but *what*. `work` shows the queue and
+`work <building> first` reorders it. This is the lever Age of Empires built its
+whole skill curve on, and it is the reason an inn with no hand in it cheers
+nobody however much ale you bought.
 
 **Labour → goods.** Buildings turn inputs into outputs at a rate set by how many
 jobs are filled, the season, the town's mood, and what you have researched.
@@ -265,6 +294,29 @@ Being stormed is a catastrophe, not a trapdoor: the keep is thrown down, the tow
 gutted, and you carry on from whatever else you hold — which is the best argument
 there is for founding a second settlement before you need one.
 
+### Raiding, relics and the lord
+
+`raid <host>` looses a host on the country instead of the walls. Horsemen burn
+more of it in a day than footmen, a big country takes longer to ruin than a
+small one, and a garrison that is clearly the stronger will come out and catch
+them at it — which is exactly what a raider wants if he is stronger still.
+Against a rival it costs him prosperity, which is the number his walls, his
+garrison and his muster are all computed from; against you it stops the fields
+being worked at all.
+
+`relics` lists the five shrines. A host that stands at one for six days lifts
+what is in it and carries it home, where the offerings come to about 42c a day
+— half again with a cathedral to rest them in. Hold four of them for a hundred
+and twenty days and you have won the march that way. The other lords send
+parties too, two parties at one shrine settle it the usual way, and taking a
+lord's town takes whatever he had lifted along with it.
+
+`lord` says where yours is. In his hall he is worth mood and nine points of
+defence on the wall; riding with a host he is worth sixteen percent of its
+strength, and he is where the arrows are. If that host breaks he may fall, in
+which case the whole holding mourns and the hall stands empty until an heir is
+raised — or he may be taken alive, and then somebody names a price.
+
 ## Scenarios
 
 Four games on the same rules. `--list` describes them; they are meant to be
@@ -328,6 +380,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `iso.py` | the holding in perspective: tiles, sprites, smoke, people |
 | `view.py` | the same holding as a flat plan |
 | `castle.py` | works, assault plans, and what answers what |
+| `lord.py` | your lord: what he is worth, and what can happen to him |
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |

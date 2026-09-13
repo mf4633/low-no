@@ -84,7 +84,12 @@ class Settlement:
     wall_hp: float = 0.0
     deposits: Dict[str, float] = field(default_factory=dict)
     besieged: bool = False
+    priority: Dict[str, int] = field(default_factory=dict)
     blockaded: bool = False   # the roads are cut: no cart comes or goes
+    raided: bool = False      # somebody is burning the country outside
+    lord_home: bool = False   # your lord keeps his hall here today
+    lord_lost: bool = False   # and nobody at all keeps it
+    raid_pressure: float = 0.0   # how much of it they got through today
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
 
@@ -159,6 +164,9 @@ class Settlement:
             base *= C.SIEGE_HUNGER
         if self.blockaded:
             base *= C.BLOCKADE_HUNGER
+        if self.raid_pressure:
+            # You cannot reap a field with horsemen in it.
+            base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
         return max(0.0, base)
 
     # ------------------------------------------------------------ build/raze
@@ -239,13 +247,33 @@ class Settlement:
                 if b.complete:
                     self.wall_hp += b.spec.effects.get("wall", 0.0)
 
+    #: Where a building stands in the queue for hands. The queue is the whole
+    #: game once a town has more jobs than people, which happens early and
+    #: never stops happening -- there is no order that serves everything.
+    BANDS = {"first": 2, "early": 1, "normal": 0, "late": -1, "last": -2}
+
+    def band(self, key: str) -> int:
+        return self.priority.get(key, 0)
+
+    def set_band(self, key: str, band: str) -> str:
+        if band not in self.BANDS:
+            return f"no such standing: {', '.join(self.BANDS)}"
+        if self.BANDS[band] == 0:
+            self.priority.pop(key, None)
+        else:
+            self.priority[key] = self.BANDS[band]
+        return f"{BUILDINGS[key].name} will be given hands {band}"
+
     def _staff_buildings(self) -> None:
         pool = self.workforce
         for b in self.buildings:
             b.staffed = 0
             b.throughput = 0.0
             b.idle_reason = ""
-        for b in self.buildings:
+        # Hands go out in the order you asked for them, and within a band in
+        # the order the sheds were raised. Whatever is at the back gets what
+        # is left, which is usually nothing.
+        for b in sorted(self.buildings, key=lambda b: (-self.band(b.key), b.uid)):
             if not (b.complete and b.enabled):
                 b.idle_reason = "building" if not b.complete else "closed"
                 continue
@@ -411,6 +439,24 @@ class Settlement:
         upkeep += host_upkeep(self.units)
         return wages, upkeep
 
+    def coverage(self, effect: str, needs_running: bool = False) -> float:
+        """What fraction of the town a class of building actually reaches.
+
+        Stronghold's real dial, and the reason a growing town keeps buying the
+        same building again: reach is per house, and the population is not.
+        """
+        reach = 0.0
+        for b in self.buildings:
+            if not b.complete:
+                continue
+            per = b.spec.effects.get(effect, 0.0)
+            if not per:
+                continue
+            if needs_running and b.throughput <= 0:
+                continue        # a dry inn serves nobody
+            reach += per
+        return min(1.0, reach / max(1.0, self.population))
+
     # ----------------------------------------------------------------- mood
     def mood_factors(self, mods: Progress = NO_PROGRESS) -> List[Tuple[str, float]]:
         rep = self.report
@@ -425,15 +471,20 @@ class Settlement:
         out.append(("taxes", tax_mood))
         buildings_mood = 0.0
         for b in self.buildings:
-            if not b.complete:
-                continue
-            m = b.spec.effects.get("mood", 0.0)
-            if m and b.key == "inn" and b.throughput <= 0:
-                continue  # a dry inn cheers nobody
-            buildings_mood += m
+            if b.complete:
+                buildings_mood += b.spec.effects.get("mood", 0.0)
         buildings_mood += mods.bonus("mood")
         if buildings_mood:
             out.append(("buildings", buildings_mood))
+        # Ale and a service are not flat cheer: each house reaches so many
+        # souls, so a town that grows past its inns is a town half of which
+        # is drinking nothing. Growth buys you this problem, repeatedly.
+        ale = self.coverage("ale_reach", needs_running=True)
+        if ale > 0:
+            out.append(("ale", C.ALE_MOOD * ale))
+        faith = self.coverage("faith_reach")
+        if faith > 0:
+            out.append(("faith", C.FAITH_MOOD * faith))
         if self.fear:
             out.append(("fear", -2.6 * self.fear))
         comfort = getattr(self, "_comfort_score", 0.0)
@@ -452,6 +503,12 @@ class Settlement:
             out.append(("under siege", -8.0))
         if self.blockaded:
             out.append(("the roads are cut", -7.0))
+        if self.lord_home:
+            out.append(("the lord in his hall", C.LORD_MOOD))
+        elif self.lord_lost:
+            out.append(("no lord in the hall", -C.LORD_MOOD * 1.5))
+        if self.raided:
+            out.append(("the country is burning", -12.0 * max(0.35, self.raid_pressure)))
         jobless = self.workforce - self.employed
         if self.workforce and jobless / self.workforce > 0.35:
             out.append(("idle hands", -6.0))
@@ -493,7 +550,8 @@ class Settlement:
             "popularity": self.popularity, "ration_level": self.ration_level,
             "tax_level": self.tax_level, "units": dict(self.units),
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
-            "besieged": self.besieged, "blockaded": self.blockaded, "next_uid": self.next_uid,
+            "besieged": self.besieged, "priority": dict(self.priority),
+            "raided": self.raided, "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
         }
 
@@ -505,6 +563,7 @@ class Settlement:
                 ration_level=d["ration_level"], tax_level=d["tax_level"],
                 units=dict(d.get("units", {})), wall_hp=d.get("wall_hp", 0.0),
                 deposits=dict(d.get("deposits", {})),
-                besieged=d.get("besieged", False), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
+                besieged=d.get("besieged", False), priority=dict(d.get("priority", {})),
+                raided=d.get("raided", False), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         return s
