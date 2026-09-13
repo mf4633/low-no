@@ -95,6 +95,10 @@ RAID_BASE_CHANCE = 0.004        # per settlement per day, scaled by year
 RAID_LOOT_FRACTION = 0.18
 HOSTILITY_DRIFT = 0.30          # per day, per town; scales with how rich you look
 HOSTILITY_WAR = 100.0           # at this, a lord marches
+AMBITION_DRIFT = 0.30           # per day, per town, toward its neighbours
+REVOLT_CHANCE = 0.006           # per day, for a vassal you cannot overawe
+GIFT_PER_COIN = 0.012           # hostility a coin of tribute buys off
+TRUCE_RATE = 9.0                # coins per day of bought peace, per muster
 TRIBUTE_BASE = 22.0             # coins per day from a town that has bent the knee
 TRIBUTE_PER_WEALTH = 14.0
 
@@ -102,5 +106,5 @@ TRIBUTE_PER_WEALTH = 14.0
 GOAL_NET_WORTH = 120000.0
 GOAL_POPULATION = 450
 GOAL_DAYS = 3 * DAYS_PER_YEAR
-GOAL_TOWNS = 5              # towns sworn to you for a dominion victory
+GOAL_TOWNS = 3              # towns sworn to you for a dominion victory
 BANKRUPTCY_FLOOR = -3000.0

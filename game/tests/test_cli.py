@@ -25,6 +25,7 @@ class TestConsole(unittest.TestCase):
             "info mill", "chain bread", "prices wheat", "market vantry",
             "market aldworth", "scan 3", "caravans", "log", "chart worth",
             "age", "tech", "units", "war", "army", "garrison", "battles",
+            "truce dunmere",
             "help", "help trade", "help town", "help war", "help win",
         )
         self.assertNotIn("Traceback", out)
@@ -96,6 +97,17 @@ class TestConsole(unittest.TestCase):
         self.assertIn("muster at", out)
         self.assertIn("marches on", out)
         self.assertEqual(len(g.armies), 1)
+
+    def test_diplomacy(self):
+        g = self.con.game
+        g.treasury = 40_000
+        g.world.towns["ostmark"].hostility = 80.0
+        out = self.run_script("truce ostmark", "truce ostmark 120",
+                              "gift ostmark 1500", "demand dunmere", "war")
+        self.assertIn("would cost", out)
+        self.assertIn("swears off", out)
+        self.assertIn("cools", out)
+        self.assertGreater(g.world.towns["ostmark"].truce_days, 0)
 
     def test_bad_military_input_is_reported(self):
         out = self.run_script("recruit dragon 3", "host nowhere spearman 2",

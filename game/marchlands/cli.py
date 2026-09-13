@@ -551,20 +551,24 @@ class Console:
     def cmd_war(self, args: List[str]) -> None:
         g = self.game
         self.say(RULE, "  the state of the march", RULE,
-                 "  town          lord                     walls   could field"
-                 "   mood toward you")
+                 "  town          lord                    sworn to    walls"
+                 "  could field   mood toward you")
         for key, t in g.world.towns.items():
             if t.mine:
                 state = "sworn to you"
+            elif t.truce_days:
+                state = f"truce ({t.truce_days}d)"
             elif t.hostility > 70:
                 state = "arming"
             elif t.hostility > 40:
                 state = "cold"
             else:
                 state = "civil"
+            liege = ("you" if t.mine else
+                     g.world.node_name(t.owner) if t.owner else "-")
             might = host_strength(g.likely_host(key))
-            self.say(f"  {t.name:<13} {t.lord:<24} {t.wall_hp:>5,.0f}"
-                     f"   {might:>9,.0f}   {state} ({t.hostility:.0f})")
+            self.say(f"  {t.name:<13} {t.lord:<23} {liege:<10} {t.wall_hp:>6,.0f}"
+                     f"  {might:>10,.0f}   {state} ({t.hostility:.0f})")
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "
@@ -572,6 +576,27 @@ class Console:
         for a in g.armies:
             who = "yours" if a.owner == "player" else self._name(a.home)
             self.say(f"  host: {a.name} ({who}) -- {a.where()}, {describe(a.units)}")
+
+    def cmd_gift(self, args: List[str]) -> None:
+        if len(args) < 2:
+            return self.err("gift <town> <coin>")
+        self.say("  " + self.game.gift(self._node(args[0]), float(args[1])))
+
+    def cmd_truce(self, args: List[str]) -> None:
+        if not args:
+            return self.err("truce <town> [days]")
+        key = self._node(args[0])
+        days = int(args[1]) if len(args) > 1 else 180
+        if len(args) == 1:
+            return self.say(f"  {days} days of peace with {self._name(key)} would "
+                            f"cost {self.game.truce_cost(key, days):,.0f}c "
+                            f"(`truce {args[0]} {days}` to buy it)")
+        self.say("  " + self.game.truce(key, days))
+
+    def cmd_demand(self, args: List[str]) -> None:
+        if not args:
+            return self.err("demand <town>")
+        self.say("  " + self.game.demand(self._node(args[0])))
 
     def cmd_battles(self, args: List[str]) -> None:
         n = int(args[0]) if args else 12
@@ -790,6 +815,8 @@ COMMANDS = {
     "march": Console.cmd_march, "recall": Console.cmd_recall,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,
+    "gift": Console.cmd_gift, "truce": Console.cmd_truce,
+    "demand": Console.cmd_demand,
     "tech": Console.cmd_tech, "research": Console.cmd_tech,
     "caravans": Console.cmd_caravans, "c": Console.cmd_caravans,
     "new": Console.cmd_new, "guards": Console.cmd_guards, "route": Console.cmd_route,
@@ -818,6 +845,7 @@ HELP = """
                     host <town> <who> <n> ...              army [id]
                     march <id> <place>   recall <id>       standdown <id>
                     war             battles [n]
+                    gift <town> <coin>   truce <town> [days]   demand <town>
   ELSE              log [n]   save [file]   load [file]   quit
                     help trade | help town | help war | help win
 """
@@ -857,9 +885,17 @@ HELP_TOPICS = {
   Foot in armour walks through bows. None of it matters while a wall is
   standing: without rams or trebuchets a host can only sit outside and starve.
 
-  Lords grow bolder the richer you get. `war` shows who is arming. Take a town
-  and it bends the knee -- no tolls, daily tribute, and every other lord one
-  step angrier. Five towns sworn to you wins the game outright.
+  Lords grow bolder the richer you get, and they scheme against each other as
+  well as against you: leave the march alone long enough and one of them will
+  swallow his neighbours -- your sworn towns included. `war` shows who answers
+  to whom and what each could field today.
+
+  You need not meet all of it with soldiers. A `gift` cools a temper, a `truce`
+  buys a fixed number of quiet days outright, and a `demand` squeezes tribute
+  out of a lord too weak to refuse -- and is remembered by one who is not.
+
+  Take a town and it bends the knee: no tolls, daily tribute, and every other
+  lord one step angrier. Five towns sworn to you wins the game outright.
 
   A storming is not the end. The keep is thrown down, the town gutted, and you
   start again from whatever else you hold -- which is the best argument there
@@ -870,11 +906,12 @@ HELP_TOPICS = {
   Three ways, inside {C.GOAL_DAYS // C.DAYS_PER_YEAR} years:
 
     WEALTH    {C.GOAL_NET_WORTH:,.0f}c of net worth with {C.GOAL_POPULATION} souls under your rule.
-    DOMINION  {C.GOAL_TOWNS} of the seven towns sworn to you.
+    DOMINION  {C.GOAL_TOWNS} of the seven towns sworn to you -- and still held at the end.
     THE BELLS Finish the cathedral and hold it half a year.
 
-  You lose if your debts pass {abs(C.BANKRUPTCY_FLOOR):,.0f}c, the last family
-  walks out of the gate, or the settlement holding your keep is stormed.
+  You lose if your debts pass {abs(C.BANKRUPTCY_FLOOR):,.0f}c, or there is
+  nowhere left that you hold. Being stormed is survivable: the keep comes down
+  and the town is gutted, but a lord with a second settlement is still a lord.
 """,
 }
 

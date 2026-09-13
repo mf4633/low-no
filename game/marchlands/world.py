@@ -47,24 +47,60 @@ class ForeignTown:
     blurb: str = ""
     shocks: List[Shock] = field(default_factory=list)
     # --- the lord and his stones -------------------------------------------
-    lord: str = ""                # who holds it; "" once it is yours
-    owner: str = ""               # '' free, 'player' once it has bent the knee
-    hostility: float = 0.0        # 0-100; at 100 a host marches on you
+    lord: str = ""                # who holds it
+    owner: str = ""               # '' free, 'player', or another town's key
+    hostility: float = 0.0        # 0-100 toward you; at 100 a host marches
+    ambition: float = 0.0         # 0-100 toward its neighbours
+    aggression: float = 1.0       # how fast that ambition builds
+    truce_days: int = 0           # days of bought peace left
+    favour: float = 0.0           # goodwill your gifts have bought
     garrison: Dict[str, float] = field(default_factory=dict)
     wall_hp: float = 0.0
     wall_max: float = 0.0
+    wall_base: float = 0.0
     muster: float = 1.0           # how big a host this town can put in the field
     temper: float = 1.0           # how quickly this lord takes offence
+    prosperity: float = 1.0       # grows in peace, falls when stormed
 
     @property
     def mine(self) -> bool:
         return self.owner == "player"
 
+    @property
+    def free(self) -> bool:
+        return self.owner == ""
+
     def tribute(self) -> float:
-        return C.TRIBUTE_BASE + C.TRIBUTE_PER_WEALTH * self.wealth
+        return (C.TRIBUTE_BASE + C.TRIBUTE_PER_WEALTH * self.wealth) * self.prosperity
 
     def rebuild_walls(self, share: float = 0.02) -> None:
         self.wall_hp = min(self.wall_max, self.wall_hp + self.wall_max * share)
+
+    def target_garrison(self) -> Dict[str, float]:
+        scale = self.muster * self.prosperity
+        return {"spearman": 11 * scale, "archer": 8 * scale, "man_at_arms": 4 * scale}
+
+    def grow(self, rng: random.Random, besieged: bool = False) -> None:
+        """A year of quiet makes a town richer, higher-walled and better held.
+
+        This is the difference between a map that is scenery and a map that is
+        playing against you: leave Ostmark alone for three years and Ostmark
+        will not be the same problem it was.
+        """
+        if besieged:
+            self.prosperity = max(0.4, self.prosperity - 0.004)
+            return
+        self.prosperity = min(2.2, self.prosperity + 0.00055)
+        self.wall_max = self.wall_base * (1.0 + 0.55 * (self.prosperity - 1.0))
+        self.rebuild_walls(0.006)
+        want = self.target_garrison()
+        for k, n in want.items():
+            have = self.garrison.get(k, 0.0)
+            if have < n:
+                self.garrison[k] = min(n, have + 0.09 * self.muster)
+        for k in list(self.garrison):
+            if self.garrison[k] < 0.5:
+                del self.garrison[k]
 
     def specialties(self) -> List[str]:
         return [k for k, v in sorted(self.flow.items(), key=lambda kv: -kv[1]) if v > 0]
@@ -102,9 +138,12 @@ class ForeignTown:
                 "lawlessness": self.lawlessness, "wealth": self.wealth,
                 "blurb": self.blurb, "shocks": [s.to_dict() for s in self.shocks],
                 "lord": self.lord, "owner": self.owner, "hostility": self.hostility,
+                "ambition": self.ambition, "aggression": self.aggression,
+                "truce_days": self.truce_days, "favour": self.favour,
                 "garrison": dict(self.garrison), "wall_hp": self.wall_hp,
-                "wall_max": self.wall_max, "muster": self.muster,
-                "temper": self.temper}
+                "wall_max": self.wall_max, "wall_base": self.wall_base,
+                "muster": self.muster, "temper": self.temper,
+                "prosperity": self.prosperity}
 
     @classmethod
     def from_dict(cls, d: dict) -> "ForeignTown":
@@ -119,8 +158,10 @@ class ForeignTown:
         t.garrison = dict(d.get("garrison", {}))
         t.wall_hp = d.get("wall_hp", 0.0)
         t.wall_max = d.get("wall_max", 0.0)
-        t.muster = d.get("muster", 1.0)
-        t.temper = d.get("temper", 1.0)
+        for name in ("ambition", "aggression", "truce_days", "favour", "muster",
+                     "temper", "prosperity", "wall_base"):
+            if name in d:
+                setattr(t, name, d[name])
         return t
 
 
@@ -189,8 +230,15 @@ class World:
         """Yours or sworn to you: no tolls, no danger of being turned away."""
         return key in self.settlements or (key in self.towns and self.towns[key].mine)
 
-    def vassals(self) -> List[str]:
-        return [k for k, t in self.towns.items() if t.mine]
+    def vassals(self, liege: str = "player") -> List[str]:
+        return [k for k, t in self.towns.items() if t.owner == liege]
+
+    def liege_of(self, key: str) -> str:
+        return self.towns[key].owner if key in self.towns else "player"
+
+    def nearest(self, key: str, among: Iterable[str]) -> Optional[str]:
+        pool = [k for k in among if k != key]
+        return min(pool, key=lambda k: self.distance(key, k)) if pool else None
 
     def all_nodes(self) -> List[str]:
         return list(self.settlements.keys()) + list(self.towns.keys())
@@ -291,4 +339,4 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
                        garrison=dict(garrison or {
                            "spearman": round(11 * muster), "archer": round(8 * muster),
                            "man_at_arms": round(4 * muster)}),
-                       wall_hp=walls, wall_max=walls, muster=muster)
+                       wall_hp=walls, wall_max=walls, wall_base=walls, muster=muster)

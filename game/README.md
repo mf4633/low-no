@@ -139,7 +139,7 @@ there is for founding a second settlement before you need one.
 Three ways, inside three years:
 
 * **Wealth** — 120,000c of net worth with 450 souls under your rule.
-* **Dominion** — five of the seven towns sworn to you.
+* **Dominion** — three of the seven towns sworn to you *and held*.
 * **The bells** — finish the cathedral and hold it half a year.
 
 You lose if your debts pass 3,000c or there is nowhere left that you hold.
@@ -164,6 +164,7 @@ You lose if your debts pass 3,000c or there is nowhere left that you hold.
 > war                       who is arming, and how big a host they could field
 > host aldworth spearman 20 archer 12 ram 3 engineer 6
 > march 1 dunmere
+> truce marchand 180        peace, by the day, from the lord you are not ready for
 ```
 
 Type `help`, or `help trade`, `help town`, `help war`, `help win`.
@@ -185,7 +186,7 @@ Type `help`, or `help trade`, `help town`, `help war`, `help win`.
 | `engine.py` | the tick, the ledger, research, war, endings, save/load |
 | `scenario.py` | the starting map |
 | `cli.py` | the terminal interface |
-| `sim.py` | a headless bot, used as a balance test |
+| `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
 
 ## Tuning
@@ -194,10 +195,19 @@ All balance lives in `config.py` and the data tables. The one number to respect
 is `WAGE`: every base price in `goods.py` was set against the cost of a
 worker-day, so moving it moves the margin on every trade at once.
 
-Four tests in `tests/test_engine.py` are balance guards rather than correctness
-tests. The naive bot in `sim.py` should survive most starts (or the opening is
-too punishing), should climb at least to the second age and usually the third
-(or the age costs are out of reach), should manage some research and a second
-settlement, and should **not** reach the goal (or the goal is too easy). At the
-time of writing it finishes six seeds alive, five of them in the Age of the
-Castle with 10–15 technologies, at 16k–65k against a 120,000c target.
+Several tests are balance guards rather than correctness tests. The trading bot
+in `sim.py` should survive most starts (or the opening is too punishing), should
+climb at least to the second age and usually the third (or the age costs are out
+of reach), should manage some research and a second settlement, and should
+**not** reach the goal (or the goal is too easy). At the time of writing it
+finishes six seeds alive, all of them in the Age of the Castle with 13–16
+technologies and three settlements, at 40k–70k against a 120,000c target — while
+the lords take three or four towns off each other in the background.
+
+An honest note on the conquest path. `Conqueror` in `sim.py` grows an economy,
+turns it into a war footing, buys the iron two hills cannot supply, and takes
+towns — but it peaks at one or two of them, not three. The mechanics are proven
+by tests (a properly equipped host takes a town; a town taken and garrisoned is
+held; the ending fires), so Dominion is reachable rather than decorative, but it
+is the hardest of the three paths and a bot that plays it naively does not get
+there. If you retune the military numbers, run both bots.

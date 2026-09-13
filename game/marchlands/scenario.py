@@ -115,7 +115,9 @@ def new_game(seed: int = 7, house: str = "plough") -> GameState:
         # No two lords take offence at the same rate, and none of them start
         # from the same place -- otherwise they all declare on one morning.
         t.temper = 0.55 + 0.95 * stagger.random()
+        t.aggression = 0.45 + 1.20 * stagger.random()
         t.hostility = 12.0 + 48.0 * stagger.random()
+        t.ambition = 20.0 * stagger.random()
         world.towns[t.key] = t
         world.place(t.key, t.x, t.y)
 

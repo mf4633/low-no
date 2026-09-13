@@ -240,6 +240,7 @@ class TestCampaign(unittest.TestCase):
         g = self.g
         for key in list(g.world.towns)[:C.GOAL_TOWNS]:
             g.world.towns[key].owner = "player"
+        g.world.settlements["aldworth"].units = {"knight": 90}   # enough to hold them
         g.tick()
         self.assertIn("Dominion", g.over)
 

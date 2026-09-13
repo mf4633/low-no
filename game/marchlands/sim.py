@@ -14,7 +14,7 @@ from . import config as C
 from .advisor import route_from, scan
 from .engine import GameState
 from .goods import RATION_GOODS, good, nourishment
-from .military import host_strength
+from .military import UNITS, host_strength
 from .scenario import new_game
 from .trade import Order, Stop
 
@@ -40,7 +40,7 @@ COLONY_PLAN = [
     "woodcutter", "cottage", "farm", "quarry", "saltworks", "clay_pit",
     "orchard", "cottage", "mill", "bakery", "granary", "iron_mine",
     "charcoal_burner", "smelter", "cottage", "market", "palisade",
-    "townhouse", "stone_wall",
+    "townhouse", "barracks", "poleturner", "stone_wall", "townhouse",
 ]
 
 
@@ -295,6 +295,8 @@ class Bot:
                 if self.supply_cart == c.uid:
                     self.supply_cart = None
                     c.halt()
+            if c.uid == getattr(self, "arms_cart", None) and c.running:
+                continue
             if c.uid == self._errand_cart():
                 # An errand is one journey, not a standing route: once the pile
                 # is home the cart goes back on the books.
@@ -343,6 +345,208 @@ class Bot:
             if self.game.over:
                 break
         return out
+
+
+class Conqueror(Bot):
+    """The other way to play: build enough of an economy to arm a host, then
+    take the march one town at a time.
+
+    Kept alongside the trading bot because a victory condition nobody can reach
+    is decoration. If this one stops taking towns, the conquest path is broken.
+    """
+
+    WAR_PLAN = [
+        "farm", "mill", "bakery", "quarry", "orchard", "granary", "woodcutter",
+        "farm", "mill", "bakery", "poleturner", "sawmill", "trading_post",
+        "farm", "mill", "bakery", "cottage", "guildhall", "poleturner",
+        "charcoal_burner", "iron_mine", "smelter", "cottage", "market",
+        "fletcher", "stone_wall", "armoury", "armourer", "clay_pit", "kiln",
+        "townhouse", "siege_yard", "blacksmith", "fletcher", "armourer",
+        "townhouse", "wall_tower", "stable", "inn", "townhouse", "armoury",
+    ]
+
+    arms_cart: Optional[int] = None
+
+    def plan_for(self, key: str) -> List[str]:
+        if key not in self.plans:
+            self.plans[key] = list(self.WAR_PLAN if key == self.home else COLONY_PLAN)
+        return self.plans[key]
+
+    #: An army is bought with an economy. Campaigning before there is one to
+    #: spend is how a war bot ends the game with two towns and no treasury.
+    WAR_CHEST = 9000.0
+    WAR_SOULS = 240.0
+
+    _at_war = False
+
+    @property
+    def warlike(self) -> bool:
+        """Once a house turns to war it does not quietly turn back: an army
+        half-raised and then abandoned is the worst of both plans."""
+        if not self._at_war:
+            g = self.game
+            self._at_war = (g.population >= self.WAR_SOULS
+                            and g.treasury >= self.WAR_CHEST)
+        return self._at_war
+
+    def step(self) -> None:
+        if not self.warlike:
+            super().step()
+            return
+        # On a war footing the ladder changes: no more ages, no more research,
+        # every spare coin into the muster and the arms trade.
+        g = self.game
+        self._build()
+        self._settle()
+        for s in g.world.settlements.values():
+            self._govern(s)
+            self._shutter(s)
+        self._defend()
+        self._buy_arms()
+        self._carts()
+        self._campaign()
+
+    def _buy_arms(self) -> None:
+        """One cart kept permanently on the arms trade.
+
+        Aldworth has two hills. You cannot mine, smelt, forge and plate an army
+        out of that, so a war economy buys half its kit from the towns it means
+        to march on -- which is the joke at the centre of this game.
+        """
+        g = self.game
+        if self.arms_cart is not None:
+            cart = g.caravan(self.arms_cart)
+            if cart is None:
+                self.arms_cart = None
+            elif cart.running:
+                return
+        home = g.world.settlements[self.home]
+        # Iron first: it is the neck of the whole war economy -- rams, plate
+        # and swords all come out of it, and two hills will not supply them.
+        wants = [k for k, floor in (("iron", 90), ("armour", 40), ("weapons", 40),
+                                    ("bows", 40))
+                 if home.market.stock.get(k, 0.0) < floor]
+        if not wants:
+            return
+        key = wants[0]
+        sellers = [(n, m.ask(key)) for n in g.world.towns
+                   for m in [g.world.market_of(n)] if m and m.sells(key)]
+        if not sellers:
+            return
+        where, price = min(sellers, key=lambda s: s[1])
+        cart = (g.caravan(self.arms_cart) if self.arms_cart is not None
+                else next((c for c in g.caravans if not c.running), None))
+        if cart is None or g.treasury < 2500:
+            return
+        cart.set_route([
+            Stop(node=where, buy=[Order(key, 90 if key == "iron" else 60,
+                                        price * 1.6)]),
+            Stop(node=self.home, sell=[Order(key, -1)]),
+        ])
+        cart.start()
+        self.arms_cart = cart.uid
+
+    def _campaign(self) -> None:
+        g = self.game
+        home = g.world.settlements[self.home]
+        host = next((a for a in g.armies if a.owner == "player"), None)
+        if host is not None:
+            if host.state != "garrison":
+                return
+            # A host that has just taken a town stays put a while: an oath is
+            # held by whoever is standing in the square.
+            target = self._next_target(host.units, frm=host.at)
+            if target:
+                g.march(host.uid, target)
+            elif host.at in g.world.settlements:
+                g.disband_host(host.uid)
+            elif g.world.towns.get(host.at) and g.world.towns[host.at].mine:
+                if host_strength(host.units) < 200:
+                    g.march(host.uid, host.home)   # go home and be made whole
+            return
+        # Muster at home until the garrison can crack somebody, then set out.
+        pooled_all: Dict[str, float] = {}
+        for s in g.world.settlements.values():
+            for k, n in s.units.items():
+                pooled_all[k] = pooled_all.get(k, 0.0) + n
+        target = self._next_target(pooled_all)
+        if target is None:
+            return
+        # Bring the colonies' men in to the capital first.
+        for key, s in g.world.settlements.items():
+            if key == self.home or not s.units:
+                continue
+            a, _why = g.raise_host(key, {k: int(v) for k, v in s.units.items()
+                                         if int(v) > 0})
+            if a:
+                g.march(a.uid, self.home)
+                return
+        # Draw the host from every garrison, not just the capital's.
+        pooled: Dict[str, float] = {}
+        for s in g.world.settlements.values():
+            for k, n in s.units.items():
+                pooled[k] = pooled.get(k, 0.0) + n
+        marching = {k: int(v) for k, v in home.units.items() if int(v) > 0}
+        keep_back = {"archer": min(marching.get("archer", 0), 8),
+                     "spearman": min(marching.get("spearman", 0), 8)}
+        for k, n in keep_back.items():
+            marching[k] = marching.get(k, 0) - n
+        marching = {k: n for k, n in marching.items() if n > 0}
+        if not marching:
+            return
+        a, _why = g.raise_host(self.home, marching)
+        if a:
+            g.march(a.uid, target)
+
+    def _next_target(self, units: Dict[str, float],
+                     frm: Optional[str] = None) -> Optional[str]:
+        """The weakest town this host could actually take, if any."""
+        g = self.game
+        frm = frm or self.home
+        strength = host_strength(units)
+        siege = sum(UNITS[k].siege_power * n for k, n in units.items())
+        if siege <= 0:
+            return None
+        best, best_cost = None, 0.0
+        for key, t in g.world.towns.items():
+            if t.mine or key == frm:
+                continue
+            defence = host_strength(t.garrison) + t.wall_hp / 14.0
+            if strength < defence * 2.0:
+                continue
+            score = 1.0 / (1.0 + g.world.distance(frm, key) / 60.0)
+            if score > best_cost:
+                best, best_cost = key, score
+        return best
+
+    def _defend(self) -> None:
+        """A conqueror musters to a target, not to a threat -- and musters in
+        every town that has a barracks, not only the capital."""
+        if not self.warlike:
+            return super()._defend()
+        g = self.game
+        if g.treasury < self.reserve:
+            return
+        # No engines, no conquest: a siege train comes before another spearman,
+        # because without one every wall in the march is simply a wall.
+        home = g.world.settlements[self.home]
+        rams = sum(s.units.get("ram", 0.0) for s in g.world.settlements.values())
+        rams += sum(a.units.get("ram", 0.0) for a in g.armies if a.owner == "player")
+        if rams < 4 and home.effect("muster"):
+            for unit_key in ("ram", "engineer"):
+                if "muster at" in g.recruit(self.home, unit_key, 2):
+                    return
+        want = {"spearman": 0.28, "man_at_arms": 0.22, "archer": 0.20,
+                "engineer": 0.12, "ram": 0.10, "crossbowman": 0.08}
+        for key, s in g.world.settlements.items():
+            if not s.effect("muster") or s.soldiers >= int(0.34 * s.population):
+                continue
+            have = max(1.0, float(s.soldiers))
+            order = sorted(want, key=lambda k: s.units.get(k, 0.0) / have - want[k])
+            for batch in (4, 2, 1):
+                for unit_key in order + ["militia"]:
+                    if "muster at" in g.recruit(key, unit_key, batch):
+                        return
 
 
 def report(game: GameState) -> str:
