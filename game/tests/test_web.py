@@ -7,6 +7,7 @@ server hands the browser a state it can actually draw.
 """
 
 import json
+import os
 import threading
 import unittest
 import urllib.error
@@ -393,6 +394,39 @@ class TestCommandBridge(unittest.TestCase):
         con = Console(g, out=StringIO())
         said = run_command(con, "build nonsense")
         self.assertTrue(said.strip())
+
+
+class TestItShips(unittest.TestCase):
+    """The engine is not the whole game; the page has to be in the box.
+
+    `pip install marchlands` shipped the Python and none of the static files,
+    so `--web` served a working server and a blank screen. Nothing in the
+    suite noticed, because every test ran from the source tree.
+    """
+
+    def test_the_page_and_everything_it_asks_for_are_beside_the_code(self):
+        from marchlands.web import STATIC
+        self.assertTrue(os.path.isdir(STATIC), STATIC)
+        for name in ("index.html", "marchlands.css", "marchlands.js", "sound.js"):
+            path = os.path.join(STATIC, name)
+            self.assertTrue(os.path.isfile(path), name)
+            self.assertGreater(os.path.getsize(path), 200, name)
+
+    def test_the_page_asks_only_for_things_that_are_there(self):
+        import re
+        from marchlands.web import STATIC
+        page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+        wanted = re.findall(r'(?:src|href)="([^"/][^"]*)"', page)
+        self.assertTrue(wanted)
+        for name in wanted:
+            self.assertTrue(os.path.isfile(os.path.join(STATIC, name)), name)
+
+    def test_the_wheel_is_told_to_carry_them(self):
+        """The one line whose absence caused this, asserted directly."""
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        toml = open(os.path.join(root, "pyproject.toml"), encoding="utf-8").read()
+        self.assertIn("[tool.setuptools.package-data]", toml)
+        self.assertIn('marchlands = ["static/*"]', toml)
 
 
 class TestServer(unittest.TestCase):

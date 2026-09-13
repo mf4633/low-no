@@ -166,5 +166,79 @@ class TestSparkline(unittest.TestCase):
         self.assertEqual(sparkline([5, 5, 5]), "▄▄▄")
 
 
+class TestBadSaves(unittest.TestCase):
+    """Nothing a player can point `load` at should end the session.
+
+    A missing file used to take the whole game down with it, which is a poor
+    way to find out you typed the name wrong and a worse one if you had an
+    hour in the game you were about to save.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = io.StringIO()
+        self.con = Console(new_game(seed=5), out=self.out)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _load(self, path):
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.con.do(f"load {path}")          # must not raise
+        return self.out.getvalue()
+
+    def _write(self, name, body):
+        path = os.path.join(self.tmp.name, name)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(body)
+        return path
+
+    def test_a_file_that_is_not_there(self):
+        said = self._load(os.path.join(self.tmp.name, "nope.json"))
+        self.assertIn("no saved game", said)
+
+    def test_a_file_that_is_not_json(self):
+        said = self._load(self._write("junk.json", "not a save at all"))
+        self.assertIn("not even JSON", said)
+
+    def test_a_save_cut_off_half_way(self):
+        good = os.path.join(self.tmp.name, "ok.json")
+        self.con.do(f"save {good}")
+        with open(good, encoding="utf-8") as fh:
+            body = fh.read()
+        said = self._load(self._write("cut.json", body[:400]))
+        self.assertIn("not even JSON", said)
+
+    def test_json_that_is_not_a_game(self):
+        said = self._load(self._write("empty.json", "{}"))
+        self.assertIn("damaged", said)
+
+    def test_a_directory(self):
+        said = self._load(self.tmp.name)
+        self.assertIn("cannot read", said)
+
+    def test_and_the_game_carries_on_afterwards(self):
+        before = self.con.game.day
+        self._load(os.path.join(self.tmp.name, "nope.json"))
+        self.con.do("next")
+        self.assertEqual(self.con.game.day, before + 1)
+
+    def test_a_good_save_still_loads(self):
+        path = os.path.join(self.tmp.name, "ok.json")
+        self.con.do("next 5")
+        self.con.do(f"save {path}")
+        day = self.con.game.day
+        self.con.do("next 5")
+        said = self._load(path)
+        self.assertIn("loaded", said)
+        self.assertEqual(self.con.game.day, day)
+
+    def test_saving_somewhere_it_cannot_write(self):
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.con.do(f"save {os.path.join(self.tmp.name, 'no', 'such', 'dir.json')}")
+        self.assertIn("could not write", self.out.getvalue())
+
 if __name__ == "__main__":
     unittest.main()

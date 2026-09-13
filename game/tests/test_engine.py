@@ -249,5 +249,59 @@ class TestLongRun(unittest.TestCase):
         self.assertLess(min(worth), goal,
                         f"every ordinary policy walks it: {ends}")
 
+class TestSavedGamesStaySaved(unittest.TestCase):
+    """The state was never the hard part of saving a game.
+
+    Every field can match on load and the game still be a different game, if
+    the dice are not put back where they were. This caught exactly that: a
+    reload matched to the coin and then diverged within a season -- different
+    weather, different prices, different battles, from the same save.
+    """
+
+    def _fingerprint(self, g):
+        s = next(iter(g.world.settlements.values()))
+        return (round(g.treasury, 3), round(g.net_worth(), 3), g.day,
+                round(s.population, 4), round(s.popularity, 4),
+                len(s.buildings), g.relics_held(), len(g.armies),
+                sorted((k, round(v, 3)) for k, v in s.market.stock.items()))
+
+    def _round_trip(self, g):
+        import tempfile, os
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "s.json")
+            g.save(path)
+            return GameState.load(path)
+
+    def test_a_loaded_game_matches_the_one_it_came_from(self):
+        g = new_game(seed=5)
+        Bot(g).run(300)
+        self.assertEqual(self._fingerprint(g), self._fingerprint(self._round_trip(g)))
+
+    def test_and_goes_on_matching_it(self):
+        for seed in (5, 11):
+            g = new_game(seed=seed)
+            Bot(g).run(300)
+            back = self._round_trip(g)
+            Bot(g).run(120)
+            Bot(back).run(120)
+            self.assertEqual(self._fingerprint(g), self._fingerprint(back),
+                             f"seed {seed} diverged after loading")
+
+    def test_the_dice_themselves_survive(self):
+        g = new_game(seed=5)
+        Bot(g).run(60)
+        back = self._round_trip(g)
+        self.assertEqual([g.rng.random() for _ in range(8)],
+                         [back.rng.random() for _ in range(8)])
+
+    def test_a_save_from_before_the_dice_were_kept_still_loads(self):
+        g = new_game(seed=5)
+        Bot(g).run(40)
+        raw = g.to_dict()
+        del raw["rng"]
+        back = GameState.from_dict(raw)
+        self.assertEqual(back.day, g.day)
+        back.tick()          # and goes on working
+
 if __name__ == "__main__":
     unittest.main()

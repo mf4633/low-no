@@ -22,6 +22,17 @@ work, `chronicle` reads your reign back, `hint` tells you what a patient
 steward would point at next, `briefing` restates why you are here, and `help`
 lists everything.
 
+### Installing it
+
+```bash
+pip install ./game            # or: python3 -m build --wheel && pip install dist/*.whl
+marchlands --web
+```
+
+Nothing comes with it. `pip list` after installing shows one line, which is
+the point — the dependency list has been empty since the first commit and the
+browser view did not change that.
+
 > Housed in this repository under `game/` because the session's branch scope is
 > `mf4633/low-no`. It shares no code with the trading system in the repository
 > root and lifts out cleanly with `git subtree split -P game`.

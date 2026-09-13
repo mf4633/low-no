@@ -1464,6 +1464,7 @@ class GameState:
             "lord": self.lord.to_dict(),
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
+            "rng": list(self.rng.getstate()),
         }
 
     def save(self, path: str) -> str:
@@ -1494,7 +1495,16 @@ class GameState:
         g.chronicle = Chronicle.from_dict(d.get("chronicle", {}))
         g.chapter = d.get("chapter", "")
         g.over = d.get("over", "")
-        g.rng = random.Random(d["seed"] + d["day"])
+        # Put the dice back exactly where they were. Re-seeding here -- which
+        # is what this did -- loads a game whose state matches to the coin and
+        # whose *future* does not: same save, reloaded, different weather,
+        # different prices, different battles. The state was never the hard
+        # part of saving a game; the stream position is.
+        raw = d.get("rng")
+        if raw:
+            g.rng.setstate((raw[0], tuple(raw[1]), raw[2]))
+        else:
+            g.rng = random.Random(d["seed"] + d["day"])   # a save from before
         g.trade_engine = TradeEngine(g.world, g.rng)
         return g
 

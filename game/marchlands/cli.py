@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shlex
 import sys
 import time
@@ -1359,12 +1360,36 @@ class Console:
             self.say(f"  * {m}")
 
     def cmd_save(self, args: List[str]) -> None:
-        self.say("  " + self.game.save(args[0] if args else "marchlands.save"))
+        try:
+            self.say("  " + self.game.save(args[0] if args else "marchlands.save"))
+        except OSError as exc:
+            self.err(f"could not write it: {exc}")
 
     def cmd_load(self, args: List[str]) -> None:
-        self.game = GameState.load(args[0] if args else "marchlands.save")
+        """Open a saved game, and survive it not being one.
+
+        A missing file used to take the whole session down with it, which is a
+        poor way to find out you typed the name wrong -- and a poorer one if
+        you had an hour in the game you were about to save.
+        """
+        path = args[0] if args else "marchlands.save"
+        try:
+            loaded = GameState.load(path)
+        except FileNotFoundError:
+            return self.err(f"no saved game at {path}")
+        except OSError as exc:
+            # Everything else the filesystem can say: a directory, a bad
+            # permission, a dead symlink. All of it is "cannot read that".
+            return self.err(f"cannot read {path}: {exc.strerror or exc}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return self.err(f"{path} is not a saved game -- it is not even JSON")
+        except (KeyError, TypeError, ValueError) as exc:
+            return self.err(f"{path} is damaged or from another version ({exc})")
+        if not loaded.world.settlements:
+            return self.err(f"{path} has no holding in it; the game is unchanged")
+        self.game = loaded
         self.here = next(iter(self.game.world.settlements))
-        self.say("  loaded")
+        self.say(f"  loaded {path}")
         self.status()
 
     def cmd_quit(self, args: List[str]) -> None:

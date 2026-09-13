@@ -290,10 +290,27 @@ def run_command(console: Console, line: str) -> str:
 def serve(console: Console, host: str = "127.0.0.1", port: int = 8731,
           open_browser: bool = True) -> Tuple[ThreadingHTTPServer, str]:
     Handler.console = console
-    server = ThreadingHTTPServer((host, port), Handler)
+    # Somebody already on that port is the commonest way this fails, and a
+    # traceback about EADDRINUSE is not an answer. Walk up a few and then let
+    # the operating system pick.
+    server = None
+    for candidate in [port, port + 1, port + 2, port + 3, 0]:
+        try:
+            server = ThreadingHTTPServer((host, candidate), Handler)
+            break
+        except OSError:
+            continue
+    if server is None:
+        raise OSError(f"nothing free to listen on near port {port}")
     url = f"http://{host}:{server.server_address[1]}/"
     if open_browser:
-        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+        # A machine with no browser to open is not an error either.
+        def _open() -> None:
+            try:
+                webbrowser.open(url)
+            except Exception:
+                pass
+        threading.Timer(0.6, _open).start()
     return server, url
 
 
