@@ -18,6 +18,7 @@ from . import config as C
 from .buildings import building
 from .chronicle import MOMENTOUS, NOTABLE, ROUTINE, Chronicle
 from .castle import INVEST, Works, choose, storms_now
+from .economics import MONEY_BASE, Accounts, Economy
 from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lord as lordly
@@ -125,6 +126,10 @@ class GameState:
     lord: Lord = field(default_factory=Lord)
     #: Who he is, who is behind him, and what each of them has been doing.
     kin: Kin = field(default_factory=Kin)
+    #: The national accounts, and the mint. Measures everything, moves one
+    #: thing: the price level, which is the only honest way for a debasement
+    #: to be felt.
+    economy: Economy = field(default_factory=Economy)
     chronicle: Chronicle = field(default_factory=Chronicle)
     chapter: str = ""           # which chapter of a campaign, if any
     over: str = ""              # '' while playing, else the ending
@@ -133,6 +138,7 @@ class GameState:
         self.rng = random.Random(self.seed)
         self.trade_engine = TradeEngine(self.world, self.rng)
         self._outlay = 0.0        # coin spent between ticks, for the ledger
+        self.accounts = Accounts(day=self.day)
         self._war_outlay = 0.0
         self._plunder = 0.0
         if self.lord.name == Lord.name and self.world.settlements:
@@ -290,7 +296,12 @@ class GameState:
         # 7. War.
         msgs += self._military_day()
 
-        # 8. Mood and migration settle last, on the day as it actually went.
+        # 8. The mint, the assize, and the reckoning of what any of it was
+        # worth. Prices walk toward what the money supply says they must be;
+        # a legal maximum bites or does not; and the day is then measured.
+        msgs += self._economy_day()
+
+        # 9. Mood and migration settle last, on the day as it actually went.
         for s in self.world.settlements.values():
             s.update_mood(self.progress)
             s.migrate(self.rng, self.progress)
@@ -298,6 +309,7 @@ class GameState:
                 msgs.append(f"{s.name} is in open unrest -- nobody is working")
 
         self.ledger = led
+        self.accounts = self.economy.observe(self)
         self.history.append({
             "day": self.day, "treasury": self.treasury, "worth": self.net_worth(),
             "pop": self.population,
@@ -824,6 +836,110 @@ class GameState:
         elif at_war and self.lord.at_home:
             self.kin.did("bold", -0.003)
         return []
+
+    # ------------------------------------------------------------ the money
+    ASSIZE_DRAIN = 0.09          # of stock a day, at a cap that bites entirely
+    ASSIZE_MOOD = 11.0           # what queuing for bread does to a town
+    SMUGGLE_SHARE = 0.55         # of the drained goods that leave for a profit
+    MINT_MOOD = 9.0              # what a debased penny costs you in goodwill
+
+    def _economy_day(self) -> List[str]:
+        """What the mint and the assize did today.
+
+        Both of these are the textbook's two most famous results and neither
+        is a special case bolted on: minting moves the price *level*, which
+        every price in the game is already multiplied by, and a cap is a
+        number the market may not post above, which the sheds that sell into
+        it can feel in what they are paid.
+        """
+        msgs: List[str] = []
+        econ = self.economy
+        econ.settle()
+        econ.smuggled = 0.0
+        for s in self.world.settlements.values():
+            s.market.level = econ.price_level
+            s.market.caps = dict(econ.assize)
+            s.queue_mood = 0.0
+        for key, cap in list(econ.assize.items()):
+            bite = max(s.market.binding(key)
+                       for s in self.world.settlements.values())
+            econ.shortage[key] = bite
+            if bite <= 0.01:
+                continue
+            # Queues. A town that has to stand in one for its bread knows
+            # exactly whose proclamation put it there.
+            for s in self.world.settlements.values():
+                s.queue_mood = min(s.queue_mood, -self.ASSIZE_MOOD * bite)
+            for s in self.world.settlements.values():
+                # A shelf empties from both ends: everyone wants more of it at
+                # that price, and the back door is open to anyone who will pay
+                # what it is really worth.
+                gone = s.market.stock.get(key, 0.0) * self.ASSIZE_DRAIN * bite
+                taken = s.market.take(key, gone)
+                econ.smuggled += (taken * self.SMUGGLE_SHARE
+                                  * (s.market.fundamental(key) - cap))
+            if self.day % 30 == 0:
+                msgs.append(self.note(
+                    f"The assize holds {good(key).name} at {cap:,.1f}c, which is "
+                    f"{bite * 100:.0f}% under what it is worth. The shelves are "
+                    f"emptying and some of it is going out the back door."))
+        return msgs
+
+    def mint(self, coin: float) -> str:
+        """Strike more pennies out of the same silver.
+
+        MV = PY. More pennies is not more bread, and everybody finds that out
+        -- but not today, and the gap between today and finding out is the
+        entire reason anybody has ever done this.
+        """
+        coin = max(0.0, float(coin))
+        if coin <= 0:
+            econ = self.economy
+            return (f"the mint has struck {econ.minted:,.0f}c so far; prices "
+                    f"stand at {econ.price_level * 100:.0f} of what they were")
+        if coin > C.MINT_LIMIT:
+            return f"the mint cannot strike more than {C.MINT_LIMIT:,.0f}c at once"
+        self.treasury += coin
+        self.economy.strike(coin, self.net_worth())
+        self.kin.did("just", -0.25)
+        for s in self.world.settlements.values():
+            s.popularity = max(0.0, s.popularity
+                               - self.MINT_MOOD * coin / C.MINT_LIMIT)
+        want = self.economy.money / MONEY_BASE
+        return self.note(
+            f"{coin:,.0f}c struck. The coin in the march stands at "
+            f"{self.economy.money:,.0f}c, so prices are bound for "
+            f"{want * 100:.0f} of what they were, and the town can already "
+            f"feel it.", MOMENTOUS)
+
+    def decree(self, key: str, price: float) -> str:
+        """The assize: a legal maximum on what a good may be sold for.
+
+        The first thing a ceiling teaches is that one above the market price
+        does nothing whatever, and the second is what one below it does.
+        """
+        spec = good(key)
+        home = self.home()
+        worth = home.market.fundamental(key)
+        if price <= 0:
+            self.economy.set_cap(key, 0.0)
+            for s in self.world.settlements.values():
+                s.market.caps.pop(key, None)
+            return f"the assize on {spec.name} is lifted; it finds its own price"
+        self.economy.set_cap(key, float(price))
+        for s in self.world.settlements.values():
+            s.market.caps[key] = float(price)
+        if price >= worth:
+            return (f"{spec.name} is held at {price:,.1f}c, which is above the "
+                    f"{worth:,.1f}c it fetches. A ceiling over the market is a "
+                    f"proclamation and nothing else.")
+        self.kin.did("just", 0.10)
+        short = 100.0 * (1.0 - price / worth)
+        return self.note(
+            f"{spec.name} is held at {price:,.1f}c against the {worth:,.1f}c it "
+            f"is worth. Bread is cheaper for whoever gets to the front; "
+            f"{short:.0f}% under is a queue, an empty shelf, and a back door.",
+            MOMENTOUS)
 
     def relics_held(self, owner: str = "player") -> int:
         return sum(1 for sh in self.world.shrines.values() if sh.holder == owner)
@@ -1666,6 +1782,7 @@ class GameState:
             "cathedral_days": self.cathedral_days,
             "relic_days": self.relic_days, "mood_days": self.mood_days,
             "lord": self.lord.to_dict(), "kin": self.kin.to_dict(),
+            "economy": self.economy.to_dict(),
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
             "rng": list(self.rng.getstate()),
@@ -1705,6 +1822,10 @@ class GameState:
                               seat=g.lord.seat, lord_name=g.lord.name)
         g.kin.seat = g.lord.seat
         g.kin.riding = g.lord.riding
+        g.economy = Economy.from_dict(d.get("economy", {}))
+        for s in g.world.settlements.values():
+            s.market.level = g.economy.price_level
+            s.market.caps = dict(g.economy.assize)
         g.chronicle = Chronicle.from_dict(d.get("chronicle", {}))
         g.chapter = d.get("chapter", "")
         g.over = d.get("over", "")

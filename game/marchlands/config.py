@@ -139,3 +139,8 @@ DOWRY_BASE = 1_400.0            # scaled by the town's muster and prosperity
 MARRIAGE_FAVOUR = 70.0          # standing goodwill the match buys outright
 MARRIAGE_COOLING = 35.0         # and how much of his temper it takes off today
 MARRIAGE_TRUCE = 240            # days nobody marches on kin
+
+# --- the mint ----------------------------------------------------------------
+# MV = PY. What a debasement raises today it takes back in prices, and the only
+# question a player ever gets to answer is how badly they need it today.
+MINT_LIMIT = 20_000.0           # the most that can be struck in one order

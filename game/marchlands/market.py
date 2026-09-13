@@ -60,6 +60,16 @@ class Market:
     history: Dict[str, List[float]] = field(default_factory=dict)
     tradeable: Tuple[str, ...] = ALL_KEYS
     max_steps: int = MAX_STEPS      # a scratch copy can walk the curve coarsely
+    #: What the mint has done to money since the game began. Every price in
+    #: this market is nominal; this is the number that makes them so. It sits
+    #: on the curve rather than on the posted price so that *everything*
+    #: downstream -- the scanner, the surplus reading, the marginal product --
+    #: is consistently in today's coin without any of them knowing about it.
+    level: float = 1.0
+    #: Legal maxima. An assize does not change what a loaf is worth; it
+    #: changes what you are allowed to charge, which is a different thing and
+    #: the reason there is nothing on the shelf.
+    caps: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for k in ALL_KEYS:
@@ -75,14 +85,32 @@ class Market:
         tgt = max(self.target.get(key, 0.0), 1.0)
         ratio = tgt / max(stock, MIN_STOCK)
         price = g.base_price * (ratio ** g.elasticity)
-        return _clamp(price, g.base_price * C.PRICE_FLOOR_MULT,
-                      g.base_price * C.PRICE_CEIL_MULT)
+        price = _clamp(price, g.base_price * C.PRICE_FLOOR_MULT,
+                       g.base_price * C.PRICE_CEIL_MULT)
+        return price * self.level
 
     def fundamental(self, key: str) -> float:
         return self.curve(key, self.stock.get(key, 0.0))
 
     def price(self, key: str) -> float:
-        return self.posted.get(key, good(key).base_price)
+        """What may be charged, which is not always what it is worth."""
+        posted = self.posted.get(key, good(key).base_price * self.level)
+        cap = self.caps.get(key, 0.0)
+        return min(posted, cap) if cap > 0 else posted
+
+    def binding(self, key: str) -> float:
+        """How hard a cap is biting: 0 loose, 1 the shelf is bare.
+
+        A ceiling above the market price does nothing at all, which is the
+        first thing a price control teaches and the last thing anyone expects.
+        """
+        cap = self.caps.get(key, 0.0)
+        if cap <= 0:
+            return 0.0
+        worth = self.fundamental(key)
+        if worth <= cap:
+            return 0.0
+        return min(1.0, 1.0 - cap / worth)
 
     def ask(self, key: str) -> float:
         """What a trader pays the market, per unit, for a small lot."""

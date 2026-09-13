@@ -192,6 +192,18 @@ def snapshot(game, here: str = "") -> dict:
                 for p in sorted(game.kin.living(),
                                 key=lambda q: (q.uid != game.kin.head, q.born))],
         "reputation": (game.kin.lord.reputation() if game.kin.lord else []),
+        # The macro reading. Four numbers, because a dashboard with twenty is
+        # a dashboard nobody reads.
+        "accounts": {
+            "cpi": round(game.accounts.cpi, 1),
+            "inflation": round(game.accounts.inflation, 1),
+            "unemployment": round(game.accounts.unemployment, 1),
+            "real_purse": round(100.0 * game.treasury
+                                / max(game.accounts.cpi, 1e-9), 1),
+            "minted": round(game.economy.minted, 1),
+            "short": [{"good": k, "by": round(v, 3)}
+                      for k, v in game.economy.shortage.items() if v > 0.01],
+        },
         "here": key,
         "settlements": list(game.world.settlements),
         "town": {

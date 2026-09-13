@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 519 tests, ~5min
+python3 -m unittest discover -s tests          # 565 tests, ~6min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -128,6 +128,10 @@ man**, not a flag: he is worth real numbers in his hall, worth more riding with
 a host, and he is then standing where the arrows are. He can fall, or be taken
 and ransomed, and there are only so many of his line.
 
+**From Gregory Mankiw's *Principles of Economics*** — the vocabulary. The
+simulation was always a supply-and-demand model; what it lacked was the
+*reading* of one. See **[The accounts](#the-accounts)**.
+
 **From Mount & Blade: Bannerlord** — the third thing both of the others leave
 out: a house. Your lord is a person who gets better at whatever he actually
 spends his days doing, who marries somebody's daughter for reasons of state,
@@ -137,6 +141,116 @@ the whole business to one of them. See **[Your house](#your-house)**.
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
 where the game is played.
+
+## The accounts
+
+```
+economy                   prices, inflation, real output, idle hands
+margin [town]             every shed as a firm: hire, or shut it
+surplus <good> [town]     what a market is worth, and what a toll costs
+advantage <good> [town]   who should be making what
+mint [coin]               MV = PY, the hard way
+assize <good> <price>     a legal maximum, and what one does
+```
+
+The engine underneath was already a supply-and-demand model: a price is a
+function of stock, every trade moves the stock, so every trade moves the price
+against the trader. What it was missing was the *reading* of that. A merchant
+could feel that tolls hurt without ever being shown the triangle, and feel
+that prices crept after a debasement without ever seeing an index. Making the
+measurement explicit turns a good intuition pump into a thing you can be right
+or wrong about on purpose.
+
+Nothing in `economics.py` changes how the game works, with one deliberate
+exception — the price level, which is the only honest way for a debasement to
+be felt. Everything else measures.
+
+### Opportunity cost and comparative advantage
+
+`advantage wood` asks the question Mankiw opens with, and it is **not** who is
+better at it:
+
+```
+── WHO SHOULD MAKE WOOD ────────────── what each gives up to make one ──
+  Dunmere      buy it there   in coin:      you give up 7.20, they 1.57
+  Vantry       make it here   in Wheat:     you give up 2.40, they cannot
+```
+
+You give up 7.20c of wheat to cut a load of wood; Dunmere gives up 1.57c of
+clay. Dunmere should be cutting the wood even if you are better at it, and the
+number that settles it is the thing forgone. Where two places share a good the
+reading is the textbook ratio; where they share nothing it falls back to coin,
+which is not a dodge — the reason unlike things can be added up at all is that
+there are prices.
+
+### The value of the marginal product
+
+`margin` is the hiring decision in one table. It was always the decision
+`work <building> first` made you take; the game simply never showed you the
+number you were guessing at:
+
+```
+── ALDWORTH: THE NEXT HAND ───────────────── a hand costs 2.50c a day ──
+   id  shed                staff    made   fetches    eats      net
+   43  Weaver's Shop       0/2     2.35   138.45c   12.57c  125.88c  worth hiring
+   16  Bakery              2/2     0.59    35.77c   53.78c  -18.01c  shut it
+```
+
+Four bakeries running at eighteen coins a hand *in the red* is a thing a
+player could stare straight at for three hours before. They are eating flour
+worth more than the bread they sell. Hire while the value of the marginal
+product beats the wage; close what sits under it.
+
+### Surplus, and what a tax actually costs
+
+`surplus wheat` integrates under the price curve, because the curve *is* an
+inverse demand curve:
+
+```
+  to the buyers        1,297c   what they would have paid, over what they did
+  to the sellers         340c   what they got, over what it cost to make
+  to the toll            210c   at 20% on every sale
+  to nobody              128c   trades worth making that stopped being made
+```
+
+That last line is the only way to see that the revenue is not the cost. It is
+not a payment to anybody — it is the trade that did not happen. Double the
+toll and it roughly quadruples, which is why the second half of a tax hurts
+more than the first.
+
+### The quantity theory of money
+
+`mint 20000` strikes more pennies out of the same silver. You have the coin
+today. Prices are bound for `M/M₀` of what they were and get there over a year
+or two, which is the entire reason anybody has ever done this — and the town
+knows what you did the same afternoon.
+
+### A price ceiling, and what it does to the numbers
+
+`assize bread 2.5` is the most famous experiment in the book, and it behaves:
+
+```
+day 501  stock    68   price 2.50   74% short   mood 71.4
+day 531  stock     0   price 2.50   95% short   mood 61.9
+```
+
+The shelf empties from both ends — everybody wants more of it at that price,
+and the back door is open to anyone who will pay what it is really worth. The
+town queues, and knows whose proclamation put it there.
+
+Then the part that is worth the whole feature. The price index is built on
+what may be *charged*, so:
+
+```
+  prices              341   100 is every good at what it is worth
+  inflation        -11.4%   a year, from the basket the town actually buys
+
+  assize   Bread held at 2.5c (worth 48.0c) -- 95% short
+           The index above is what may be charged, so it does not show this.
+```
+
+Measured inflation goes *negative* while the town starves. That is what a
+price control does to a price index, and to everyone who reads one.
 
 ## Your house
 
@@ -726,6 +840,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
 | `kin.py` | the house: skills earned in the job, traits earned by choice, births, marriages, succession |
+| `economics.py` | the accounts: price index, surplus and deadweight loss, comparative advantage, the marginal product, the mint |
 | `fire.py` | what catches, how it spreads, and what puts it out |
 | `layout.py` | where everything stands, so a renderer can draw a place |
 | `web.py` | a stdlib server and the browser's view of the game |

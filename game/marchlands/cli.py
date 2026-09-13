@@ -6,7 +6,7 @@ import json
 import shlex
 import sys
 import time
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from . import config as C
 from .advisor import route_from, scan, shortage_report
@@ -16,6 +16,8 @@ from .campaign import CHAPTERS, BY_KEY as CHAPTERS_BY_KEY
 from .castle import PLANS, SiegeState, Works
 from .chronicle import MOMENTOUS, NOTABLE, ROUTINE
 from .engine import GameState
+from .economics import (compare, daily_output, marginal_hands,
+                        surplus, town_output)
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
 from . import kin as kinly
@@ -131,6 +133,21 @@ class Console:
                      f"  work {s.employed:>3}/{s.jobs_offered:<3}"
                      f"  {C.RATION_LABELS[s.ration_level]},"
                      f" {C.TAX_LABELS[s.tax_level]} tax{siege}")
+        # One line of macro, and only when it is telling you something. A
+        # steady price level and full employment need no commentary.
+        a = g.accounts
+        notes = []
+        if abs(a.inflation) >= 4.0:
+            notes.append(ink.c(f"prices {a.inflation:+.0f}% a year",
+                               ink.BLOOD if a.inflation > 0 else ink.SEA))
+        if a.unemployment >= 25.0:
+            notes.append(ink.c(f"{a.unemployment:.0f}% of hands idle", ink.AMBER))
+        short = [k for k, v in g.economy.shortage.items() if v > 0.1]
+        if short:
+            notes.append(ink.c(f"no {good(short[0]).name.lower()} to be had "
+                               f"at the assize price", ink.BLOOD))
+        if notes:
+            self.say("  " + ink.c("the accounts ", ink.DIM) + " · ".join(notes))
         busy = []
         if p.advancing:
             busy.append(f"climbing to the {AGES[p.age + 1].name} ({p.advancing}d)")
@@ -604,7 +621,7 @@ class Console:
                   "  settlement is still a lord."]
         return "\n".join(lines)
 
-    def _kin_hints(self) -> List[str]:
+    def _kin_hints(self) -> List[Tuple[float, str]]:
         """The house is the easiest system in the game to never notice.
 
         Everything else announces itself -- a wall falls down, a cart stops
@@ -613,7 +630,7 @@ class Console:
         then decides a succession.
         """
         g = self.game
-        out: List[str] = []
+        out: List[Tuple[float, str]] = []
         k = g.kin
         idle = [p for p in k.living()
                 if p.uid != k.head and not p.post and not p.inlaw
@@ -625,28 +642,68 @@ class Console:
             where = ("" if not kinly.POSTS[job].needs
                      else " " + self._where_name(g))
             them = "him" if who.sex == "m" else "her"
-            out.append(f"{who.name} is {who.age(g.day)} and has nothing to do. "
-                       f"`post {who.name.split()[0].lower()} {job}{where}` "
-                       f"starts {them} at something -- a skill only grows in "
-                       f"the job.")
+            out.append((30.0, f"{who.name} is {who.age(g.day)} and has nothing "
+                        f"to do. `post {who.name.split()[0].lower()} "
+                        f"{job}{where}` starts {them} at something -- a skill "
+                        f"only grows in the job."))
         if g.day > 180 and not any(p.married_to for p in k.people if p.alive):
             free = [p for p in k.living()
                     if not p.spouse and p.age(g.day) >= kinly.COMES_OF_AGE
                     and p.uid != k.head]
             if free:
-                out.append("Nobody of yours is married out. A match is the only "
-                           "peace that does not run out -- `marry` prices them.")
+                out.append((28.0, "Nobody of yours is married out. A match is "
+                            "the only peace that does not run out -- `marry` "
+                            "prices them."))
         heir = k.heir(g.day)
         lord = k.lord
         if lord is not None and lord.age(g.day) >= kinly.ELDERLY:
             if heir is None:
-                out.append(f"{lord.name} is {lord.age(g.day)} and there is nobody "
-                           f"behind him. The line ends where he does.")
+                out.append((62.0, f"{lord.name} is {lord.age(g.day)} and there "
+                            f"is nobody behind him. The line ends where he "
+                            f"does."))
             elif not heir.post:
-                out.append(f"{lord.name} is {lord.age(g.day)}. {heir.name} takes "
-                           f"the seat after him and has never held a post -- "
-                           f"whatever they have not learned by then, they never "
-                           f"will.")
+                out.append((46.0, f"{lord.name} is {lord.age(g.day)}. "
+                            f"{heir.name} takes the seat after him and has "
+                            f"never held a post -- whatever they have not "
+                            f"learned by then, they never will."))
+        return out
+
+    def _economy_hints(self) -> List[Tuple[float, str]]:
+        """What the accounts would tell you if you asked them.
+
+        Two of these are things the game could never say before: a shed that
+        is losing money on every unit it makes looks exactly like a shed that
+        is working, and a price control looks like a kindness right up until
+        the shelf is empty.
+        """
+        g = self.game
+        out: List[Tuple[float, str]] = []
+        s = self.settlement()
+        losing = [r for r in marginal_hands(s) if r.shut]
+        if losing:
+            worst = losing[0]
+            verb = "pays" if len(losing) == 1 else "pay"
+            out.append((70.0, f"{ink.count(len(losing), 'shed')} of yours "
+                        f"{verb} less than it costs: the {worst.name} makes "
+                        f"{worst.net:,.1f}c a hand against a wage of "
+                        f"{C.WAGE:.2f}c. `margin` ranks them; `close <id>` "
+                        f"stops one."))
+        for key, bite in sorted(g.economy.shortage.items(), key=lambda kv: -kv[1]):
+            if bite > 0.15:
+                out.append((88.0, f"The assize on {good(key).name} is "
+                            f"{bite * 100:.0f}% under what it is worth, so "
+                            f"there is none to be had at any price. `assize "
+                            f"{key} off` lets it find its own."))
+                break
+        a = g.accounts
+        if a.inflation > 12 and g.economy.minted > 0:
+            out.append((64.0, f"Prices are running {a.inflation:.0f}% a year "
+                        f"and you have struck {g.economy.minted:,.0f}c. That is "
+                        f"the same sentence twice. `economy`."))
+        if a.unemployment > 35 and g.day > 200:
+            out.append((52.0, f"{a.unemployment:.0f}% of your hands have "
+                        f"nowhere to go. Every one of them eats and none of "
+                        f"them makes anything -- raise workshops, not roofs."))
         return out
 
     def _where_name(self, g) -> str:
@@ -757,7 +814,7 @@ class Console:
         if g.lord.captured:
             out.append(f"{g.lord.name} is held at {g.lord.ransom:,.0f}c. "
                        f"`lord ransom` buys him back.")
-        out += self._kin_hints()
+
         idle = [c for c in g.caravans if not c.running]
         if idle:
             out.append(f"Caravan {idle[0].uid} is standing idle. `scan`, then "
@@ -784,10 +841,20 @@ class Console:
             site = g.world.sites[key]
             out.append(f"You could settle {site.name} for {site.coin_cost:,.0f}c. "
                        f"One hill will not hold {g.goals.population} souls.")
-        if not out:
-            out.append("Nothing pressing. `scan` for a better route, `war` to see "
-                       "who is arming, `age` for the long game.")
-        return out[:4]
+        # The body above is already in the order a steward would raise things,
+        # so it keeps that order among itself. What the newer systems have to
+        # say is ranked against it rather than appended to it: a hint that can
+        # only appear on a quiet day is a system nobody is ever told about,
+        # which is how the house and the accounts both went unmentioned for a
+        # hundred turns each while the fourth line was about a guildhall.
+        ranked = [(50.0 - 0.01 * i, text) for i, text in enumerate(out)]
+        ranked += self._kin_hints() + self._economy_hints()
+        ranked.sort(key=lambda row: -row[0])
+        picked = [text for _, text in ranked][:4]
+        if not picked:
+            picked.append("Nothing pressing. `scan` for a better route, `war` to "
+                          "see who is arming, `age` for the long game.")
+        return picked
 
     def cmd_status(self, args: List[str]) -> None:
         self.status()
@@ -1188,6 +1255,225 @@ class Console:
                          + ink.c(heir.doing(self._name), ink.DIM))
         self.say("", ink.c("  lord <host> sends him out, lord home brings him back. "
                            "`kin` is the rest of them.", ink.DIM))
+
+    # --------------------------------------------------------- the economy
+    def cmd_economy(self, args: List[str]) -> None:
+        """The national accounts: what a purse is worth, and what it was."""
+        g = self.game
+        econ, a = g.economy, g.accounts
+        self.say(ink.head("THE ACCOUNTS", f"{a.cpi:,.0f} on the index"))
+        year = econ.at(int(C.DAYS_PER_YEAR)) or econ.at(len(econ.series) - 1)
+        real_purse = 100.0 * g.treasury / max(a.cpi, 1e-9)
+        rows = [
+            ("prices", f"{a.cpi:,.0f}", "100 is every good at what it is worth",
+             ink.AMBER if a.cpi > 160 else ink.INK),
+            ("inflation", f"{a.inflation:+.1f}%",
+             "a year, from the basket the town actually buys",
+             ink.BLOOD if a.inflation > 8 else
+             ink.SEA if a.inflation < -4 else ink.LEAF),
+            ("your purse", f"{real_purse:,.0f}c",
+             f"{g.treasury:,.0f}c, in the coin of the first year",
+             ink.GOLD),
+            ("made today", f"{a.real:,.0f}", "at settled prices -- real output",
+             ink.INK),
+            ("idle hands", f"{a.unemployment:.0f}%",
+             "of the workforce with no job to go to",
+             ink.BLOOD if a.unemployment > 30 else ink.INK),
+            ("coin about", f"{econ.money:,.0f}c",
+             f"struck by you: {econ.minted:,.0f}c" if econ.minted
+             else "none of it yours to make -- yet", ink.INK),
+            ("velocity", f"{a.velocity:.1f}",
+             "times a year each penny turns over", ink.DIM),
+        ]
+        for label, value, note, colour in rows:
+            self.say(f"  {ink.c(ink.pad(label, 12), ink.DIM)}"
+                     f"{ink.c(ink.pad(value, 11, '>'), colour)}   "
+                     f"{ink.c(note, ink.DIM)}")
+        if year is not None and len(econ.series) > 30:
+            self.say("", "  prices  " + ink.spark(
+                [row["cpi"] for row in econ.series[-C.DAYS_PER_YEAR:]], 48))
+            self.say("  idle    " + ink.spark(
+                [100.0 * max(0.0, row["workforce"] - row["employed"])
+                 / max(row["workforce"], 1.0)
+                 for row in econ.series[-C.DAYS_PER_YEAR:]], 48, ink.RUST))
+        if econ.assize:
+            self.say("")
+            for key, cap in sorted(econ.assize.items()):
+                bite = econ.shortage.get(key, 0.0)
+                worth = g.home().market.fundamental(key)
+                self.say("  " + ink.c(
+                    f"assize   {good(key).name} held at {cap:,.1f}c "
+                    f"(worth {worth:,.1f}c)"
+                    + (f" -- {bite * 100:.0f}% short" if bite > 0.01
+                       else " -- above the market, so it does nothing"),
+                    ink.BLOOD if bite > 0.01 else ink.DIM))
+            if any(v > 0.01 for v in econ.shortage.values()):
+                self.say(ink.c(
+                    "           The index above is what may be charged, so it "
+                    "does not show this. That is\n           what a price "
+                    "control does to a price index, and to everyone who reads "
+                    "one.", ink.DIM))
+        self.say("", ink.c("  `margin` what a hand is worth · `surplus <good>` "
+                           "what a toll costs · `advantage <good> <town>`", ink.DIM))
+
+    def cmd_margin(self, args: List[str]) -> None:
+        """Every shed as a firm: hire while the next hand beats the wage."""
+        s = self.settlement(args[0] if args else "")
+        rows = marginal_hands(s)
+        if not rows:
+            return self.say("  nothing here makes anything yet")
+        self.say(ink.head(f"{s.name.upper()}: THE NEXT HAND",
+                          f"a hand costs {C.WAGE:.2f}c a day"))
+        self.say(ink.c("   id  shed                staff    made   fetches"
+                       "    eats      net", ink.DIM))
+        for r in rows:
+            verdict = ("worth hiring" if r.hire and r.staffed < r.jobs else
+                       "shut it" if r.shut else
+                       "full" if r.staffed >= r.jobs else "idle")
+            colour = (ink.LEAF if r.hire else ink.BLOOD if r.shut else ink.DIM)
+            self.say(f"  {r.uid:>3}  {ink.pad(r.name, 18)}"
+                     f"{r.staffed:>3}/{r.jobs:<3}"
+                     f"{r.units:>7.2f}{r.value:>9.2f}c{r.input_cost:>8.2f}c"
+                     f"{ink.c(f'{r.net:>8.2f}c', colour)}  "
+                     f"{ink.c(verdict, colour)}")
+        self.say("", ink.c(
+            "  The value of what one more pair of hands would make, less what "
+            "they would use\n  up making it. Hire while that beats the wage; "
+            "close what sits under it.", ink.DIM))
+
+    def cmd_surplus(self, args: List[str]) -> None:
+        """What a market is worth to both sides, and what a toll costs."""
+        g = self.game
+        if not args:
+            return self.err("surplus <good> [town]")
+        key = resolve_good(args[0])
+        where = self._node(args[1]) if len(args) > 1 else ""
+        if where and where in g.world.towns:
+            m, name = g.world.towns[where].market, g.world.towns[where].name
+        else:
+            s = self.settlement(args[1] if len(args) > 1 else "")
+            m, name = s.market, s.name
+        r = surplus(m, key)
+        if r.quantity <= 0:
+            return self.say(f"  there is no {good(key).name} in {name} to weigh")
+        self.say(ink.head(f"{good(key).name.upper()} IN {name.upper()}",
+                          f"{r.price:,.2f}c, {r.quantity:,.0f} on the shelf"))
+        self.say(f"  {ink.c(ink.pad('to the buyers', 16), ink.DIM)}"
+                 f"{ink.c(f'{r.consumer:>10,.0f}c', ink.LEAF)}   "
+                 + ink.c("what they would have paid, over what they did", ink.DIM))
+        self.say(f"  {ink.c(ink.pad('to the sellers', 16), ink.DIM)}"
+                 f"{ink.c(f'{r.producer:>10,.0f}c', ink.LEAF)}   "
+                 + ink.c("what they got, over what it cost to make", ink.DIM))
+        if r.revenue or r.deadweight:
+            self.say(f"  {ink.c(ink.pad('to the toll', 16), ink.DIM)}"
+                     f"{ink.c(f'{r.revenue:>10,.0f}c', ink.GOLD)}   "
+                     + ink.c(f"at {m.tariff_rate * 100:.0f}% on every sale",
+                             ink.DIM))
+            self.say(f"  {ink.c(ink.pad('to nobody', 16), ink.DIM)}"
+                     f"{ink.c(f'{r.deadweight:>10,.0f}c', ink.BLOOD)}   "
+                     + ink.c("trades worth making that stopped being made",
+                             ink.DIM))
+        self.say(f"  {ink.c(ink.pad('all told', 16), ink.DIM)}"
+                 f"{ink.c(f'{r.total:>10,.0f}c', ink.PARCH)}")
+        if r.deadweight:
+            self.say("", ink.c(
+                f"  The toll takes {r.revenue:,.0f}c and destroys "
+                f"{r.deadweight:,.0f}c on the way. The second number is the one "
+                f"nobody\n  ever sees, because it is not a payment -- it is the "
+                f"trade that did not happen.", ink.DIM))
+        else:
+            el = good(key).elasticity
+            self.say("", ink.c(
+                f"  Elasticity {el:.2f}: a tenth off the stock moves the price "
+                f"about {10 * el:.0f}%. Cheap to\n  corner, if you have the "
+                f"carts." if el > 0.5 else
+                f"  Elasticity {el:.2f}: the price barely notices a shortage, "
+                f"so there is little\n  to be made cornering it.", ink.DIM))
+
+    def cmd_advantage(self, args: List[str]) -> None:
+        """Who should be making what, by what each of you gives up to do it."""
+        g = self.game
+        if not args:
+            return self.err("advantage <good> [town] [against-good]")
+        key = resolve_good(args[0])
+        s = self.settlement()
+        mine = daily_output(s)
+        if len(args) > 1:
+            keys = [self._node(args[1])]
+        else:
+            keys = [k for k, t in g.world.towns.items() if t.seen_day > -900][:6]
+            keys = keys or list(g.world.towns)[:6]
+        against = resolve_good(args[2]) if len(args) > 2 else ""
+        self.say(ink.head(f"WHO SHOULD MAKE {good(key).name.upper()}",
+                          "what each gives up to make one"))
+        if not mine.get(key):
+            self.say(ink.c(f"  {s.name} cannot make {good(key).name} at all, "
+                           f"so everything is cheaper bought.", ink.AMBER))
+        any_row = False
+        for tk in keys:
+            town = g.world.towns.get(tk)
+            if town is None:
+                continue
+            rows = compare(mine, town_output(town), key, town.name, against)
+            if not rows:
+                continue
+            any_row = True
+            r = rows[0]
+            colour = ink.LEAF if r.theirs else ink.AMBER
+            verdict = "buy it there" if r.theirs else "make it here"
+            measure = ("in coin" if r.in_coin
+                       else f"in {good(r.other).name}")
+            def cost(v: float) -> str:
+                return "cannot" if v == float("inf") else f"{v:.2f}"
+            self.say(f"  {ink.c(ink.pad(town.name, 13), ink.PARCH)}"
+                     f"{ink.c(ink.pad(verdict, 15), colour)}"
+                     f"{ink.c(ink.pad(measure + ':', 14), ink.DIM)}"
+                     f"you give up {cost(r.here)}, they {cost(r.there)}")
+        if not any_row:
+            self.say(ink.c("  nothing known about what those places can make -- "
+                           "send a cart and look", ink.DIM))
+        self.say("", ink.c(
+            "  Not who is better at it: who gives up less to do it. A town that "
+            "is worse at\n  everything still has something it should be making, "
+            "and that is the whole of trade.", ink.DIM))
+
+    def cmd_mint(self, args: List[str]) -> None:
+        """Strike coin. The oldest tax there is, and the least popular."""
+        g = self.game
+        if not args:
+            self.say(ink.head("THE MINT",
+                              f"prices at {g.economy.price_level * 100:.0f}"))
+            self.say(f"  struck so far  {g.economy.minted:,.0f}c")
+            self.say(f"  coin about     {g.economy.money:,.0f}c")
+            return self.say("", ink.c(
+                "  `mint <coin>` strikes more pennies out of the same silver. "
+                "You have the coin\n  today; prices find out over the next "
+                "year or two. Nobody thanks you for it.", ink.DIM))
+        self.say("  " + g.mint(float(args[0])))
+
+    def cmd_assize(self, args: List[str]) -> None:
+        """A legal maximum price. The most famous experiment in the book."""
+        g = self.game
+        econ = g.economy
+        if not args:
+            self.say(ink.head("THE ASSIZE", "what may be charged"))
+            if not econ.assize:
+                self.say(ink.c("  nothing is held at any price", ink.DIM))
+            for key, cap in sorted(econ.assize.items()):
+                worth = g.home().market.fundamental(key)
+                bite = econ.shortage.get(key, 0.0)
+                self.say(f"  {ink.pad(good(key).name, 12)}{cap:>8,.1f}c  "
+                         f"{ink.c(f'worth {worth:,.1f}c', ink.DIM)}  "
+                         + ink.c(f"{bite * 100:.0f}% short", ink.BLOOD)
+                         if bite > 0.01 else ink.c("not biting", ink.DIM))
+            return self.say("", ink.c("  assize <good> <price>  ·  "
+                                      "assize <good> off", ink.DIM))
+        key = resolve_good(args[0])
+        if len(args) < 2:
+            return self.err(f"assize {args[0]} <price>  (or `off`)")
+        if args[1].lower() in ("off", "none", "lift", "0"):
+            return self.say("  " + g.decree(key, 0.0))
+        self.say("  " + g.decree(key, float(args[1])))
 
     # ------------------------------------------------------------- the house
     def _kin_word(self, p, lord) -> str:
@@ -1727,6 +2013,10 @@ COMMANDS = {
     "raid": Console.cmd_raid, "relics": Console.cmd_relics,
     "lord": Console.cmd_lord, "chronicle": Console.cmd_chronicle,
     "kin": Console.cmd_kin, "house": Console.cmd_kin, "family": Console.cmd_kin,
+    "economy": Console.cmd_economy, "accounts": Console.cmd_economy,
+    "margin": Console.cmd_margin, "surplus": Console.cmd_surplus,
+    "advantage": Console.cmd_advantage, "mint": Console.cmd_mint,
+    "assize": Console.cmd_assize, "decree": Console.cmd_assize,
     "post": Console.cmd_post, "posts": Console.cmd_post,
     "marry": Console.cmd_marry, "match": Console.cmd_marry,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
@@ -1771,6 +2061,9 @@ HELP = """
                     lord [<id>|home|ransom]     relics    chronicle
   YOUR HOUSE        kin [name]      post [<name> <post> [where]]
                     marry [<name> <town>]
+  THE ECONOMY       economy         margin [town]          surplus <good> [town]
+                    advantage <good> [town]                mint [coin]
+                    assize [<good> <price>|off]
                     war             battles [n]
                     gift <town> <coin>   truce <town> [days]   demand <town>
   ELSE              hint            briefing               scenarios
