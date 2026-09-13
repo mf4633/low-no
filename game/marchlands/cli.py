@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shlex
 import sys
+import time
 from typing import Dict, List, Optional, Sequence
 
 from . import config as C
@@ -19,6 +20,7 @@ from .military import resolve as resolve_unit
 from .scenarios import CAMPAIGN, SCENARIOS, start as start_scenario
 from .tech import AGES, HOUSES, TECHS
 from .trade import CART, IDLE, MOVING, SHIP, TRADING, Order, Stop
+from .iso import scene
 from .view import GLYPHS, townscape
 
 BARS = " ▁▂▃▄▅▆▇█"
@@ -152,7 +154,7 @@ class Console:
                 return ink.c(msg, colour)
         return msg
 
-    def plan_view(self, key: Optional[str] = None) -> None:
+    def plan_view(self, key: Optional[str] = None, flat: bool = False) -> None:
         """The one screen this game spent a long time without: your town."""
         s = self.settlement(key)
         g = self.game
@@ -160,16 +162,41 @@ class Console:
         self.say(ink.head(s.name.upper(),
                           f"{C.SEASON_OF_MONTH[g.month]}, {g.year}",
                           ink.SEASON_TINT.get(g.season, ink.GOLD)))
-        for line in townscape(s, p, g.season, besieged=s.besieged):
+        draw = (townscape(s, p, g.season, besieged=s.besieged) if flat
+                else scene(s, p, g.season, g.day, besieged=s.besieged))
+        for line in draw:
             self.say(line)
+        self.say(*self._caption(s, p, flat))
+
+    def _caption(self, s, p, flat: bool) -> List[str]:
         wall_top = s.wall_max(p)
-        self.say("",
+        lines = ["",
                  f"  souls   {s.population:>6,.0f} of {s.housing(p):,.0f} roofs"
                  f"     mood {ink.bar(s.popularity, 100, 14)} {s.popularity:>3.0f}"
                  f"     {C.RATION_LABELS[s.ration_level]} rations",
                  f"  wall    {ink.bar(s.wall_hp, max(wall_top, 1), 14)}"
                  f" {s.wall_hp:>5,.0f}/{wall_top:<5,.0f}"
-                 f"  garrison {s.garrison_line()}")
+                 f"  garrison {s.garrison_line()}"]
+        if not flat:
+            lines.append("  standing " + self._roll(s))
+        return lines
+
+    def _roll(self, s) -> str:
+        """What is down there, in words, since a silhouette is not a label."""
+        counts: Dict[str, int] = {}
+        idle = 0
+        for b in s.buildings:
+            if not b.complete:
+                continue
+            counts[b.key] = counts.get(b.key, 0) + 1
+            if (b.spec.inputs or b.spec.outputs) and (
+                    not b.enabled or b.throughput <= 0.05):
+                idle += 1
+        top = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:7]
+        bits = [f"{n}x {BUILDINGS[k].name}" if n > 1 else BUILDINGS[k].name
+                for k, n in top]
+        tail = ink.c(f"   ({idle} idle)", ink.AMBER) if idle else ""
+        return ink.c(" · ".join(bits), ink.DIM) + tail
 
     def town_view(self, key: Optional[str] = None) -> None:
         s = self.settlement(key)
@@ -608,11 +635,35 @@ class Console:
         self.town_view()
 
     def cmd_view(self, args: List[str]) -> None:
-        if args:
-            key = self._node(args[0])
+        flat = any(a.lower() in ("flat", "plan", "map") for a in args)
+        places = [a for a in args if a.lower() not in ("flat", "plan", "map")]
+        if places:
+            key = self._node(places[0])
             if key in self.game.world.settlements:
                 self.here = key
-        self.plan_view()
+        self.plan_view(flat=flat)
+
+    def cmd_watch(self, args: List[str]) -> None:
+        """Let the days run and watch the town work.
+
+        On a real terminal this redraws in place, which is the closest a
+        console gets to the thing you actually miss: seeing the place move.
+        """
+        days = max(1, min(120, int(args[0]) if args and args[0].isdigit() else 20))
+        live = ink.COLOUR
+        for _ in range(days):
+            self.game.tick()
+            if live:
+                self.out.write("\033[H\033[2J")
+            self.plan_view()
+            for m in self.game.messages[-3:]:
+                self.say("  " + ink.c("*", ink.FAINT) + " " + self._tint(m))
+            if self.game.over:
+                break
+            if live:
+                self.out.flush()
+                time.sleep(0.28)
+        self.status()
 
     def cmd_stores(self, args: List[str]) -> None:
         self.stores(self._node(args[0]) if args else None)
@@ -1052,6 +1103,7 @@ COMMANDS = {
     "status": Console.cmd_status, "s": Console.cmd_status,
     "town": Console.cmd_town, "stores": Console.cmd_stores,
     "view": Console.cmd_view, "plan": Console.cmd_view, "v": Console.cmd_view,
+    "watch": Console.cmd_watch,
     "market": Console.cmd_market, "prices": Console.cmd_prices,
     "chain": Console.cmd_chain, "buildings": Console.cmd_buildings,
     "info": Console.cmd_info, "build": Console.cmd_build, "raze": Console.cmd_raze,
@@ -1079,7 +1131,8 @@ COMMANDS = {
 
 HELP = """
   THE DAY           next [n]        let n days pass        status / s
-  YOUR TOWN         view / v        town [name]            stores [town]
+  YOUR TOWN         view / v        view flat              watch [days]
+                    town [name]     stores [town]
                     needs
                     build <key>     buildings [filter]     info <key>
                     close <id>      raze <id>

@@ -12,11 +12,11 @@ python3 -m marchlands                          # play the default scenario
 python3 -m marchlands --list                   # the four scenarios and five houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 198 tests, ~110s
+python3 -m unittest discover -s tests          # 212 tests, ~110s
 ```
 
-In game, **`view`** draws your town, `hint` tells you what a patient steward
-would point at next, `briefing` restates why you are here, and `help` lists
+In game, **`view`** draws your town and **`watch`** lets you sit and watch it
+work, `hint` tells you what a patient steward would point at next, `briefing` restates why you are here, and `help` lists
 everything.
 
 > Housed in this repository under `game/` because the session's branch scope is
@@ -44,33 +44,67 @@ where the game is played.
 
 ## How it looks
 
-It is a terminal game, so it is not beautiful the way Stronghold was beautiful
--- there are no hand-painted sprites and nobody is carrying a sack anywhere.
-What it does have is a picture of your holding rather than a table about it.
-`view` draws the settlement from its own state: the forest and the hills and
-the fields you cleared, the walls you paid for (timber drawn thin, stone drawn
-thick, towers at the corners, a gate if you built one), and every building
-standing where its land is.
+It is a terminal game, so it will never be beautiful the way Stronghold was
+beautiful -- there are no hand-painted sprites and nobody is carrying a sack
+anywhere. What it does have is the thing Stronghold was actually selling: a
+place you can look at, from the corner, and tell how it is doing.
+
+`view` draws the holding in perspective, painted back to front, from the state
+itself:
 
 ```
-── ALDWORTH ──────────────────────────────────── summer, 1248 ──
- ♣  ♠ ♣     ♠ ♣     ♠ ♣     ♠ ♣ ·        ▴ ˄     ▴ ˄     ▴ ˄
-♣ ♠     ♣ ♠     ♣ ♠     ♣ ♠  ,    ˄ ▴  △    ˄ ▴  ◆  ˄ ▴
-· ≡  ≡ ,≡  ♠  ≡   ╔══════════════════════════════╗    ,  ,
-  ≡  ♠  ≡, ᵕ  ,· ,║ ▣  x  ⌂  ⌂  ⌂  ⌂  ⌂  ⌂  ⌂  ▥ ║  ·· ,
-,  ,  ,·  ,· ,,   ║ ▥  ¶  ∪  §  ¤  ▤  b  b  b  b ║  ·,
-      ,,          ║ a  f  k  ✻  ✻  ✻  ✻  p  p  s ║    ,,
-  ,  ·,    ,   ,  ╚═══════════════∩══════════════╝ ·
- ●       ∴       ∴        , ·   , · ·        ,  ·
+── ALDWORTH ──────────────────────────────────────────── autumn, 1247 ──
+·                            ·                            ·           ☁
+                       ·                            ·
+                              ♣♣
+                              ┃┃ ♣♣
+                           ≋≋    ┃┃
+                     ♠♠ ≋≋    ≋≋    ▀▀
+                  ♠♠ ┃┃    ≋≋    ≋≋ ▄▀▄▀▀˛◣◢
+                  ┃┃    ≋≋    ▀▀ ██ █████ ██˛
+                      ˛˛   ▀▀ ██ ▛▜ █████ ██ ▀▀
+                    ˛   ▀▀ ██ ██ ██ ███▟▙ ██ ██ ▀▀
+          ˛          ▀▀ ██ ██ ▟▙ ██ ▟▙ ██ ▟▙ ██ ██ ▀▀
+              ˛   ▀▀ ██ ██ ▟▙ ▛▜ ▟▙ ██ ▟▙ ██ ▬▬ ██ ██ ▀▀
+   ◡◡          ˛  ██ ██ ▬▬ ██ ██ ██ ▄▄ ██ ▄▄ ▒▒ ▬▬ ██·██
+˛              ▀▀ █Î ▄▄ ▒✻ ▄▄ █✻ ▄▄ §✻ ▄▄ ¤✻ ▄▄ ▒▒ ▄▄ ██ ▀▀ ˛˛
+         ˛     ██ ▀▀ ▓▓ ██ ▓▓ ██ ▓▓ ██ ▓▓ ██ ▓▓ ▄▄ ▓▓ ▀▀ ██      ˛
+      ˛           ██ ▀▀ █Î ▄▄ ██    ██    ██    ▓▓ ▀▀ ██      ˛
+                 ˛   ██ ▀▀ ▓▓          í        ▀▀ ██
+             ˛          ██·▀▀  Î     î       ▀▀ ██
+                      ˛˛   ██ ▀▀         ì▀▀ ██                  ˛
+                    ˛         ██ ▀▀    ▀▀ ██
+                                 ██ ▀▀ ██     ˛           ˛
+                                    ██          ˛       ˛
+                           ˛                       ˛ ˛
+                                    ˛ ˛
+                                  ˛
+                                          ˛
+
+  souls      178 of 197 roofs     mood █████████·····  61     normal rations
+  wall    ██████████████   560/560    garrison 10 Archer, 51 Spearman
+  standing 7x Cottage Row · 6x Wheat Farm · 4x Bakery · 4x Windmill · 2x Granary · 2x Orchard · 2x Woodcutter's Hut   (23 idle)
 ```
 
-Colour carries the rest, on a terminal that has it: a workshop burns bright
-when it is running, dims when it is short of hands or inputs, and goes out
+That is a real render, not a mock-up -- seed 7, two hundred and twenty days
+in. The keep stands over the curtain wall, the near walls are drawn low so you
+can see into your own town, windmills rise above the workshops, and there are
+people (`î`) in the streets when there are people. Ovens that are lit put up
+smoke; the mill's sails turn a frame a day. Dwellings have pitched roofs,
+workshops have shallow ones, stores are flat, civic halls are two storeys --
+so the skyline tells you what kind of town you have built before you read a
+word of it.
+
+**`watch [days]`** lets the days run and redraws in place, which is as close as
+a console gets to the thing you actually miss: seeing the place move.
+
+Colour carries the rest, where the terminal has it: a workshop burns bright
+while it is running, dims when it is short of hands or inputs, and goes out
 when you close it; the wall turns amber under siege and red when it is going;
-fields and woods change colour with the season; prices read green when they
-are cheap and red when they are dear; the ledger is green above the line and
-red below it. Piped to a file or a test it comes out as plain text, so none of
-that gets in the way of a transcript.
+the ground and the trees change with the season; prices read green when cheap
+and red when dear; the ledger is green above the line and red below. `view
+flat` gives the same holding as a plan, which is easier to count and harder to
+love. Piped to a file or a test it all comes out as plain text.
 
 ## The three systems
 
@@ -253,7 +287,8 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `scenario.py` | the map's pieces, and the default seat |
 | `scenarios.py` | the four scenarios and their terms |
 | `render.py` | ink: palette, framing, bars, sparklines, colour discipline |
-| `view.py` | the town drawn as a plan from its own state |
+| `iso.py` | the holding in perspective: tiles, sprites, smoke, people |
+| `view.py` | the same holding as a flat plan |
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
