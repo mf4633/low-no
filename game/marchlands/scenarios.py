@@ -150,6 +150,43 @@ def _winter_crown(seed: int, house: str) -> GameState:
     return g
 
 
+def _freebuild(seed: int, house: str) -> GameState:
+    """A hill, a long purse, and nobody coming. Build the thing.
+
+    Stronghold's Freebuild is named in every retrospective anybody writes
+    about it -- "construct the ultimate castle without fear of attack", "at
+    your own pace without combat pressure" -- and the reason is not that
+    people dislike the war. It is that the *building* is the thing they came
+    for, and a mode that lets them do only that is a mode they play for a
+    hundred hours.
+
+    Everything here is still real: the market still prices by scarcity, the
+    labour still runs out, the mood still answers to bread and taxes, the
+    house still ages and inherits. What is switched off is the clock and the
+    other lords' ambition. Nobody marches. Nothing ends.
+    """
+    g = new_game(seed=seed, house=house)
+    for t in g.world.towns.values():
+        # Not pacifists -- merchants. They will still trade, and they will
+        # still quarrel with each other, which keeps the march alive to watch.
+        t.hostility = 0.0
+        t.temper = 0.0
+        t.aggression *= 0.35
+    home = g.home()
+    home.population = 90.0
+    g.treasury = 9000.0
+    g.progress = Progress(age=2, researched={house})
+    home.wall_hp = home.wall_max(g.progress)
+    g.goals = Goals(net_worth=1e12, population=100000, towns=99,
+                    days=99 * int(C.DAYS_PER_YEAR), wonder=False,
+                    paths=("wealth",))
+    g.briefing = ("Freebuild. Nobody is coming and nothing is counting. "
+                  "The market is real, the labour runs out, the mood answers "
+                  "to bread and taxes, and the house ages the way it always "
+                  "did. Build the thing you have been meaning to build.")
+    return g
+
+
 SCENARIOS: Dict[str, Scenario] = {s.key: s for s in [
     Scenario("marchlands", "The Marchlands", _marchlands,
              blurb="The full march. One hill, seven towns, three ways to win."),
@@ -159,10 +196,22 @@ SCENARIOS: Dict[str, Scenario] = {s.key: s for s in [
              blurb="Ore under you, grain nowhere, and lords who already hate you."),
     Scenario("winter_crown", "The Winter Crown", _winter_crown, years=2.5,
              blurb="Midwinter, a month of bread and a short rope. The hard one."),
+    Scenario("freebuild", "Freebuild", _freebuild, years=99,
+             blurb="A hill, a long purse and nobody coming. No clock, no goal, "
+                   "and every other system still running."),
 ]}
 
 #: The order they are meant to be played in.
+#: Freebuild is deliberately not in it. A campaign is an order of
+#: difficulty with an ending at the end, and Freebuild has neither a
+#: clock nor a goal -- putting it in the sequence would promise a
+#: chapter that never closes. It is a scenario you choose, not a
+#: chapter you reach. See OUTSIDE_CAMPAIGN.
 CAMPAIGN: List[str] = ["salt_road", "marchlands", "iron_marches", "winter_crown"]
+
+#: ...and every scenario must be in exactly one of the two, so that a
+#: new one cannot be quietly orphaned between them.
+OUTSIDE_CAMPAIGN: List[str] = ["freebuild"]
 
 
 def scenario(key: str) -> Scenario:

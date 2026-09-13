@@ -23,6 +23,8 @@ from .goods import resolve as resolve_good
 from . import kin as kinly
 from . import league as lg
 from . import lord as lordly
+from . import lords as lordkind
+from . import voices
 from . import render as ink
 from .military import UNITS, describe, host_strength, host_upkeep
 from .military import resolve as resolve_unit
@@ -1382,6 +1384,32 @@ class Console:
         self.say("", ink.c("  lord <host> sends him out, lord home brings him back. "
                            "`kin` is the rest of them.", ink.DIM))
 
+    def cmd_ask(self, args: List[str]) -> None:
+        """Ask the town how it is. Somebody will tell you."""
+        g = self.game
+        s = self.settlement(self._resolve_here(args))
+        how_many = 3 if args and args[-1].lower() in ("all", "more") else 2
+        self.say(ink.head(f"IN THE STREET AT {s.name.upper()}",
+                          f"mood {s.popularity:.0f}"))
+        for who, said in voices.speak(s, g, voices.street_rng(s, g), how_many):
+            self.say(f"  {ink.c(who, ink.DIM)}")
+            rows = _wrap(said, 66)
+            for i, line in enumerate(rows):
+                head = "“" if i == 0 else " "
+                tail = "”" if i == len(rows) - 1 else ""
+                self.say(ink.c(f"    {head}{line}{tail}", ink.PARCH))
+        self.say("", ink.c("  The same facts as `town`, from somebody who has "
+                           "to live in it.", ink.DIM))
+
+    def _resolve_here(self, args: List[str]) -> str:
+        if not args:
+            return ""
+        want = args[0].lower()
+        for key, s in self.game.world.settlements.items():
+            if want in (key.lower(), s.name.lower()):
+                return key
+        return ""
+
     # ---------------------------------------------------------- the league
     def cmd_season(self, args: List[str]) -> None:
         """The table, and who has said they are coming for whom."""
@@ -1918,6 +1946,23 @@ class Console:
                      f" {seen.get('wall_hp', 0.0):>6,.0f}  {might:>10,.0f}   "
                      + ink.c(ink.pad(f"{state} ({hostile:.0f})", 16), mood)
                      + ink.c(stale, ink.DIM if age <= 30 else ink.AMBER))
+        # Who they are, and not only how many. Character is intelligence and
+        # intelligence is what the trade layer buys: a lord you have never
+        # sent a cart to is a lord you are guessing about, and the whole of
+        # what you are guessing about is the thing that decides whether a
+        # gift will hold him or he is coming for the harvest either way.
+        self.say("")
+        for key, t in g.world.towns.items():
+            _seen, age = g.known(key)
+            kind = lordkind.sort_of(key)
+            if age < 0:
+                self.say(f"  {ink.c(ink.pad(t.name, 13), ink.DIM)}"
+                         + ink.c("nobody of yours has been near enough to say",
+                                 ink.FAINT))
+                continue
+            self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)}"
+                     f"{ink.c(ink.pad(kind.name, 12), ink.BONE)}"
+                     + ink.c(kind.blurb, ink.DIM))
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "
@@ -2198,6 +2243,21 @@ def _node_colour(game, key: str) -> int:
     return ink.BLOOD if town.hostility > 70 else ink.INK
 
 
+def _wrap(text: str, n: int) -> List[str]:
+    """Break a sentence at a space, because a person speaking does not wrap
+    mid-word at column sixty-eight."""
+    out, line = [], ""
+    for word in text.split():
+        if line and len(line) + 1 + len(word) > n:
+            out.append(line)
+            line = word
+        else:
+            line = f"{line} {word}".strip()
+    if line:
+        out.append(line)
+    return out or [""]
+
+
 def _short(text: str, n: int) -> str:
     """A name that will not fit, cut where a reader can still place it."""
     return text if len(text) <= n else text[:n - 1].rstrip() + "…"
@@ -2260,6 +2320,7 @@ COMMANDS = {
     "raid": Console.cmd_raid, "relics": Console.cmd_relics,
     "lord": Console.cmd_lord, "chronicle": Console.cmd_chronicle,
     "kin": Console.cmd_kin, "house": Console.cmd_kin, "family": Console.cmd_kin,
+    "ask": Console.cmd_ask, "street": Console.cmd_ask, "listen": Console.cmd_ask,
     "season": Console.cmd_season, "standings": Console.cmd_season,
     "table": Console.cmd_season, "draft": Console.cmd_draft,
     "economy": Console.cmd_economy, "accounts": Console.cmd_economy,
@@ -2289,6 +2350,7 @@ COMMANDS = {
 HELP = """
   THE DAY           next [n]        let n days pass        status / s
   YOUR TOWN         view / v        view flat              watch [days]
+                    ask [town]      what the street says
                     town [name]     stores [town]
                     needs
                     build <key>     buildings [filter]     info <key>

@@ -21,7 +21,8 @@ from .castle import INVEST, Works, choose, storms_now
 from .economics import MONEY_BASE, Accounts, Economy
 from .events import EventEngine
 from .goods import ALL_KEYS, good
-from . import lord as lordly
+from . import lords as lordly
+from . import lord as manly
 from .kin import POSTS, Kin, found as found_kin
 from . import league as lg
 from .league import League, PLAYER
@@ -167,6 +168,14 @@ class GameState:
         if not self.league.seed:
             self.league.seed = self.seed * 40507 + 13
             self.league.rng = random.Random(self.league.seed)
+        # What a lord says when he declares is flavour and must stay flavour.
+        # Drawn from the world's own stream it would not be: every line spoken
+        # shifts the weather, the prices and the next battle behind it, and an
+        # `ask` typed at the console -- or a browser polling once a second --
+        # would quietly re-roll the campaign. Third time this bug has been
+        # found in this codebase (kin, league, now this); a subsystem that
+        # draws gets its own stream, without exception.
+        self.voice = random.Random(self.seed * 7919 + 101)
 
     # ------------------------------------------------------------- calendar
     @property
@@ -631,7 +640,11 @@ class GameState:
             # A captain who cannot carry the walls does not throw his men at
             # them: he burns the country instead and rides home richer. This
             # is the half of medieval war that actually happened.
-            if host_strength(a.units) < host_strength(s.units) * 0.9:
+            # A captain who cannot carry the walls does not throw his men at
+            # them -- and some lords never mean to try the walls at all. The
+            # Fox came for the harvest and said so a season ago.
+            shy = 0.9 + 1.6 * lordly.sort_of(a.home).raids
+            if host_strength(a.units) < host_strength(s.units) * shy:
                 a.state = RAIDING
                 s.raided = True
                 return (f"Riders out of {self.world.node_name(a.home)} are loose "
@@ -832,7 +845,7 @@ class GameState:
                 msgs += [self.note(ln, MOMENTOUS)
                          for ln in self.kin.bury(who, self.day)]
             for st in self.world.settlements.values():
-                st.popularity = max(0.0, st.popularity - lordly.MOURNING)
+                st.popularity = max(0.0, st.popularity - manly.MOURNING)
         return msgs
 
     def _lord_day(self) -> List[str]:
@@ -858,9 +871,9 @@ class GameState:
             # He died in his bed. The hall is as empty as if he had not.
             self.lord.alive = False
             self.lord.riding = 0
-            self.lord.heir_days = lordly.SUCCESSION_DAYS
+            self.lord.heir_days = manly.SUCCESSION_DAYS
             for st in self.world.settlements.values():
-                st.popularity = max(0.0, st.popularity - lordly.MOURNING)
+                st.popularity = max(0.0, st.popularity - manly.MOURNING)
         if self.kin.lord is not None:
             self.lord.name = self.kin.lord.name
         self.lord.heirs = self.kin.heirs_left(self.day)
@@ -898,7 +911,8 @@ class GameState:
         return []
 
     # ------------------------------------------------------------ the money
-    ASSIZE_DRAIN = 0.035         # of stock a day, at a cap that bites entirely
+    ASSIZE_DRAIN = 0.85          # extra demand, as a share of a day's use
+    ASSIZE_LEAK = 0.004          # of stock a day out of the back door besides
     ASSIZE_RELIEF = 13.0         # what cheap bread is worth while there is any
     ASSIZE_MOOD = 16.0           # ...and what queuing for it costs when there is not
     SMUGGLE_SHARE = 0.55         # of the drained goods that leave for a profit
@@ -950,8 +964,7 @@ class GameState:
                 # A shelf empties from both ends: everyone wants more of it at
                 # that price, and the back door is open to anyone who will pay
                 # what it is really worth.
-                gone = s.market.stock.get(key, 0.0) * self.ASSIZE_DRAIN * bite
-                taken = s.market.take(key, gone)
+                taken = s.market.take(key, self._assize_drain(s, key, bite))
                 econ.smuggled += (taken * self.SMUGGLE_SHARE
                                   * (s.market.fundamental(key) - cap))
             if self.day % 30 == 0:
@@ -1017,6 +1030,28 @@ class GameState:
             f"front, and {self._assize_days(key, price)} before the shelves "
             f"are bare.", MOMENTOUS)
 
+    def _assize_drain(self, s, key: str, bite: float) -> float:
+        """How much of it goes today that would not have gone at its own price.
+
+        Excess demand is a *quantity*, not a fraction of the shelf. This used
+        to take 3.5% of stock a day, which is not a shortage, it is a decay:
+        a proportional drain simply settles the shelf at forty days' output
+        and any town that bakes its own bread never queues at all. Measured on
+        a grown save, a fully biting cap cost 2% of the granary over sixty
+        days and the queue the lever exists to create never once formed --
+        which made the assize a standing +12 to the mood for nothing, the same
+        free lunch the mint was.
+
+        What a ceiling actually does is make more people want the good than
+        there is of it at that price, and "more people" is measured against
+        how much the town gets through in a day. Plus the back door, which is
+        a small share of the shelf and the reason smugglers exist.
+        """
+        use = (max(0.0, s.report.eaten.get(key, 0.0))
+               + max(0.0, s.report.consumed.get(key, 0.0)))
+        return bite * (use * self.ASSIZE_DRAIN
+                       + s.market.stock.get(key, 0.0) * self.ASSIZE_LEAK)
+
     def _assize_days(self, key: str, price: float) -> str:
         """How long the goodwill lasts, which is the only thing worth knowing.
 
@@ -1035,7 +1070,7 @@ class GameState:
         worth = home.market.fundamental(key)
         bite = max(0.0, 1.0 - price / worth) if worth > 0 else 0.0
         made = max(0.0, home.report.produced.get(key, 0.0))
-        net = gone - made + stock * self.ASSIZE_DRAIN * bite
+        net = gone - made + self._assize_drain(home, key, bite)
         if net <= 0.01:
             return "no sign of running out on today's trade"
         days = stock / net
@@ -1352,7 +1387,7 @@ class GameState:
                                      * self.progress.mult("siege")
                                      * self.kin.mult("siege")
                                      * self.kin.mult("attack", a.uid)
-                                     * lordly.attack_bonus(self.lord, a.uid))
+                                     * manly.attack_bonus(self.lord, a.uid))
                         if player else 1.0,
                         defense_mult=self.progress.mult("defense") if player else 1.0)
         # Your own hosts standing in a sworn town fight for it.
@@ -1363,7 +1398,10 @@ class GameState:
         for x in stationed:
             for k, n in x.units.items():
                 defenders[k] = defenders.get(k, 0.0) + n
-        holder = Side(defenders, battlement=8.0)
+        # An Ox on his own parapet is a different proposition from a
+        # Magpie on his. What he takes, he keeps.
+        holder = Side(defenders, battlement=8.0 * (
+            1.0 if town.mine else lordly.sort_of(town.key).holds))
         works = town.works()
         if not player:
             a.siege.plan = choose(works, siege_power=a.siege_power,
@@ -1397,6 +1435,11 @@ class GameState:
                     self.kin.teach("tactics", 10.0, self.day, post="captain",
                                    target=str(a.uid))
                 msgs.append(self._take_town(town, a))
+                if not player:
+                    line = lordly.says(a.owner, "takes", self.voice)
+                    if line:
+                        msgs.append(f'    {self.world.node_name(a.owner)}: '
+                                    f'"{line}"')
                 a.prune()
                 return msgs        # the garrison is the victor's now, not the survivors'
             elif player:
@@ -1408,6 +1451,11 @@ class GameState:
                 self.march(a.uid, a.home)
             else:
                 a.state = RETURNING
+                if a.owner in self.world.towns:
+                    line = lordly.says(a.owner, "beaten", self.voice)
+                    if line:
+                        msgs.append(f'    {self.world.towns[a.owner].lord}: '
+                                    f'"{line}"')
                 self.march(a.uid, a.home)
             town.wall_hp = max(town.wall_hp, town.wall_max * 0.15)
         a.prune()
@@ -1430,7 +1478,7 @@ class GameState:
         holder = Side(s.units, attack_mult=self.progress.mult("attack"),
                       defense_mult=self.progress.mult("defense"),
                       battlement=6.0 + s.effect("battlement")
-                      + (lordly.HOME_DEFENCE if at_home else 0.0)
+                      + (manly.HOME_DEFENCE if at_home else 0.0)
                       + self.kin.bonus("defence"))
         works = Works.of([b.key for b in s.buildings
                           if b.complete and b.spec.terrain == "rampart"])
@@ -1683,9 +1731,14 @@ class GameState:
             if other is not town:
                 other.hostility = max(0.0, other.hostility - 45.0)
         who = "WAR" if target in self.world.settlements else "The march"
+        said = ""
+        if target in self.world.settlements:
+            line = lordly.says(town.key, "declares", self.voice)
+            if line:
+                said = f'\n    {town.lord}: "{line}"'
         return (f"{who}: {town.lord} of {town.name} marches on "
                 f"{self.world.node_name(target)} with {describe(host)} -- "
-                f"{a.days_left:.0f} days out")
+                f"{a.days_left:.0f} days out" + said)
 
     def war_pressure(self) -> float:
         return min(2.6, 1.0 + self.day / (1.7 * C.DAYS_PER_YEAR))
@@ -1861,8 +1914,11 @@ class GameState:
         town = self.world.towns[town_key]
         # An envoy who has sat with these people before does not pay the
         # stranger's price, and neither does a lord with a name for mercy.
+        # And what sort of man he is. A Magpie would rather be paid than
+        # fight and prices himself accordingly; the Wolf takes your coin and
+        # calls it tribute.
         return (C.TRUCE_RATE * days * town.muster * town.prosperity
-                * self.kin.mult("truce_cost"))
+                * self.kin.mult("truce_cost") * lordly.sort_of(town_key).bought)
 
     def truce(self, town_key: str, days: int = 180) -> str:
         """Peace by the day. A lord who is paid not to march does not march."""
@@ -1882,8 +1938,10 @@ class GameState:
         town.hostility = min(town.hostility, 40.0)
         self.kin.did("merciful", 0.10)
         self.kin.teach("charm", 8.0, self.day, post="envoy")
+        line = lordly.says(town_key, "paid", self.voice)
+        tail = f'\n    {town.lord}: "{line}"' if line else ""
         return (f"{town.lord} of {town.name} takes {cost:,.0f}c and swears off "
-                f"the march for {days} days")
+                f"the march for {days} days" + tail)
 
     def demand(self, town_key: str) -> str:
         """Demand tribute. It works on a weaker lord and enrages any other."""
@@ -2156,6 +2214,7 @@ class GameState:
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
             "rng": list(self.rng.getstate()),
+            "voice_rng": list(self.voice.getstate()),
         }
 
     def save(self, path: str) -> str:
@@ -2213,6 +2272,9 @@ class GameState:
         else:
             g.rng = random.Random(d["seed"] + d["day"])   # a save from before
         g.trade_engine = TradeEngine(g.world, g.rng)
+        raw = d.get("voice_rng")
+        if raw:
+            g.voice.setstate((raw[0], tuple(raw[1]), raw[2]))
         return g
 
     @classmethod

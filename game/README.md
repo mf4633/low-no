@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 629 tests, ~8min
+python3 -m unittest discover -s tests          # 664 tests, ~18min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -337,6 +337,15 @@ its own, seeded and saved separately, because sharing the world's one re-rolled
 twelve seeds' worth of balance measurement the first time this was wired in —
 without changing a single rule. That is the kind of bug that looks exactly like
 a balance change, and there is a test that asserts it cannot come back.
+
+It has now been written three times in this codebase — the kin, the league, and
+the town's own voices — so it is a rule rather than an anecdote: **a subsystem
+that draws gets a stream of its own, without exception.** The third one was the
+worst of the three. A peasant's line is pure flavour, and drawn from the world's
+stream it would not have been: a browser polling the street once a second would
+have re-rolled the campaign between page paints. What the street says is seeded
+on the day and the place instead, so it is the same street while you are looking
+at it and a different one tomorrow, and it costs the game nothing.
 
 ## How it looks
 
@@ -848,8 +857,8 @@ what it is describing is a season out of date — he has had time to dig.
 
 ## Scenarios
 
-Four games on the same rules. `--list` describes them; they are meant to be
-played in this order.
+Five games on the same rules. `--list` describes them; the first four are meant
+to be played in this order.
 
 | scenario | length | what it is |
 |---|---|---|
@@ -857,6 +866,7 @@ played in this order.
 | **The Marchlands** | 3 years | The full game. One inland hill, seven towns, all three ways to win. |
 | **The Iron Marches** | 3 years | Ore under you and nothing that grows. Every lord already dislikes you. Wealth or dominion, no cathedral. |
 | **The Winter Crown** | 2½ years | Midwinter, a month of bread, a short rope and angry neighbours. The hard one. |
+| **Freebuild** | no clock | A hill, a long purse and nobody coming. Every other system still running. See [Freebuild](#freebuild). |
 
 ## Winning
 
@@ -910,6 +920,8 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `view.py` | the same holding as a flat plan |
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
+| `lords.py` | the rival lords as six sorts of person, and what each of them says |
+| `voices.py` | what the town would say, if you asked it |
 | `kin.py` | the house: skills earned in the job, traits earned by choice, births, marriages, succession |
 | `league.py` | the march as a competition: table, schedule, draft, and the cap |
 | `economics.py` | the accounts: price index, surplus and deadweight loss, comparative advantage, the marginal product, the mint |
@@ -922,6 +934,114 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
+
+## What people actually say they love
+
+A pass that started by reading what players of these three games bring up
+unprompted, twenty years on, rather than what a design document would list.
+Three things came back over and over, and we had none of them.
+
+### The lords are people you learn
+
+Ask anybody what they remember about Stronghold and you will not get the
+popularity dial. You get **the Rat, the Snake, the Wolf and the Pig** —
+characters people still have favourites among after twenty-four years, who are
+remembered because each one *plays differently and says so out loud*.
+
+This game had eight lords with excellent names and no character whatever.
+`Reeve Halden` and `Abbot Gervase` behaved identically — same aggression, same
+ambition, differing only in how much wall the map handed them.
+
+Six sorts now, and the sort is a real difference rather than a label:
+
+| | how he plays |
+|---|---|
+| **the Boar** | arms first and thinks afterwards; comes early and comes often |
+| **the Heron** | builds wall and stands behind it; will not come unless you make him |
+| **the Fox** | burns your fields rather than face your wall, and treats when losing |
+| **the Ox** | slow, steady and hard to shift; what he takes he keeps |
+| **the Magpie** | would always rather pay than fight, and grows fat doing it |
+| **the Wolf** | good at everything and in no hurry; the one you plan around |
+
+These are multipliers on the war engine's own dials, so the behaviour is real
+rather than described: a Boar's ambition builds three times faster than a
+Heron's, a Magpie prices a truce at two fifths of what the Wolf asks, and the
+Fox's captains go for the harvest at a strength where anybody else would try
+the wall.
+
+And they talk. You learn a lord by being insulted by him:
+
+> **Reeve Halden:** *"I am coming. Do not trouble to write back."*
+> **the Lady of Caer Ithel:** *"A misunderstanding. Let us call it that."*
+> **the Margrave Ekhart:** *"Held. That is the whole of it."*
+> **the Count of Marchand:** *"As expected."*
+
+What sort a lord is has to be found out — `war` names it only for places one of
+your carts has actually called at. Character is intelligence, and intelligence
+is the thing the trade layer buys.
+
+The bug worth recording: the scenario used to roll aggression and temper
+*straight over the top* of whatever the lord was, so the Heron and the Boar
+came out the same man with different names. The band is the decade; his nature
+multiplies it.
+
+### The town talks back
+
+The single most quoted thing about Stronghold is not a mechanic. It is a
+peasant saying **"Double rations? Oh, thank you, Sire!"** when you move the
+ration dial, and **"No taxes is good taxes, that's my motto!"** when you move
+the other one. People who have not played it in twenty years still quote those
+lines, and when a sequel dropped the voices the complaint was that the game had
+gone *"more bland"* — which is a complaint about **information**, not charm. A
+dial that answers you is a dial you understand.
+
+We had a mood breakdown that was perfectly honest and entirely inhuman:
+`taxes -3.5, crowding -2.6, ale +11`. Same information. Not the same thing at
+all, because a number cannot be indignant.
+
+```
+── IN THE STREET AT ALDWORTH ──────────────────────────────── mood 62 ──
+  A thatcher
+    “Double rations, my lord! God bless you, and my wife says the same.”
+  A woman at the well
+    “No taxes is good taxes. That has always been my motto and I have
+     never had cause to change it.”
+```
+
+Twenty-three voices, every one keyed to something actually true today — what
+they are eating, what you are taking, whether they were paid on Friday, whether
+there is a queue at the bakery, whether the pennies have got lighter. They are
+weighted, so **the loudest thing in the town is the thing you hear about**: a
+town with a host at the gate does not want to talk about the beer. Which makes
+`ask` a diagnostic that happens to have a person in it. Click a cottage in the
+browser and you get the same.
+
+### Freebuild
+
+Named in every retrospective anybody writes: *"construct the ultimate castle
+without fear of attack"*, *"at your own pace without combat pressure"*. The
+reason is not that people dislike the war — it is that **the building is the
+thing they came for**, and a mode that lets them do only that is a mode they
+play for a hundred hours.
+
+```bash
+python3 -m marchlands --scenario freebuild
+```
+
+A hill, a long purse and nobody coming. Nothing is counting. And it is not a
+sandbox with the rules switched off: the market still prices by scarcity, the
+labour still runs out, the mood still answers to bread and taxes, the house
+still ages and inherits, and the other lords still quarrel among themselves —
+merchants, not pacifists. A dead march is not a peaceful one, it is a diorama.
+
+### What we still do not have
+
+Honestly, and top of the list: **laying a castle out yourself**. "The
+satisfaction of seeing your vision come to life is unparalleled" is the single
+most-repeated sentence about Stronghold, and our castle is a set of works you
+buy — moat, pitch ditch, killing pits, towers — rather than a shape you draw.
+The works are the *right* abstraction of it and they are genuinely a design
+decision, but nobody has ever posted a screenshot of an abstraction.
 
 ## The march is a league
 
@@ -1099,6 +1219,35 @@ how long that will be — "about 11 days" on a thin granary, "about 52" on a
 full one. A price control is a transfer out of a granary, so its whole life is
 however much is in the granary; saying so up front is the difference between a
 decision and an ambush.
+
+And then it was a free lunch, which took a second pass to find. The shortage
+was modelled as a *proportion of the shelf* — 3.5% a day at a cap that bit
+entirely — and a proportional drain is not a shortage, it is a decay: the shelf
+simply settles at forty days' output, and any town that bakes its own bread
+never queues at all. Measured on a grown save, a fully biting cap cost **2% of
+the granary over sixty days** and the queue the whole lever exists to create
+never once formed. The +12 was free.
+
+Excess demand is a **quantity**, not a fraction of the shelf, and the quantity
+it is measured against is how much the town gets through in a day. With that
+one change, the same save played the same way for 150 days:
+
+| | net worth | mood | bread on the shelf |
+|---|---|---|---|
+| no decree | 36,633 | 73.1 | 198 |
+| bread held 70% under | 27,083 | 57.5 | **0** |
+
+A quarter of the house's worth and fifteen points of goodwill, for four months
+of cheap bread. That is a decision. The forecast and the mechanic are now the
+same function rather than two guesses at each other, so "about 40 days" is a
+promise the simulation keeps.
+
+The two tests that should have caught it were **freezing the town** — growing a
+save, then ticking it with nobody buying or selling. A settlement with no hands
+on it piles its sheds' output on a shelf nobody draws from, and a shortage
+cannot be measured against a market that has stopped. They passed for a year on
+a knife edge and failed the moment an unrelated change moved the trajectory,
+which is the only reason any of this was found.
 
 ### The race was invisible until the last day
 

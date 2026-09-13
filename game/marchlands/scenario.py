@@ -16,6 +16,7 @@ from . import config as C
 from .engine import GameState
 from .events import EventEngine, RivalCompany
 from .goods import ALL_KEYS
+from . import lords as lordly
 from .market import Market
 from .settlement import Settlement
 from .tech import HOUSES, Progress
@@ -123,10 +124,20 @@ def build_towns(world: World, seed: int, *, temper: Tuple[float, float] = (0.55,
     for t in world.towns.values():
         # No two lords take offence at the same rate, and none of them start
         # from the same place -- otherwise they all declare on one morning.
-        t.temper = temper[0] + (temper[1] - temper[0]) * stagger.random()
-        t.aggression = aggression[0] + (aggression[1] - aggression[0]) * stagger.random()
+        #
+        # The scenario sets the decade and the lord sets himself: the band is
+        # the weather, and his own nature multiplies it. Rolling straight over
+        # the top of it -- which this did -- made the Heron and the Boar the
+        # same man with different names, which is the one thing a cast of
+        # rivals cannot afford to be.
+        kind = lordly.sort_of(t.key)
+        t.temper = (temper[0] + (temper[1] - temper[0]) * stagger.random()) \
+            * kind.temper
+        t.aggression = (aggression[0]
+                        + (aggression[1] - aggression[0]) * stagger.random()) \
+            * kind.aggression
         t.hostility = hostility[0] + (hostility[1] - hostility[0]) * stagger.random()
-        t.ambition = 20.0 * stagger.random()
+        t.ambition = 20.0 * stagger.random() * kind.aggression
 
 
 #: Five shrines, well away from anybody's walls. Reaching one means sending a

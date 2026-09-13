@@ -1289,9 +1289,16 @@ function buildingWrit(b, ev) {
       `${m.wage.toFixed(2)}c — ${good ? 'worth working' : 'it loses money open'}` +
       `${m.jobs ? ` · ${m.staffed} of ${m.jobs} hands` : ''}</p>`;
   }
+  // And what somebody who lives here thinks of it. The mood breakdown is
+  // honest and inhuman; a number cannot be indignant.
+  const street = (state && state.street) || [];
+  const homely = ['cottage', 'hovel', 'townhouse', 'inn', 'market'];
+  const voice = street.length && homely.includes(b.key)
+    ? `<p class="said"><em>${esc(street[0].who)}</em>` +
+      `&ldquo;${esc(street[0].said)}&rdquo;</p>` : '';
   openWrit(b.name, `
     <p>${how}${b.terrain === 'urban' ? ' · inside the wall' : ''}</p>
-    ${worth}
+    ${voice}${worth}
     <div class="acts">
       <button data-do="close ${b.uid}">${b.running || b.idle ? 'close / open' : 'close'}</button>
       <button data-do="raze ${b.uid}">pull down</button>

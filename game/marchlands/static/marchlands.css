@@ -317,6 +317,11 @@ kbd {
 #writ-close:hover { color: var(--parch); }
 #writ-body { overflow: auto; padding: 10px 13px 13px; }
 #writ-body p { margin: 0 0 9px; font-size: 13px; color: #cdc2a8; }
+#writ-body .said { color: #cdc2a8; font-size: 12.5px; line-height: 1.5;
+                   border-left: 2px solid rgba(201,162,39,.3);
+                   padding-left: 9px; margin: 0 0 10px; }
+#writ-body .said em { display: block; font-style: normal; color: var(--dim);
+                      font-size: 11px; margin-bottom: 2px; }
 #writ-body .why { color: var(--dim); font-size: 12px; }
 #writ-body .why b { color: inherit; font-weight: normal; }
 #writ-body .why.up { color: #8fb86a; }

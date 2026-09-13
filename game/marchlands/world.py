@@ -18,6 +18,7 @@ from . import config as C
 from .goods import ALL_KEYS, good
 from .castle import Works
 from .market import Market
+from . import lords as lordly
 from .settlement import Settlement
 
 
@@ -61,6 +62,7 @@ class ForeignTown:
     wall_base: float = 0.0
     muster: float = 1.0           # how big a host this town can put in the field
     temper: float = 1.0           # how quickly this lord takes offence
+    sort: str = ""                # what kind of lord he is (see lords.py)
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
     last_pilgrimage: int = -999   # day this lord last sent men to a shrine
@@ -143,7 +145,12 @@ class ForeignTown:
         if besieged:
             self.prosperity = max(0.4, self.prosperity - 0.004)
             return
-        self.prosperity = min(2.2, self.prosperity + 0.00055)
+        # And some countries are better at being left alone than others: a
+        # Magpie's country compounds in peace, a Boar's is spent on soldiers
+        # as fast as it is earned. Leaving Havnhold alone for three years is
+        # a worse idea than leaving Dunmere alone for three years.
+        self.prosperity = min(2.2, self.prosperity
+                              + 0.00055 * lordly.sort_of(self.key).thrift)
         self.wall_max = self.wall_base * (1.0 + 0.55 * (self.prosperity - 1.0))
         self.rebuild_walls(0.006)
         want = self.target_garrison()
@@ -197,6 +204,7 @@ class ForeignTown:
                 "wall_max": self.wall_max, "wall_base": self.wall_base,
                 "seen": dict(self.seen), "seen_day": self.seen_day,
                 "muster": self.muster, "temper": self.temper,
+                "sort": self.sort,
                 "prosperity": self.prosperity, "harbour": self.harbour}
 
     @classmethod
@@ -213,6 +221,7 @@ class ForeignTown:
         t.seen = dict(d.get("seen", {}))
         t.wall_hp = d.get("wall_hp", 0.0)
         t.wall_max = d.get("wall_max", 0.0)
+        t.sort = d.get("sort", "")
         for name in ("ambition", "aggression", "truce_days", "favour", "muster",
                      "temper", "prosperity", "wall_base", "harbour",
                      "last_pilgrimage", "seen_day"):
@@ -456,11 +465,18 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
         # back toward target cancel.
         m.stock[k] = max(1.0, target[k] + flow[k] / C.STOCK_REVERSION)
         m.posted[k] = m.curve(k, m.stock[k])
+    # What sort of lord holds it, which is a real difference in how he plays
+    # and not a label: see lords.py. A rival you cannot tell apart from
+    # another rival is a number with a name on it.
+    kind = lordly.sort_of(key)
     return ForeignTown(key=key, name=name, x=x, y=y, market=m, flow=flow,
                        base_target=dict(target), lawlessness=lawlessness,
                        wealth=wealth, blurb=blurb, lord=lord,
+                       sort=kind.key,
+                       aggression=kind.aggression, temper=kind.temper,
                        garrison=dict(garrison or {
-                           "spearman": round(11 * muster), "archer": round(8 * muster),
-                           "man_at_arms": round(4 * muster)}),
-                       wall_hp=walls, wall_max=walls, wall_base=walls, muster=muster,
-                       harbour=port)
+                           "spearman": round(11 * muster * kind.muster),
+                           "archer": round(8 * muster * kind.muster),
+                           "man_at_arms": round(4 * muster * kind.muster)}),
+                       wall_hp=walls, wall_max=walls, wall_base=walls,
+                       muster=muster * kind.muster, harbour=port)

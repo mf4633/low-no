@@ -22,6 +22,19 @@ from marchlands.sim import Bot
 
 
 def grown(seed: int = 5, days: int = 500):
+    g, _ = played(seed, days)
+    return g
+
+
+def played(seed: int = 5, days: int = 500):
+    """The game, and the hands still on it.
+
+    Several of these measurements are about what a lever does to a town that
+    is still being played -- which is not the same town as one left to tick
+    with nobody buying or selling. A frozen settlement's sheds pile their
+    output on a shelf nobody draws from, and a shortage cannot be measured
+    against a market that has stopped.
+    """
     g = new_game(seed=seed)
     bot = Bot(g)
     for _ in range(days):
@@ -29,7 +42,7 @@ def grown(seed: int = 5, days: int = 500):
         g.tick()
         if g.over:
             break
-    return g
+    return g, bot
 
 
 class TestTheIndex(unittest.TestCase):
@@ -124,8 +137,16 @@ class TestTheAssize(unittest.TestCase):
     """A price ceiling: the most famous experiment in the book."""
 
     def setUp(self):
-        self.g = grown(days=420)
+        self.g, self.bot = played(days=420)
         self.m = self.g.home().market
+
+    def play(self, days: int) -> None:
+        """Keep playing. A price ceiling empties a shelf that people are
+        still taking off; against a town that has stopped trading it is only
+        a number, and a test that froze the town was measuring the number."""
+        for _ in range(days):
+            self.bot.step()
+            self.g.tick()
 
     def test_a_ceiling_above_the_market_does_nothing_whatever(self):
         worth = self.m.fundamental("bread")
@@ -142,9 +163,32 @@ class TestTheAssize(unittest.TestCase):
     def test_and_empties_the_shelf(self):
         stock = self.m.stock["bread"]
         self.g.decree("bread", self.m.fundamental("bread") * 0.3)
-        for _ in range(60):
-            self.g.tick()
+        self.play(150)
         self.assertLess(self.m.stock["bread"], stock * 0.5)
+
+    def test_which_is_the_shelf_it_would_otherwise_have_had(self):
+        """The claim is a comparison, not a level: this town at this hour with
+        the ceiling has less bread than the same town at the same hour without
+        it. Anything short of that is measuring the weather."""
+        from marchlands.engine import GameState
+        save = self.g.to_dict()
+
+        def run(decree):
+            h = GameState.from_dict(save)
+            if decree:
+                h.decree("bread", h.home().market.fundamental("bread") * 0.3)
+            bot = Bot(h)
+            for _ in range(150):
+                bot.step()
+                h.tick()
+            return h
+
+        free, capped = run(False), run(True)
+        self.assertLess(capped.home().market.stock["bread"],
+                        free.home().market.stock["bread"] * 0.5)
+        # And it is paid for out of the house, not out of nowhere. A lever
+        # that only ever gave would be the mint's free lunch a second time.
+        self.assertLess(capped.net_worth(), free.net_worth())
 
     def test_the_town_is_grateful_and_then_it_is_not(self):
         """A control is a transfer out of the granary, so its whole life is
@@ -154,8 +198,7 @@ class TestTheAssize(unittest.TestCase):
         first = dict(self.g.home().mood_factors(self.g.progress))
         self.assertIn("the assize", first)
         self.assertGreater(first["the assize"], 0)
-        for _ in range(150):
-            self.g.tick()
+        self.play(200)
         later = dict(self.g.home().mood_factors(self.g.progress))
         self.assertIn("queuing for it", later)
         self.assertLess(later["queuing for it"], 0)

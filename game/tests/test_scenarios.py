@@ -1,4 +1,4 @@
-"""Four scenarios, four sets of terms."""
+"""Five scenarios, five sets of terms."""
 
 import os
 import tempfile
@@ -6,13 +6,25 @@ import unittest
 
 from marchlands import config as C
 from marchlands.engine import GameState
-from marchlands.scenarios import CAMPAIGN, SCENARIOS, scenario, start
+from marchlands.scenarios import (CAMPAIGN, OUTSIDE_CAMPAIGN, SCENARIOS,
+                                  scenario, start)
 from marchlands.sim import Bot
 
 
 class TestRegistry(unittest.TestCase):
-    def test_the_campaign_lists_every_scenario_once(self):
-        self.assertEqual(sorted(CAMPAIGN), sorted(SCENARIOS))
+    def test_every_scenario_is_placed_exactly_once(self):
+        """In the campaign or deliberately outside it -- but placed. The point
+        of the test is that adding a scenario cannot orphan it; the point of
+        the second list is that leaving one out has to be a decision somebody
+        wrote down rather than a line nobody got to."""
+        self.assertEqual(sorted(CAMPAIGN + OUTSIDE_CAMPAIGN), sorted(SCENARIOS))
+        self.assertFalse(set(CAMPAIGN) & set(OUTSIDE_CAMPAIGN))
+
+    def test_the_campaign_is_an_order_with_an_ending(self):
+        """Everything in the sequence has a clock. Freebuild does not, which
+        is exactly why it is not in it."""
+        for key in CAMPAIGN:
+            self.assertLess(SCENARIOS[key].years, 10, key)
 
     def test_an_unknown_scenario_is_refused(self):
         with self.assertRaises(KeyError):

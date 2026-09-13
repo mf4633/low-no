@@ -32,6 +32,7 @@ from . import config as C
 from .economics import marginal_hands
 from .kin import SKILLS
 from .league import PLAYER as LEAGUE_PLAYER
+from . import voices
 from .layout import plan_for
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -235,6 +236,10 @@ def snapshot(game, here: str = "") -> dict:
                       for k, v in game.economy.shortage.items() if v > 0.01],
         },
         "here": key,
+        # What the street would say, for a roof somebody clicks on. The same
+        # facts as the mood breakdown, from somebody who has to live in it.
+        "street": [{"who": who, "said": said}
+                   for who, said in voices.speak(s, game, voices.street_rng(s, game), 2)],
         # What the next hand in each shed would be worth, so a roof you click
         # can tell you whether it is paying for itself. The same reading
         # `margin` gives, attached to the thing it is about.
