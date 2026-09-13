@@ -1,149 +1,77 @@
 {
- "at": "2026-09-13T17:36:09.875868Z",
+ "at": "2026-09-13T18:38:06.964686Z",
  "tracked": [
   {
-   "city": "DAL",
-   "station": "KDFW",
-   "ticker": "KXHIGHTDAL-26SEP13-T98",
-   "verdict": "QUALIFIED",
+   "city": "EWR",
+   "station": "KEWR",
+   "ticker": "KXHIGHTEWR-26SEP13-T79",
+   "verdict": "DEAD_SCAVENGE",
    "qualified": true,
-   "ceiling": 97,
-   "run_max": 93.2,
-   "gap_to_clear": 3.8,
-   "already_cleared": false,
-   "guide": 101,
-   "pop": 0,
-   "no_ask": 0.95,
-   "local_hour": 12,
+   "ceiling": 78,
+   "run_max": 78.8,
+   "gap_to_clear": -0.8,
+   "already_cleared": true,
+   "guide": 82,
+   "pop": 34,
+   "no_ask": 0.86,
+   "local_hour": 14,
    "obs_trace": [
     {
-     "ts": "2026-09-13T17:15:00+00:00",
+     "ts": "2026-09-13T18:20:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T17:10:00+00:00",
+     "ts": "2026-09-13T18:15:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T17:05:00+00:00",
+     "ts": "2026-09-13T18:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T17:00:00+00:00",
+     "ts": "2026-09-13T18:08:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:55:00+00:00",
+     "ts": "2026-09-13T18:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:53:00+00:00",
+     "ts": "2026-09-13T18:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:50:00+00:00",
+     "ts": "2026-09-13T17:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:45:00+00:00",
+     "ts": "2026-09-13T17:51:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:40:00+00:00",
+     "ts": "2026-09-13T17:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-13T16:35:00+00:00",
+     "ts": "2026-09-13T17:45:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 4.2,
-    "q50": 6.8,
-    "q90": 8.8
+    "q10": -0.6,
+    "q50": 1.0,
+    "q90": 3.0
    },
    "projected_max": {
-    "q10": 97.4,
-    "q50": 100.0,
-    "q90": 102.0
+    "q10": 78.2,
+    "q50": 79.8,
+    "q90": 81.8
    },
-   "p_exceed_empirical": 0.881,
-   "emp_n": 40,
-   "convergence_hour": 16,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
-  },
-  {
-   "city": "OKC",
-   "station": "KOKC",
-   "ticker": "KXHIGHTOKC-26SEP13-T97",
-   "verdict": "QUALIFIED",
-   "qualified": true,
-   "ceiling": 96,
-   "run_max": 91.4,
-   "gap_to_clear": 4.6,
-   "already_cleared": false,
-   "guide": 100,
-   "pop": 4,
-   "no_ask": 0.96,
-   "local_hour": 12,
-   "obs_trace": [
-    {
-     "ts": "2026-09-13T17:15:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T17:10:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T17:05:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T17:00:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T16:55:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T16:52:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T16:50:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T16:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T16:40:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-09-13T16:35:00+00:00",
-     "f": null
-    }
-   ],
-   "remaining_climb": {
-    "q10": 3.4,
-    "q50": 5.2,
-    "q90": 8.0
-   },
-   "projected_max": {
-    "q10": 94.8,
-    "q50": 96.6,
-    "q90": 99.4
-   },
-   "p_exceed_empirical": 0.6905,
-   "emp_n": 40,
-   "convergence_hour": 15,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 14,
+   "past_convergence": true,
+   "note": "day effectively decided"
   }
  ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
