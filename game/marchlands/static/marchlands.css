@@ -95,3 +95,36 @@ body {
   #panel { display: none; }
   #console { left: 8px; right: 8px; }
 }
+
+/* the view switch, and the trade panel that comes with the march */
+.views { display: flex; gap: 2px; pointer-events: auto; }
+.views button {
+  font: 12px/1 inherit; letter-spacing: .09em; text-transform: uppercase;
+  padding: 6px 11px; color: var(--dim); background: rgba(20,17,13,.55);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+.views button[aria-pressed="true"] { background: var(--gold); color: #14110d; }
+.views button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+#goodpick { pointer-events: auto; font-size: 12px; }
+#goodpick select {
+  font: 12px inherit; color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; padding: 4px 6px;
+  margin-left: 5px;
+}
+#runs li, #carts li { display: block; padding: 3px 0; font-size: 12.5px; }
+#runs b, #carts b { color: var(--gold); font-weight: normal; }
+#runs span, #carts span { color: var(--dim); }
+
+/* The march is drawn on parchment, so the furniture over it has to change
+   colour or it is dark ink on a dark scrim over a light ground. */
+body.march #bar {
+  background: linear-gradient(rgba(222,208,172,.95), rgba(222,208,172,0));
+}
+body.march #place { color: #5e4712; }
+body.march #date, body.march #goodpick { color: #6b5c3e; }
+body.march #purse { color: #6b5212; }
+body.march .views button { color: #6b5c3e; background: rgba(235,224,194,.75);
+                           border-color: rgba(120,96,58,.35); }
+body.march .views button[aria-pressed="true"] { background: #96731a; color: #f2e9d2; }
+body.march #goodpick select { color: #3c3323; background: rgba(235,224,194,.9);
+                              border-color: rgba(120,96,58,.35); }

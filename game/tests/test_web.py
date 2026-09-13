@@ -19,7 +19,7 @@ from marchlands.layout import (CLAY, FIELD, FOREST, GRASS, HILL, ROAD, WATER,
 from marchlands.scenarios import start
 from marchlands.settlement import BuildingInstance
 from marchlands.sim import Bot
-from marchlands.web import Handler, run_command, serve, snapshot
+from marchlands.web import Handler, march, run_command, serve, snapshot
 
 
 def grown(seed=3, days=600, scenario="marchlands"):
@@ -152,6 +152,83 @@ class TestSnapshot(unittest.TestCase):
         self.assertEqual(snap["town"]["fires"], 2)
 
 
+class TestTheMarch(unittest.TestCase):
+    """The trade layer, which is the point of the game and was invisible."""
+
+    def test_every_place_on_the_map_is_on_the_map(self):
+        g, _s = grown()
+        m = march(g, "aldworth")
+        keys = {n["key"] for n in m["nodes"]}
+        for key in list(g.world.settlements) + list(g.world.towns) + \
+                list(g.world.shrines):
+            self.assertIn(key, keys, key)
+
+    def test_it_says_what_each_place_is(self):
+        g, _s = grown()
+        kinds = {n["kind"] for n in march(g, "aldworth")["nodes"]}
+        self.assertIn("mine", kinds)
+        self.assertIn("town", kinds)
+        self.assertIn("shrine", kinds)
+
+    def test_prices_are_for_the_good_you_asked_about(self):
+        g, _s = grown()
+        bread = {n["key"]: n["price"] for n in march(g, "aldworth", "bread")["nodes"]}
+        iron = {n["key"]: n["price"] for n in march(g, "aldworth", "iron")["nodes"]}
+        self.assertNotEqual(bread, iron)
+        town = next(k for k in g.world.towns)
+        self.assertAlmostEqual(bread[town], g.world.towns[town].market.bid("bread"), 1)
+
+    def test_a_town_you_never_visited_says_so(self):
+        g, _s = grown(days=200)
+        unseen = [n for n in march(g, "aldworth")["nodes"]
+                  if n["kind"] == "town" and n["known"] < 0]
+        self.assertTrue(unseen, "the fog is not reaching the map")
+
+    def test_carts_report_where_they_have_got_to(self):
+        g, _s = grown()
+        carts = march(g, "aldworth")["carts"]
+        self.assertEqual(len(carts), len(g.caravans))
+        for c in carts:
+            self.assertGreaterEqual(c["done"], 0.0)
+            self.assertLessEqual(c["done"], 1.0)
+            self.assertLessEqual(c["load"], c["capacity"])
+
+    def test_a_cart_standing_still_is_not_pretending_to_move(self):
+        g, _s = grown()
+        for c in g.caravans:
+            c.bound_for = ""
+            c.days_left = 0.0
+        for c in march(g, "aldworth")["carts"]:
+            self.assertFalse(c["moving"])
+            self.assertEqual(c["done"], 0.0)
+
+    def test_it_names_the_runs_worth_making(self):
+        g, _s = grown()
+        runs = march(g, "aldworth")["runs"]
+        self.assertTrue(runs)
+        self.assertEqual(runs, sorted(runs, key=lambda r: -r["per_day"]))
+        for r in runs:
+            self.assertIn(r["from"], g.world.coords)
+            self.assertIn(r["to"], g.world.coords)
+
+    def test_the_map_still_draws_when_the_scan_finds_nothing(self):
+        g, _s = grown()
+        import marchlands.web as web
+        import marchlands.advisor as advisor
+        was = advisor.scan
+        advisor.scan = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no"))
+        try:
+            m = web.march(g, "aldworth")
+        finally:
+            advisor.scan = was
+        self.assertEqual(m["runs"], [])
+        self.assertTrue(m["nodes"])
+
+    def test_all_of_it_is_json(self):
+        g, _s = grown()
+        json.dumps(march(g, "aldworth"))
+
+
 class TestCommandBridge(unittest.TestCase):
     def test_a_command_runs_and_its_words_come_back(self):
         g, _s = grown(days=30)
@@ -211,6 +288,12 @@ class TestServer(unittest.TestCase):
         snap = json.loads(body)
         self.assertEqual(snap["day"], self.console.game.day)
         self.assertTrue(snap["plan"]["buildings"])
+
+    def test_the_march_is_served_too(self):
+        _s, _c, body = self.get("/march?good=wheat")
+        m = json.loads(body)
+        self.assertEqual(m["good"], "wheat")
+        self.assertTrue(m["nodes"])
 
     def test_the_chronicle_is_readable_from_the_page(self):
         _s, _c, body = self.get("/chronicle")

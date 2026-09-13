@@ -551,11 +551,236 @@ function drawWeather(w, h, t) {
   ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
 }
 
+/* ------------------------------------------------------------------ march
+ * The other half of the game, and the half the town view cannot show. A town
+ * is a picture of what you have; the march is a picture of what things are
+ * worth somewhere else, which is the only reason any of the carts move.
+ */
+let world = null, mode = 'town', good = 'bread', mapCam = null;
+
+function mapFit(w, h) {
+  const xs = world.nodes.map(n => n.x), ys = world.nodes.map(n => n.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const pad = 96;
+  const k = Math.min((w - 300 - pad) / Math.max(1, x1 - x0),
+                     (h - 200 - pad) / Math.max(1, y1 - y0));
+  return { k, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w, h };
+}
+const mapXY = (n, f) => [f.w / 2 + 90 + (n.x - f.cx) * f.k,
+                         f.h / 2 - 30 - (n.y - f.cy) * f.k];
+
+function priceBand(nodes) {
+  const vs = nodes.filter(n => n.price > 0).map(n => n.price).sort((a, b) => a - b);
+  if (!vs.length) return null;
+  return { lo: vs[0], mid: vs[Math.floor(vs.length / 2)], hi: vs[vs.length - 1] };
+}
+function priceColour(price, band) {
+  if (!band || !price) return '#8a7f6a';
+  // Cheap is green because cheap is where you buy. The scale is the median,
+  // not the mean: one crashed market should not recolour the whole march.
+  const f = price <= band.mid
+    ? (price - band.lo) / Math.max(1e-6, band.mid - band.lo) * 0.5
+    : 0.5 + (price - band.mid) / Math.max(1e-6, band.hi - band.mid) * 0.5;
+  const r = Math.round(90 + 150 * f), g = Math.round(160 - 90 * f);
+  return `rgb(${r},${g},70)`;
+}
+
+function drawMarch(w, h, t) {
+  // Parchment, not grass: a map is a different kind of seeing from a view.
+  const g0 = ctx.createLinearGradient(0, 0, w, h);
+  g0.addColorStop(0, '#ded0ac'); g0.addColorStop(1, '#cdbb92');
+  ctx.fillStyle = g0; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(120,96,58,.05)';
+  for (let i = 0; i < 240; i++) {
+    const x = (i * 137.9 % w), y = ((i * 311.7) % h);
+    ctx.beginPath(); ctx.arc(x, y, 1 + (i % 3), 0, 7); ctx.fill();
+  }
+  if (!world) return;
+  const f = mapFit(w, h);
+  const by = {}; for (const n of world.nodes) by[n.key] = n;
+  const band = priceBand(world.nodes);
+
+  // Roads: each place joined to its nearest few, which is how roads happen.
+  const trade = world.nodes.filter(n => n.kind !== 'shrine' && n.kind !== 'site');
+  ctx.strokeStyle = 'rgba(92,70,40,.34)';
+  ctx.lineWidth = 1.6; ctx.setLineDash([7, 5]);
+  const drawn = new Set();
+  for (const a of trade) {
+    const near = trade.filter(b => b !== a)
+      .sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))
+      .slice(0, 3);
+    for (const b of near) {
+      const id = [a.key, b.key].sort().join('|');
+      if (drawn.has(id)) continue;
+      drawn.add(id);
+      const [ax, ay] = mapXY(a, f), [bx, by2] = mapXY(b, f);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by2); ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+
+  // The trades worth making, drawn where they actually are.
+  world.runs.forEach((r, i) => {
+    const a = by[r.from], b = by[r.to];
+    if (!a || !b) return;
+    const [ax, ay] = mapXY(a, f), [bx, by2] = mapXY(b, f);
+    const mx = (ax + bx) / 2, my = (ay + by2) / 2 - 34 - i * 9;
+    ctx.strokeStyle = `rgba(150,115,26,${0.75 - i * 0.14})`;
+    ctx.lineWidth = Math.max(1.4, 4 - i);
+    ctx.beginPath(); ctx.moveTo(ax, ay);
+    ctx.quadraticCurveTo(mx, my, bx, by2); ctx.stroke();
+    if (i === 0) {
+      const label = `${r.per_day}c/day · ${r.goods.join(', ')}`;
+      ctx.font = '600 12px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      const tw = ctx.measureText(label).width;
+      // Sit it on the arc's own apex with parchment behind it, or it reads as
+      // part of whichever town name it happens to land on.
+      poly([[mx - tw / 2 - 6, my - 18], [mx + tw / 2 + 6, my - 18],
+            [mx + tw / 2 + 6, my - 3], [mx - tw / 2 - 6, my - 3]],
+           'rgba(232,220,186,.92)', 'rgba(150,115,26,.5)');
+      ctx.fillStyle = '#6b5212';
+      ctx.fillText(label, mx, my - 7);
+      ctx.textAlign = 'left';
+    }
+  });
+
+  // Carts, where they have actually got to this morning.
+  for (const c of world.carts) {
+    const a = by[c.from], b = by[c.to];
+    if (!a) continue;
+    const [ax, ay] = mapXY(a, f);
+    const [bx, by2] = b ? mapXY(b, f) : [ax, ay];
+    const x = ax + (bx - ax) * c.done, y = ay + (by2 - ay) * c.done;
+    const bob = c.moving ? Math.sin(t * 4 + c.uid) * 1.2 : 0;
+    ctx.fillStyle = 'rgba(60,44,22,.28)';
+    ctx.beginPath(); ctx.ellipse(x, y + 5, 8, 3, 0, 0, 7); ctx.fill();
+    if (c.kind === 'ship') {
+      ctx.strokeStyle = '#4a3a22'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(x, y - 10 + bob); ctx.lineTo(x, y + 1 + bob); ctx.stroke();
+      poly([[x, y - 10 + bob], [x + 9, y - 3 + bob], [x, y - 2 + bob]], '#e9dcbc');
+      poly([[x - 8, y + 1 + bob], [x + 8, y + 1 + bob], [x + 5, y + 5 + bob],
+            [x - 5, y + 5 + bob]], '#6a4f2c');
+    } else {
+      poly([[x - 8, y - 4 + bob], [x + 8, y - 4 + bob], [x + 8, y + 2 + bob],
+            [x - 8, y + 2 + bob]], c.running ? '#7a5a2e' : '#6a6458');
+      poly([[x - 8, y - 8 + bob], [x + 4, y - 8 + bob], [x + 6, y - 4 + bob],
+            [x - 8, y - 4 + bob]], '#d8c8a2');
+      ctx.fillStyle = '#3a2c18';
+      for (const wx of [-5, 5]) {
+        ctx.beginPath(); ctx.arc(x + wx, y + 3 + bob, 2.4, 0, 7); ctx.fill();
+      }
+    }
+    if (c.load > 0) {
+      ctx.fillStyle = '#4a3a1e';
+      ctx.font = '10px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${c.load}`, x, y - 13 + bob);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // The places themselves.
+  for (const n of world.nodes) {
+    const [x, y] = mapXY(n, f);
+    if (n.kind === 'shrine') {
+      ctx.strokeStyle = n.who === 'yours' ? '#96731a' : '#6a5a44';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, y - 9); ctx.lineTo(x, y + 5);
+      ctx.moveTo(x - 5, y - 4); ctx.lineTo(x + 5, y - 4); ctx.stroke();
+    } else if (n.kind === 'site') {
+      ctx.strokeStyle = 'rgba(90,110,60,.8)'; ctx.lineWidth = 1.4;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.stroke();
+      ctx.setLineDash([]);
+    } else {
+      const mine = n.kind === 'mine' || n.kind === 'vassal';
+      const size = n.kind === 'mine' ? 1.35 : 1;
+      // A ring of price round every market: green is where you buy.
+      if (n.price > 0) {
+        ctx.strokeStyle = priceColour(n.price, band);
+        ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.arc(x, y - 4, 15 * size, 0, 7); ctx.stroke();
+      }
+      poly([[x - 9 * size, y + 2], [x - 9 * size, y - 5 * size],
+            [x - 4 * size, y - 10 * size], [x + 1 * size, y - 5 * size],
+            [x + 1 * size, y + 2]], mine ? '#8a6a3a' : '#7a6a56');
+      poly([[x + 1 * size, y + 2], [x + 1 * size, y - 9 * size],
+            [x + 9 * size, y - 9 * size], [x + 9 * size, y + 2]],
+           mine ? '#9c7c46' : '#8b7b66');
+      ctx.fillStyle = mine ? '#5e4420' : '#574b3a';
+      ctx.fillRect(x + 3 * size, y - 15 * size, 4 * size, 6 * size);
+      if (n.kind === 'mine') {
+        ctx.strokeStyle = '#5a4a34'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x + 5, y - 15); ctx.lineTo(x + 5, y - 26); ctx.stroke();
+        poly([[x + 5, y - 26], [x + 17, y - 23], [x + 5, y - 19]], '#a8412f');
+      }
+      if (n.port) {
+        ctx.strokeStyle = 'rgba(40,80,110,.8)'; ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x - 14, y + 8); ctx.quadraticCurveTo(x, y + 12, x + 14, y + 8);
+        ctx.stroke();
+      }
+    }
+    ctx.fillStyle = n.kind === 'mine' ? '#4a3607' : '#3c3323';
+    ctx.font = (n.kind === 'mine' ? '600 13px ' : '12px ') +
+               '"Iowan Old Style", Palatino, Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.name, x, y + 19);
+    if (n.kind === 'town' && n.known < 0) {
+      ctx.fillStyle = 'rgba(70,58,36,.72)';
+      ctx.font = 'italic 11px Georgia, serif';
+      ctx.fillText('never visited', x, y + 32);
+    } else if (n.price > 0) {
+      ctx.fillStyle = priceColour(n.price, band);
+      ctx.font = '600 11px ui-monospace, Menlo, monospace';
+      ctx.fillText(`${n.price.toFixed(1)}c`, x, y + 32);
+    }
+    ctx.textAlign = 'left';
+  }
+  // A compass, because every map of a march has one.
+  ctx.strokeStyle = 'rgba(90,70,40,.6)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(w - 74, h - 148, 22, 0, 7); ctx.stroke();
+  poly([[w - 74, h - 168], [w - 69, h - 146], [w - 74, h - 150],
+        [w - 79, h - 146]], '#8f2b26');
+  ctx.fillStyle = '#5a4a30'; ctx.font = '11px Georgia, serif';
+  ctx.textAlign = 'center'; ctx.fillText('N', w - 74, h - 174); ctx.textAlign = 'left';
+}
+
+async function loadMarch() {
+  const r = await fetch('/march?good=' + encodeURIComponent(good));
+  world = await r.json();
+  paintTrade();
+}
+
+function paintTrade() {
+  if (!world) return;
+  $('runs').innerHTML = world.runs.length ? world.runs.map(r =>
+    `<li><b>${r.per_day}c/day</b> <span>${nameOf(r.from)} → ${nameOf(r.to)}, ` +
+    `${r.days}d · ${r.goods.join(', ') || 'nothing worth carrying'}</span></li>`
+  ).join('') : '<li><span>nothing worth carrying today</span></li>';
+  $('carts').innerHTML = world.carts.length ? world.carts.map(c =>
+    `<li><b>${c.name}</b> <span>${c.moving
+      ? `${nameOf(c.from)} → ${nameOf(c.to)}, ${Math.round(c.done * 100)}%`
+      : `standing at ${nameOf(c.from)}`} · ${c.load}/${c.capacity}</span></li>`
+  ).join('') : '<li><span>no carts on the road</span></li>';
+}
+function nameOf(key) {
+  const n = world && world.nodes.find(x => x.key === key);
+  return n ? n.name : key;
+}
+
 /* ------------------------------------------------------------------ frame */
 function frame() {
   const t = (performance.now() - t0) / 1000;
   const w = canvas.width / dpr, h = canvas.height / dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (mode === 'march') {
+    drawMarch(w, h, t);
+    requestAnimationFrame(frame);
+    return;
+  }
   drawSky(w, h, t);
   if (plan) {
     ctx.save();
@@ -608,7 +833,7 @@ canvas.addEventListener('wheel', e => {
 }, { passive: false });
 
 canvas.addEventListener('mousemove', e => {
-  if (!plan) return;
+  if (!plan || mode !== 'town') return;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   const px = (e.clientX - w / 2 - camera.x) / camera.zoom + (plan.w - plan.h) * TW / 4;
   const py = (e.clientY - h / 2 - camera.y) / camera.zoom + (plan.w + plan.h) * TH / 4;
@@ -683,6 +908,7 @@ async function send(line) {
   const data = await r.json();
   if (data.said) say(data.said, 'said');
   if (data.state) paint(data.state);
+  if (mode === 'march') loadMarch();
 }
 
 $('ask').addEventListener('submit', e => {
@@ -712,6 +938,26 @@ function frameTown() {
   camera.x = 120 - (mx + ox) * camera.zoom;
   camera.y = -40 - (my + oy) * camera.zoom;
 }
+
+function setMode(next) {
+  mode = next;
+  for (const [id, m] of [['v-town', 'town'], ['v-march', 'march']])
+    $(id).setAttribute('aria-pressed', String(mode === m));
+  document.body.classList.toggle('march', mode === 'march');
+  $('goodpick').hidden = mode !== 'march';
+  $('trade').hidden = mode !== 'march';
+  $('tip').hidden = true;
+  if (mode === 'march') loadMarch();
+}
+$('v-town').addEventListener('click', () => setMode('town'));
+$('v-march').addEventListener('click', () => setMode('march'));
+$('good').addEventListener('change', e => { good = e.target.value; loadMarch(); });
+
+const GOODS = ['bread', 'wheat', 'flour', 'ale', 'cheese', 'wool', 'cloth',
+               'wood', 'planks', 'stone', 'clay', 'pottery', 'iron', 'tools',
+               'weapons', 'armour', 'salt', 'spice', 'silk'];
+$('good').innerHTML = GOODS.map(g =>
+  `<option value="${g}"${g === good ? ' selected' : ''}>${g}</option>`).join('');
 
 (async function boot() {
   resize();

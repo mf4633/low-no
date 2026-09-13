@@ -14,10 +14,23 @@
     <span id="place">—</span>
     <span id="date" class="dim">—</span>
     <span class="grow"></span>
+    <span id="views" class="views">
+      <button id="v-town" type="button" aria-pressed="true">the town</button>
+      <button id="v-march" type="button" aria-pressed="false">the march</button>
+    </span>
+    <label id="goodpick" class="dim" hidden>price of
+      <select id="good"></select>
+    </label>
     <span id="purse">—</span>
   </header>
 
   <aside id="panel">
+    <section id="trade" hidden>
+      <h2>the best runs today</h2>
+      <ul id="runs"></ul>
+      <h2>your carts</h2>
+      <ul id="carts"></ul>
+    </section>
     <section>
       <h2>the town</h2>
       <div class="row"><label>souls</label><span id="souls">—</span></div>

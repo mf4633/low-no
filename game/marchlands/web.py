@@ -38,6 +38,83 @@ TYPES = {".html": "text/html; charset=utf-8",
          ".json": "application/json"}
 
 
+def march(game, here: str, good: str = "bread") -> dict:
+    """The map the trade layer actually lives on.
+
+    The town view shows the part of the game that is not the point. This is the
+    point: who is where, what the roads between them are worth, where your
+    carts have got to this morning, and which two places are currently further
+    apart in price than the distance between them can justify.
+    """
+    w = game.world
+    nodes = []
+    for key, (x, y) in w.coords.items():
+        if key in w.settlements:
+            s = w.settlements[key]
+            kind, name, who = "mine", s.name, "you"
+            stock = s.market.stock.get(good, 0.0)
+            price = s.market.bid(good)
+        elif key in w.towns:
+            t = w.towns[key]
+            kind = "vassal" if t.mine else "town"
+            name, who = t.name, (t.lord or "")
+            stock, price = t.market.stock.get(good, 0.0), t.market.bid(good)
+        elif key in w.shrines:
+            sh = w.shrines[key]
+            kind = "shrine"
+            name = sh.short or sh.name
+            who = ("yours" if sh.holder == "player"
+                   else w.node_name(sh.holder) if sh.holder else "")
+            stock = price = 0.0
+        else:
+            continue
+        seen, age = game.known(key) if key in w.towns else ({}, 0)
+        nodes.append({"key": key, "name": name, "x": x, "y": y, "kind": kind,
+                      "who": who, "port": w.is_port(key),
+                      "price": round(price, 2), "stock": round(stock),
+                      "known": age, "here": key == here})
+    for key, site in w.sites.items():
+        nodes.append({"key": key, "name": site.name, "x": site.x, "y": site.y,
+                      "kind": "site", "who": "", "port": False,
+                      "price": 0.0, "stock": 0, "known": 0, "here": False})
+
+    carts = []
+    for c in game.caravans:
+        frm = c.at or (c.route[c.leg - 1].node if c.route and c.leg else c.home)
+        to = c.bound_for or c.at or c.home
+        total = max(1.0, w.distance(frm, to) / max(c.speed, 1.0)) if frm and to else 1.0
+        carts.append({
+            "uid": c.uid, "name": c.name, "kind": c.kind,
+            "from": frm, "to": to,
+            "done": 0.0 if not c.bound_for else
+                    max(0.0, min(1.0, 1.0 - c.days_left / total)),
+            "moving": bool(c.bound_for), "running": c.running,
+            "load": round(c.load), "capacity": round(c.capacity),
+            "cargo": {k: round(v) for k, v in c.cargo.items() if v >= 1},
+            "profit": round(c.total_profit),
+        })
+
+    runs = []
+    seat = here if here in w.settlements else next(iter(w.settlements))
+    try:
+        from .advisor import scan as scan_trades
+        sails = any(s.count("harbour") for s in w.settlements.values())
+        for opp in scan_trades(w, seat, top=4, sails=sails, steps=6):
+            goods = {}
+            for leg in (opp.out, opp.back):
+                if leg:
+                    for k, v in leg.cargo.items():
+                        goods[k] = goods.get(k, 0.0) + v
+            runs.append({"from": opp.frm, "to": opp.to,
+                         "per_day": round(opp.per_day, 1),
+                         "days": round(opp.days, 1),
+                         "goods": [k for k, _v in sorted(
+                             goods.items(), key=lambda kv: -kv[1])[:3]]})
+    except Exception:
+        runs = []          # the map is worth drawing even if the scan is not
+    return {"good": good, "nodes": nodes, "carts": carts, "runs": runs}
+
+
 def snapshot(game, here: str = "") -> dict:
     """Everything the picture needs, and nothing it does not."""
     key = here or next(iter(game.world.settlements))
@@ -84,6 +161,7 @@ def snapshot(game, here: str = "") -> dict:
                    "tribute": round(led.tribute, 1), "wages": round(led.wages, 1),
                    "upkeep": round(led.upkeep, 1), "net": round(led.net, 1)},
         "plan": plan_for(s).to_dict(),
+        "caravans": len(game.caravans),
         "age": game.progress.age_name(),
         "relics": game.relics_held(),
     }
@@ -127,6 +205,11 @@ class Handler(BaseHTTPRequestHandler):
         if route == "/state":
             with self.lock:
                 return self._json(snapshot(self.console.game, self.console.here))
+        if route == "/march":
+            good = (urlparse(self.path).query.split("good=")[-1].split("&")[0]
+                    if "good=" in self.path else "bread")
+            with self.lock:
+                return self._json(march(self.console.game, self.console.here, good))
         if route == "/chronicle":
             with self.lock:
                 g = self.console.game

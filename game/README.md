@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 404 tests, ~5min
+python3 -m unittest discover -s tests          # 414 tests, ~5min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -148,6 +148,26 @@ hover a roof to ask what it is.
 Where a building actually stands is decided in Python (`layout.py`), not in
 the drawing code, for one reason: layout is a decision and decisions should be
 testable. The renderer's only job is to make it look like somewhere.
+
+**`the march`** switches to the other half, and the half that is actually the
+point. A town is a picture of what you have; the march is a picture of what
+things are worth *somewhere else*, which is the only reason any of the carts
+move. On parchment rather than grass, because a map is a different kind of
+seeing from a view:
+
+* every market ringed by what it pays for one good, which you choose — green
+  where it is cheap, red where it is dear, scaled to the median so one crashed
+  market does not recolour the whole march
+* your carts where they have actually got to this morning, with what is in
+  them, crawling along their legs in real time; cogs drawn as cogs
+* the best runs the scanner found, drawn as arcs between the two places they
+  join, the best one labelled with its coin per day and what it carries
+* the fog on it: a town you have never sent a cart to is labelled *never
+  visited* rather than given a number it has not earned
+
+Which is the whole thesis of the game in one picture: bread at 3.8c in Bruille
+and 16.4c in Ostmark, four days apart, and a cart of yours already on the road
+between them.
 
 ### In a terminal
 
