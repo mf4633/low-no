@@ -448,10 +448,13 @@ class TestTheConsoleSaysAllOfIt(unittest.TestCase):
         self.assertIn("Dunmere", out)
 
     def test_the_hint_points_at_a_child_with_nothing_to_do(self):
+        """Asked of the house's own hints rather than the top four on the
+        screen: a host that has said it is marching on you outranks an idle
+        heir, and it should."""
         self.g.advance(30)
-        hints = " ".join(self.con.hints())
-        self.assertIn("nothing to do", hints)
-        self.assertIn("post ", hints)
+        said = " ".join(text for _weight, text in self.con._kin_hints())
+        self.assertIn("nothing to do", said)
+        self.assertIn("post ", said)
 
 
 if __name__ == "__main__":

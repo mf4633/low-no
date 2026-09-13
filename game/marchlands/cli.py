@@ -15,12 +15,13 @@ from .buildings import resolve as resolve_building
 from .campaign import CHAPTERS, BY_KEY as CHAPTERS_BY_KEY
 from .castle import PLANS, SiegeState, Works
 from .chronicle import MOMENTOUS, NOTABLE, ROUTINE
-from .engine import GameState
+from .engine import GameState, _ordinal
 from .economics import (compare, daily_output, marginal_hands,
                         surplus, town_output)
 from .goods import ALL_KEYS, RATION_GOODS, good, nourishment
 from .goods import resolve as resolve_good
 from . import kin as kinly
+from . import league as lg
 from . import lord as lordly
 from . import render as ink
 from .military import UNITS, describe, host_strength, host_upkeep
@@ -704,9 +705,10 @@ class Console:
         losing = [r for r in marginal_hands(s) if r.shut]
         if losing:
             worst = losing[0]
-            verb = "pays" if len(losing) == 1 else "pay"
+            verb, its = (("pays", "it costs") if len(losing) == 1
+                         else ("pay", "they cost"))
             out.append((70.0, f"{ink.count(len(losing), 'shed')} of yours "
-                        f"{verb} less than it costs: the {worst.name} makes "
+                        f"{verb} less than {its}: the {worst.name} makes "
                         f"{worst.net:,.1f}c a hand against a wage of "
                         f"{C.WAGE:.2f}c. `margin` ranks them; `close <id>` "
                         f"stops one."))
@@ -717,6 +719,28 @@ class Console:
                             f"there is none to be had at any price. `assize "
                             f"{key} off` lets it find its own."))
                 break
+        # Somebody said out loud that they are coming, and the whole reason
+        # for saying it out loud is that you get to do something about it.
+        se = g.league.season
+        for f in se.fixtures:
+            if f.done or f.target not in g.world.settlements:
+                continue
+            out.append((84.0, f"{self._name(f.who)} has said they mean to move "
+                        f"on {self._name(f.target)}. `season` has the table and "
+                        f"the rest of the schedule; `truce {f.who}` buys them "
+                        f"off; `plans` says what they could try."))
+            break
+        if se.on_the_clock() == lg.PLAYER and se.undrafted():
+            best = max(se.undrafted(), key=lambda p: p.grade)
+            out.append((72.0, f"You are on the clock and {best.name} is the best "
+                        f"man left ({best.skill} {best.grade}). `draft "
+                        f"{best.name.split()[0].lower()}` takes him."))
+        over = g.muster_cost()
+        if over > 1.25:
+            out.append((58.0, f"Your muster is past what "
+                        f"{ink.count(len(g.world.settlements), 'town')} can keep: "
+                        f"every soldier costs {over:.1f} times his wage. "
+                        f"`standdown` or take another town."))
         # The most actionable thing there is: you are going to fall short, and
         # there are still two years to do something about it.
         left = g.goals.days - g.day
@@ -1357,6 +1381,97 @@ class Console:
                          + ink.c(heir.doing(self._name), ink.DIM))
         self.say("", ink.c("  lord <host> sends him out, lord home brings him back. "
                            "`kin` is the rest of them.", ink.DIM))
+
+    # ---------------------------------------------------------- the league
+    def cmd_season(self, args: List[str]) -> None:
+        """The table, and who has said they are coming for whom."""
+        g = self.game
+        se = g.league.season
+        if args and args[0].lower() in ("past", "history", "champions"):
+            return self._seasons_past()
+        self.say(ink.head(f"THE {se.year} SEASON",
+                          f"you stand {_ordinal(se.place(lg.PLAYER))} of "
+                          f"{len(se.records)}"))
+        self.say(ink.c("   #  place        who holds it          towns"
+                       "    W-L   could field", ink.DIM))
+        for i, r in enumerate(se.table(), 1):
+            me = r.key == lg.PLAYER
+            colour = ink.GOLD if me else ink.INK
+            self.say(f"  {i:>2}  {ink.c(ink.pad(r.name or r.key, 13), colour)}"
+                     f"{ink.c(ink.pad(_short(r.lord, 21), 22), ink.DIM)}"
+                     f"{r.towns:>4}"
+                     f"{ink.c(f'{r.line():>8}', ink.PARCH if me else ink.DIM)}"
+                     f"{r.muster:>13,.0f}")
+        # The schedule. The difference between a war and an ambush is a
+        # fortnight's notice, and this is the fortnight.
+        self.say("", ink.c("  WHO IS GOING WHERE", ink.DIM))
+        shown = 0
+        for f in se.fixtures:
+            if f.done:
+                continue
+            at_you = f.target in g.world.settlements
+            self.say(f"  {ink.c(ink.pad(self._name(f.who), 13), ink.PARCH)}"
+                     + ink.c("means to move on ", ink.DIM)
+                     + ink.c(self._name(f.target), ink.BLOOD if at_you else ink.INK)
+                     + (ink.c("  -- that is you", ink.BLOOD) if at_you else ""))
+            shown += 1
+        if not shown:
+            self.say(ink.c("  nobody has said anything. It will not last.", ink.DIM))
+        best = g.league.bests
+        if best:
+            self.say("", ink.c("  STANDING RECORDS", ink.DIM))
+            for what, (value, who, year) in sorted(best.items()):
+                self.say(f"  {ink.pad(what, 26)}{value:>9,.0f}  "
+                         + ink.c(f"{who}, {year}", ink.DIM))
+        self.say("", ink.c("  `draft` for the men looking for a lord · "
+                           "`season past` for the years before this one", ink.DIM))
+
+    def _seasons_past(self) -> None:
+        g = self.game
+        past = g.league.past
+        self.say(ink.head("SEASONS PAST", ink.count(len(past), "year")))
+        if not past:
+            return self.say(ink.c("  This is the first.", ink.DIM))
+        for row in reversed(past):
+            table = row.get("table", [])
+            mine = next((r for r in table if r["key"] == lg.PLAYER), None)
+            where = next((i for i, r in enumerate(table, 1)
+                          if r["key"] == lg.PLAYER), 0)
+            self.say(f"  {ink.c(str(row['year']), ink.PLUM)}  "
+                     f"{ink.c(ink.pad(row.get('first', '?'), 14), ink.GOLD)}"
+                     + ink.c("first of the march", ink.DIM)
+                     + (f"   you: {_ordinal(where)}, {mine['won']}-{mine['lost']}"
+                        if mine else ""))
+
+    def cmd_draft(self, args: List[str]) -> None:
+        """The men looking for a lord this year, in reverse order of finish."""
+        g = self.game
+        se = g.league.season
+        if args:
+            return self.say("  " + g.draft(" ".join(args)))
+        self.say(ink.head(f"THE {se.year} INTAKE",
+                          "last year's last chooses first"))
+        if not se.prospects:
+            return self.say(ink.c("  Nobody is looking for a lord.", ink.DIM))
+        for p in se.prospects:
+            who = ("" if not p.taken_by else
+                   "you" if p.taken_by == lg.PLAYER else self._name(p.taken_by))
+            gone = ink.c(f"-> {who}", ink.GOLD if p.taken_by == lg.PLAYER
+                         else ink.DIM) if who else ink.c("free", ink.LEAF)
+            self.say(f"  {ink.c(ink.pad(_short(p.name, 22), 23), ink.PARCH)}"
+                     f"{ink.c(ink.pad(f'{p.skill} {p.grade}', 16), ink.BONE)}"
+                     f"{ink.pad(gone, 18)}{ink.c(_short(p.story, 44), ink.DIM)}")
+        turn = se.on_the_clock()
+        self.say("")
+        if turn == lg.PLAYER:
+            self.say(ink.c("  You are on the clock. `draft <name>` takes one.",
+                           ink.GOLD))
+        elif turn:
+            self.say(ink.c(f"  {self._name(turn)} is on the clock.", ink.DIM))
+        else:
+            self.say(ink.c("  The intake is spoken for. Next spring.", ink.DIM))
+        self.say(ink.c("  Reverse order of last year's table, which is the whole "
+                       "point of it:\n  finish last and you choose first.", ink.DIM))
 
     # --------------------------------------------------------- the economy
     def cmd_economy(self, args: List[str]) -> None:
@@ -2083,6 +2198,11 @@ def _node_colour(game, key: str) -> int:
     return ink.BLOOD if town.hostility > 70 else ink.INK
 
 
+def _short(text: str, n: int) -> str:
+    """A name that will not fit, cut where a reader can still place it."""
+    return text if len(text) <= n else text[:n - 1].rstrip() + "…"
+
+
 def _level(text: str, labels: Dict[int, str]) -> int:
     t = text.lower()
     for k, v in labels.items():
@@ -2140,6 +2260,8 @@ COMMANDS = {
     "raid": Console.cmd_raid, "relics": Console.cmd_relics,
     "lord": Console.cmd_lord, "chronicle": Console.cmd_chronicle,
     "kin": Console.cmd_kin, "house": Console.cmd_kin, "family": Console.cmd_kin,
+    "season": Console.cmd_season, "standings": Console.cmd_season,
+    "table": Console.cmd_season, "draft": Console.cmd_draft,
     "economy": Console.cmd_economy, "accounts": Console.cmd_economy,
     "margin": Console.cmd_margin, "surplus": Console.cmd_surplus,
     "advantage": Console.cmd_advantage, "mint": Console.cmd_mint,
@@ -2188,6 +2310,7 @@ HELP = """
                     lord [<id>|home|ransom]     relics    chronicle
   YOUR HOUSE        kin [name]      post [<name> <post> [where]]
                     marry [<name> <town>]
+  THE MARCH         season [past]   draft [<name>]
   THE ECONOMY       economy         margin [town]          surplus <good> [town]
                     advantage <good> [town]                mint [coin]
                     assize [<good> <price>|off]

@@ -23,6 +23,8 @@ from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lord as lordly
 from .kin import POSTS, Kin, found as found_kin
+from . import league as lg
+from .league import League, PLAYER
 from .lord import Lord
 from .market import Market
 from .military import (BESIEGING, GARRISON, MARCHING, RAIDING, RETURNING,
@@ -99,6 +101,13 @@ class Ledger:
         return self.__dict__.copy()
 
 
+def _ordinal(n: int) -> str:
+    """`3rd of 9`, because `place 3` is not how anybody says it."""
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
 @dataclass
 class GameState:
     world: World
@@ -126,6 +135,8 @@ class GameState:
     lord: Lord = field(default_factory=Lord)
     #: Who he is, who is behind him, and what each of them has been doing.
     kin: Kin = field(default_factory=Kin)
+    #: The march as a competition: a table, a schedule, and a draft.
+    league: League = field(default_factory=League)
     #: The national accounts, and the mint. Measures everything, moves one
     #: thing: the price level, which is the only honest way for a debasement
     #: to be felt.
@@ -153,6 +164,9 @@ class GameState:
                                  else self.lord.name)
             self.lord.name = self.kin.lord.name
         self.kin.seat = self.lord.seat
+        if not self.league.seed:
+            self.league.seed = self.seed * 40507 + 13
+            self.league.rng = random.Random(self.league.seed)
 
     # ------------------------------------------------------------- calendar
     @property
@@ -282,8 +296,13 @@ class GameState:
             led.wages += rep.wages
             led.upkeep += rep.upkeep
             msgs += rep.notes
-        # Your hosts, not the ones marching on you.
+        # Your hosts, not the ones marching on you -- and a host bigger than
+        # your holdings can reasonably keep costs more per man than the last.
+        # Not a ceiling: a ceiling is a rule a player fights, a rising cost is
+        # a decision a player makes, and it still ends runaway musters because
+        # the last man on the roll eats like three.
         led.war = sum(a.upkeep for a in self.armies if a.owner == "player")
+        led.war *= self.muster_cost()
         led.building, self._outlay = self._outlay, 0.0
         led.war += self._war_outlay
         self._war_outlay = 0.0
@@ -332,12 +351,15 @@ class GameState:
         # 7. War.
         msgs += self._military_day()
 
-        # 8. The mint, the assize, and the reckoning of what any of it was
+        # 8. The league: the turn of the year, the table, the draft.
+        msgs += self._league_day()
+
+        # 9. The mint, the assize, and the reckoning of what any of it was
         # worth. Prices walk toward what the money supply says they must be;
         # a legal maximum bites or does not; and the day is then measured.
         msgs += self._economy_day()
 
-        # 9. Mood and migration settle last, on the day as it actually went.
+        # 10. Mood and migration settle last, on the day as it actually went.
         for s in self.world.settlements.values():
             s.update_mood(self.progress)
             s.migrate(self.rng, self.progress)
@@ -674,6 +696,8 @@ class GameState:
                     beaten, kept = winner, loser
                 msgs.append(f"Men come to blows at {sh.name}; "
                             f"{beaten.name} is driven off")
+                self.scored(kept.owner, won=True)
+                self.scored(beaten.owner, won=False)
                 if beaten.owner == "player":
                     self.march(beaten.uid, beaten.home)
                 elif beaten in self.armies:
@@ -1019,6 +1043,201 @@ class GameState:
             return "a season or more"
         return f"about {days:.0f} days"
 
+    # ------------------------------------------------------------ the league
+    def _league_day(self) -> List[str]:
+        """The turn of the year, and the table kept up to date inside it."""
+        msgs: List[str] = []
+        season = self.league.season
+        year = self.year
+        if not season.opened or season.year != year:
+            msgs += self._open_season(year)
+            season = self.league.season
+        self._keep_the_table()
+        return msgs
+
+    def _open_season(self, year: int) -> List[str]:
+        """Close last year's book, publish this year's, and hold the draft.
+
+        Everything a league does at the turn of a year happens here: the table
+        is frozen and remembered, the lords say who they mean to move on, and
+        the men looking for a lord are set out in reverse order of finish.
+        """
+        msgs: List[str] = []
+        old = self.league.season
+        if old.opened and old.records:
+            table = old.table()
+            first = table[0]
+            self.league.past.append({
+                "year": old.year, "first": first.name or first.key,
+                "table": [r.to_dict() for r in table]})
+            del self.league.past[:-24]
+            mine = old.records.get(PLAYER)
+            if mine is not None:
+                where = old.place(PLAYER)
+                msgs.append(self.note(
+                    f"*** The {old.year} season closes. {first.name or first.key} "
+                    f"stands first of the march; you stand {_ordinal(where)} of "
+                    f"{len(table)} on {mine.line()}. ***", MOMENTOUS))
+                if mine.won and self.league.mark("a season's fields won",
+                                                 mine.won, "you", old.year):
+                    msgs.append(self.note(f"{mine.won} fields in a year is the "
+                                          f"most anybody has managed."))
+            order = [r.key for r in reversed(table)]
+        else:
+            # No table to reverse in the first spring, so it is drawn for.
+            # Handing the player first pick of the first class would be a
+            # head start the whole device exists to prevent.
+            order = [PLAYER] + list(self.world.towns)
+            self.league.rng.shuffle(order)
+        season = lg.Season(year=year, opened=True, order=order)
+        # The schedule. A lord who has been quietly building ambition all
+        # winter says so in the spring, and you get to hear it.
+        for key, t in self.world.towns.items():
+            if t.mine:
+                continue
+            target = self._intent_of(t)
+            if target:
+                season.fixtures.append(lg.Fixture(who=key, target=target,
+                                                  declared=self.day))
+        season.prospects = lg.draft_class(self.league.rng, year)
+        self.league.season = season
+        self._keep_the_table()
+        msgs.append(self.note(
+            f"*** The {year} season opens. {len(season.fixtures)} lords have "
+            f"said where they are going, and {len(season.prospects)} men are "
+            f"looking for one. `season` · `draft` ***", MOMENTOUS))
+        msgs += self._run_draft()
+        return msgs
+
+    def _intent_of(self, town) -> str:
+        """Who a lord means to move on, given what he wants and who is near.
+
+        The same reading the war engine makes when the hostility finally tips;
+        making it early and saying it out loud is the whole schedule.
+        """
+        if town.truce_days > 0:
+            return ""
+        mine = self._nearest_of_mine(town.key)
+        # Only a lord who has actually taken against you says he is coming for
+        # you. Reading a flat nought as "hostility is at least ambition" put
+        # every lord on the march down as marching on your gate in the first
+        # spring, which is a schedule that tells you nothing.
+        if mine and town.hostility >= max(35.0, town.ambition):
+            return mine
+        near = [k for k in self.world.towns
+                if k != town.key and not self.world.towns[k].mine]
+        if not near:
+            return mine or ""
+        near.sort(key=lambda k: self.world.distance(town.key, k))
+        return near[0]
+
+    def _keep_the_table(self) -> None:
+        """The standings, recomputed from what is actually true today."""
+        season = self.league.season
+        vassals = set(self.world.vassals())
+        mine = season.record(PLAYER)
+        mine.name, mine.lord = "you", self.lord.name
+        mine.towns = len(self.world.settlements) + len(vassals)
+        mine.worth = self.net_worth()
+        mine.muster = float(self.soldiers)
+        for key, t in self.world.towns.items():
+            r = season.record(key)
+            r.name, r.lord = t.name, t.lord
+            if t.mine:
+                r.towns = 0
+                continue
+            r.towns = 1 + sum(1 for o in self.world.towns.values()
+                              if o.owner == key)
+            r.worth = 1000.0 * t.prosperity * t.wealth
+            r.muster = t.muster * 60.0
+
+    def scored(self, who: str, *, won: bool) -> None:
+        """A field carried or lost, for the table."""
+        r = self.league.season.record(who)
+        if won:
+            r.won += 1
+        else:
+            r.lost += 1
+
+    def took_town(self, who: str, lost_by: str = "") -> None:
+        r = self.league.season.record(who)
+        r.taken += 1
+        if lost_by:
+            self.league.season.record(lost_by).given += 1
+
+    # ------------------------------------------------------------- the draft
+    def _run_draft(self) -> List[str]:
+        """Reverse order of finish, and everybody ahead of you picks at once.
+
+        The player's turn stops the clock; everyone else takes the best man
+        left the moment it reaches them. Finishing last is worth something,
+        which is the entire point and the reason a league has one.
+        """
+        msgs: List[str] = []
+        season = self.league.season
+        while season.picking < len(season.order):
+            who = season.order[season.picking]
+            if who == PLAYER:
+                left = season.undrafted()
+                if left:
+                    msgs.append(f"You are on the clock: {len(left)} men to "
+                                f"choose from. `draft` shows them, "
+                                f"`draft <name>` takes one.")
+                    return msgs
+                season.picking += 1
+                continue
+            left = season.undrafted()
+            if not left:
+                break
+            best = max(left, key=lambda p: p.grade)
+            best.taken_by = who
+            name = self.world.node_name(who)
+            msgs.append(f"{name} takes {best.name} ({best.skill} {best.grade}).")
+            season.picking += 1
+        return msgs
+
+    def draft(self, name: str = "") -> str:
+        """Take one of the men looking for a lord, if it is your turn."""
+        season = self.league.season
+        if not season.prospects:
+            return "nobody is looking for a lord this year"
+        if season.on_the_clock() != PLAYER:
+            who = season.on_the_clock()
+            if not who:
+                return "the draft is done for this year"
+            return (f"{self.world.node_name(who)} is on the clock, not you")
+        left = season.undrafted()
+        if not left:
+            return "there is nobody left to take"
+        if not name:
+            return f"{len(left)} to choose from -- `draft <name>` takes one"
+        want = name.strip().lower()
+        pick = next((p for p in left if p.name.lower().startswith(want)), None)
+        if pick is None:
+            pick = next((p for p in left if want in p.name.lower()), None)
+        if pick is None:
+            return f"nobody called {name!r} among them"
+        pick.taken_by = PLAYER
+        season.picking += 1
+        person = self.kin.add(pick.name, "f" if pick.name.split()[0][-1] in "aey"
+                              else "m", born=self.day - 26 * C.DAYS_PER_YEAR)
+        person.sworn = True
+        person.xp[pick.skill] = lg.STEEP_FOR[pick.grade]
+        said = self.note(f"{pick.name} is sworn to you -- {pick.story}, and it "
+                         f"shows: {pick.skill} {pick.grade}. `post` gives him "
+                         f"something to do.")
+        rest = self._run_draft()
+        return "\n".join([said] + rest)
+
+    def muster_cap(self) -> float:
+        """How many soldiers your holdings keep at the ordinary price."""
+        return lg.cap_for(len(self.world.settlements) + len(self.world.vassals()))
+
+    def muster_cost(self) -> float:
+        """The multiplier on what your soldiers cost, for being too many."""
+        return lg.overage(float(self.soldiers),
+                          len(self.world.settlements) + len(self.world.vassals()))
+
     def relics_held(self, owner: str = "player") -> int:
         return sum(1 for sh in self.world.shrines.values() if sh.holder == owner)
 
@@ -1165,8 +1384,13 @@ class GameState:
             res = fight(besieger, holder, rng=self.rng, place=town.name)
             msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
                         f"the ground after {res.rounds} rounds")
+            msgs.append(self._box_score(f"{a.name} storms {town.name}", res,
+                                        a.owner, town.key))
+            self.scored(a.owner, won=res.winner == "attacker")
+            self.scored(town.key, won=res.winner != "attacker")
             a.siege_days = 0
             if res.winner == "attacker":
+                self.took_town(a.owner, town.key)
                 if player:
                     self.kin.did("merciful", -0.35)
                     self.kin.teach("engineering", 14.0, self.day, post="master")
@@ -1230,6 +1454,12 @@ class GameState:
         a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
         if storms_now(a.siege.plan, wall, holder.alive()):
             res = fight(besieger, holder, rng=self.rng, place=s.name)
+            msgs.append(self._box_score(f"{a.name} storms {s.name}", res,
+                                        a.owner, PLAYER))
+            self.scored(a.owner, won=res.winner == "attacker")
+            self.scored(PLAYER, won=res.winner != "attacker")
+            if res.winner == "attacker":
+                self.took_town(a.owner, PLAYER)
             msgs.append(f"ASSAULT ON {s.name.upper()}: the {res.winner} holds the "
                         f"ground after {res.rounds} rounds")
             # Men who get over a wall set light to what is behind it, whether
@@ -1281,6 +1511,21 @@ class GameState:
             f"*** {s.name.upper()} IS STORMED. The keep is thrown down and "
             f"{loot:,.0f}c carried off. Raise another, or hold what is left "
             f"of the march from somewhere else. ***", MOMENTOUS)
+
+    def _box_score(self, title: str, res, attacker: str, defender: str) -> str:
+        """What a battle actually cost, both sides, in one line.
+
+        The log said who held the ground and nothing else -- which is the
+        result without the game. A box score is the least a competition owes
+        anybody who was in it.
+        """
+        lost = lambda d: sum(d.values())          # noqa: E731 - a local shorthand
+        att = self.world.node_name(attacker) if attacker != PLAYER else "yours"
+        deff = self.world.node_name(defender) if defender != PLAYER else "yours"
+        return (f"    box  {title} · {res.rounds} rounds · "
+                f"{att} lost {lost(res.attacker_losses):.0f}, "
+                f"{deff} lost {lost(res.defender_losses):.0f}"
+                + (f", wall {res.wall_damage:,.0f}" if res.wall_damage else ""))
 
     def _take_town(self, town, a: Army) -> str:
         was_mine = town.mine
@@ -1907,6 +2152,7 @@ class GameState:
             "relic_days": self.relic_days, "mood_days": self.mood_days,
             "lord": self.lord.to_dict(), "kin": self.kin.to_dict(),
             "economy": self.economy.to_dict(),
+            "league": self.league.to_dict(),
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
             "rng": list(self.rng.getstate()),
@@ -1947,6 +2193,7 @@ class GameState:
         g.kin.seat = g.lord.seat
         g.kin.riding = g.lord.riding
         g.economy = Economy.from_dict(d.get("economy", {}))
+        g.league = League.from_dict(d.get("league", {}))
         for s in g.world.settlements.values():
             s.market.level = g.economy.price_level
             s.market.caps = dict(g.economy.assize)

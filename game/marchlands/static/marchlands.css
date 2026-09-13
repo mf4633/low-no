@@ -159,6 +159,12 @@ body.march #ear { color: #6b5c3e; background: rgba(235,224,194,.75);
 #kinlist span { color: var(--dim); font-size: 11.5px; text-align: right; }
 #repute { margin: 6px 0 0; font-size: 11.5px; font-style: italic; }
 
+#standings li { font-size: 12.5px; padding: 1px 0; }
+#standings li.me label, #standings li.me span { color: var(--gold); }
+#standings span { color: var(--dim); font-variant-numeric: tabular-nums; }
+#clock { margin: 6px 0 0; font-size: 11.5px; font-style: italic; }
+#clock.down { color: var(--blood); font-style: normal; }
+
 #race em { font-style: normal; color: var(--dim); font-size: 11px; }
 #race span { font-variant-numeric: tabular-nums; font-size: 12.5px; }
 

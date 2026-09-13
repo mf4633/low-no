@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 593 tests, ~7min
+python3 -m unittest discover -s tests          # 629 tests, ~8min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -911,6 +911,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `castle.py` | works, assault plans, and what answers what |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
 | `kin.py` | the house: skills earned in the job, traits earned by choice, births, marriages, succession |
+| `league.py` | the march as a competition: table, schedule, draft, and the cap |
 | `economics.py` | the accounts: price index, surplus and deadweight loss, comparative advantage, the marginal product, the mint |
 | `fire.py` | what catches, how it spreads, and what puts it out |
 | `layout.py` | where everything stands, so a renderer can draw a place |
@@ -921,6 +922,98 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
+
+## The march is a league
+
+```
+season [past]             the table, and who has said they are coming
+draft [<name>]            the men looking for a lord, in reverse order of finish
+```
+
+The march always had eight rival lords taking towns off each other. What it
+did not have was the one thing that turns a set of rivalries into a
+competition you can follow — a **table**. You could not say who was ahead. You
+could not say who was coming for you next. And a season that went badly went
+badly for ever, because nothing in the design ever handed anything back to
+whoever was losing.
+
+Those three gaps have one well-known answer between them and it is not a
+medieval one. The NFL is the most deliberately balanced competition anybody
+has built: a standings table everyone reads the same way, a schedule published
+before a ball is thrown, and a set of levers — a draft in reverse order of
+finish, a ceiling on what anyone may spend — whose entire purpose is to stop
+last year deciding next year. *Any given Sunday* is a design goal, not a
+slogan.
+
+Which is exactly the hole the [fair play](#fair-play) pass measured: outcomes
+ranging five-fold across seeds on an identical map, because an early stumble
+never compounds back. A league has faced precisely that problem and solved it
+on purpose.
+
+### The table
+
+```
+── THE 1249 SEASON ─────────────────────────────── you stand 1st of 9 ──
+   #  place        who holds it          towns    W-L   could field
+   1  you          Eadric the Fair          3     0-0           91
+   2  Marchand     the Count of Marchand    2     1-0          108
+   9  Dunmere      Reeve Halden             1     0-3           30
+```
+
+Towns first because towns are the game, then fields won because a lord who
+keeps winning is coming for you whatever he holds, then what he could put in
+the field. That last one is deliberately **muster and not worth**: a player
+with a whole economy behind them is richer than any lord on the march by an
+order of magnitude, so worth put them top of a column that meant nothing.
+
+Every storm and every scrap at a shrine now leaves a **box score** — both
+sides, both losses, the rounds it took. The log said who held the ground and
+nothing else, which is the result without the game.
+
+### The schedule
+
+Lords declare at the turn of the year who they mean to move on. It can change
+— a muster roll is an intention, not an oath — but you are no longer
+blindsided by a host that was always coming. It is drawn on the march as a
+bowed arrow from each lord to the place he named, and **the one pointed at you
+is the only red thing on that map**.
+
+Getting this wrong was instructive: reading a flat nought as "hostility is at
+least ambition" put every lord on the march down as marching on your gate in
+the first spring, which is a schedule that tells you nothing at all.
+
+### The draft
+
+Each spring four men worth having come looking for a lord — a steward who kept
+a bishop's manors for nine years, a factor who walked the salt road twice a
+year for a decade — and they go in **reverse order of last year's table**.
+Finish last and you choose first. It is the single most effective parity
+device ever designed and it plugs straight into a house that needs a steward.
+
+A drafted man arrives knowing his trade and no further on than a son who has
+held the post four years; a draft that handed out a steward of six would
+decide the game by itself, which is the opposite of what a draft is for. He is
+**sworn, not blood** — he can hold any post and he cannot inherit the seat.
+
+The first spring is drawn for rather than given to you, because handing the
+player first pick of the first class would be a head start the whole device
+exists to prevent.
+
+### The cap
+
+Not a ceiling — a rising cost. Past what your holdings can reasonably keep
+under arms, every further soldier eats more than the last:
+
+| host against the cap | what each man costs |
+|---|---|
+| at the cap | 1.00× |
+| half again | 1.57× |
+| twice | 2.45× |
+| three times | 4.70× |
+
+A hard ceiling is a rule a player fights; a rising cost is a decision a player
+makes, and it still ends runaway musters because the last man on the roll eats
+like three.
 
 ## Fair play
 

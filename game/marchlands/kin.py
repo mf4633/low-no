@@ -143,6 +143,7 @@ class Person:
     spouse: int = 0
     married_to: str = ""           # the town a marriage tied you to, if any
     inlaw: bool = False            # married in rather than born to the house
+    sworn: bool = False            # took service; not of the blood, cannot inherit
     post: str = ""                 # a POSTS key, "" for nothing, "head" for the lord
     target: str = ""               # town key or host uid, as the post needs
     xp: Dict[str, float] = field(default_factory=dict)
@@ -408,7 +409,8 @@ class Kin:
         if grown:
             return grown[0]
         others = sorted((p for p in self.living()
-                         if p.uid != self.head and p.grown(day) and not p.inlaw),
+                         if p.uid != self.head and p.grown(day)
+                         and not p.inlaw and not p.sworn),
                         key=lambda p: p.born)
         if others:
             return others[0]

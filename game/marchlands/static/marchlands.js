@@ -1007,6 +1007,41 @@ function drawMarch(w, h, t) {
     }
   });
 
+  // The schedule, drawn. A lord who has said where he is going gets an arrow
+  // to the place he said, and the one pointed at you is the only red thing on
+  // this map. The difference between a war and an ambush is a fortnight's
+  // notice; this is what the fortnight looks like.
+  for (const fx of (world.fixtures || [])) {
+    const a = by[fx.who], b = by[fx.target];
+    if (!a || !b) continue;
+    const [ax, ay] = mapXY(a, f), [bx, by2] = mapXY(b, f);
+    const dx = bx - ax, dy = by2 - ay, len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    // Stop short of both ends so the arrow joins the places rather than
+    // covering them, and bow it away from the straight line, because a road
+    // is already a dashed grey line between the same two towns and a second
+    // one would be invisible.
+    const x0 = ax + ux * 20, y0 = ay + uy * 20;
+    const x1 = bx - ux * 26, y1 = by2 - uy * 26;
+    const mx = (x0 + x1) / 2 - uy * len * 0.14;
+    const my = (y0 + y1) / 2 + ux * len * 0.14;
+    ctx.save();
+    ctx.strokeStyle = fx.at_you ? 'rgba(150,34,28,.85)' : 'rgba(128,58,44,.42)';
+    ctx.lineWidth = fx.at_you ? 2.4 : 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(mx, my, x1, y1);
+    ctx.stroke();
+    // The head points along the curve's last leg, not along the chord.
+    const hx = x1 - mx, hy = y1 - my, hl = Math.hypot(hx, hy) || 1;
+    const vx = hx / hl, vy = hy / hl, wing = fx.at_you ? 10 : 7;
+    poly([[x1, y1],
+          [x1 - vx * wing - vy * wing * 0.45, y1 - vy * wing + vx * wing * 0.45],
+          [x1 - vx * wing + vy * wing * 0.45, y1 - vy * wing - vx * wing * 0.45]],
+         fx.at_you ? 'rgba(150,34,28,.9)' : 'rgba(128,58,44,.5)');
+    ctx.restore();
+  }
+
   // Carts, where they have actually got to this morning.
   for (const c of world.carts) {
     const a = by[c.from], b = by[c.to];
@@ -1660,6 +1695,24 @@ function paint(s) {
                            ['wages', -L.wages], ['upkeep', -L.upkeep], ['net', L.net]]
     .map(([k, v]) => `<li><label>${k}</label><span class="${v >= 0 ? 'up' : 'down'}">` +
                      `${v >= 0 ? '+' : ''}${num(v)}</span></li>`).join('');
+  // The table, and who has said they are coming. A league is a table and a
+  // schedule; without them the march is eight lords quarrelling off-screen.
+  const lea = s.league;
+  if (lea && lea.table && lea.table.length) {
+    $('standings').innerHTML = lea.table.map((r, i) =>
+      `<li class="${r.me ? 'me' : ''}"><label>${i + 1}. ${r.name}</label>` +
+      `<span>${r.towns} · ${r.won}-${r.lost}</span></li>`).join('');
+    const at = (lea.fixtures || []).filter(f => f.at_you);
+    const clock = $('clock');
+    clock.textContent = at.length
+      ? `${nameOf(at[0].who)} means to move on ${nameOf(at[0].target)}`
+      : (lea.clock === 'player' && lea.left
+         ? `you are on the clock — ${lea.left} left in the intake` : '');
+    clock.className = at.length ? 'down' : 'dim';
+    clock.hidden = !clock.textContent;
+  }
+  $('league').hidden = mode !== 'march' || !(lea && lea.table && lea.table.length);
+
   // The race, projected. A game whose result you only learn on the last day
   // is one you could not have played differently.
   const race = (s.pace || []).filter(r => r.now > 0);
@@ -1774,6 +1827,7 @@ function setMode(next) {
   document.body.classList.toggle('march', mode === 'march');
   $('goodpick').hidden = mode !== 'march';
   $('trade').hidden = mode !== 'march';
+  if (state) paint(state);
   $('tip').hidden = true;
   scrollCue();
   if (mode === 'march') loadMarch();

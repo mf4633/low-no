@@ -31,6 +31,7 @@ from .cli import Console, catalogue
 from . import config as C
 from .economics import marginal_hands
 from .kin import SKILLS
+from .league import PLAYER as LEAGUE_PLAYER
 from .layout import plan_for
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -123,7 +124,13 @@ def march(game, here: str, good: str = "bread") -> dict:
                              goods.items(), key=lambda kv: -kv[1])[:3]]})
     except Exception:
         runs = []          # the map is worth drawing even if the scan is not
-    return {"good": good, "nodes": nodes, "carts": carts, "runs": runs}
+    # The schedule belongs on the map more than anywhere else: an arrow from
+    # a lord to the place he has said he is going is the whole of it.
+    fixtures = [{"who": f.who, "target": f.target,
+                 "at_you": f.target in w.settlements}
+                for f in game.league.season.fixtures if not f.done]
+    return {"good": good, "nodes": nodes, "carts": carts, "runs": runs,
+            "fixtures": fixtures}
 
 
 def options(game, here: str = "") -> dict:
@@ -180,6 +187,22 @@ def snapshot(game, here: str = "") -> dict:
         # Where the race stands, projected. The same reading the console
         # gives, because two interfaces that disagree about whether you are
         # winning are worse than one.
+        # The table, and who has said they are coming. Both halves of a league:
+        # where everyone stands, and what is on the schedule.
+        "league": {
+            "year": game.league.season.year,
+            "place": game.league.season.place(LEAGUE_PLAYER),
+            "table": [{"key": r.key, "name": r.name or r.key, "lord": r.lord,
+                       "towns": r.towns, "won": r.won, "lost": r.lost,
+                       "muster": round(r.muster),
+                       "me": r.key == LEAGUE_PLAYER}
+                      for r in game.league.season.table()],
+            "fixtures": [{"who": f.who, "target": f.target,
+                          "at_you": f.target in game.world.settlements}
+                         for f in game.league.season.fixtures if not f.done],
+            "clock": game.league.season.on_the_clock(),
+            "left": len(game.league.season.undrafted()),
+        },
         "pace": [{"what": w, "now": round(n, 1), "want": round(k, 1),
                   "land": round(l, 1)} for w, n, k, l in game.pace()],
         "goals": {"net_worth": game.goals.net_worth,
