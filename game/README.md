@@ -290,6 +290,12 @@ behind out of your own host, and every other lord one step angrier. Hold it with
 something visible, though — a vassal you cannot overawe eventually remembers it
 has walls of its own.
 
+One consequence worth knowing before you economise on soldiers: a holding with
+no garrison at all now dies inside a couple of years without anybody needing to
+storm it. Raiders burn the country, the country is what feeds the town, and a
+town that cannot feed itself empties. There is a test for exactly that, and
+another test had to start propping the player up once it became true.
+
 Being stormed is a catastrophe, not a trapdoor: the keep is thrown down, the town
 gutted, and you carry on from whatever else you hold — which is the best argument
 there is for founding a second settlement before you need one.

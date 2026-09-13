@@ -153,15 +153,48 @@ class TestOaths(unittest.TestCase):
                            "a town taken and walked away from is not held")
         self.assertGreater(town.wall_hp, 0)
 
+    def test_a_holding_with_no_soldiers_does_not_last(self):
+        """Raiders burn the country, and the country is what feeds the town.
+
+        This is the test the vassal one above leans on: an undefended holding
+        now dies inside a couple of years, which is why that test has to prop
+        the player up to observe anything else.
+        """
+        g = new_game(seed=5)
+        for s in g.world.settlements.values():
+            s.units = {}
+        for _ in range(C.GOAL_DAYS):
+            for s in g.world.settlements.values():
+                s.units = {}
+            g.tick()
+            if g.over:
+                break
+        self.assertNotEqual(g.over, "", "nobody ever came for an open town")
+
     def test_a_vassal_you_cannot_overawe_revolts(self):
+        """No force anywhere near it, and the oath goes.
+
+        The holding is propped up deliberately. A settlement with no soldiers
+        at all now dies inside a year -- raiders burn the country and the town
+        with it -- and a dead player stops the clock before the vassal has
+        finished making its mind up. What is under test here is the oath, not
+        whether an undefended holding survives; it does not, and there is a
+        test for that of its own.
+        """
         g = new_game(seed=5)
         g.world.towns["dunmere"].owner = "player"
         for s in g.world.settlements.values():
             s.units = {}
         for _ in range(C.GOAL_DAYS):
+            for s in g.world.settlements.values():
+                s.units = {}                       # still nothing to hold it with
+                s.population = max(s.population, 120.0)
+                s.popularity = max(s.popularity, 45.0)
+            g.treasury = max(g.treasury, 4_000.0)
             g.tick()
             if not g.world.towns["dunmere"].mine:
                 break
+        self.assertEqual(g.over, "", "the holding died before the vassal decided")
         self.assertFalse(g.world.towns["dunmere"].mine)
 
     def test_a_garrison_holds_a_vassal(self):

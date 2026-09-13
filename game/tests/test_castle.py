@@ -267,7 +267,11 @@ class TestConsole(unittest.TestCase):
         return g, out.getvalue()
 
     def test_plans_names_what_stands_against_each_way_in(self):
-        _, text = self.run_lines("plans marchand")
+        g = start("marchlands", seed=5)
+        g.world.towns["marchand"].observe(g.day)     # you have to look first
+        out = io.StringIO()
+        Console(g, out=out).do("plans marchand")
+        text = out.getvalue()
         for plan in PLANS.values():
             self.assertIn(plan.name, text)
         self.assertIn("moat", text)
