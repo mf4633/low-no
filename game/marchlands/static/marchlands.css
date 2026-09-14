@@ -134,15 +134,21 @@ body {
 .views button[aria-pressed="true"] { background: var(--gold); color: #14110d; }
 .views button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
 #goodpick { pointer-events: auto; font-size: 12px; }
-#ear {
+/* The bar is pointer-events: none so the sky behind it can be dragged, and
+   every control on it has to opt back in. A button that does not is a button
+   the canvas swallows -- which is how `country` shipped unclickable for about
+   ten minutes. */
+#ear, #v-draw {
   pointer-events: auto; font: 12px/1 inherit; letter-spacing: .09em;
   text-transform: uppercase; padding: 6px 11px; cursor: pointer;
   color: var(--dim); background: rgba(20,17,13,.55);
   border: 1px solid var(--edge); border-radius: 2px;
 }
+#v-draw:hover { color: var(--parch); border-color: rgba(201,162,39,.5); }
 #ear[aria-pressed="true"] { background: var(--leaf); color: #14110d; }
+#v-draw:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
 #ear:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
-body.march #ear { color: #6b5c3e; background: rgba(235,224,194,.75);
+body.march #ear, body.march #v-draw { color: #6b5c3e; background: rgba(235,224,194,.75);
                   border-color: rgba(120,96,58,.35); }
 #goodpick select {
   font: 12px inherit; color: var(--parch); background: rgba(20,17,13,.7);
@@ -448,3 +454,93 @@ body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
 }
 body.march #scale { display: none; }
 @media (max-width: 620px) { #scale { display: none; } }
+
+/* ----------------------------------------------------------- the country */
+/* Dials you can turn. The country redraws under your hand because drawing is
+   cheap and starting a game is not, so the preview is free to be live. */
+#drawmap {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(12,10,8,.72); backdrop-filter: blur(2px); padding: 18px;
+}
+#drawmap-box {
+  width: min(980px, 96vw); max-height: 92vh; overflow: auto;
+  background: var(--panel); border: 1px solid rgba(201,162,39,.34);
+  border-radius: 6px; box-shadow: 0 24px 70px rgba(0,0,0,.55);
+}
+#drawmap header {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 12px 16px 8px; border-bottom: 1px solid var(--edge);
+}
+#drawmap h2 {
+  margin: 0; font: 400 15px/1 var(--serif, Georgia, serif);
+  letter-spacing: .09em; text-transform: uppercase; color: var(--gold);
+}
+#drawmap-close {
+  margin-left: auto; background: none; border: 0; color: var(--dim);
+  font-size: 19px; cursor: pointer; line-height: 1;
+}
+#drawmap-close:hover { color: var(--parch); }
+#drawmap-body {
+  display: grid; grid-template-columns: 1fr 480px; gap: 18px; padding: 14px 16px 18px;
+}
+#drawmap-note { margin: 0 0 10px; font-size: 12px; line-height: 1.55; }
+#regionpick { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+#regionpick button {
+  background: transparent; border: 1px solid rgba(201,162,39,.22);
+  color: #cdc2a8; border-radius: 5px; padding: 5px 9px; cursor: pointer;
+  font: inherit; font-size: 12px;
+}
+#regionpick button:hover { border-color: rgba(201,162,39,.55); }
+#regionpick button[aria-pressed="true"] {
+  background: rgba(201,162,39,.18); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+.dial { display: grid; grid-template-columns: 74px 1fr 108px; gap: 9px;
+        align-items: center; margin-bottom: 7px; font-size: 12px; }
+.dial label { color: var(--dim); letter-spacing: .03em; }
+.dial output { color: #cdc2a8; text-align: right; font-size: 11.5px; }
+.dial input[type=range] {
+  -webkit-appearance: none; appearance: none; height: 3px; border-radius: 2px;
+  background: rgba(201,162,39,.26); outline: none;
+}
+.dial input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--gold); cursor: pointer; border: 0;
+}
+.dial input[type=range]::-moz-range-thumb {
+  width: 13px; height: 13px; border-radius: 50%; background: var(--gold);
+  cursor: pointer; border: 0;
+}
+#drawmap .acts { display: flex; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
+#drawmap .acts button {
+  background: transparent; border: 1px solid rgba(201,162,39,.28);
+  color: #cdc2a8; border-radius: 5px; padding: 7px 13px; cursor: pointer;
+  font: inherit; font-size: 12.5px;
+}
+#drawmap .acts button:hover { border-color: rgba(201,162,39,.6); color: var(--parch); }
+#drawmap .acts .go {
+  background: rgba(201,162,39,.2); border-color: rgba(201,162,39,.66);
+  color: var(--gold);
+}
+#drawmap-view {
+  width: 100%; height: auto; display: block; border-radius: 4px;
+  background: #1a1712; border: 1px solid var(--edge);
+}
+#drawmap-says { margin: 8px 0 6px; font-size: 11.5px; line-height: 1.6; }
+#drawmap-towns { list-style: none; margin: 0; padding: 0; font-size: 11.5px;
+                 max-height: 150px; overflow: auto; }
+#drawmap-towns li { display: flex; gap: 8px; padding: 2px 0; color: var(--dim); }
+#drawmap-towns b { color: #cdc2a8; font-weight: normal; min-width: 96px; }
+#drawmap-towns span { color: var(--dim); }
+@media (max-width: 860px) {
+  #drawmap-body { grid-template-columns: 1fr; }
+  #drawmap-right { order: -1; }
+}
+
+/* Somebody else's roofline. Five architecture sets are worth having only if
+   you are shown one that is not your own. */
+#writ-body canvas.skyline {
+  display: block; width: 100%; height: 104px; margin: 0 0 5px;
+  border-radius: 3px; background: linear-gradient(rgba(40,52,64,.5),
+                                                  rgba(28,26,22,.25));
+}

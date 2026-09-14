@@ -128,7 +128,15 @@ const STYLE = {
 const NO_CULTURE = { walls: {}, roofs: {}, pitch: 1, gable: 'plain',
                      stretch: 1, tone: 1, tint: '', tint_by: 0,
                      roof_tint: '', roof_by: 0 };
-function idiom() { return (state && state.culture) || NO_CULTURE; }
+let forceIdiom = null;
+function idiom() {
+  // `forceIdiom` is how a *foreign* town gets drawn in its own architecture.
+  // Five idioms are worth having only if you can tell whose town you are
+  // looking at, and until now a lord's idiom was a word on the war screen and
+  // nothing else: you never actually saw Havnhold's brick gables.
+  if (forceIdiom) return forceIdiom;
+  return (state && state.culture) || NO_CULTURE;
+}
 
 const BASE_STYLE_OF = k => STYLE[k] || STYLE.default;
 function styleOf(k) {
@@ -1863,6 +1871,12 @@ function nodeWrit(n, ev) {
     st.allied ? '<span class="good">allied</span>' : '',
     st.claim ? '<span class="claim">your claim by marriage</span>' : '',
   ].filter(Boolean).join(' · ');
+  // What the place looks like, which is public in the plainest possible way:
+  // anybody who has been there has seen the roofs.
+  const set = st && st.culture && state.idioms && state.idioms[st.culture];
+  const skyline = set
+    ? `<canvas class="skyline" data-culture="${st.culture}"></canvas>` +
+      `<p class="why">built in ${esc(set.name)} — ${esc(set.blurb)}</p>` : '';
   const standing = !st ? '' :
     `<p class="standing"><b>${st.opinion > 0 ? '+' : ''}${st.opinion}</b> ` +
     `${esc(st.temper)}${marks ? ' · ' + marks : ''}</p>` +
@@ -1882,8 +1896,14 @@ function nodeWrit(n, ev) {
         ? `<button data-do="ally ${n.key}">ask him to swear</button>` : ''}
     </div>` : n.kind === 'site' ? `
     <div class="acts"><button data-do="found ${n.key}">settle it</button></div>` : '';
-  openWrit(n.name, price + (known ? `<p class="why">${known}</p>` : '')
+  openWrit(n.name, skyline + price + (known ? `<p class="why">${known}</p>` : '')
            + standing + acts, ev);
+  for (const c of writ.querySelectorAll('canvas.skyline')) {
+    c.width = Math.round(c.clientWidth * dpr);
+    c.height = Math.round(104 * dpr);
+    c.style.height = '104px';
+    drawSkyline(c, c.dataset.culture);
+  }
 }
 
 for (const btn of document.querySelectorAll('#clock button')) {
@@ -2653,4 +2673,202 @@ function paintDrawbar(s) {
   if (c.outside) bits.push(`<span class="bad">${c.outside} outside</span>`);
   if (c.depth > 1) bits.push(`<b>${c.depth}</b> walls deep`);
   $('drawread').innerHTML = bits.join(' &middot; ');
+}
+
+
+/* ------------------------------------------------------------- the country */
+/* The dials, as dials. `--dials hills=0.8,marsh=0.3` on a command line is a
+ * string, not a slider: you cannot feel what a number does by typing it. Here
+ * the march redraws under your hand on every twitch, because drawing a country
+ * is cheap and starting a game is not -- so the preview can be live and the
+ * game is only made when you say so. */
+let atlas = null, drawnPlan = null, drawSeed = 7, drawRegion = null;
+const dialNow = {};
+
+async function openCountry() {
+  if (!atlas) atlas = await (await fetch('/regions')).json();
+  if (!drawRegion) drawRegion = atlas.regions[0].key;
+  buildRegions();
+  pickRegion(drawRegion, true);
+  $('drawmap').hidden = false;
+}
+function closeCountry() { $('drawmap').hidden = true; }
+
+function buildRegions() {
+  $('regionpick').innerHTML = atlas.regions.map(r =>
+    `<button type="button" data-region="${r.key}" aria-pressed="false">` +
+    `${esc(r.name)}</button>`).join('');
+  for (const b of $('regionpick').querySelectorAll('[data-region]'))
+    b.addEventListener('click', () => pickRegion(b.dataset.region, true));
+}
+
+function pickRegion(key, reset) {
+  drawRegion = key;
+  const reg = atlas.regions.find(r => r.key === key);
+  for (const b of $('regionpick').querySelectorAll('[data-region]'))
+    b.setAttribute('aria-pressed', String(b.dataset.region === key));
+  $('drawmap-note').textContent = reg.note;
+  if (reset) {
+    for (const name of atlas.dials) dialNow[name] = reg.dials[name];
+    buildDials();
+  }
+  redrawCountry();
+}
+
+function buildDials() {
+  $('dialbank').innerHTML = atlas.dials.map(name => {
+    const towns = name === 'towns';
+    return `<div class="dial">
+      <label for="d-${name}">${name}</label>
+      <input id="d-${name}" type="range" data-dial="${name}"
+             min="${towns ? 3 : 0}" max="${towns ? 12 : 1}"
+             step="${towns ? 1 : 0.01}" value="${dialNow[name]}">
+      <output id="o-${name}"></output>
+    </div>`;
+  }).join('');
+  for (const el of $('dialbank').querySelectorAll('[data-dial]')) {
+    el.addEventListener('input', () => {
+      dialNow[el.dataset.dial] = parseFloat(el.value);
+      redrawCountry();
+    });
+  }
+}
+
+let drawPending = null;
+function redrawCountry() {
+  clearTimeout(drawPending);
+  drawPending = setTimeout(async () => {
+    const q = new URLSearchParams({ region: drawRegion, seed: drawSeed });
+    for (const [k, v] of Object.entries(dialNow)) q.set(k, v);
+    const plan = await (await fetch('/draw?' + q)).json();
+    if (plan.error) return;
+    drawnPlan = plan;
+    for (const w of plan.words) {
+      const out = document.getElementById('o-' + w.dial);
+      if (out) out.textContent = w.says;
+    }
+    $('drawmap-says').textContent =
+      `${plan.home.name}, and ${plan.towns.length} neighbours. ` + plan.note;
+    $('drawmap-towns').innerHTML = plan.towns.map(t =>
+      `<li><b>${esc(t.name)}</b><span>${esc(t.sells.join(', ') || 'little')}` +
+      `${t.port ? ' · a harbour' : ''}</span></li>`).join('');
+    paintCountry(plan);
+  }, 60);
+}
+
+/* The march itself: the seat in the middle, the neighbours where the spread
+ * put them, sized by their walls and coloured by the idiom their own ground
+ * builds in -- so a glance at the preview tells you what kind of country it
+ * is before you have read a word of it. */
+const IDIOM_INK = { march: '#9a7a4a', hansa: '#a8563f', abbey: '#9aa0a8',
+                    vale: '#c9bb8a', ironhand: '#78796e' };
+function paintCountry(plan) {
+  const c = $('drawmap-view'), g = c.getContext('2d');
+  const W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#1a1712'; g.fillRect(0, 0, W, H);
+  const pts = plan.towns.concat(plan.sites, plan.shrines, [{ x: 0, y: 0 }]);
+  const far = Math.max(40, ...pts.map(p => Math.max(Math.abs(p.x), Math.abs(p.y))));
+  const k = Math.min(W, H) / (2.35 * far);
+  const at = p => [W / 2 + p.x * k, H / 2 + p.y * k];
+  g.strokeStyle = 'rgba(201,162,39,.13)'; g.lineWidth = 1;
+  for (const t of plan.towns) {
+    const [x, y] = at(t), [hx, hy] = at({ x: 0, y: 0 });
+    g.beginPath(); g.moveTo(hx, hy); g.lineTo(x, y); g.stroke();
+  }
+  for (const s of plan.shrines) {
+    const [x, y] = at(s);
+    g.strokeStyle = 'rgba(216,201,168,.5)'; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x, y + 4);
+    g.moveTo(x - 3, y - 1); g.lineTo(x + 3, y - 1); g.stroke();
+  }
+  for (const s of plan.sites) {
+    const [x, y] = at(s);
+    g.strokeStyle = 'rgba(143,184,106,.6)'; g.lineWidth = 1.2;
+    g.beginPath(); g.arc(x, y, 4, 0, 7); g.stroke();
+  }
+  for (const t of plan.towns) {
+    const [x, y] = at(t);
+    const r = 4 + Math.min(7, t.walls / 170);
+    g.fillStyle = IDIOM_INK[t.culture] || '#9a7a4a';
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    if (t.port) {
+      g.strokeStyle = 'rgba(122,164,196,.85)'; g.lineWidth = 1.4;
+      g.beginPath(); g.arc(x, y, r + 3, 0, 7); g.stroke();
+    }
+    g.fillStyle = '#a8a08c'; g.font = '10px ui-sans-serif, system-ui';
+    g.textAlign = 'center';
+    g.fillText(t.name, x, y - r - 4);
+  }
+  const [hx, hy] = at({ x: 0, y: 0 });
+  g.fillStyle = 'var(--gold)'; g.fillStyle = '#c9a227';
+  g.beginPath();
+  g.moveTo(hx, hy - 8); g.lineTo(hx + 7, hy); g.lineTo(hx, hy + 8);
+  g.lineTo(hx - 7, hy); g.closePath(); g.fill();
+  g.fillStyle = '#e8dcc0'; g.font = '11px ui-sans-serif, system-ui';
+  g.fillText(plan.home.name, hx, hy + 21);
+}
+
+$('v-draw').addEventListener('click', openCountry);
+$('drawmap-close').addEventListener('click', closeCountry);
+$('drawmap').addEventListener('click', e => {
+  if (e.target === $('drawmap')) closeCountry();
+});
+$('reseed').addEventListener('click', () => {
+  drawSeed = Math.floor(Math.random() * 99999);
+  redrawCountry();
+});
+$('drawgo').addEventListener('click', async () => {
+  const body = Object.assign({ region: drawRegion, seed: drawSeed }, dialNow);
+  const out = await (await fetch('/march-here', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })).json();
+  if (out.error) return say(out.error);
+  closeCountry();
+  ground = null;                     // a different country: bake it again
+  paint(out.state);
+  frameTown();
+  say(out.said);
+});
+
+
+/* ------------------------------------------------------------- a skyline */
+/* Three roofs of somebody else's town, drawn in their idiom. The whole point
+ * of five architecture sets is recognising a place from its roofline, and
+ * that only works if you are ever shown one that is not your own. */
+const SKYLINE_KEYS = ['townhouse', 'guildhall', 'cottage', 'inn'];
+function drawSkyline(canvas, cultureKey) {
+  const set = (state && state.idioms && state.idioms[cultureKey]) || null;
+  if (!set) return;
+  const g = canvas.getContext('2d');
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const keepCtx = ctx, keepForce = forceIdiom, keepCache = {};
+  for (const k in STYLE_CACHE) keepCache[k] = STYLE_CACHE[k];
+  ctx = g;
+  forceIdiom = set;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, H * 0.72);
+  ctx.scale(0.92, 0.92);
+  // Four roofs in a short street, back to front, so the near one overlaps the
+  // far one the way a street does. Four rather than five: a strip this size
+  // wants the roofs big enough to tell a hipped one from a crow-stepped one,
+  // which is the entire reason it is here.
+  const row = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const things = row.map((p, i) => ({ d: p[0] + p[1], p, i }));
+  things.sort((a, b) => a.d - b.d);
+  for (const t of things) {
+    drawBuilding({
+      x: t.p[0], y: t.p[1], key: SKYLINE_KEYS[t.i % SKYLINE_KEYS.length],
+      name: '', complete: true, running: true, idle: false, burning: false,
+      terrain: 'urban', category: 'civic', uid: -1 - t.i,
+    }, 0);
+  }
+  ctx.restore();
+  ctx = keepCtx;
+  forceIdiom = keepForce;
+  for (const k in STYLE_CACHE) delete STYLE_CACHE[k];
+  for (const k in keepCache) STYLE_CACHE[k] = keepCache[k];
 }

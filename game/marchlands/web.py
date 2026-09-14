@@ -25,14 +25,16 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import StringIO
 from typing import Tuple
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from .cli import Console, catalogue
 from . import config as C
 from .economics import marginal_hands
 from .kin import SKILLS
 from .league import PLAYER as LEAGUE_PLAYER
+from . import cartography as carto
 from . import chancery
+from . import culture as cultures
 from . import keep as keeps
 from . import voices
 from .layout import plan_for
@@ -172,15 +174,54 @@ def _best_skill(person) -> str:
     return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
 
 
-def _culture(s) -> dict:
-    """The idiom, as four channels the renderer can act on: what the walls
+def _at(name: str, value: float) -> "carto.Dials":
+    return carto.Dials(**{name: value})
+
+
+def _dials_from(q: dict) -> "carto.Dials":
+    """Dials off a query string, starting from the region's own."""
+    region = q.get("region", [carto.DEFAULT_REGION])[0]
+    d = carto.REGIONS.get(region, carto.REGIONS[carto.DEFAULT_REGION]).dials
+    parts = [f"{n}={q[n][0]}" for n in carto.DIAL_NAMES if n in q]
+    return carto.parse_dials(",".join(parts), d) if parts else d
+
+
+def _preview(plan) -> dict:
+    """A drawn march, small enough to send on every twitch of a slider."""
+    return {
+        "region": plan.region, "note": plan.note, "seed": plan.seed,
+        "dials": plan.dials.as_dict(),
+        "words": [{"dial": n, "value": v, "says": w}
+                  for n, v, w in carto.describe(plan.dials)],
+        "home": {"name": plan.home_name, "terrain": dict(plan.home_terrain)},
+        "towns": [{"name": t["name"], "x": t["x"], "y": t["y"],
+                   "lord": t["lord"], "blurb": t["blurb"],
+                   "port": t["port"], "walls": t["walls"],
+                   "culture": cultures.for_ground(t["ground"]),
+                   "sells": sorted(t["produces"], key=t["produces"].get,
+                                   reverse=True)[:3],
+                   "buys": sorted(t["consumes"], key=t["consumes"].get,
+                                  reverse=True)[:3]}
+                  for t in plan.towns],
+        "sites": [{"name": s["name"], "x": s["x"], "y": s["y"]}
+                  for s in plan.sites],
+        "shrines": [{"name": s["name"], "x": s["x"], "y": s["y"]}
+                    for s in plan.shrines],
+    }
+
+
+def _idiom(c) -> dict:
+    """One idiom, as four channels the renderer can act on: what the walls
     are, what the roofs are, how steep, and what colour the street is."""
-    c = s.idiom()
     return {"key": c.key, "name": c.name, "blurb": c.blurb,
             "walls": dict(c.walls), "roofs": dict(c.roofs),
             "pitch": c.pitch, "gable": c.gable, "stretch": c.stretch,
             "tone": c.tone, "tint": c.tint, "tint_by": c.tint_by,
             "roof_tint": c.roof_tint, "roof_by": c.roof_by}
+
+
+def _culture(s) -> dict:
+    return _idiom(s.idiom())
 
 
 def _court(game) -> dict:
@@ -302,6 +343,10 @@ def snapshot(game, here: str = "") -> dict:
         # What this place is built out of, so the renderer can draw it in its
         # own idiom rather than in the one idiom it used to have.
         "culture": _culture(s),
+        # Every idiom, not only yours -- so a town on the march map can be
+        # drawn in its own. Seeing whose town it is from the roofline is the
+        # whole point of having more than one.
+        "idioms": {c.key: _idiom(c) for c in cultures.CULTURES.values()},
         # The politics: who thinks what, who has signed, and who is waiting
         # on an answer. The same reading `court` prints.
         "court": _court(game),
@@ -398,6 +443,31 @@ class Handler(BaseHTTPRequestHandler):
                     if "good=" in self.path else "bread")
             with self.lock:
                 return self._json(march(self.console.game, self.console.here, good))
+        if route == "/regions":
+            # Everything the slider screen needs to draw itself: the dials,
+            # what each setting is called in words, and the six real places.
+            return self._json({
+                "dials": list(carto.DIAL_NAMES),
+                "regions": [
+                    {"key": r.key, "name": r.name, "note": r.note,
+                     "dials": r.dials.as_dict()}
+                    for r in carto.REGIONS.values()],
+                "words": {name: [carto.describe(_at(name, v))[0][2]
+                                 for v in (0.0, 0.3, 0.6, 1.0)]
+                          for name in carto.DIAL_NAMES if name != "towns"},
+            })
+        if route == "/draw":
+            # A preview. Drawing is cheap and starting a game is not, so the
+            # sliders can be moved as fast as anybody likes and the country
+            # redraws under them without a game being made at all.
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                dials = _dials_from(q)
+            except KeyError as exc:
+                return self._json({"error": str(exc)})
+            plan = carto.draw(q.get("region", [carto.DEFAULT_REGION])[0],
+                              int(q.get("seed", ["7"])[0]), dials)
+            return self._json(_preview(plan))
         if route == "/chronicle":
             with self.lock:
                 g = self.console.game
@@ -408,6 +478,27 @@ class Handler(BaseHTTPRequestHandler):
         return self._static(route)
 
     def do_POST(self) -> None:
+        if urlparse(self.path).path == "/march-here":
+            # Draw the country the sliders are set to, and play it. The
+            # console keeps the same identity -- it is the same seat at the
+            # same table, looking at a different country.
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            q = {k: [str(v)] for k, v in body.items()}
+            try:
+                dials = _dials_from(q)
+            except KeyError as exc:
+                return self._json({"error": str(exc)})
+            with self.lock:
+                from .scenario import drawn_game
+                self.console.game = drawn_game(
+                    body.get("region", carto.DEFAULT_REGION),
+                    seed=int(body.get("seed", 7)),
+                    house=body.get("house", "plough"), dials=dials)
+                self.console.here = next(iter(self.console.game.world.settlements))
+                return self._json({
+                    "said": self.console.game.briefing,
+                    "state": snapshot(self.console.game, self.console.here)})
         if urlparse(self.path).path != "/do":
             return self._send(404, b"no such thing", "text/plain")
         length = int(self.headers.get("Content-Length") or 0)

@@ -230,6 +230,42 @@ class TestItReachesTheScreens(unittest.TestCase):
                      "st.pitch", "st.gable", "drawCrowSteps", "hipped"):
             self.assertIn(hook, js, hook)
 
+    def test_every_idiom_reaches_the_page_not_only_yours(self):
+        """The whole payoff of five architecture sets is telling whose town
+        you are looking at. Until the map could draw somebody else's, a
+        lord's idiom was a word on the war screen and nothing you ever saw."""
+        g, _s = grown(house="vale" if False else "plough")
+        snap = json.loads(json.dumps(snapshot(g)))
+        self.assertEqual(set(snap["idioms"]), set(cultures.CULTURES))
+        for key, one in snap["idioms"].items():
+            for field in ("walls", "roofs", "pitch", "gable", "stretch",
+                          "name", "blurb"):
+                self.assertIn(field, one, key)
+
+    def test_a_foreign_town_is_drawn_in_its_own(self):
+        import os
+        from marchlands.web import STATIC
+        with open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8") as fh:
+            js = fh.read()
+        self.assertIn("function drawSkyline", js)
+        self.assertIn("forceIdiom", js)
+        # and the map panel actually asks for one
+        self.assertIn("canvas.skyline", js)
+        with open(os.path.join(STATIC, "marchlands.css"), encoding="utf-8") as fh:
+            self.assertIn("canvas.skyline", fh.read())
+
+    def test_and_the_override_is_put_back_afterwards(self):
+        """A renderer left holding somebody else's idiom would draw your own
+        town in it. The skyline has to be a borrow, not a move."""
+        import os
+        from marchlands.web import STATIC
+        with open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8") as fh:
+            js = fh.read()
+        body = js[js.index("function drawSkyline"):]
+        body = body[:body.index("\n}")]
+        self.assertIn("keepForce", body)
+        self.assertIn("forceIdiom = keepForce", body)
+
     def test_the_town_screen_names_it(self):
         g, _s = grown(house="hansa")
         buf = io.StringIO()

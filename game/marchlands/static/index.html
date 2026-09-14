@@ -22,6 +22,7 @@
       <button id="v-march" type="button" aria-pressed="false">the march</button>
       <button id="v-castle" type="button" aria-pressed="false">the wall</button>
     </span>
+    <button id="v-draw" type="button" title="draw a march from dials">country</button>
     <button id="ear" type="button" aria-pressed="false"
             title="the sound of the town, made out of arithmetic">sound</button>
     <label id="goodpick" class="dim" hidden>price of
@@ -75,6 +76,34 @@
   </aside>
 
   <p id="scale" class="dim"></p>
+
+  <!-- The country, as dials you can actually turn. Six real places to start
+       from, eight sliders, and a march that redraws under your hand. -->
+  <div id="drawmap" hidden role="dialog" aria-modal="true"
+       aria-label="draw a march">
+    <div id="drawmap-box">
+      <header>
+        <h2>draw a march</h2>
+        <button id="drawmap-close" type="button" aria-label="close">×</button>
+      </header>
+      <div id="drawmap-body">
+        <div id="drawmap-left">
+          <p class="dim" id="drawmap-note">—</p>
+          <div id="regionpick"></div>
+          <div id="dialbank"></div>
+          <div class="acts">
+            <button id="reseed" type="button">another of the same</button>
+            <button id="drawgo" type="button" class="go">play this march</button>
+          </div>
+        </div>
+        <div id="drawmap-right">
+          <canvas id="drawmap-view" width="460" height="360"></canvas>
+          <p id="drawmap-says" class="dim">—</p>
+          <ul id="drawmap-towns"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="tip" hidden></div>
 

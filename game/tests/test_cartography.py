@@ -240,6 +240,109 @@ class TestADrawnMarchIsARealOne(unittest.TestCase):
         self.assertIn("kind === 'marsh'", js)
 
 
+class TestTheDialsAreActuallyDials(unittest.TestCase):
+    """`--dials hills=0.8,marsh=0.3` is a string, not a slider: you cannot
+    feel what a number does by typing it. The browser gets the real thing --
+    eight sliders, six presets, and a march that redraws under your hand."""
+
+    def setUp(self):
+        import io as _io
+        import threading
+        from marchlands.cli import Console
+        from marchlands.scenarios import start
+        from marchlands import web
+        self.con = Console(start("marchlands", seed=5), out=_io.StringIO())
+        self.server, self.url = web.serve(self.con, port=0, open_browser=False)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()      # or the socket outlives the test
+
+    def get(self, path):
+        import json as _json
+        import urllib.request
+        return _json.load(urllib.request.urlopen(self.url + path))
+
+    def post(self, path, body):
+        import json as _json
+        import urllib.request
+        req = urllib.request.Request(
+            self.url + path, method="POST", data=_json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"})
+        return _json.load(urllib.request.urlopen(req))
+
+    def test_the_screen_can_ask_what_the_dials_are(self):
+        out = self.get("/regions")
+        self.assertEqual(out["dials"], list(carto.DIAL_NAMES))
+        self.assertEqual(len(out["regions"]), len(carto.REGIONS))
+        for name in carto.DIAL_NAMES:
+            if name != "towns":
+                self.assertEqual(len(out["words"][name]), 4, name)
+
+    def test_a_preview_costs_nothing_and_starts_no_game(self):
+        was = self.con.game
+        out = self.get("/draw?region=pennines&hills=1.0&towns=8")
+        self.assertEqual(len(out["towns"]), 8)
+        self.assertIs(self.con.game, was, "previewing started a game")
+
+    def test_and_moving_a_dial_moves_the_country(self):
+        dry = self.get("/draw?region=marches&marsh=0.0")
+        wet = self.get("/draw?region=marches&marsh=1.0")
+        self.assertNotEqual([t["name"] for t in dry["towns"]], [])
+        self.assertNotEqual(dry["words"], wet["words"])
+
+    def test_the_preview_says_what_each_setting_is_called(self):
+        out = self.get("/draw?region=pennines&hills=1.0")
+        says = {w["dial"]: w["says"] for w in out["words"]}
+        self.assertEqual(says["hills"], "mountainous")
+
+    def test_and_carries_what_the_map_needs_to_draw_itself(self):
+        out = self.get("/draw?region=baltic")
+        for t in out["towns"]:
+            for field in ("name", "x", "y", "culture", "sells", "walls", "port"):
+                self.assertIn(field, t)
+        self.assertTrue(out["shrines"] and out["sites"])
+
+    def test_a_bad_dial_is_refused_rather_than_guessed_at(self):
+        out = self.get("/draw?region=marches&hills=purple")
+        self.assertIn("error", out)
+
+    def test_play_this_march_plays_it(self):
+        was = self.con.game.home().name
+        out = self.post("/march-here", {"region": "fens", "seed": 3})
+        self.assertIn("the Fens", out["said"])
+        self.assertNotEqual(self.con.game.home().name, was)
+        self.assertEqual(out["state"]["town"]["name"], self.con.game.home().name)
+
+    def test_and_the_console_is_looking_at_the_new_country(self):
+        self.post("/march-here", {"region": "po", "seed": 4})
+        self.assertIn(self.con.here, self.con.game.world.settlements)
+
+    def test_the_page_has_sliders_rather_than_a_text_field(self):
+        import os
+        from marchlands.web import STATIC
+        with open(os.path.join(STATIC, "index.html"), encoding="utf-8") as fh:
+            page = fh.read()
+        self.assertIn('id="drawmap"', page)
+        self.assertIn('id="dialbank"', page)
+        self.assertIn('id="regionpick"', page)
+        with open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8") as fh:
+            js = fh.read()
+        self.assertIn('type="range"', js)
+        self.assertIn("paintCountry", js)
+
+    def test_and_the_button_that_opens_it_can_take_a_click(self):
+        """The bar is pointer-events: none so the sky behind it can be
+        dragged, and every control on it has to opt back in -- which is how
+        this one shipped unclickable for about ten minutes."""
+        import os
+        from marchlands.web import STATIC
+        with open(os.path.join(STATIC, "marchlands.css"), encoding="utf-8") as fh:
+            css = fh.read()
+        self.assertIn("#ear, #v-draw", css)
+
+
 class TestTheCommandLine(unittest.TestCase):
     def test_region_and_dials_are_both_offered(self):
         from marchlands.__main__ import main

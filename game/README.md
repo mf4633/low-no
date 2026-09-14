@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 889 tests, ~22min
+python3 -m unittest discover -s tests          # 902 tests, ~22min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -168,6 +168,23 @@ naming morphology of the actual region.
 | **the Po Valley** | flat, wet, absurdly fertile, towns close enough to quarrel before breakfast | ten of them, grain everywhere |
 | **the Pennines** | gritstone, lead and rain; villages where the seam is | ore under everything, nothing grows |
 | **the Baltic Shore** | sand, pine and amber, every town at a river mouth | coast, timber, faces out to sea |
+
+### The dials are dials
+
+```bash
+python3 -m marchlands --web      # then `country` in the top bar
+```
+
+`--dials hills=0.8,marsh=0.3` on a command line is a string, not a slider: you
+cannot feel what a number does by typing it. The browser has the real thing —
+six presets, eight sliders, each reading out in words as you move it
+(*mountainous*, *half fen*, *a seam under everything*), and the march redrawing
+under your hand with its towns placed, sized by their walls and coloured by the
+idiom their own ground builds in.
+
+Drawing a country is cheap and starting a game is not, so the preview is live
+and free: `GET /draw` makes a march and no game at all. `play this march` is
+the only thing that starts one.
 
 These are **characterisations, not survey data** — this is a game and there is
 no map server behind it. What is real is the shape of the place and the way its
@@ -519,6 +536,13 @@ one game has several skylines in it rather than one.
 | **the Abbey** | ashlar | slate | steep, pale, spires |
 | **the Vale** | cob and lime | thatch | long low **hipped** roofs — four slopes, no gable |
 | **the Ironhand** | drystone | slate | squat and heavy |
+
+And you can see somebody else's. Clicking a town on the march map draws its
+roofline in **its** idiom — four roofs of Havnhold's brick under crow-stepped
+gables, or Ostmark's squat drystone under slate. Until that existed, a lord's
+idiom was a word on the war screen and nothing you ever actually saw, which is
+not what Age of Empires does at all: the whole payoff of five architecture sets
+is recognising a place from its roofs.
 
 Three rules kept it from being a reskin. **It is the same building** — a Hansa
 granary holds what a March granary holds, and a bonus attached to a roof shape
