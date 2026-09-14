@@ -35,7 +35,7 @@ from .league import League, PLAYER
 from .lord import Lord
 from .market import Market
 from .military import (BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
-                       RETURNING,
+                       RETURNING, STORM, describe,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_speed,
                        host_strength, raid_day, recruit_cost, siege_day, unit)
@@ -186,6 +186,11 @@ class GameState:
     _stormed: int = 0
     _towns_lost: int = 0
     _trade_profit: float = 0.0
+    #: How many times your seat has been stormed and gutted. In the ordinary
+    #: game that is a catastrophe you play on from, deliberately -- see
+    #: `_sack`. A scenario whose whole subject is one siege needs it to be
+    #: the end, and asks with the "survive" path.
+    _sacked: int = 0
     chronicle: Chronicle = field(default_factory=Chronicle)
     chapter: str = ""           # which chapter of a campaign, if any
     over: str = ""              # '' while playing, else the ending
@@ -1478,6 +1483,118 @@ class GameState:
 
     RAID_PATIENCE = 12           # days a host will work a country before going home
 
+    #: How much of a besieging host is standing over its own siege works at
+    #: any moment, and so what a sortie actually has to fight through.
+    #: A siege train is guarded by a detachment, not by the army. Set at a
+    #: third, a sortie had to beat sixty-three men to reach a ram in a
+    #: two-hundred-man host, which meant the gate was never worth opening.
+    SALLY_GUARD = 0.16
+
+    def shore(self, settlement_key: str = "", on: bool = True) -> str:
+        """Work the breach while it is being made.
+
+        Slower than peacetime masonry, nearly twice the stone a yard, and it
+        costs men -- masons on a wall somebody is shooting at. Worth it
+        against a siege train that is barely out-pacing you and worth
+        nothing against one that is not, which is the shape a lever should
+        have.
+        """
+        s = self.world.settlements.get(settlement_key or self.home().name)
+        if s is None:
+            s = self.home()
+        s.shoring = bool(on)
+        if not on:
+            return f"{s.name}: the masons come off the wall"
+        stone = s.market.stock.get("stone", 0.0)
+        return (f"{s.name}: masons to the breach"
+                + (f" -- {stone:.0f} of stone in store" if stone >= 1
+                   else " -- and no stone to do it with"))
+
+    def sally(self, settlement_key: str = "", men: int = 0) -> str:
+        """Out of the gate at the siege works.
+
+        The other lever, and the opposite of shoring: you give up the wall
+        entirely for one fight in the open, to get at the engines. Win and
+        the rams and the engineers are gone and the siege has to start
+        again; lose and you have spent the garrison that was holding the
+        wall-walk.
+
+        Deliberately a gamble rather than a trick. A besieged player needed
+        something to *do*, not something that always works.
+        """
+        s = self.world.settlements.get(settlement_key or "") or self.home()
+        if not s.besieged:
+            return f"{s.name} is not besieged"
+        outside = [a for a in self.armies
+                   if a.owner != "player" and a.at == getattr(s, "key", "")
+                   or (a.owner != "player" and a.state == BESIEGING
+                       and self.world.node_name(a.at) == s.name)]
+        if not outside:
+            return "there is nobody outside to sally against"
+        foe = max(outside, key=lambda a: a.size)
+        have = sum(s.units.values())
+        if have < 1:
+            return f"{s.name} has nobody to send out"
+        share = 1.0 if men <= 0 else max(0.05, min(1.0, men / have))
+        going = {k: v * share for k, v in s.units.items() if v * share >= 0.5}
+        if not going:
+            return "too few to be worth opening the gate for"
+        # No battlement: that is the whole cost of coming out from behind it.
+        out = Side(dict(going),
+                   attack_mult=self.progress.mult("attack")
+                   * self.kin.mult("attack", -1),
+                   defense_mult=self.progress.mult("defense"))
+        # And you are not fighting his army. You are fighting whatever is
+        # standing over the works: the engines, their crews, and the guard
+        # set on them. A sortie that had to beat the whole host to reach a
+        # ram would never be worth opening the gate for, which is how this
+        # first went -- forty men against fifty and the engines untouched.
+        works, guard = {}, {}
+        for key, n in foe.units.items():
+            if UNITS[key].siege_power > 0 or key == "engineer":
+                works[key] = n
+            else:
+                guard[key] = n * self.SALLY_GUARD
+        met = {k: v for k, v in list(works.items()) + list(guard.items())
+               if v >= 0.5}
+        them = Side(dict(met))
+        res = fight(out, them, rng=self.rng, place=f"the works before {s.name}",
+                    orders=(getattr(s, "order", "") or STORM, foe.order))
+        # What came back, on both sides. The guard that was not at the works
+        # was never in this fight and is still out there.
+        for key in list(s.units):
+            s.units[key] -= going.get(key, 0.0)
+            s.units[key] = max(0.0, s.units[key] + out.units.get(key, 0.0))
+        for key in list(foe.units):
+            fought = met.get(key, 0.0)
+            if fought:
+                foe.units[key] = max(0.0, foe.units[key] - fought
+                                     + them.units.get(key, 0.0))
+        foe.units = {k: v for k, v in foe.units.items() if v >= 0.5}
+        said = [self._box_score(f"{s.name} sallies", res, PLAYER, foe.owner)]
+        if res.winner == "attacker":
+            # The engines are what you came for, and they do not run. Count
+            # what was standing there before rather than what is left to
+            # burn: the fight itself kills most of it, and reading the
+            # remainder reported a successful sortie as burning "no one".
+            gone = {k: n for k, n in works.items()
+                    if n - foe.units.get(k, 0.0) >= 0.5}
+            for key, n in gone.items():
+                gone[key] = n - foe.units.get(key, 0.0)
+            for key in list(works):
+                foe.units.pop(key, None)
+            for key, n in works.items():
+                if key not in gone:
+                    gone[key] = n
+            foe.siege_days = 0
+            foe.siege = type(foe.siege)()
+            said.append(f"The works before {s.name} are burnt"
+                        + (": " + describe(gone) if gone else ""))
+        else:
+            said.append(f"The sally is thrown back under the walls of {s.name}")
+        self.battles += said
+        return "\n".join(said)
+
     def order_host(self, uid: int, key: str) -> str:
         """Tell a host how to fight before it has to."""
         from .military import ORDERS, order as order_of, order_note
@@ -1755,6 +1872,7 @@ class GameState:
         return msgs
 
     def _sack(self, s: Settlement, a: Army) -> str:
+        self._sacked += 1
         """A storming is a catastrophe, not a trapdoor.
 
         The keep is thrown down and the town gutted, but so long as you hold
@@ -2763,6 +2881,12 @@ class GameState:
 
     def _check_ending(self) -> List[str]:
         if self.over:
+            return [self.over]
+        # A scenario whose whole subject is one siege ends when the wall does.
+        # Everywhere else a sacking is survivable on purpose.
+        if "survive" in self.goals.paths and self._sacked:
+            self.over = ("Stormed. They came over the wall and the hold is "
+                         "theirs. There was nowhere else to be.")
             return [self.over]
         if self.treasury < self.goals.bankruptcy:
             self.over = "Ruined. Your debts outran your carts."

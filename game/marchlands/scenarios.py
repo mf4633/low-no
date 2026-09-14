@@ -197,7 +197,92 @@ def _freebuild(seed: int, house: str) -> GameState:
     return g
 
 
+def _siege(seed: int, house: str) -> GameState:
+    """A host is already outside. Hold until the season turns.
+
+    This was built once before and thrown away, because it was not a game:
+    `_mend_walls` returned early while besieged, so the wall only ever went
+    down, and recruiting at any sane rate changed nothing. Every tuning was
+    decided before the player acted -- eight of eight held whatever you did,
+    or eight of ten fell whatever you did, with nothing in between, because
+    there was no decision in between.
+
+    There are two decisions now. `shore` puts masons on the breach while it
+    is being made: slower than peacetime work, nearly twice the stone, and it
+    costs men to arrows. `sally` opens the gate and goes at the works, giving
+    up the wall for one fight in the open to burn the rams and the engineers.
+    Neither is free and neither always works, which is what makes holding out
+    something you do rather than something that happens to you.
+    """
+    from .military import Army, BESIEGING
+    g = new_game(seed=seed, house=house)
+    home = g.home()
+    home.population = 260.0
+    home.units.update({"spearman": 44, "archer": 30})
+    g.treasury = 1400.0
+    g.progress = Progress(age=3, researched={house, "masonry", "chancery"})
+    # Bought, not drawn: `plan()` trims a drawing back to the wall the town
+    # has actually paid for, and that rule applies to a scenario exactly as
+    # it applies to a player.
+    for key, many in (("stone_wall", 3), ("wall_tower", 2), ("gatehouse", 1),
+                      ("moat", 1)):
+        for _ in range(many):
+            try:
+                home.start_build(key).days_left = 0
+            except Exception:
+                break
+    from . import keep as keeps
+    cx = cy = keeps.SIDE // 2
+    ring = 6
+    for dx in range(-ring, ring + 1):
+        for dy in range(-ring, ring + 1):
+            if max(abs(dx), abs(dy)) != ring:
+                continue
+            corner = abs(dx) == ring and abs(dy) == ring
+            gate = dy == ring and dx == 0
+            home.castle.lay((cx + dx, cy + dy),
+                            keeps.TOWER if corner else
+                            keeps.GATE if gate else keeps.STONE)
+    home.castle.own = True
+    home.wall_hp = home.wall_max(g.progress)
+    # Stone to shore with, and bread to outlast him on. Both are the levers.
+    for key, many in (("bread", 2600.0), ("wheat", 1820.0), ("stone", 500.0)):
+        home.market.stock[key] = home.market.stock.get(key, 0.0) + many
+    foe = min((k for k, t in g.world.towns.items() if not t.mine),
+              key=lambda k: g.world.coords.get(k, (99, 99))[0])
+    t = g.world.towns[foe]
+    t.hostility = 100.0
+    seat = next(iter(g.world.settlements))
+    g.armies.append(Army(uid=g.next_army_uid, name=f"{t.name}'s host",
+                         owner=foe, at=seat, state=BESIEGING, home=foe,
+                         units={"spearman": 100, "archer": 55,
+                                "man_at_arms": 37, "ram": 3, "engineer": 9}))
+    g.next_army_uid += 1
+    g._look_around()
+    g.goals = Goals(net_worth=1e12, population=1, towns=99, relics=99,
+                    days=int(C.DAYS_PER_YEAR * 0.75), wonder=False,
+                    paths=("survive",))
+    g.briefing = (
+        f"{t.name}'s host is at your gate with rams and engineers, and there "
+        f"are more of them than of you. The wall is not your clock -- the "
+        f"granary is. You cannot outlast him on what is in it, so the siege "
+        f"has to be broken rather than endured.\n\n"
+        f"`sally` opens the gate and goes at the works. Send enough and his "
+        f"engines burn and the siege has to start again; send too few and you "
+        f"have spent the men who could have done it. Go early: every day you "
+        f"wait is a day of wall and a day of garrison you no longer have to "
+        f"spend on it.\n\n"
+        f"`shore` puts masons on the breach while it is being made -- nearly "
+        f"twice the stone a yard and a toll in men. It buys time, and time is "
+        f"only worth buying if you can eat through it.")
+    return g
+
+
 SCENARIOS: Dict[str, Scenario] = {s.key: s for s in [
+    Scenario("siege", "The Siege", _siege, years=0.75,
+             blurb="A host is already outside, and there are more of them "
+                   "than of you. Shore the breach, or open the gate and go "
+                   "at the works."),
     Scenario("marchlands", "The Marchlands", _marchlands,
              blurb="The full march. One hill, seven towns, three ways to win."),
     Scenario("salt_road", "The Salt Road", _salt_road, years=2,

@@ -536,13 +536,42 @@ def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
     its outcome without a second combat model being written.
     """
     rng = rng or random.Random()
-    if any(orders):
-        att_key, def_key = orders
-        if att_key:
-            attacker = ordered(attacker, att_key)
-            max_rounds = order(att_key).rounds
-        if def_key:
-            defender = ordered(defender, def_key)
+    # Applied to the sides that were handed in, and taken off again at the
+    # end. Swapping in the copies `ordered` makes was the obvious way to
+    # write this and quietly broke every battle in the game: the casualties
+    # landed on the copy, the caller read its own untouched Side, and from
+    # the day orders shipped nobody died in a siege assault. A sortie became
+    # a free button that burnt the engines and cost nothing.
+    att_key, def_key = orders
+    keep = ((attacker.attack_mult, attacker.defense_mult, attacker.morale),
+            (defender.attack_mult, defender.defense_mult, defender.morale))
+    if att_key:
+        _dress(attacker, att_key)
+        max_rounds = order(att_key).rounds
+    if def_key:
+        _dress(defender, def_key)
+    try:
+        return _fight(attacker, defender, wall_hp=wall_hp, rng=rng,
+                      max_rounds=max_rounds, place=place)
+    finally:
+        (attacker.attack_mult, attacker.defense_mult, attacker.morale) = keep[0]
+        (defender.attack_mult, defender.defense_mult, defender.morale) = keep[1]
+
+
+def _dress(side: Side, key: str) -> None:
+    """Put an order on a side, in place."""
+    o = order(key)
+    share = side.class_share().get(o.wants, 0.0) if o.wants else 0.0
+    got = 1.0 + (o.bonus - 1.0) * min(1.0, share * 2.0)
+    side.attack_mult *= o.attack * got
+    side.defense_mult *= o.defense
+    side.morale *= o.morale
+
+
+def _fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
+           rng: Optional[random.Random] = None, max_rounds: int = 14,
+           place: str = "the field") -> BattleResult:
+    rng = rng or random.Random()
     res = BattleResult(winner="stalemate")
     start_att, start_def = attacker.alive(), defender.alive()
     if start_att <= 0:

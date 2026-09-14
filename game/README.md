@@ -850,6 +850,54 @@ so the company was a death sentence whatever the player did. A role you cannot
 play is not a role. At fifty-two men he breaks about even standing still, and
 the pressure is the right one: an army that earns nothing where it is.
 
+#### Being besieged, as something you do
+
+This scenario was built once and thrown away, because it was not a game.
+`_mend_walls` returned early while `besieged`, so the wall only ever went
+down; recruiting at any sane rate changed nothing. Every tuning was decided
+before the player acted — eight of eight held whatever you did, or eight of
+ten fell whatever you did, with nothing in between, because there *was* no
+decision in between.
+
+Two levers now, and neither is free.
+
+**`sally`** opens the gate and goes at the works. It fights whatever is
+standing over the engines — a detachment, not the army, because a sortie that
+had to beat two hundred men to reach a ram would never be worth opening the
+gate for. Send enough and the rams and the engineers burn and the siege has
+to start again. Send too few and you have spent the men who could have done
+it: twenty of ninety lose fifteen and burn nothing.
+
+**`shore`** puts masons on the breach while it is being made — nearly twice
+the stone a yard and a toll in men, charged against the work rather than the
+day, because a flat daily toll was a slow execution of the garrison it was
+meant to save.
+
+And the clock is not the wall, it is the granary. You cannot outlast him on
+what is in it, so the siege has to be *broken* rather than endured — which
+makes the decision a question of when:
+
+| | sally never | day 5 | day 20 | day 60 |
+|---|---|---|---|---|
+| **without shoring** | 4/8 | **7/8** | 5/8 | 4/8 |
+| **with shoring** | 4/8 | **7/8** | 4/8 | 1/8 |
+
+Go early and you break it. Leave it and you have shored your way through the
+garrison that could have gone.
+
+##### The bug this found
+
+Worth its own heading, because it had shipped. Orders were applied by
+swapping in the copies `ordered` makes — so the casualties landed on the
+copy, the caller read its own untouched `Side`, and **from the day orders
+shipped, nobody died in a siege assault**. A sortie was a free button that
+burnt the engines and cost nothing, which is how it was noticed: a lever with
+no price looked wrong before it looked like a bug.
+
+Orders are applied to the sides that were handed in and taken off again in a
+`finally`. There is a test that `("line", "line")` costs exactly what no
+order costs, to the unit.
+
 #### Telling a host how to fight
 
 The thing worth taking from a real-time battle is not the clicking. It is that

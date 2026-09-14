@@ -87,6 +87,9 @@ class Settlement:
     wall_hp: float = 0.0
     deposits: Dict[str, float] = field(default_factory=dict)
     besieged: bool = False
+    #: Whether the masons are working the breach while it is being made. Off
+    #: by default because it is expensive: see `_mend_walls`.
+    shoring: bool = False
     priority: Dict[str, int] = field(default_factory=dict)
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
@@ -598,16 +601,53 @@ class Settlement:
                     rep.spoiled[k] = rep.spoiled.get(k, 0.0) + lost
             rep.notes.append(f"{self.name}: stores overflowing, {over:.0f} units past capacity")
 
+    #: What a day's masonry does to a wall nobody is shooting at, as a share
+    #: of the whole.
+    MEND_RATE = 0.03
+    #: And under fire. Shoring a breach while a siege train works on it is
+    #: slower, dearer in stone, and costs men -- but it is a *lever*, and
+    #: before it existed a besieged defender had none at all: the wall only
+    #: ever went down, recruiting could not close the gap, and the outcome of
+    #: every siege was decided before the player did anything.
+    SHORE_RATE = 0.017
+    SHORE_STONE = 1.9            # times the peacetime stone, per yard mended
+    #: Men lost per yard of wall actually shored. Charged against the work
+    #: rather than against the day, because a flat daily toll on the garrison
+    #: was a slow execution: 0.4% of seventy-four men a day is fifty-nine of
+    #: them over a siege, so shoring killed the defenders it was meant to
+    #: save and doing nothing beat doing something.
+    SHORE_TOLL = 0.02
+
     def _mend_walls(self, rep: DayReport, mods: Progress) -> None:
         top = self.wall_max(mods)
-        if self.wall_hp >= top or self.besieged:
+        if self.wall_hp >= top:
             self.wall_hp = min(self.wall_hp, top)
             return
-        want = min(top - self.wall_hp, top * 0.03)
-        stone = self.market.take("stone", want / 9.0)
-        if stone > 0:
-            self.wall_hp = min(top, self.wall_hp + stone * 9.0)
-            rep.repaired = stone * 9.0
+        if self.besieged and not self.shoring:
+            return
+        under_fire = bool(self.besieged)
+        rate = self.SHORE_RATE if under_fire else self.MEND_RATE
+        per_yard = (9.0 / self.SHORE_STONE) if under_fire else 9.0
+        want = min(top - self.wall_hp, top * rate)
+        stone = self.market.take("stone", want / per_yard)
+        if stone <= 0:
+            if under_fire:
+                rep.notes.append(f"{self.name}: no stone left to shore with")
+            return
+        self.wall_hp = min(top, self.wall_hp + stone * per_yard)
+        rep.repaired = stone * per_yard
+        if under_fire:
+            # Masons on a wall somebody is shooting at -- and only while
+            # there is stone to put up there.
+            lost = min(sum(self.units.values()) * 0.004,
+                       stone * self.SHORE_TOLL)
+            if lost >= 0.5:
+                for key in list(self.units):
+                    self.units[key] = max(0.0, self.units[key]
+                                          - lost * self.units[key]
+                                          / max(1.0, sum(self.units.values())))
+            rep.notes.append(
+                f"{self.name}: {rep.repaired:.0f} of wall shored up under fire")
 
     def _taxes(self) -> float:
         """What the reeve brings in, which is not what the rate asks for.

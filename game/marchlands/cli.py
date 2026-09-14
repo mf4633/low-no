@@ -2359,6 +2359,26 @@ class Console:
         target = args[2] if len(args) > 2 else ""
         self.say("  " + g.post(who, job, target))
 
+    def cmd_sally(self, args: List[str]) -> None:
+        """Open the gate and go at the siege works."""
+        g = self.game
+        where = ""
+        men = 0
+        for arg in args:
+            if arg.isdigit():
+                men = int(arg)
+            else:
+                where = arg
+        self.say("  " + g.sally(where, men).replace("\n", "\n  "))
+
+    def cmd_shore(self, args: List[str]) -> None:
+        """Put masons on the breach while it is being made."""
+        g = self.game
+        on = not (args and args[0].lower() in ("off", "no", "stop"))
+        where = next((a for a in args
+                      if a.lower() not in ("off", "no", "stop", "on")), "")
+        self.say("  " + g.shore(where, on))
+
     def cmd_order(self, args: List[str]) -> None:
         """Tell a host how to fight, before it has to."""
         from .military import ORDERS, order_note
@@ -3006,6 +3026,8 @@ COMMANDS = {
     "feats": Console.cmd_feats, "achievements": Console.cmd_feats,
     "missions": Console.cmd_missions, "roll": Console.cmd_missions,
     "order": Console.cmd_order, "orders": Console.cmd_order,
+    "sally": Console.cmd_sally, "sortie": Console.cmd_sally,
+    "shore": Console.cmd_shore, "mend": Console.cmd_shore,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,
