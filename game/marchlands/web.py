@@ -32,6 +32,7 @@ from . import config as C
 from .economics import marginal_hands
 from .kin import SKILLS
 from .league import PLAYER as LEAGUE_PLAYER
+from . import chancery
 from . import keep as keeps
 from . import voices
 from .layout import plan_for
@@ -171,6 +172,37 @@ def _best_skill(person) -> str:
     return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
 
 
+def _court(game) -> dict:
+    """The march as a web of opinion, for the map that draws it."""
+    c, day = game.court, game.day
+    towns = {}
+    for key, t in game.world.towns.items():
+        if t.mine:
+            continue
+        view = c.opinion(key, day)
+        ground = c.ground_for(key, day)
+        towns[key] = {
+            "name": t.name, "lord": t.lord,
+            "opinion": round(view, 1), "temper": chancery.temper(view),
+            "offence": round(c.offence(key, day), 1),
+            "signed": key in c.coalition,
+            "allied": key in c.allies,
+            "claim": key in c.claims,
+            "ground": ground.label if ground else "",
+            "why": [{"what": w, "by": round(v, 1)}
+                    for w, v, _d in c.reasons(key, day)[:4]],
+        }
+    called = c.called
+    return {
+        "towns": towns,
+        "coalition": list(c.coalition),
+        "bar": chancery.COALITION_BAR,
+        "price": round(c.coalition_price(day)),
+        "called": {"town": called[0],
+                   "days": game.CALL_DAYS - (day - called[1])} if called else None,
+    }
+
+
 def _castle(s) -> dict:
     """What the wall is, for the bar you draw it with."""
     drawing = s.plan()
@@ -255,6 +287,9 @@ def snapshot(game, here: str = "") -> dict:
                       for k, v in game.economy.shortage.items() if v > 0.01],
         },
         "here": key,
+        # The politics: who thinks what, who has signed, and who is waiting
+        # on an answer. The same reading `court` prints.
+        "court": _court(game),
         # The castle, read: what you drew and what a besieger makes of it.
         # The same numbers `castle` prints, because there is one answer.
         "castle": _castle(s),

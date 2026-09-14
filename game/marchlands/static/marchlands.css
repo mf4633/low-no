@@ -414,3 +414,26 @@ body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
 @media (max-width: 620px) {
   #drawbar { bottom: 176px; gap: 6px; font-size: 11px; padding: 6px 9px; }
 }
+
+/* ------------------------------------------------------------- the court */
+/* An opinion is a list of reasons or it is a mood. Everything here exists so
+   that "he is hostile" can be read as "he is hostile because of the town you
+   took eighty days ago, and it has two hundred days left to run". */
+#writ-body .standing { color: var(--parch); font-size: 13px; margin: 0 0 6px; }
+#writ-body .standing b { color: var(--gold); font-weight: 600; }
+#writ-body .standing .bad { color: #c46a5a; }
+#writ-body .standing .good { color: #8fb86a; }
+#writ-body .standing .claim { color: var(--gold); }
+#writ-body .why-list {
+  list-style: none; margin: 0 0 8px; padding: 0 0 0 9px;
+  border-left: 2px solid rgba(201,162,39,.22);
+}
+#writ-body .why-list li {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 12px; color: var(--dim); line-height: 1.6;
+}
+#writ-body .why-list em {
+  font-style: normal; font-variant-numeric: tabular-nums; flex: none;
+}
+#writ-body .why-list em.up { color: #8fb86a; }
+#writ-body .why-list em.down { color: #c46a5a; }

@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 724 tests, ~19min
+python3 -m unittest discover -s tests          # 785 tests, ~20min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -141,6 +141,17 @@ the whole business to one of them. See **[Your house](#your-house)**.
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
 where the game is played.
+
+## The court
+
+```
+court [town]              who thinks what of you, and exactly why
+ally <town>               swear to a lord who thinks well enough to swear back
+call yes / call no        answer an ally who called you to his war
+court buy                 pay off the whole letter against you
+```
+
+See [The march is a web, not eight quarrels](#the-march-is-a-web-not-eight-quarrels).
 
 ## The castle
 
@@ -939,6 +950,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `voices.py` | what the town would say, if you asked it |
 | `kin.py` | the house: skills earned in the job, traits earned by choice, births, marriages, succession |
 | `league.py` | the march as a competition: table, schedule, draft, and the cap |
+| `chancery.py` | the diplomatic web: dated opinion, coalitions, grounds for war, alliances |
 | `economics.py` | the accounts: price index, surplus and deadweight loss, comparative advantage, the marginal product, the mint |
 | `fire.py` | what catches, how it spreads, and what puts it out |
 | `layout.py` | where everything stands, so a renderer can draw a place |
@@ -1138,6 +1150,138 @@ The steward points at all of this. A hole in your own ring with a host on the
 road is the most urgent sentence in the game at that moment, so it is *ranked*
 into `hint` rather than appended to it — which is how the first version of it
 fell off the bottom of a list capped at four.
+
+## The march is a web, not eight quarrels
+
+What people mean when they say they like Europa Universalis’ politics is
+rarely the peace screen. It is four things, and none of them is a war.
+
+This game had one number per lord called `hostility`, which went up on a timer
+and down when you paid. Everything below is built on top of that rather than in
+place of it: the timer is still the timer. What changed is that the number now
+has **reasons** attached, that the reasons are visible and dated, and that they
+add up *across the march* instead of only ever pointing at you one lord at a
+time.
+
+### You can see why somebody hates you
+
+```
+── THE COURT ────────────────────────────────── 6 names on the letter ──
+  Dunmere        -12  cool        signed
+      you took a town on this march                 -21  242 days left
+      you have beaten their host, and they know it  +14  400 days left
+  Havnhold       +19  warm
+      you marched with no reason anybody accepted   -10  265 days left
+      your houses are married                       +70  forever
+```
+
+Every reason is a dated row that decays at its own rate, and the rate is the
+design. Taking a town is about four hundred days of ill-will at the
+neighbours. An unjust war is rather more, because it is about your character
+and not your appetite. A siege the march thought was fair is forgotten inside
+a season. *"He is hostile"* is flavour; *"he is hostile because of the town you
+took eighty days ago, and it has two hundred and forty days left to run"* is a
+plan.
+
+Two distinctions carry most of the weight:
+
+* **Dislike is not offence.** A lord who resents being shaken down for tribute
+  resents you. A lord who has watched you take three towns has a reason to
+  write to his neighbours. Only the second kind signs anything.
+* **Awe is not affection.** Breaking a lord’s host is a reason he will not put
+  his name to a letter with you on it. It is not a reason he warms to you: he
+  will not ally, and his temper does not cool. Letting the two share a number
+  made a man you had beaten twice read as a friend.
+
+### Conquest is self-limiting
+
+```
+  THE LETTER AGAINST YOU
+  Bruille, Caer Ithel, Caldmoor, Marchand, Ostmark, Vantry have signed.
+  None of them will take a truce alone.
+  it lapses under 45 each:  Caldmoor 58, Ostmark 64, Bruille 46, ...
+  three ways out:  beat their hosts (each broken host is worth 22),
+                   wait, or `court buy` at 7,399c
+```
+
+The signature mechanic, and the one this game most needed: conquest that is
+cheap once, dear twice and ruinous three times — not because any lord got
+stronger, but because they started counting together. A signatory **will not
+take a truce alone**, which is precisely what they signed it to stop you doing.
+
+It is a genuine arc rather than a wall. Measured on one run of the conquering
+bot: the letter forms on day 498 with seven names, lapses on day 706 after he
+breaks two of their hosts and stops expanding, and re-forms on day 951 when he
+takes a third town. And names come off it individually — cooling one lord takes
+his name off without taking the letter down, because a lever that does nothing
+is not a lever. The bar to sign (45) sits above the bar to stay (32), so
+nobody signs and unsigns weekly.
+
+### A war wants a reason
+
+Nothing stops you marching on anybody at any hour. What a **ground** buys is
+that the rest of the march shrugs instead of writing to each other, and that
+your own town does not spend the season saying it was a wicked business.
+
+Grounds come from things that already happen — they burned your country, they
+cut your roads, their host is on your land, they marched while a treaty ran,
+they signed against you, an ally called you — and from a claim by marriage,
+which never expires. Marching without one offends every bystander twice over
+*and* costs your own towns up to 14 of mood, because they have sons in the host
+and no idea what any of this is for.
+
+Measured, same seed, same conquering bot:
+
+| | the march unites on |
+|---|---|
+| marching with no grounds | **day 498** |
+| marching only when wronged | **day 1006** |
+
+A lawful war also makes the *conquest* cheaper (a town taken in a war the march
+accepted the reason for offends at 60%), which is the second half of what a
+marriage is for, and why a dowry is worth paying years before anybody dies.
+
+### Friends cost something
+
+`ally <town>` needs a lord who already thinks well of you (+40). An ally does
+not march on you, comes when you are attacked — and **calls when he is**. You
+have twelve days to answer, and `call no` is a real answer: the alliance ends
+and every other lord on the march is told what your word is worth, in a grudge
+that decays slower than almost anything else in the book. Saying nothing is
+saying no.
+
+That last one was a bug for about an hour, and an instructive one: the timeout
+path cleared the pending call and *then* asked the answering function to act on
+it, which found nothing pending and did nothing at all. No broken alliance, no
+grudge, no line in the chronicle. A silence with no consequence is not a
+decision the player was ever offered.
+
+### And a house that ends
+
+The other reason to marry a daughter into Ostmark. A marriage makes a **claim**,
+and if that house ends without an heir of its body, what it held comes to you
+with nobody in the field. It is rare on purpose — but it is the only way a town
+arrives without a war, and the only thing in this game that makes a dowry look
+cheap in hindsight. Without a claim, a cousin takes the hall and you hear about
+it, which is what most history is.
+
+### Two things this cost to get right
+
+* **A retaken town is not a second conquest.** Charging full aggressive
+  expansion every time a garrison wavered and the town was retaken ran one lord
+  to two hundred points of ill-will and a two-thousand-day decay. That is not a
+  decision, it is a spiral. The march priced you as the man who took Caldmoor
+  the first time.
+* **The court screen promised something the arithmetic did not keep.** It told
+  the player each broken host was worth 22 against the letter, while `offence`
+  summed only the *negative* reasons — so a broken host was worth exactly
+  nothing. An interface that makes a promise the model does not keep is worse
+  than one that says nothing.
+
+And the fourth instance of the same architectural lesson: the chancery rolls its
+own dice. The kin moved the weather; the league re-rolled twelve seeds of
+balance measurement; the voices would have re-rolled the campaign from a browser
+poll. There are no exceptions left to find.
 
 ### What we still do not have
 

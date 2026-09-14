@@ -1340,15 +1340,37 @@ function nodeWrit(n, ev) {
       ? 'you have never sent anyone, so you know nothing of its strength'
       : `about ${n.host} of strength behind ${n.walls} of wall — ` +
         (n.known === 0 ? 'seen today' : `and that is ${n.known} days old`);
+  // What he thinks of you and why, which is public in a way strength is not:
+  // an envoy does not have to guess whether a man is still angry about the
+  // town you took, because he will tell you at length.
+  const c = (state && state.court && state.court.towns) || {};
+  const st = c[n.key];
+  const marks = !st ? '' : [
+    st.signed ? '<span class="bad">signed against you</span>' : '',
+    st.allied ? '<span class="good">allied</span>' : '',
+    st.claim ? '<span class="claim">your claim by marriage</span>' : '',
+  ].filter(Boolean).join(' · ');
+  const standing = !st ? '' :
+    `<p class="standing"><b>${st.opinion > 0 ? '+' : ''}${st.opinion}</b> ` +
+    `${esc(st.temper)}${marks ? ' · ' + marks : ''}</p>` +
+    (st.why.length ? `<ul class="why-list">` + st.why.map(w =>
+      `<li><span>${esc(w.what)}</span><em class="${w.by > 0 ? 'up' : 'down'}">` +
+      `${w.by > 0 ? '+' : ''}${w.by}</em></li>`).join('') + '</ul>' : '') +
+    `<p class="why">${st.ground
+      ? 'a reason to march: ' + esc(st.ground)
+      : 'no reason to march anybody would accept'}</p>`;
   const acts = n.kind === 'town' ? `
     <div class="acts">
       ${idle ? `<button data-do="auto ${idle.uid}">put ${idle.name} on the best run</button>` : ''}
       <button data-do="scan">what is worth carrying</button>
       <button data-do="gift ${n.key} 500">gift 500c</button>
       <button data-do="truce ${n.key}">ask for a truce</button>
+      ${st && !st.allied && !st.signed
+        ? `<button data-do="ally ${n.key}">ask him to swear</button>` : ''}
     </div>` : n.kind === 'site' ? `
     <div class="acts"><button data-do="found ${n.key}">settle it</button></div>` : '';
-  openWrit(n.name, price + (known ? `<p class="why">${known}</p>` : '') + acts, ev);
+  openWrit(n.name, price + (known ? `<p class="why">${known}</p>` : '')
+           + standing + acts, ev);
 }
 
 for (const btn of document.querySelectorAll('#clock button')) {
@@ -1791,6 +1813,25 @@ function paint(s) {
     clock.hidden = !clock.textContent;
   }
   $('league').hidden = mode !== 'march' || !(lea && lea.table && lea.table.length);
+  // The signature of the whole diplomatic layer: the moment the march stops
+  // quarrelling with itself and starts counting together. It should not be
+  // possible to have this happen to you and not notice.
+  const ct = s.court || {};
+  const signed = ct.coalition || [];
+  $('letter').hidden = mode !== 'march' || !signed.length;
+  if (signed.length) {
+    $('signed').innerHTML = signed.map(k => {
+      const t = (ct.towns || {})[k] || {};
+      const left = Math.max(0, (t.offence || 0) - (ct.bar || 0));
+      return `<li><label>${esc(t.name || k)}</label>` +
+             `<span class="${left > 0 ? 'down' : 'up'}">${left > 0
+               ? '+' + left.toFixed(0) + ' over' : 'cooling'}</span></li>`;
+    }).join('');
+    $('letter-out').textContent =
+      `None of them will treat alone. It lapses as each falls under ` +
+      `${(ct.bar || 0).toFixed(0)} of offence — beat their hosts, wait, ` +
+      `or pay ${num(ct.price || 0)}c for the whole of it.`;
+  }
 
   // The race, projected. A game whose result you only learn on the last day
   // is one you could not have played differently.

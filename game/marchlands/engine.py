@@ -23,6 +23,7 @@ from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lords as lordly
 from . import lord as manly
+from . import chancery as court
 from . import keep as keeps
 from .kin import POSTS, Kin, found as found_kin
 from . import league as lg
@@ -139,6 +140,9 @@ class GameState:
     kin: Kin = field(default_factory=Kin)
     #: The march as a competition: a table, a schedule, and a draft.
     league: League = field(default_factory=League)
+    #: Who is talking to whom, and why. Every reason anybody has to like or
+    #: dislike you lives here, dated and decaying; see chancery.py.
+    court: court.Chancery = field(default_factory=court.Chancery)
     #: The national accounts, and the mint. Measures everything, moves one
     #: thing: the price level, which is the only honest way for a debasement
     #: to be felt.
@@ -169,6 +173,9 @@ class GameState:
         if not self.league.seed:
             self.league.seed = self.seed * 40507 + 13
             self.league.rng = random.Random(self.league.seed)
+        if not self.court.seed:
+            self.court.seed = self.seed * 15485863 + 7
+            self.court.rng = random.Random(self.court.seed)
         # What a lord says when he declares is flavour and must stay flavour.
         # Drawn from the world's own stream it would not be: every line spoken
         # shifts the weather, the prices and the next battle behind it, and an
@@ -553,6 +560,55 @@ class GameState:
         return (f"{a.name} marches on {self.world.node_name(node)} -- "
                 f"{a.days_left:.0f} days")
 
+    #: How long a march counts as the same war for the purpose of who takes
+    #: offence at it. Sitting down, standing up and sitting down again is one
+    #: quarrel, not three, and charging for it three times would make a long
+    #: siege a diplomatic catastrophe by arithmetic rather than by judgement.
+    WAR_MEMORY = 200
+
+    def _declare(self, town) -> str:
+        """Sitting down in front of a lord's walls, and who minds.
+
+        The moment a war actually begins, which is not the order to march --
+        a host can be turned round on the road and nobody on this march will
+        have written a letter about it. What decides the cost is whether you
+        had a reason anybody else accepts: with one, the rest of them shrug;
+        without one, they all take note, and so does your own town, which has
+        sons in the host and no idea what any of this is for.
+        """
+        key = town.key
+        if self.day - self.court.declared.get(key, -9999) < self.WAR_MEMORY:
+            return ""                        # the same quarrel, still running
+        self.court.declared[key] = self.day
+        ground = self.court.ground_for(key, self.day)
+        if ground is not None:
+            self.court.justified[key] = self.day
+        # Everybody minds a siege. What a ground changes is how much.
+        scale = 0.45 if ground else 1.0
+        others = [k for k, t in self.world.towns.items()
+                  if not t.mine and k != key]
+        for other in others:
+            near = self.world.distance(other, key)
+            close = max(0.5, min(1.3, 90.0 / max(30.0, near)))
+            self.court.write(other, "besieged",
+                             -12.0 * scale * close * lordly.sort_of(other).temper,
+                             self.day)
+        self.court.write(key, "besieged", -45.0, self.day)
+        if ground:
+            return (f"\n    You have grounds: {ground.label}. The march will "
+                    f"not much mind.")
+        # No reason anybody accepts. Everyone takes it harder, and so does
+        # your own hall.
+        self.court.write_all(others, "unjust",
+                             -14.0 * self.war_pressure(), self.day)
+        cost = court.unjust_cost(len(others))
+        for s in self.world.settlements.values():
+            s.popularity = max(0.0, s.popularity - cost)
+        self.kin.did("merciful", -0.12)
+        return (f"\n    You have no grounds anybody will accept. "
+                f"{len(others)} lord(s) take note, and your own towns lose "
+                f"{cost:.0f} of mood over a war they cannot name.")
+
     def disband_host(self, uid: int) -> str:
         a = self.army(uid)
         if not a:
@@ -625,7 +681,8 @@ class GameState:
             town = self.world.towns[node]
             a.state = BESIEGING
             return (f"{a.name} sits down before {town.name} "
-                    f"({town.wall_hp:.0f} of wall, {describe(town.garrison)} within)")
+                    f"({town.wall_hp:.0f} of wall, {describe(town.garrison)} within)"
+                    + self._declare(town))
 
         if node == a.home and node in self.world.towns:
             # A host that gets home stands down into its own town's garrison,
@@ -1340,6 +1397,8 @@ class GameState:
         s.population = max(4.0, s.population * (1.0 - C.RAID_FLIGHT * worked))
         # Raiders carry torches. This is the cheapest way there is to hurt a
         # town you cannot take, and the reason a stone town sleeps better.
+        # Burning your fields is a reason anybody on the march will accept.
+        self.court.give_ground(a.owner, "raided", self.day)
         if self.rng.random() < C.RAID_TORCH * worked:
             msgs.extend(s.kindle(self.rng, 1 + int(2 * worked)))
         if self.day % 4 == 0:
@@ -1453,6 +1512,10 @@ class GameState:
             else:
                 a.state = RETURNING
                 if a.owner in self.world.towns:
+                    # A letter is easier to sign than to keep. Every host of
+                    # theirs you break takes a bite out of the reason it was
+                    # written, which is the one way out that is not money.
+                    self.court.write(a.owner, "beaten", 22.0, self.day)
                     line = lordly.says(a.owner, "beaten", self.voice)
                     if line:
                         msgs.append(f'    {self.world.towns[a.owner].lord}: '
@@ -1508,6 +1571,7 @@ class GameState:
                                           faith=s.coverage("faith_reach"))
         if a.siege.plan == INVEST:
             s.blockaded = True
+            self.court.give_ground(a.owner, "blockade", self.day)
         s.wall_hp = wall
         if self.day % 5 == 0 and lines:
             msgs.append(f"{s.name} under siege: {lines[0]}")
@@ -1613,9 +1677,40 @@ class GameState:
         town.prosperity = max(0.5, town.prosperity - 0.25)
         a.state = GARRISON
         if a.owner == "player":
-            for other in self.world.towns.values():
-                if not other.mine:
-                    other.hostility = min(C.HOSTILITY_WAR, other.hostility + 18.0)
+            # Aggressive expansion. The immediate shock is what it always was;
+            # what is new is that the offence is written down with a date on
+            # it, so it decays where a player can watch it decay -- and so
+            # that it adds up across the march instead of only ever pointing
+            # at you one lord at a time. Three towns is a different decision
+            # from one, and this is the mechanism that says so.
+            #
+            # A town taken in a war the march accepted the reason for offends
+            # less than one simply seized -- which is the second half of what
+            # a marriage into that house is for, and the reason a claim is
+            # worth a dowry years before anybody dies.
+            just = self.day - self.court.justified.get(town.key, -99999)
+            lawful = 0.6 if just < self.WAR_MEMORY else 1.0
+            # And a town that revolted and was retaken is not a second
+            # conquest. The march priced you as the man who took Caldmoor the
+            # first time; charging it again every time the garrison wavered
+            # ran one lord to two hundred of ill-will and a thousand days of
+            # decay, which is not a decision, it is a spiral.
+            again = town.key in self.court.taken
+            self.court.taken.add(town.key)
+            lawful *= 0.3 if again else 1.0
+            for key, other in self.world.towns.items():
+                if other.mine:
+                    continue
+                other.hostility = min(C.HOSTILITY_WAR, other.hostility + 18.0)
+                near = self.world.distance(key, town.key)
+                # Distances on this march run 30 to 190. A neighbour takes
+                # it hardest; a lord four days' ride away has heard about it
+                # and has other things on his mind.
+                close = max(0.55, min(1.4, 90.0 / max(30.0, near)))
+                self.court.write(key, "took_town",
+                                 -34.0 * lawful * close
+                                 * lordly.sort_of(key).temper,
+                                 self.day)
             return self.note(
                 f"*** {town.name} bends the knee. Its tolls are yours, and "
                 f"{town.tribute():.0f}c a day with them. ***", MOMENTOUS)
@@ -1638,6 +1733,7 @@ class GameState:
         msgs: List[str] = []
         if not self.world.settlements:
             return msgs
+        msgs += self._chancery_day()
         pressure = self.war_pressure()
         wealth_factor = min(2.5, self.net_worth() / 40000.0)
         besieged = {a.at for a in self.armies if a.state == BESIEGING}
@@ -1660,6 +1756,8 @@ class GameState:
             # so tuning how often the lords went for bones quietly retuned how
             # often they declared on anybody.
 
+            if key in self.court.allies:
+                continue      # a man does not march on somebody he has sworn to
             # -- offence taken at you ---------------------------------------
             if t.truce_days <= 0:
                 t.hostility += (C.HOSTILITY_DRIFT * pressure * t.temper
@@ -1684,6 +1782,230 @@ class GameState:
             rival_wars += 1
             msgs.append(self._send_host(t, pressure, prey))
         return msgs
+
+    # -------------------------------------------------------- the chancery
+    #: How long an ally is given to answer a call before it counts as a no.
+    CALL_DAYS = 12
+    #: Chance a day that a foreign lord's line runs out. Over three years it
+    #: is a thing that happens to about one house on the march.
+    SUCCESSION_ODDS = 0.00035
+
+    def _chancery_day(self) -> List[str]:
+        """The letters. Who is talking to whom, and what they have agreed.
+
+        Four things, in the order a chancellor would take them: the book is
+        swept of what has worn out, the standing goodwill is re-read off it,
+        the names on the letter are counted, and anybody waiting on an answer
+        is told that no answer is an answer.
+        """
+        msgs: List[str] = []
+        day = self.day
+        c = self.court
+        if day % 7 == 0:
+            c.sweep(day)
+        # `favour` is not a number anybody sets any more. It is the sum of
+        # what is in your favour, which is the only way a gift can be
+        # forgotten -- and `wed` has claimed for a year that gifts are
+        # forgotten while `favour` only ever went up.
+        for key, t in self.world.towns.items():
+            t.favour = c.goodwill(key, day)
+        msgs += self._coalition_day()
+        msgs += self._alliance_day()
+        msgs += self._succession_abroad()
+        return msgs
+
+    def _coalition_day(self) -> List[str]:
+        """When the lords stop quarrelling with each other and start writing.
+
+        The signature of the thing this is borrowed from: conquest that is
+        cheap once, dear twice and ruinous three times, not because any lord
+        got stronger but because they started counting together. It is the
+        game saying, in a way you can read in advance, that the third town is
+        a different kind of decision from the first.
+        """
+        msgs: List[str] = []
+        c, day = self.court, self.day
+        theirs = [k for k, t in self.world.towns.items() if not t.mine]
+        names = [k for k in c.signatories(theirs, day) if k not in c.allies]
+        # Names come off as well as on. Without this a lord whose grievance
+        # you had spent a year and a treasury cooling stayed on the letter
+        # for as long as any three others were angry -- which made buying one
+        # lord off pointless, and pointless is the one thing a lever must
+        # never be.
+        if c.coalition:
+            still = [k for k in c.still_signed(day)
+                     if k not in c.allies and not self.world.towns[k].mine]
+            left = [k for k in c.coalition if k not in still]
+            if len(still) < court.COALITION_NAMES:
+                c.coalition = []
+                c.coalition_day = -1
+                msgs.append(self.note(
+                    "The letter against you is not renewed. The march goes "
+                    "back to quarrelling with itself.", MOMENTOUS))
+            elif left:
+                c.coalition = still
+                msgs.append(self.note(
+                    ", ".join(self.world.node_name(k) for k in left)
+                    + " takes a name off the letter against you."))
+        if len(names) >= court.COALITION_NAMES:
+            new = [k for k in names if k not in c.coalition]
+            if not c.coalition:
+                c.coalition = names
+                c.coalition_day = day
+                msgs.append(self.note(
+                    "*** The lords of the march have put their names to one "
+                    "letter: " + ", ".join(self.world.node_name(k) for k in names)
+                    + ". They will not treat with you one at a time while it "
+                    "holds. ***", MOMENTOUS))
+            elif new:
+                c.coalition = sorted(set(c.coalition) | set(new))
+                msgs.append(self.note(
+                    ", ".join(self.world.node_name(k) for k in new)
+                    + " adds a name to the letter against you.", MOMENTOUS))
+        # A coalition marches together. When one of them is on the road for
+        # you, the rest find their boots within the fortnight -- which is the
+        # whole difference between eight quarrels and one war.
+        if c.coalition and any(a.owner in c.coalition
+                               and a.bound_for in self.world.settlements
+                               for a in self.armies):
+            for key in c.coalition:
+                t = self.world.towns.get(key)
+                if t is None or t.mine or t.truce_days > 0:
+                    continue
+                if any(a.owner == key and not a.errand for a in self.armies):
+                    continue
+                if c.rng.random() < 0.085:
+                    msgs.append(self._send_host(t, self.war_pressure(),
+                                                self._nearest_of_mine(key)))
+        return msgs
+
+    def _alliance_day(self) -> List[str]:
+        """Friends, and the day you did not come.
+
+        An ally who comes when you are attacked is an ally who calls when he
+        is. Refusing is allowed and is meant to be: what it costs is that
+        every other lord on the march now knows what your word is worth,
+        which is a grudge that decays slower than anything else in the book.
+        """
+        msgs: List[str] = []
+        c, day = self.court, self.day
+        for key in list(c.allies):
+            t = self.world.towns.get(key)
+            if t is None or t.mine:
+                c.allies.remove(key)
+                continue
+            if c.opinion(key, day) <= 0:
+                c.allies.remove(key)
+                c.write(key, "ally", -10.0, day)
+                msgs.append(self.note(f"{t.lord} of {t.name} lets the "
+                                      f"alliance lapse."))
+        # Somebody marching on an ally is a call, and a call wants an answer.
+        if c.called is None:
+            for a in self.armies:
+                if a.owner == "player" or a.bound_for not in c.allies:
+                    continue
+                who = a.bound_for
+                c.called = (who, day)
+                msgs.append(self.note(
+                    f"*** {self.world.node_name(who)} calls you to the war. "
+                    f"`call yes` sends what you have; `call no` does not, and "
+                    f"the march will hear which. You have {self.CALL_DAYS} "
+                    f"days. ***", MOMENTOUS))
+                break
+        elif day - c.called[1] > self.CALL_DAYS:
+            # Saying nothing is saying no, and it has to go through the same
+            # door as saying it: clearing `called` first and *then* asking
+            # answer_call to act on it meant the clock ran out and absolutely
+            # nothing happened -- no broken alliance, no grudge, no line in
+            # the chronicle. A silence with no consequence is not a decision
+            # the player was ever offered.
+            msgs.append(self.answer_call(False))
+        return msgs
+
+    def answer_call(self, come: bool) -> str:
+        """Yes or no to an ally who has called. No is a real option."""
+        c = self.court
+        who = c.called[0] if c.called else None
+        if who is None:
+            return "nobody has called you"
+        c.called = None
+        t = self.world.towns.get(who)
+        name = self.world.node_name(who)
+        if come:
+            c.write(who, "came_when_called", 45.0, self.day)
+            # Whoever is marching on them has now given you a reason to
+            # march on him, which is the other half of what an ally is for.
+            for a in self.armies:
+                if a.bound_for == who and a.owner in self.world.towns:
+                    c.give_ground(a.owner, "called", self.day)
+            if t is not None:
+                t.truce_days = max(t.truce_days, 120)
+            return self.note(f"You answer {name}'s call. Whoever is at their "
+                             f"gate is now your business too.", MOMENTOUS)
+        if who in c.allies:
+            c.allies.remove(who)
+        c.write(who, "broke_word", -60.0, self.day)
+        others = [k for k, x in self.world.towns.items() if not x.mine and k != who]
+        c.write_all(others, "broke_word", -22.0, self.day)
+        self.kin.did("open", -0.2)
+        return self.note(f"You do not come when {name} calls. The alliance "
+                         f"ends, and every lord on the march is told.",
+                         MOMENTOUS)
+
+    def ally(self, town_key: str) -> str:
+        """Swear to come when they are attacked, and they to you."""
+        t = self.world.towns.get(town_key)
+        if t is None:
+            return f"there is no {town_key!r} to treat with"
+        if t.mine:
+            return f"{t.name} is sworn to you already"
+        c = self.court
+        if town_key in c.allies:
+            return f"you are allied with {t.name} already"
+        view = c.opinion(town_key, self.day)
+        if view < court.WARM:
+            return (f"{t.lord} of {t.name} thinks of you as "
+                    f"{court.temper(view)} ({view:+.0f}); he will not swear to "
+                    f"anybody under {court.WARM:+.0f}. `court {town_key}` says "
+                    f"what would move him.")
+        c.allies.append(town_key)
+        c.write(town_key, "ally", 30.0, self.day)
+        t.truce_days = max(t.truce_days, 180)
+        self.kin.teach("charm", 14.0, self.day, post="envoy")
+        return self.note(f"{t.lord} of {t.name} is allied to you. He comes "
+                         f"when you are attacked, and calls when he is.",
+                         MOMENTOUS)
+
+    def _succession_abroad(self) -> List[str]:
+        """A house ends, and what it held has to go somewhere.
+
+        The other reason to marry a daughter into Ostmark. It is rare and it
+        is meant to be -- but it is the one way a town comes to you with
+        nobody in the field, and it is the only thing in the game that makes
+        a dowry look cheap in hindsight.
+        """
+        c = self.court
+        for key, t in self.world.towns.items():
+            if t.mine or c.rng.random() >= self.SUCCESSION_ODDS:
+                continue
+            if key not in c.claims:
+                # Somebody else's cousin takes it. You hear about it and it
+                # changes nothing, which is what most history is.
+                t.prosperity = max(0.5, t.prosperity - 0.1)
+                return [self.note(f"{t.lord} of {t.name} is dead. A cousin "
+                                  f"takes the hall, and the market with it.")]
+            t.owner = "player"
+            t.hostility = 0.0
+            t.ambition = 0.0
+            c.claims.pop(key, None)
+            others = [k for k, x in self.world.towns.items()
+                      if not x.mine and k != key]
+            c.write_all(others, "inherited", -16.0, self.day)
+            return [self.note(
+                f"*** {t.lord} of {t.name} is dead without an heir of his "
+                f"body, and your house has the claim. {t.name} comes to you "
+                f"with nobody in the field. ***", MOMENTOUS)]
+        return []
 
     def _revolt(self, key: str, town) -> str:
         """A town holds its oath while the hand that took it is still visible.
@@ -1743,6 +2065,12 @@ class GameState:
         for other in self.world.towns.values():
             if other is not town:
                 other.hostility = max(0.0, other.hostility - 45.0)
+        if target in self.world.settlements:
+            # Their host is on your land, which is the oldest reason there is.
+            self.court.give_ground(town.key, "attacked", self.day)
+            if town.truce_days > 0:
+                self.court.give_ground(town.key, "broken_truce", self.day)
+                self.court.write(town.key, "truce", -25.0, self.day)
         who = "WAR" if target in self.world.settlements else "The march"
         said = ""
         if target in self.world.settlements:
@@ -1893,7 +2221,11 @@ class GameState:
             return said
         self.treasury -= cost
         self._outlay += cost
-        town.favour += C.MARRIAGE_FAVOUR
+        self.court.write(town_key, "marriage", C.MARRIAGE_FAVOUR, self.day)
+        # And a claim, which is the other half of what a marriage is for. If
+        # that house ends without an heir, what it holds can come to yours
+        # without a single man in the field -- see `_succession_abroad`.
+        self.court.claims[town_key] = self.day
         town.hostility = max(0.0, town.hostility - C.MARRIAGE_COOLING)
         town.truce_days = max(town.truce_days, C.MARRIAGE_TRUCE)
         self.kin.did("open", 0.15)
@@ -1917,7 +2249,10 @@ class GameState:
         self._outlay += coin
         before = town.hostility
         town.hostility = max(0.0, town.hostility - coin * C.GIFT_PER_COIN)
-        town.favour += coin * 0.01
+        # "a gift is forgotten as the favour decays" is what `wed` has said
+        # about this since it was written, and until the ledger existed there
+        # was nowhere for it to decay: `favour` only ever went up. It does now.
+        self.court.write(town_key, "gift", coin * 0.01, self.day)
         self.kin.did("open", 0.10)
         self.kin.teach("charm", 6.0, self.day, post="envoy")
         return (f"{coin:,.0f}c goes to {town.lord} of {town.name}; "
@@ -1940,6 +2275,13 @@ class GameState:
             return f"there is no {town_key!r} to treat with"
         if town.mine:
             return f"{town.name} is sworn to you already"
+        if town_key in self.court.coalition:
+            # The point of the letter. Buying them off one at a time is
+            # exactly what they signed it to stop you doing.
+            return (f"{town.lord} has put his name to the letter against you "
+                    f"and will not treat alone. `court` says what the whole "
+                    f"of it would cost, and what it would take to let it "
+                    f"lapse.")
         days = max(1, int(days))
         cost = self.truce_cost(town_key, days)
         if self.treasury < cost:
@@ -1956,8 +2298,40 @@ class GameState:
         return (f"{town.lord} of {town.name} takes {cost:,.0f}c and swears off "
                 f"the march for {days} days" + tail)
 
+    def buy_off_coalition(self) -> str:
+        """Pay the whole letter off at once, which is the only way to pay it.
+
+        Dear on purpose. The coalition exists to make the third town cost
+        something that the first two did not, and a price you can always meet
+        would make it a toll rather than a decision. The cheap way out is the
+        slow one: stop taking towns and let it wear off.
+        """
+        c = self.court
+        if not c.coalition:
+            return "there is no letter against you"
+        cost = c.coalition_price(self.day)
+        if self.treasury < cost:
+            return (f"buying the whole letter off costs {cost:,.0f}c and you "
+                    f"have {self.treasury:,.0f}c. Beating their hosts in the "
+                    f"field is the other way, and waiting is the third.")
+        self.treasury -= cost
+        self._outlay += cost
+        for key in list(c.coalition):
+            c.write(key, "gift", c.offence(key, self.day) * 0.75, self.day)
+            t = self.world.towns.get(key)
+            if t is not None:
+                t.truce_days = max(t.truce_days, 150)
+        names = [self.world.node_name(k) for k in c.coalition]
+        c.coalition = []
+        c.coalition_day = -1
+        self.kin.teach("charm", 25.0, self.day, post="envoy")
+        return self.note(f"*** {cost:,.0f}c buys the letter back. "
+                         f"{', '.join(names)} stand down, and none of them "
+                         f"will say what it cost them. ***", MOMENTOUS)
+
     def demand(self, town_key: str) -> str:
         """Demand tribute. It works on a weaker lord and enrages any other."""
+        self.court.write(town_key, "demanded", -18.0, self.day)
         town = self.world.towns.get(town_key)
         if town is None:
             return f"there is no {town_key!r} to lean on"
@@ -2224,6 +2598,7 @@ class GameState:
             "lord": self.lord.to_dict(), "kin": self.kin.to_dict(),
             "economy": self.economy.to_dict(),
             "league": self.league.to_dict(),
+            "court": self.court.to_dict(),
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
             "rng": list(self.rng.getstate()),
@@ -2266,6 +2641,7 @@ class GameState:
         g.kin.riding = g.lord.riding
         g.economy = Economy.from_dict(d.get("economy", {}))
         g.league = League.from_dict(d.get("league", {}))
+        g.court = court.Chancery.from_dict(d.get("court"))
         for s in g.world.settlements.values():
             s.market.level = g.economy.price_level
             s.market.caps = dict(g.economy.assize)

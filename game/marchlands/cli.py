@@ -23,6 +23,7 @@ from .goods import resolve as resolve_good
 from . import kin as kinly
 from . import league as lg
 from . import lord as lordly
+from . import chancery
 from . import keep as keeps
 from . import lords as lordkind
 from . import voices
@@ -695,6 +696,44 @@ class Console:
                         f"castle -- `castle` has both numbers."))
         return out
 
+    def _court_hints(self) -> List[Tuple[float, str]]:
+        """The politics, ranked against everything else a steward might say.
+
+        Two of these are the most urgent sentences in the game when they are
+        true -- an ally waiting on an answer with a clock running, and the
+        moment before the march stops quarrelling with itself.
+        """
+        g = self.game
+        c = g.court
+        out: List[Tuple[float, str]] = []
+        if c.called is not None:
+            left = g.CALL_DAYS - (g.day - c.called[1])
+            out.append((88.0, f"{g.world.node_name(c.called[0])} has called "
+                              f"you to his war and wants an answer in {left} "
+                              f"day(s). `call yes` or `call no` -- and the "
+                              f"march hears which."))
+        if c.coalition:
+            out.append((72.0, f"{len(c.coalition)} lords have signed one "
+                              f"letter against you. They march together and "
+                              f"none will treat alone. `court` has the three "
+                              f"ways out."))
+        else:
+            close = [k for k, t in g.world.towns.items() if not t.mine
+                     and c.offence(k, g.day) >= chancery.COALITION_BAR * 0.7]
+            if len(close) >= chancery.COALITION_NAMES:
+                out.append((60.0, f"{len(close)} lords are close to signing "
+                                  f"against you. Another town taken does it. "
+                                  f"`court` says how close, and it costs "
+                                  f"nothing to wait."))
+        warm = [k for k, t in g.world.towns.items()
+                if not t.mine and k not in c.allies
+                and c.opinion(k, g.day) >= chancery.WARM]
+        if warm and not c.allies:
+            out.append((34.0, f"{g.world.node_name(warm[0])} thinks well "
+                              f"enough of you to swear -- `ally {warm[0]}`. "
+                              f"An ally comes when you are attacked."))
+        return out
+
     def _kin_hints(self) -> List[Tuple[float, str]]:
         """The house is the easiest system in the game to never notice.
 
@@ -964,7 +1003,8 @@ class Console:
         # hundred turns each while the fourth line was about a guildhall.
         ranked = [(50.0 - 0.01 * i, text) for i, text in enumerate(out)]
         ranked += (self._kin_hints() + self._economy_hints()
-                   + self._castle_hints(bool(coming)))
+                   + self._castle_hints(bool(coming))
+                   + self._court_hints())
         ranked.sort(key=lambda row: -row[0])
         picked = [text for _, text in ranked][:4]
         if not picked:
@@ -1694,6 +1734,174 @@ class Console:
                  + ink.c("   gold is covered by a tower, ", ink.DIM)
                  + ink.c("red is not", ink.BLOOD))
 
+    # ------------------------------------------------------------- the court
+    def _standing_colour(self, view: float) -> int:
+        if view >= chancery.WARM:
+            return ink.LEAF
+        if view >= 0:
+            return ink.PARCH
+        if view > chancery.COLD:
+            return ink.AMBER
+        return ink.BLOOD
+
+    def cmd_court(self, args: List[str]) -> None:
+        """Who thinks what of you, and exactly why."""
+        g = self.game
+        if args and args[0].lower() in ("buy", "buyoff", "letter"):
+            return self.say("  " + g.buy_off_coalition())
+        c = g.court
+        if args:
+            key = self._resolve_town(args[0])
+            if key is None:
+                return self.err(f"no town called {args[0]!r}")
+            return self._one_court(key)
+        signed = len(c.coalition)
+        self.say(ink.head("THE COURT",
+                          f"{signed} names on the letter" if signed
+                          else "no letter against you"))
+        for key, t in g.world.towns.items():
+            if t.mine:
+                continue
+            view = c.opinion(key, g.day)
+            marks = []
+            if key in c.allies:
+                marks.append(ink.c("allied", ink.LEAF))
+            if key in c.coalition:
+                marks.append(ink.c("signed", ink.BLOOD))
+            if key in c.claims:
+                marks.append(ink.c("claim", ink.GOLD))
+            if t.truce_days > 0:
+                marks.append(ink.c(f"treaty {t.truce_days}d", ink.DIM))
+            self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)}"
+                     + ink.c(f"{view:>+5.0f}  ", self._standing_colour(view))
+                     + ink.c(ink.pad(chancery.temper(view), 12), ink.DIM)
+                     + "  ".join(marks))
+            top = c.reasons(key, g.day)[:2]
+            for label, value, decay in top:
+                self.say("      " + ink.c(ink.pad(label, 44), ink.DIM)
+                         + ink.c(f"{value:>+5.0f}", self._standing_colour(value))
+                         + ink.c("  forever" if not decay
+                                 else f"  {abs(value) / decay:,.0f} days left",
+                                 ink.FAINT))
+        self._letter()
+        self.say("", ink.c("  `court <town>` for one of them in full. "
+                           "`ally <town>` swears to a friendly one; `gift` and "
+                           "`wed` are how one gets friendly.", ink.DIM))
+
+    def _letter(self) -> None:
+        """The coalition, and the three ways out of it."""
+        g = self.game
+        c = g.court
+        if not c.coalition:
+            near = [(c.offence(k, g.day), k) for k, t in g.world.towns.items()
+                    if not t.mine and c.offence(k, g.day) > chancery.COALITION_BAR * 0.6]
+            if len(near) >= chancery.COALITION_NAMES:
+                near.sort(reverse=True)
+                self.say("", ink.c(f"  {len(near)} lords are within sight of "
+                                   f"signing against you -- "
+                                   f"{chancery.COALITION_BAR:.0f} of offence "
+                                   f"puts a name on the letter:", ink.AMBER))
+                self.say("  " + ink.c(", ".join(
+                    f"{g.world.node_name(k)} {v:.0f}" for v, k in near[:5]),
+                    ink.DIM))
+                self.say("  " + ink.c("Nothing has to be paid for this. It "
+                                      "wears off on its own if you stop "
+                                      "giving them reasons.", ink.DIM))
+            return
+        names = ", ".join(g.world.node_name(k) for k in c.coalition)
+        self.say("", ink.c("  THE LETTER AGAINST YOU", ink.BLOOD))
+        self.say(f"  {names} have signed. None of them will take a truce "
+                 f"alone.")
+        worst = sorted(((c.offence(k, g.day), k) for k in c.coalition),
+                       reverse=True)
+        self.say("  " + ink.c("it lapses under "
+                              f"{chancery.COALITION_BAR:.0f} each:  ", ink.DIM)
+                 + ", ".join(f"{g.world.node_name(k)} {v:.0f}"
+                             for v, k in worst))
+        self.say("  " + ink.c("three ways out:  ", ink.DIM)
+                 + "beat their hosts (each broken host is worth 22), "
+                 "wait, or `court buy` at "
+                 + ink.c(f"{c.coalition_price(g.day):,.0f}c", ink.GOLD))
+
+    def _one_court(self, key: str) -> None:
+        g = self.game
+        c = g.court
+        t = g.world.towns[key]
+        view = c.opinion(key, g.day)
+        self.say(ink.head(f"{t.lord.upper()} OF {t.name.upper()}",
+                          f"{view:+.0f} -- {chancery.temper(view)}"))
+        self.say("  " + ink.c(lordkind.reputation(key, g.known(key)[1] >= 0),
+                              ink.BONE))
+        rows = c.reasons(key, g.day)
+        if not rows:
+            self.say("", ink.c("  He has nothing written down about you "
+                               "either way.", ink.DIM))
+        for label, value, decay in rows:
+            self.say("  " + ink.c(ink.pad(label, 46), ink.DIM)
+                     + ink.c(f"{value:>+6.0f}", self._standing_colour(value))
+                     + ink.c("  forever" if not decay
+                             else f"   wears off in {abs(value) / decay:,.0f} days",
+                             ink.FAINT))
+        self.say("")
+        ground = c.ground_for(key, g.day)
+        if ground is not None:
+            live = c.grounds_left(key, g.day)
+            self.say("  " + ink.c(ink.pad("a reason to march", 18), ink.DIM)
+                     + ink.c(ground.label, ink.LEAF))
+            for label, left in live:
+                if label != ground.label:
+                    self.say("  " + " " * 18 + ink.c(label, ink.DIM)
+                             + ink.c("" if not left else f" ({left} days)",
+                                     ink.FAINT))
+        else:
+            self.say("  " + ink.c(ink.pad("a reason to march", 18), ink.DIM)
+                     + ink.c("none. Marching anyway costs the mood at home "
+                             "and offends every other lord twice over.",
+                             ink.AMBER))
+        say = []
+        if key in c.allies:
+            say.append("allied: he comes when you are attacked, and calls "
+                       "when he is")
+        elif view >= chancery.WARM:
+            say.append(f"he would swear to you -- `ally {key}`")
+        else:
+            say.append(f"he will not ally under {chancery.WARM:+.0f}")
+        if key in c.claims:
+            say.append("your house has a claim here by marriage")
+        if key in c.coalition:
+            say.append("he has signed the letter and will not treat alone")
+        for line in say:
+            self.say("  " + ink.c(ink.pad("", 18) + line, ink.DIM))
+
+    def cmd_ally(self, args: List[str]) -> None:
+        """Swear to a lord who thinks well enough of you to swear back."""
+        if not args:
+            return self.err("ally <town>")
+        key = self._resolve_town(args[0])
+        if key is None:
+            return self.err(f"no town called {args[0]!r}")
+        self.say("  " + self.game.ally(key))
+
+    def cmd_call(self, args: List[str]) -> None:
+        """Answer an ally who has called you to his war. No is a real answer."""
+        g = self.game
+        if g.court.called is None:
+            return self.say(ink.c("  nobody has called you", ink.DIM))
+        word = args[0].lower() if args else ""
+        if word in ("yes", "y", "come", "aye"):
+            return self.say("  " + g.answer_call(True))
+        if word in ("no", "n", "refuse", "nay"):
+            return self.say("  " + g.answer_call(False))
+        who = g.world.node_name(g.court.called[0])
+        self.err(f"{who} is waiting on an answer: `call yes` or `call no`")
+
+    def _resolve_town(self, want: str) -> Optional[str]:
+        want = want.lower()
+        for key, t in self.game.world.towns.items():
+            if want in (key.lower(), t.name.lower()):
+                return key
+        return None
+
     # ---------------------------------------------------------- the league
     def cmd_season(self, args: List[str]) -> None:
         """The table, and who has said they are coming for whom."""
@@ -2230,6 +2438,22 @@ class Console:
                      f" {seen.get('wall_hp', 0.0):>6,.0f}  {might:>10,.0f}   "
                      + ink.c(ink.pad(f"{state} ({hostile:.0f})", 16), mood)
                      + ink.c(stale, ink.DIM if age <= 30 else ink.AMBER))
+        c = g.court
+        if c.coalition:
+            self.say("")
+            self.say("  " + ink.c("THE LETTER AGAINST YOU  ", ink.BLOOD)
+                     + ink.c(", ".join(g.world.node_name(k)
+                                       for k in c.coalition), ink.AMBER))
+            self.say("  " + ink.c("They march together and will not treat one "
+                                  "at a time. `court` has the way out.",
+                                  ink.DIM))
+        if c.called is not None:
+            who = g.world.node_name(c.called[0])
+            left = g.CALL_DAYS - (g.day - c.called[1])
+            self.say("")
+            self.say("  " + ink.c(f"{who} HAS CALLED YOU TO HIS WAR  ", ink.GOLD)
+                     + ink.c(f"{left} days to answer -- `call yes` or "
+                             f"`call no`", ink.PARCH))
         # Who they are, and not only how many. Character is intelligence and
         # intelligence is what the trade layer buys: a lord you have never
         # sent a cart to is a lord you are guessing about, and the whole of
@@ -2244,9 +2468,20 @@ class Console:
                          + ink.c("nobody of yours has been near enough to say",
                                  ink.FAINT))
                 continue
+            ground = c.ground_for(key, g.day)
+            # The banner above already says who signed. Repeating it beside
+            # every one of them buries the six characters this screen exists
+            # to tell apart under one sentence written seven times.
+            if ground is not None and ground.key == "coalition":
+                live = [x for x in c.grounds_left(key, g.day)
+                        if x[0] != ground.label]
+                ground = None if not live else ground
+            standing = c.opinion(key, g.day)
             self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)}"
                      f"{ink.c(ink.pad(kind.name, 12), ink.BONE)}"
-                     + ink.c(kind.blurb, ink.DIM))
+                     + ink.c(ink.pad(chancery.temper(standing), 11), ink.DIM)
+                     + (ink.c("grounds: " + ground.label, ink.LEAF)
+                        if ground else ink.c(kind.blurb, ink.DIM)))
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "
@@ -2585,6 +2820,9 @@ def _parse_stop(world, tokens: List[str]) -> Stop:
 
 
 COMMANDS = {
+    "court": Console.cmd_court, "standing": Console.cmd_court,
+    "ally": Console.cmd_ally, "alliance": Console.cmd_ally,
+    "call": Console.cmd_call,
     "castle": Console.cmd_castle, "keep": Console.cmd_castle,
     "wall": Console.cmd_wall, "tower": Console.cmd_tower,
     "gate": Console.cmd_gate, "moat": Console.cmd_moat,
@@ -2640,6 +2878,10 @@ HELP = """
   THE DAY           next [n]        let n days pass        status / s
   YOUR TOWN         view / v        view flat              watch [days]
                     ask [town]      what the street says
+  THE MARCH'S EAR   court [town]    who thinks what of you, and why
+                    ally <town>     swear to a friendly lord
+                    call yes/no     answer an ally who called you to his war
+                    court buy       pay off the whole letter against you
   THE CASTLE        castle          the wall as you drew it
                     wall <x,y> <x,y>   tower <x,y>   gate <x,y>
                     moat / pitch / pits <x,y> <x,y>  unwall <x,y> <x,y>
