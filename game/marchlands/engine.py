@@ -21,6 +21,7 @@ from .castle import INVEST, Works, choose, storms_now
 from .economics import MONEY_BASE, Accounts, Economy
 from . import estates as estates_mod
 from . import feats as feats_mod
+from . import missions as missions_mod
 from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lords as lordly
@@ -86,6 +87,10 @@ class Ledger:
     tribute: float = 0.0
     plunder: float = 0.0
     offerings: float = 0.0
+    #: Coin a mission paid. A reward that goes straight into the chest is a
+    #: coin the day's accounts cannot explain, and this game has a test that
+    #: says every one of them can be.
+    reward: float = 0.0
     interest: float = 0.0
     wages: float = 0.0
     upkeep: float = 0.0
@@ -96,12 +101,18 @@ class Ledger:
     @property
     def income(self) -> float:
         return (self.taxes + self.tribute + self.plunder + self.offerings
-                + self.interest + max(0.0, self.trade))
+                + self.interest + self.reward + max(0.0, self.trade))
 
     @property
     def net(self) -> float:
+        # Written as income minus outgoings rather than as its own list of
+        # columns. Two hand-written sums of the same ledger is one of them
+        # forgetting a column, which is exactly what happened when `reward`
+        # was added to `income` and not to this.
         return (self.taxes + self.trade + self.tribute + self.plunder
-                + self.offerings + self.interest - self.wages - self.upkeep - self.caravans - self.building - self.war)
+                + self.offerings + self.interest + self.reward
+                - self.wages - self.upkeep - self.caravans - self.building
+                - self.war)
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -157,6 +168,10 @@ class GameState:
     #: Things worth having done, which is not the same as things worth doing.
     #: A scenario's goal says what the game is for; these say what it can do.
     feats: feats_mod.Book = field(default_factory=feats_mod.Book)
+    #: A path through the game that is yours rather than the scenario's. Every
+    #: house has been playing the identical campaign with different
+    #: multipliers; this is what makes the Hansa's game a Hansa's game.
+    missions: missions_mod.Roll = field(default_factory=missions_mod.Roll)
     #: Tallies nothing else keeps, because a feat must be checked against a
     #: figure rather than instrumented into the thing it counts.
     _hosts_raised: int = 0
@@ -383,7 +398,9 @@ class GameState:
         msgs += tmsgs
 
         msgs += self._estates_day()
-        msgs += self.feats.check(self._standing())
+        standing = self._standing()
+        msgs += self.feats.check(standing)
+        msgs += self._missions_day(standing, led)
 
         # 6. Learning, and the slow climb between ages.
         msgs += self._study()
@@ -2306,6 +2323,81 @@ class GameState:
                    -8.0 - (4.0 if e.granted("levy") else 0.0), self.day)
         return e.day(self.day)
 
+    def _missions_day(self, standing, led=None) -> List[str]:
+        """Anything finished today, and the reward actually paid.
+
+        Paid here rather than announced here: a reward that is a line of text
+        is a reward nobody notices was never given.
+        """
+        said: List[str] = []
+        for mission, words in self.missions.check(self.house, standing):
+            said.append(f"*** {mission.name} -- {mission.asks} ***")
+            said.append("  " + (self._pay(mission, led) or words))
+        return said
+
+    def _pay(self, mission, led=None) -> str:
+        """Hand over what a mission promised.
+
+        Coin goes through the day's ledger, not around it. A reward added
+        straight to the treasury is a coin the accounts cannot explain, and
+        the first thing it broke was the test that says they always can.
+        """
+        kind, value = mission.gives
+        if kind == "coin":
+            self.treasury += float(value)
+            if led is not None:
+                led.reward += float(value)
+            return f"{float(value):,.0f}c into the chest"
+        if kind == "tech":
+            self.progress.researched.add(str(value))
+            return f"{value} learned outright, without the scholars"
+        if kind == "claim":
+            # "nearest" rather than a named town, because which town is
+            # nearest depends on the map the scenario drew.
+            key = self._nearest_foreign() if value == "nearest" else str(value)
+            if key:
+                # A claim is a town key and the day it was made -- claims
+                # outlive the person the marriage was to, which is the whole
+                # point of them.
+                self.court.claims.setdefault(key, self.day)
+                return f"a claim on {self.world.node_name(key)}"
+            return "no claim to be had"
+        if kind == "privilege":
+            return self.estates.grant(str(value), self.day)
+        if kind == "prosperity":
+            for s in self.world.settlements.values():
+                s.popularity = min(100.0, s.popularity + float(value) * 20.0)
+            for t in self.world.towns.values():
+                if t.mine:
+                    t.prosperity += float(value)
+            return f"your holdings prosper"
+        if kind == "opinion":
+            for key, t in self.world.towns.items():
+                if not t.mine:
+                    t.favour += float(value)
+            return f"every lord thinks better of you"
+        if kind == "units":
+            seat = self.home()
+            for k, n in dict(value).items():
+                seat.units[k] = seat.units.get(k, 0.0) + float(n)
+            return "they muster at " + seat.name
+        return mission.reward_words()
+
+    def _nearest_foreign(self) -> str:
+        """The foreign town closest to your seat, for a claim that has to
+        land somewhere the map actually put one."""
+        seat = self.home()
+        here = self.world.coords.get(getattr(seat, "key", ""), (0.0, 0.0))
+        best, far = "", 1e9
+        for key, t in self.world.towns.items():
+            if t.mine:
+                continue
+            x, y = self.world.coords.get(key, (0.0, 0.0))
+            d = (x - here[0]) ** 2 + (y - here[1]) ** 2
+            if d < far:
+                best, far = key, d
+        return best
+
     def _look_around(self) -> None:
         """Refresh what you know about the march.
 
@@ -2850,6 +2942,7 @@ class GameState:
             "court": self.court.to_dict(),
             "estates": self.estates.to_dict(),
             "feats": self.feats.to_dict(),
+            "missions": self.missions.to_dict(),
             "tallies": {"hosts": self._hosts_raised, "won": self._battles_won,
                         "stormed": self._stormed, "lost": self._towns_lost,
                         "trade": self._trade_profit},
@@ -2898,6 +2991,7 @@ class GameState:
         g.court = court.Chancery.from_dict(d.get("court"))
         g.estates = estates_mod.Estates.from_dict(d.get("estates") or {})
         g.feats = feats_mod.Book.from_dict(d.get("feats") or {})
+        g.missions = missions_mod.Roll.from_dict(d.get("missions") or {})
         tall = d.get("tallies") or {}
         g._hosts_raised = int(tall.get("hosts", 0))
         g._battles_won = int(tall.get("won", 0))

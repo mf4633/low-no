@@ -743,3 +743,15 @@ li.feat label { color: #b9ad94; }
 li.feat.got label { color: var(--leaf); }
 li.feat-why { font-size: 11px; color: var(--dim); padding: 0 0 5px;
               line-height: 1.4; }
+
+/* The roll: what your house is for, as the next thing to do. A mission in
+   gold is one only your house has. */
+#roll { list-style: none; margin: 0; padding: 0; }
+li.task { font-size: 12.5px; padding: 2px 0; }
+li.task label { color: #b9ad94; }
+li.task.mine label { color: var(--gold); }
+li.task-why { font-size: 11px; color: var(--dim); line-height: 1.45;
+              padding: 0 0 6px; display: flex; flex-direction: column; }
+li.task-why em { font-style: normal; }
+li.task-why em.pays { color: var(--leaf); }
+li.task-why em.costs { color: #9a7a4a; }

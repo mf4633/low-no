@@ -2625,6 +2625,20 @@ function paint(s) {
     }).join('');
   }
 
+  /* Your house's path. What is open is what to do next; a mission you cannot
+   * start yet is not a thing to do, so it is not shown. */
+  const ro = s.missions;
+  $('roll-box').hidden = !ro || !ro.open;
+  if (ro && ro.open) {
+    $('roll-count').textContent = `${ro.done} of ${ro.of}`;
+    $('roll').innerHTML = ro.open.map(m =>
+      `<li class="task${m.mine ? ' mine' : ''}"><label>${esc(m.name)}</label></li>` +
+      `<li class="task-why">${esc(m.asks)}` +
+      `<em class="pays">pays ${esc(m.pays)}</em>` +
+      `<em class="costs">costs ${esc(m.costs)}</em></li>`).join('')
+      || '<li class="dim">nothing open</li>';
+  }
+
   /* Feats. Only the ones you have, plus the nearest few you have not, so
    * the panel is a thing to aim at rather than a list to scroll. */
   const ft = s.feats;

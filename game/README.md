@@ -719,6 +719,60 @@ fifth.
 A feat that throws is caught: a day of the game must never fail because a
 trophy miscounted.
 
+#### A path that is yours, not the scenario's
+
+Every scenario states one shape of victory, and it is the same shape for all
+five houses — so the Hansa and the Ironhand have been playing the identical
+campaign with different multipliers.
+
+    ── THE ROLL ──────────────────── 4 of 7 · house ironhand ──
+      A Neighbour Sworn         open
+          bring one foreign town under your hand
+          costs you a war, or a marriage and the patience for one
+          pays a claim on your nearest neighbour
+      The Hammer                open
+          take three towns by storm
+          costs you three sieges, and what a siege costs in men
+          pays 30 Ironhand Serjeants
+
+Each house shares a trunk — what any lord of the march must do — and walks a
+branch only it can walk, paid in coin only it would want. The part of a
+mission tree worth stealing is not the branching diagram; it is that the
+missions are *written for who you are*, so the tree says what your house is
+for at the same time as it gives you something to do next.
+
+Three rules hold it up.
+
+**A mission is checked, not claimed** — read off the same `Standing` the
+feats use, so there is no "collect reward" button to forget to press.
+
+**A reward is a thing, not a number going up.** A claim on your nearest
+neighbour, an institution you did not have to research, thirty serjeants
+mustering at your seat, a privilege granted free. And it is *paid*, in the
+engine, at the moment it is earned: a reward that is a line of text is a
+reward nobody notices was never given.
+
+**The tree admits what it costs.** A mission asking you to hold four towns
+is asking you to fight three wars, and says so. A tree that pretends its
+demands are free is a checklist.
+
+Only open missions are tested, which is the only thing the ordering adds: a
+tree whose last mission can be finished before its first is a list.
+
+Two things this shook out, both about the same discipline. The first mission
+asked for "a population and a mood" — which is the state every game *opens*
+in, so it paid 1,200c on day one of every game, and that coin was enough to
+pull a deliberately bankrupt game back off the floor and break the test that
+says debt ends it. A mission has to ask for something you do not already
+have.
+
+And coin now goes through the day's ledger rather than around it. A reward
+added straight to the treasury is a coin the accounts cannot explain, and
+this game has a test that says they always can. `Ledger.net` was a
+hand-written list of columns beside `Ledger.income`'s own hand-written list;
+adding a column to one and not the other is exactly the bug two such sums
+invite, so `net` is written as income minus outgoings now.
+
 #### Five idioms
 
 Age of Empires II is remembered for a lot of things, and one of them is that

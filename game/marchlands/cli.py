@@ -2357,6 +2357,32 @@ class Console:
         target = args[2] if len(args) > 2 else ""
         self.say("  " + g.post(who, job, target))
 
+    def cmd_missions(self, args: List[str]) -> None:
+        """Your house's own path through the game, and what it pays."""
+        from . import missions as mi
+        g = self.game
+        done = g.missions.to_dict()
+        whole = mi.tree(g.house)
+        self.say(ink.head("THE ROLL", f"{len(done)} of {len(whole)} · "
+                                      f"house {g.house}"))
+        openk = {m.key for m in g.missions.open(g.house)}
+        for m in whole:
+            day = done.get(m.key)
+            if day is not None:
+                state, tone = "done", ink.LEAF
+            elif m.key in openk:
+                state, tone = "open", ink.GOLD
+            else:
+                state, tone = "after " + ", ".join(m.after), ink.DIM
+            self.say(f"  {ink.c(ink.pad(m.name, 26), tone)}{ink.c(state, tone)}"
+                     + (ink.c(f"  day {day}", ink.DIM) if day is not None else ""))
+            self.say(f"      {ink.c(m.asks, ink.DIM)}")
+            if day is None:
+                self.say(f"      {ink.c('costs you ' + m.costs, ink.AMBER)}")
+                self.say(f"      {ink.c('pays ' + m.reward_words(), ink.LEAF)}")
+        self.say("", ink.c("  the trunk is every lord's; the rest is yours "
+                           "alone", ink.DIM))
+
     def cmd_feats(self, args: List[str]) -> None:
         """Things worth having done, and which of them you have."""
         from . import feats as fe
@@ -2945,6 +2971,7 @@ COMMANDS = {
     "marry": Console.cmd_marry, "match": Console.cmd_marry,
     "estates": Console.cmd_estates, "privileges": Console.cmd_estates,
     "feats": Console.cmd_feats, "achievements": Console.cmd_feats,
+    "missions": Console.cmd_missions, "roll": Console.cmd_missions,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,

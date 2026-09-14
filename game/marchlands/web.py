@@ -42,6 +42,7 @@ from . import voices
 from .clock import Clock
 from . import estates as estates_mod
 from . import feats as feats_mod
+from . import missions as missions_mod
 from .buildings import BUILDINGS
 from .layout import plan_for
 
@@ -654,6 +655,21 @@ def snapshot(game, here: str = "") -> dict:
              "why": [{"what": w, "by": b}
                      for w, b in game.estates.why(k, game.day)[:4]]}
             for k, spec in estates_mod.ESTATES.items()],
+        # Your house's own path. Only what is open and what is done, because
+        # a mission you cannot start yet is not something to do next.
+        "missions": {
+            "house": game.house,
+            "done": len(game.missions.to_dict()),
+            "of": len(missions_mod.tree(game.house)),
+            "open": [{"key": m.key, "name": m.name, "asks": m.asks,
+                      "costs": m.costs, "pays": m.reward_words(),
+                      "mine": bool(m.house)}
+                     for m in game.missions.open(game.house)],
+            "won": [{"key": m.key, "name": m.name,
+                     "day": game.missions.to_dict()[m.key]}
+                    for m in missions_mod.tree(game.house)
+                    if m.key in game.missions.to_dict()],
+        },
         "feats": {"done": len(game.feats.to_dict()),
                   "of": len(feats_mod.FEATS),
                   "list": [{"key": k, "name": f.name, "blurb": f.blurb,
