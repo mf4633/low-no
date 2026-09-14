@@ -306,7 +306,11 @@ CAMPAIGN: List[str] = ["salt_road", "marchlands", "iron_marches", "winter_crown"
 
 #: ...and every scenario must be in exactly one of the two, so that a
 #: new one cannot be quietly orphaned between them.
-OUTSIDE_CAMPAIGN: List[str] = ["freebuild"]
+#: The Siege is not in it either, and for the opposite reason to Freebuild:
+#: it has a clock and nothing else. There is no economy to build and no march
+#: to take, only one hill and one host, so it is a scenario you choose when
+#: you want that -- not a chapter in a sequence about growing a holding.
+OUTSIDE_CAMPAIGN: List[str] = ["freebuild", "siege"]
 
 
 def scenario(key: str) -> Scenario:

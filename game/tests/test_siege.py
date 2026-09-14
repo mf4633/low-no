@@ -19,6 +19,7 @@ import unittest
 
 from marchlands.military import Army, BESIEGING, Side, fight
 from marchlands.scenarios import start
+from marchlands.trade import Order, Stop
 
 
 class TestAnOrderedFightStillKillsPeople(unittest.TestCase):
@@ -219,6 +220,52 @@ class TestItIsDecidedByThePlayer(unittest.TestCase):
 
     def test_and_going_late_does_not(self):
         self.assertLessEqual(self.play(sally_on=60), self.play(sally_on=5))
+
+
+class TestTheRingIsClosed(unittest.TestCase):
+    """A siege is a rule about goods, not only about walls.
+
+    Nothing in the trade engine knew what a siege was, so a cart could load
+    the granary of a town it was standing in and sell it three days' ride
+    away while the besiegers watched. That starved the town the player was
+    being asked to defend -- and run the other way it was worse, because a
+    cart carrying bread in makes a siege impossible to lose.
+    """
+
+    def ringed_town(self):
+        g = start("siege", seed=3)
+        key = next(iter(g.world.settlements))
+        for _ in range(40):
+            g.advance(1)
+            if g.world.settlements[key].besieged:
+                return g, key, g.world.settlements[key]
+        self.skipTest("the scenario did not close a ring")
+
+    def test_no_cart_does_business_inside_the_lines(self):
+        g, key, town = self.ringed_town()
+        cart, _why = g.new_caravan(key)
+        self.assertIsNotNone(cart)
+        cart.set_route([Stop(node=key, buy=[Order("bread", 100)]),
+                        Stop(node=key, sell=[Order("bread", -1)])])
+        cart.start()
+        before = town.market.stock.get("bread", 0.0)
+        for _ in range(10):
+            g.advance(1)
+        self.assertEqual(cart.cargo, {})
+        # The stores still fall -- the town is eating them. What may not
+        # happen is a cart taking any of it out.
+        self.assertLessEqual(town.market.stock.get("bread", 0.0), before)
+        self.assertEqual(cart.total_profit, 0.0)
+
+    def test_the_cart_says_why_it_is_standing_still(self):
+        g, key, _town = self.ringed_town()
+        cart, _why = g.new_caravan(key)
+        cart.set_route([Stop(node=key, buy=[Order("bread", 10)])])
+        cart.start()
+        said = []
+        for _ in range(3):
+            said += g.advance(1)
+        self.assertTrue(any("lines are closed" in m for m in said), said)
 
 
 if __name__ == "__main__":

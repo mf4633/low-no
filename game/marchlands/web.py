@@ -26,7 +26,7 @@ import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import StringIO
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 from .cli import Console, catalogue
@@ -45,6 +45,8 @@ from . import roles as roles_mod
 from . import feats as feats_mod
 from . import missions as missions_mod
 from .buildings import BUILDINGS
+from .engine import GameState
+from .military import BESIEGING, UNITS
 from .layout import plan_for
 
 
@@ -639,6 +641,42 @@ def _castle(s) -> dict:
     }
 
 
+def _siege_view(game, s) -> Optional[dict]:
+    """What a defender needs to decide with, and nothing he cannot see.
+
+    A besieged player was being told the ring was there and given no numbers
+    to act on: the console had `shore` and `sally` from the day they were
+    written, and the picture had neither. Both levers turn on three
+    readings -- what the wall has left, what stone is in store to shore it
+    with, and whether there are engines outside worth going out at.
+    """
+    if not s.besieged:
+        return None
+    outside = [a for a in game.armies
+               if a.owner != "player" and a.state == BESIEGING
+               and game.world.node_name(a.at) == s.name]
+    engines, guard = 0.0, 0.0
+    for host in outside:
+        for unit, n in host.units.items():
+            if UNITS[unit].siege_power > 0 or unit == "engineer":
+                engines += n
+            else:
+                guard += n
+    return {
+        "shoring": s.shoring,
+        "stone": round(s.market.stock.get("stone", 0.0)),
+        "men": round(sum(s.units.values())),
+        "wall": round(s.wall_hp, 1),
+        "wall_max": round(s.wall_max(game.progress), 1),
+        # The sortie is aimed at the works, not at the host, so the host's
+        # own size is the wrong number to show a man deciding whether to
+        # open the gate. These two are the right ones.
+        "engines": round(engines),
+        "guard": round(guard * GameState.SALLY_GUARD),
+        "host": round(sum(a.size for a in outside)),
+    }
+
+
 def snapshot(game, here: str = "") -> dict:
     """Everything the picture needs, and nothing it does not."""
     key = here or next(iter(game.world.settlements))
@@ -777,6 +815,7 @@ def snapshot(game, here: str = "") -> dict:
             "wall_hp": round(s.wall_hp, 1),
             "wall_max": round(s.wall_max(game.progress), 1),
             "besieged": s.besieged,
+            "siege": _siege_view(game, s),
             "raided": s.raided,
             "blockaded": s.blockaded,
             "fires": len(s.fires.blazes),

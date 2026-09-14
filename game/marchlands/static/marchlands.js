@@ -2028,7 +2028,16 @@ function nodeWrit(n, ev) {
   }
 }
 
-for (const btn of document.querySelectorAll('#clock button')) {
+/* The four buttons under the picture: a day, a week, a month, what now?
+ *
+ * This read `#clock button` until a playtest found it. Three elements shared
+ * `id="clock"` once; splitting them into `pace`, `clock` and `advance` left
+ * this selector pointing at the one that came away with the name -- a `<p>`
+ * with no buttons in it -- so every one of the four had been doing nothing at
+ * all. Nothing looked broken, because the continuous clock goes on turning
+ * the days by itself, and a button that silently does nothing looks exactly
+ * like a button you did not quite click. */
+for (const btn of document.querySelectorAll('#advance button')) {
   btn.addEventListener('click', () => send(btn.dataset.do));
 }
 
@@ -2716,8 +2725,59 @@ function paint(s) {
     : s.town.fires ? `${s.town.fires} roofs alight`
     : s.town.blockaded ? 'the roads are cut' : s.over ? s.over : '';
   alarm.textContent = bad; alarm.hidden = !bad;
+  paintSiege(s.town.siege);
   scrollCue();
 }
+
+/* The siege board.
+ *
+ * `shore` and `sally` existed in the console from the day they were written
+ * and nowhere else, so a player at the picture -- which is every player who
+ * opened the game by double-clicking it -- was told an army had arrived and
+ * given nothing to do about it but watch. The two buttons are the game.
+ */
+let siegeMen = 0;
+function paintSiege(v) {
+  const box = $('siege');
+  box.hidden = !v;
+  if (!v) return;
+  siegeMen = v.men;
+  $('siege-host').textContent = `${num(v.host)} outside`;
+  const wall = v.wall_max ? v.wall / v.wall_max : 0;
+  const rows = [
+    ['the wall', `${Math.round(wall * 100)}%`, wall < 0.4],
+    ['stone in store', num(v.stone), v.stone < 20],
+    ['men on the walls', num(v.men), v.men < 30],
+    ['engines at the works', num(v.engines), false],
+    ['guard set on them', num(v.guard), false],
+  ];
+  $('siege-read').innerHTML = rows.map(([what, value, low]) =>
+    `<li class="${low ? 'low' : ''}"><label>${what}</label>` +
+    `<span>${value}</span></li>`).join('');
+
+  const shore = $('siege-shore');
+  shore.textContent = v.shoring ? 'Shoring the breach' : 'Shore the breach';
+  shore.setAttribute('aria-pressed', v.shoring ? 'true' : 'false');
+  shore.disabled = !v.shoring && v.stone < 20;
+
+  const sally = $('siege-sally');
+  sally.disabled = v.men < 5;
+  // What the sortie is actually for. A player who reads "open the gate" as
+  // "attack the army" opens it once and never again.
+  $('siege-note').textContent = v.engines
+    ? 'A sortie fights the works and their guard, not the host. Win and the '
+      + 'engines burn; lose and the wall is held by whoever is left.'
+    : 'There is nothing at the works to burn. Going out now only costs men.';
+}
+
+$('siege-shore').addEventListener('click', () => {
+  send($('siege-shore').getAttribute('aria-pressed') === 'true'
+       ? 'shore off' : 'shore on');
+});
+$('siege-sally').addEventListener('click', () => {
+  const share = parseFloat($('siege-men').value) || 0.8;
+  send(`sally ${Math.max(1, Math.floor(siegeMen * share))}`);
+});
 
 /* A panel that quietly stops mid-list is a lie about what it is showing. When
  * there is more below the fold, the bottom edge says so. */

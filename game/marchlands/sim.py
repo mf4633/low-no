@@ -16,8 +16,8 @@ from .engine import GameState
 from .tech import TECHS
 from .kin import SKILLS
 from .goods import RATION_GOODS, good, nourishment
-from .military import UNITS, host_strength
-from .trade import SHIP, Order, Stop
+from .military import BESIEGING, UNITS, host_strength
+from .trade import MOVING, SHIP, Order, Stop
 
 # Feed the town, then work up the chain. Order is a preference, not a queue --
 # the bot takes the first thing it can actually afford and has land for.
@@ -45,6 +45,11 @@ COLONY_PLAN = [
     "townhouse", "barracks", "poleturner", "stone_wall", "townhouse",
 ]
 
+#: Days a new cart is given to clear its own upkeep before it is sold off.
+#: Long enough for a slow route with a bad first season, short enough that a
+#: dead route is not paid for all year.
+CART_TRIAL = 40
+
 
 class Bot:
     """A plain policy, used as a balance test rather than an opponent.
@@ -64,6 +69,12 @@ class Bot:
         self.errand: Optional[tuple] = None    # (cart uid, good, target stock)
         self._survey: List = []                # the last market survey
         self._scanned_on = -99
+        #: Which of your towns has already sent its garrison out at the
+        #: works. Once each: a sortie is a thing you spend, not a tactic.
+        self._sallied: Dict[str, bool] = {}
+        #: The day each cart joined the fleet, so the bot can tell a cart
+        #: that has not yet paid for itself from one that never will.
+        self._bought: Dict[int, int] = {}
 
     def plan_for(self, key: str) -> List[str]:
         if key not in self.plans:
@@ -89,6 +100,17 @@ class Bot:
         # before it has anything worth defending never grows one -- and the
         # carts last, so they trade with whatever the day left in the chest.
         g = self.game
+        # A siege is not a morning for laying out a bakery. Under one, the
+        # bot governs, holds and defends and does nothing else -- it used to
+        # go on buying carts and buildings with a besieged town's last coin
+        # and hand back "Ruined. Your debts outran your carts" from inside
+        # its own walls.
+        if any(s.besieged for s in g.world.settlements.values()):
+            for s in g.world.settlements.values():
+                self._govern(s)
+            self._hold_out()
+            self._defend()
+            return
         self._climb()
         self._build()
         self._learn()
@@ -97,6 +119,7 @@ class Bot:
             self._govern(s)
             self._shutter(s)
         self._dig()
+        self._hold_out()
         self._defend()
         self._house()
         self._carts()
@@ -319,6 +342,36 @@ class Bot:
             if "begun" in g.build(self.home, key):
                 return
 
+    def _hold_out(self) -> None:
+        """What to do when somebody is already at the gate.
+
+        The two levers a besieged defender has, used the way the measurements
+        say they work: shore the breach while there is stone for it, and go
+        out at the works *early* -- on the first day the engines are there,
+        not when the wall is falling. Sallying on day five takes a siege from
+        a coin flip to seven in eight; sallying on day sixty is no better
+        than staying in bed, because by then the men who could have gone are
+        the men who have been holding the wall.
+
+        The bot knowing this is also the argument that the scenario is a
+        game: a policy this simple should not be able to change the outcome
+        of something that is decided in advance.
+        """
+        g = self.game
+        for key, s in g.world.settlements.items():
+            if not s.besieged:
+                continue
+            if s.market.stock.get("stone", 0.0) > 20 and not s.shoring:
+                g.shore(key, True)
+            works = [a for a in g.armies
+                     if a.owner != "player" and a.state == BESIEGING
+                     and any(UNITS[u].siege_power > 0 or u == "engineer"
+                             for u in a.units)]
+            men = sum(s.units.values())
+            if works and men >= 30 and not self._sallied.get(key):
+                g.sally(key, men=int(men * 0.8))
+                self._sallied[key] = True
+
     def _defend(self) -> None:
         """Enough men on the wall to make a siege not worth a lord's time --
         and not one more, because every soldier is a field nobody is working."""
@@ -377,8 +430,32 @@ class Bot:
         return next((k for k, s in self.game.world.settlements.items()
                      if s.effect("port")), None)
 
+    def _prune(self) -> None:
+        """Sell a cart that has not paid for its own wheels.
+
+        A cart costs its ten coin a day whether or not it is carrying
+        anything, and a route that has come up dry does not stop the charge:
+        the engine stands the cart down with a notice and goes on billing
+        for it. A player reads the notice. A bot that never did kept a dead
+        cart on the books for the rest of the clock, which is a slow way of
+        losing a game nobody was attacking.
+        """
+        g = self.game
+        for c in list(g.caravans):
+            born = self._bought.setdefault(c.uid, g.day)
+            age = g.day - born
+            if age < CART_TRIAL or c.state == MOVING:
+                continue
+            if c.uid in (self.supply_cart, self._errand_cart()):
+                continue
+            if c.total_profit >= c.daily_cost * age:
+                continue
+            g.disband(c.uid)
+            self._bought.pop(c.uid, None)
+
     def _carts(self) -> None:
         g = self.game
+        self._prune()
         port = self._port()
         if len(g.caravans) < g.caravan_limit:
             # A hull carries four carts' worth and outruns them; once there is

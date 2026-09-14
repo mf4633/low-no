@@ -1872,13 +1872,13 @@ class GameState:
         return msgs
 
     def _sack(self, s: Settlement, a: Army) -> str:
-        self._sacked += 1
         """A storming is a catastrophe, not a trapdoor.
 
         The keep is thrown down and the town gutted, but so long as you hold
         ground anywhere you are still in the game -- which is the whole argument
         for founding a second settlement before you need one.
         """
+        self._sacked += 1
         keep = next((b for b in s.buildings if b.key == "keep"), None)
         # Relics go where the strongbox goes.
         for sh in self.world.shrines.values():

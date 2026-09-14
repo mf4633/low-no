@@ -240,6 +240,24 @@
     <button type="button" data-do="hint">what now?</button>
   </div>
   <div id="alarm" hidden></div>
+
+  <!-- Only ever on screen while there is an army outside. Two levers and the
+       three numbers they turn on, because a defender who can only watch the
+       wall come down is not playing. -->
+  <aside id="siege" hidden aria-label="the siege">
+    <h3>The ring is closed <em id="siege-host"></em></h3>
+    <ul id="siege-read"></ul>
+    <div class="acts">
+      <button id="siege-shore" type="button"></button>
+      <button id="siege-sally" type="button">Open the gate</button>
+      <select id="siege-men" aria-label="how many go out">
+        <option value="0.5">half the garrison</option>
+        <option value="0.8" selected>most of it</option>
+        <option value="1">everyone</option>
+      </select>
+    </div>
+    <p id="siege-note" class="dim"></p>
+  </aside>
   <ul id="toasts" role="status" aria-live="polite"></ul>
 
   <footer id="console">

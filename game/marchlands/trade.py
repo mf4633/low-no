@@ -82,6 +82,10 @@ class Caravan:
     total_profit: float = 0.0
     spent: float = 0.0        # coins laid out on the current load
     dry_stops: int = 0        # consecutive calls where no business was done
+    #: Standing outside a closed ring. Kept on the cart rather than worked out
+    #: each day, so the town saying so is one line when the lines shut and
+    #: one line when they open, not one line every morning of the siege.
+    stalled: bool = False
     log: List[str] = field(default_factory=list)
 
     # ---------------------------------------------------------------- basics
@@ -228,6 +232,11 @@ class TradeEngine:
             c.state = TRADING
         return treasury, msgs
 
+    def _ringed(self, node: str) -> bool:
+        """Is this one of your towns with an army sitting round it?"""
+        s = self.world.settlements.get(node)
+        return bool(s and s.besieged)
+
     def _at_stop(self, c: Caravan, treasury: float) -> Tuple[float, List[str]]:
         """Do the day's business where the cart is standing, then set off."""
         msgs: List[str] = []
@@ -236,6 +245,23 @@ class TradeEngine:
             return treasury, msgs
         here = c.at or c.home
         c.at = here
+        # The ring is closed: nothing goes in and nothing comes out. This is
+        # the whole of a siege -- the stores in the town are what the
+        # defender has, and the besieger's work is to outlast them. Without
+        # it a cart hauls the granary out through the lines (which is what
+        # used to happen, and it starved the town the player was defending),
+        # or hauls a fresh one in, which makes a siege impossible to lose.
+        if self._ringed(here):
+            if not c.stalled:
+                c.stalled = True
+                msgs.append(f"{c.name} stands idle at "
+                            f"{self.world.node_name(here)} -- the lines are closed")
+            c.state = IDLE
+            return treasury, msgs
+        if c.stalled:
+            c.stalled = False
+            msgs.append(f"{c.name} takes the road again out of "
+                        f"{self.world.node_name(here)}")
         stop = c.route[c.leg % len(c.route)]
         if stop.node == here:
             treasury, m = self._do_business(c, stop, treasury)

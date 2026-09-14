@@ -122,6 +122,39 @@ body {
   font-size: 12px; color: #f3e4c6;
   background: rgba(155,44,44,.88); border-radius: 2px;
 }
+/* The siege board. On the right, under the day buttons: the left is the town's
+   own column, and a panel that covers the readings you are defending with is
+   worse than no panel. */
+#siege {
+  position: absolute; top: 96px; right: 16px; z-index: 5; width: 264px;
+  max-width: calc(100vw - 32px); pointer-events: auto;
+  padding: 12px 14px 10px;
+  background: var(--panel); border: 1px solid var(--blood); border-radius: 2px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+#siege h3 {
+  margin: 0 0 8px; font-size: 12px; font-weight: normal;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--blood);
+}
+#siege h3 em { font-style: normal; color: var(--dim); letter-spacing: .04em; }
+#siege ul { margin: 0 0 10px; padding: 0; list-style: none; }
+#siege li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#siege li label { color: var(--dim); }
+#siege li span { font-variant-numeric: tabular-nums; }
+#siege li.low span { color: var(--blood); }
+#siege .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+#siege .acts button, #siege .acts select {
+  font: 12px/1 inherit; letter-spacing: .06em;
+  padding: 7px 10px; color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+#siege .acts button[aria-pressed="true"] { background: var(--gold); color: var(--ink); }
+#siege .acts button:disabled { opacity: .45; cursor: default; }
+#siege .acts button:focus-visible, #siege .acts select:focus-visible {
+  outline: 2px solid var(--parch); outline-offset: 1px;
+}
+#siege .dim { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+
 [hidden] { display: none !important; }
 
 /* the view switch, and the trade panel that comes with the march */
@@ -393,6 +426,7 @@ body.march #advance button:hover { background: #96731a; color: #f2e9d2; }
   #advance { right: 8px; top: auto; bottom: 196px; flex-wrap: wrap;
            justify-content: flex-end; max-width: calc(100% - 16px); }
   #writ { width: calc(100% - 28px); left: 14px !important; }
+  #siege { top: 84px; right: 8px; width: min(264px, calc(100% - 16px)); }
 }
 
 /* ------------------------------------------------------------ the pencil */

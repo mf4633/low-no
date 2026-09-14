@@ -9,6 +9,7 @@ server hands the browser a state it can actually draw.
 import json
 import random
 import os
+import re
 import socket
 import threading
 import unittest
@@ -552,6 +553,82 @@ class TestItShips(unittest.TestCase):
             js = open(os.path.join(STATIC, name), encoding="utf-8").read()
             for word in ("http://", "https://", "fetch('http", "import("):
                 self.assertNotIn(word, js, f"{name} reaches out with {word!r}")
+
+    def test_every_selector_the_script_reaches_for_matches_something(self):
+        """A selector that matches nothing fails in silence.
+
+        Three elements shared `id="clock"` once. Splitting them into `pace`,
+        `clock` and `advance` left the handler that binds the four buttons
+        under the picture -- a day, a week, a month, what now? -- querying
+        `#clock button`. That id still existed; it was a `<p>` by then, with
+        no buttons under it. All four did nothing for as long as that stood,
+        and nothing looked wrong, because the clock goes on turning the days
+        by itself and an inert button looks like one you did not quite hit.
+
+        So checking the id exists is not enough -- it did. What has to hold
+        is that the element wearing it still contains the thing being asked
+        for.
+        """
+        from html.parser import HTMLParser
+        from marchlands.web import STATIC
+        js = open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8").read()
+        page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+
+        class Subtrees(HTMLParser):
+            """Which tags sit under each id. Void elements never nest, so a
+            stack that only pushes what can be closed stays honest."""
+            VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+                    "link", "meta", "param", "source", "track", "wbr"}
+
+            def __init__(self):
+                super().__init__()
+                self.ids = {}
+                self.open = []          # [(tag, id or None)]
+
+            def handle_starttag(self, tag, attrs):
+                got = dict(attrs).get("id")
+                for _t, held in self.open:
+                    if held:
+                        self.ids[held].add(tag)
+                if got:
+                    self.ids.setdefault(got, set())
+                if tag not in self.VOID:
+                    self.open.append((tag, got))
+
+            def handle_endtag(self, tag):
+                for i in range(len(self.open) - 1, -1, -1):
+                    if self.open[i][0] == tag:
+                        del self.open[i:]
+                        return
+
+        seen = Subtrees()
+        seen.feed(page)
+        # Ids the script builds into the page as it draws are fair game too,
+        # but only the ones it really writes: this test first passed a
+        # reintroduced bug because the comment explaining the bug says
+        # `id="clock"`, and prose about an id is not an id.
+        code = re.sub(r"/\*.*?\*/", " ", js, flags=re.S)
+        code = re.sub(r"(?m)^\s*//.*$", " ", code)
+        drawn = set(re.findall(r'id="([A-Za-z0-9_-]+)"', code))
+
+        missing = []
+        for holder, rest in re.findall(
+                r"""querySelector(?:All)?\(['"]#([A-Za-z0-9_-]+)([^'"]*)['"]""", js):
+            if holder in drawn:
+                continue
+            if holder not in seen.ids:
+                missing.append(f"#{holder} is on nothing")
+                continue
+            tag = rest.strip().split()[-1] if rest.strip() else ""
+            if tag and tag.isalpha() and tag not in seen.ids[holder]:
+                missing.append(f"#{holder} holds no <{tag}>")
+        self.assertEqual(missing, [], f"selectors that match nothing: {missing}")
+
+        # And the four themselves, by name, because they are the ones that
+        # were broken and the whole point of playing is being able to say
+        # "a week passes".
+        for line in ("next", "next 7", "next 30", "hint"):
+            self.assertIn(f'data-do="{line}"', page, line)
 
     def test_the_wheel_is_told_to_carry_them(self):
         """The one line whose absence caused this, asserted directly."""
