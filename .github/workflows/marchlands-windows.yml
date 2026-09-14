@@ -8,12 +8,20 @@
 name: Marchlands (Windows build)
 
 on:
+  # The everyday build: only when something in the game actually changed, so
+  # the trading system's own commits (score_run writes reports most nights)
+  # do not each cost a Windows runner.
   push:
-    tags: ["marchlands-v*"]
     branches: ["**"]
     paths:
       - "game/**"
       - ".github/workflows/marchlands-windows.yml"
+  # The release build, on its own trigger and deliberately without a paths
+  # filter. A tag points at a commit that is already on the server, so the
+  # push that creates it carries no file diff for a paths filter to match --
+  # putting `tags:` in the block above is the single most common way a
+  # tag-built release quietly never happens.
+  create:
   workflow_dispatch:
 
 permissions:
@@ -21,6 +29,11 @@ permissions:
 
 jobs:
   build:
+    # `create` also fires for new branches. Only a release tag gets through.
+    if: >-
+      github.event_name != 'create' ||
+      (github.event.ref_type == 'tag' &&
+       startsWith(github.event.ref, 'marchlands-v'))
     runs-on: windows-latest
     defaults:
       run:
