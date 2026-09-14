@@ -637,6 +637,27 @@ def run_command(console: Console, line: str) -> str:
     return buffer.getvalue()
 
 
+class _Server(ThreadingHTTPServer):
+    """A server that refuses to quietly share its port.
+
+    `HTTPServer` sets SO_REUSEADDR, and that flag does not mean the same
+    thing on both sides of the world. On Unix it only means "do not make me
+    wait out TIME_WAIT". On Windows it means this socket may bind a port
+    another program is *actively listening on*, after which the operating
+    system hands each incoming connection to one of the two more or less
+    arbitrarily.
+
+    The consequence was not theoretical. The bind below cannot fail on
+    Windows, so the port walk never runs, and a player who double-clicked
+    Marchlands while anything else sat on 8731 got a browser window pointed
+    at that other server -- in the case this was found from, a directory
+    listing of their own home folder. Turning the flag off on Windows makes
+    an occupied port raise, which is what the walk is for.
+    """
+
+    allow_reuse_address = os.name != "nt"
+
+
 def serve(console: Console, host: str = "127.0.0.1", port: int = 8731,
           open_browser: bool = True) -> Tuple[ThreadingHTTPServer, str]:
     Handler.console = console
@@ -646,7 +667,7 @@ def serve(console: Console, host: str = "127.0.0.1", port: int = 8731,
     server = None
     for candidate in [port, port + 1, port + 2, port + 3, 0]:
         try:
-            server = ThreadingHTTPServer((host, candidate), Handler)
+            server = _Server((host, candidate), Handler)
             break
         except OSError:
             continue

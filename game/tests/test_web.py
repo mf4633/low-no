@@ -9,11 +9,14 @@ server hands the browser a state it can actually draw.
 import json
 import random
 import os
+import socket
 import threading
 import unittest
 import urllib.error
 import urllib.request
 from io import StringIO
+
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 from marchlands.cli import Console
 from marchlands.layout import (CLAY, FIELD, FOREST, GRASS, HILL, ROAD, WATER,
@@ -723,6 +726,44 @@ class TestTheBox(unittest.TestCase):
         path = os.path.join(self.ROOT, "Marchlands.command")
         self.assertTrue(os.access(path, os.X_OK), "chmod +x or nothing happens")
         self.assertIn("--web", open(path, encoding="utf-8").read())
+
+
+class TestItDoesNotShareItsPort(unittest.TestCase):
+    """What a player gets when something else is already on 8731.
+
+    This was found the hard way: a Windows player double-clicked the exe and
+    the browser opened on a directory listing of their own home folder. Our
+    handler cannot produce a listing -- it serves four known filenames and
+    404s everything else -- so the window was pointed at somebody else's
+    server sharing our port.
+    """
+
+    def test_it_steps_aside_for_a_server_that_is_already_there(self):
+        from marchlands.web import _Server, serve
+        probe = socket.socket()
+        probe.bind(("127.0.0.1", 0))
+        taken = probe.getsockname()[1]
+        probe.close()
+
+        squatter = ThreadingHTTPServer(("127.0.0.1", taken),
+                                       SimpleHTTPRequestHandler)
+        self.addCleanup(squatter.server_close)
+        console = Console(start("marchlands", seed=5), out=StringIO())
+        server, url = serve(console, port=taken, open_browser=False)
+        self.addCleanup(server.server_close)
+        self.assertNotEqual(server.server_address[1], taken)
+        self.assertIn(str(server.server_address[1]), url)
+        self.assertIsInstance(server, _Server)
+
+    def test_windows_is_not_allowed_to_bind_a_port_somebody_is_listening_on(self):
+        # SO_REUSEADDR means two different things. On Unix it waives TIME_WAIT;
+        # on Windows it waives the whole exclusion, so the bind above would
+        # succeed, the walk would never run, and the two servers would split
+        # the incoming connections between them.
+        from marchlands.web import _Server
+        self.assertEqual(_Server.allow_reuse_address, os.name != "nt")
+        self.assertTrue(ThreadingHTTPServer.allow_reuse_address,
+                        "the inherited default is the thing being overridden")
 
 
 class TestTheFrontDoor(unittest.TestCase):
