@@ -786,6 +786,28 @@ def _hypothesis_progress(obs):
                  ready=h8_ready,
                  note="fills to the thinnest of four groups; H8b (joint cell) "
                       "is registered but not expected to report before the stop"),
+            dict(id="H16", name="NYC persistent-cloud regime not in the price",
+                 have=0, need=20,
+                 unit="distinct NYC NO_BURN days with a book "
+                      "(forward-only from 2026-09-14)",
+                 also=dict(have=0, need=2,
+                           unit="baselines beaten (market, clear-day control)"),
+                 ready=False,
+                 note="registered 2026-09-14, full text docs/H16.md. Stratum is "
+                      "NO_BURN ALONE, not H15's LATE_BURN+NO_BURN: at NYC "
+                      "burn-off days run WARMER (+1.66F in window) and only "
+                      "persistence suppresses (-5.67F). DOES NOT REPORT BEFORE "
+                      "THE STOP -- NO_BURN is 17.4% of Sep-Dec days so 20 "
+                      "forward units needs ~115 calendar days, reaching the bar "
+                      "~2027-01-07 against a 2026-12-31 stop (~18 of 20 by "
+                      "then). Registered anyway because no avenue may be added "
+                      "after 2026-10-31; the bar was NOT shrunk to fit. "
+                      "Separation is weaker than H15's: 14 NYC book-days already "
+                      "existed and NYC market Brier was already known (0.0593 vs "
+                      "model 0.1547), so the two pre-registration NO_BURN days "
+                      "are excluded from the bar. NO HARNESS YET -- have=0 is a "
+                      "placeholder, not a measured zero. Reads logs/poll/, NOT "
+                      "logs/poll_lax/"),
             dict(id="H15", name="LAX marine-layer regime not in the price",
                  have=0, need=20,
                  unit="distinct LAX marine-stratum days with a book",

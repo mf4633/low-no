@@ -2126,8 +2126,17 @@ of the year (LAX swings 16-57%, DEN 4-18%). In the traded window NO_BURN is
 **1,092 NYC poll rows over 14 days**, the same coverage DEN has, against
 `logs/poll_lax/`'s **2 days**. NYC is the only one of the three where "is the
 regime in the price" could be asked this season with infrastructure already
-running. It is NOT registered here -- that is a new registration with its own
-units, its own baselines and its own bar.
+running.
+
+**Registered 2026-09-14 as H16** (`docs/H16.md`), with its own units, baselines
+and bar -- and with two disclosures the LAX registration did not have to make.
+Its stratum is **NO_BURN alone**, not H15's LATE_BURN+NO_BURN, because at NYC
+burn-off days run WARMER (+1.66F in window) and only persistence suppresses
+(-5.67F); pooling LATE_BURN in would dilute the test with a cell carrying no
+signal. And on the measured 17.4% Sep-Dec NO_BURN rate it reaches its bar around
+2027-01-07, **after the 2026-12-31 stop** -- roughly 18 of 20 units. The bar was
+not shrunk to fit; the shortfall is stated instead, and what to do about it is
+an operator decision, not a registration one.
 
 **KLAX -- two corrections to H15's input, neither applied.**
 
