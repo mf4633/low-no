@@ -236,3 +236,45 @@ class TestTheDialOverHttp(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheAlarmSaysWhatHappened(unittest.TestCase):
+    """Naming the category is not the same as naming the event. "a host has
+    sat down before your walls" tells you what kind of thing happened;
+    "Dunmere besieges Aldworth" tells you what happened."""
+
+    def test_it_keeps_the_line_that_stopped_it(self):
+        c, _console = clock(["a quiet morning", "Dunmere besieges Aldworth"])
+        c.speed = 3
+        c.step()
+        self.assertEqual(c.stopped_at, "Dunmere besieges Aldworth")
+        self.assertTrue(c.stopped_for)
+        self.assertNotEqual(c.stopped_at, c.stopped_for)
+
+    def test_starting_the_clock_again_clears_both(self):
+        c, _console = clock(["fire in the granary"])
+        c.speed = 1
+        c.step()
+        self.assertTrue(c.stopped_at)
+        c.set_speed(1)
+        try:
+            self.assertEqual(c.stopped_at, "")
+            self.assertEqual(c.stopped_for, "")
+        finally:
+            c.close()
+
+    def test_the_end_of_the_game_has_no_line_to_quote(self):
+        c, _console = clock(["a quiet day"], over_after=1)
+        c.speed = 2
+        c.step()
+        self.assertEqual(c.stopped_for, "the game is over")
+        self.assertEqual(c.stopped_at, "")
+
+    def test_the_state_carries_both(self):
+        c, _console = clock(["Caldmoor declares war on you"])
+        c.speed = 2
+        c.step()
+        st = c.state()
+        self.assertIn("stopped_for", st)
+        self.assertIn("stopped_at", st)
+        self.assertIn("declares war", st["stopped_at"])

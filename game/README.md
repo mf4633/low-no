@@ -566,6 +566,18 @@ console's answer to "what happened", and the browser has a better one, which
 is that it reads the state. Running `next` verbatim buried seven days of
 events under a hundred and fifty lines of banner.
 
+When it stops, it says which line stopped it — *Dunmere besieges Aldworth*,
+not "a siege has begun" — and rings an alarm: three fast strikes of two bells
+a semitone apart, a sound nothing in nature makes by accident. Every other
+noise this game synthesises is meant to be pleasant to sit inside for an
+hour; that one is meant to make you look up.
+
+That is the honest version of the thing everybody quotes about Stronghold.
+There is no recording of anybody shouting *"The castle is collapsing!"* in
+here and there is not going to be — this game ships no audio at all and draws
+every sound it makes out of arithmetic. What it can do is make the moment
+sound like an emergency and put the actual words on the screen.
+
 The terminal game is still turn-based, and honestly so: `next` is the right
 verb where there is nothing to watch.
 
@@ -597,6 +609,115 @@ Each of the five houses also has a unit only it can raise — the Hanse guard,
 the Ironhand serjeant, the border horse, the abbey guard, the billman — gated
 behind that house's own technology. There is a test that no house is ever
 left without one.
+
+#### Six lords, and six different castles
+
+The lords have had characters for a while — the Boar arms first and thinks
+afterwards, the Heron builds wall and stands behind it, the Magpie would
+rather pay than fight — with real dials on the war engine and a voice each.
+
+What they did not have was *castles*. `works()` read a foreign lord's defences
+off his wealth alone, so the Heron, who does nothing but build, and the Boar,
+who builds nothing, had the identical wall at the identical prosperity. Every
+siege in the game was the same siege.
+
+Now the sort's dials are shares of one purse — a man who buys stone has less
+for towers — and each way of spending it leaves something different wrong:
+
+| lord | his wall | the way in |
+|---|---|---|
+| the Boar | timber, no towers, no ditch | ladders; nothing is watching it |
+| the Heron | moat, depth, towers that cover | starve him; nothing cheap gets in |
+| the Fox | wide and cheap, pitch and pits | the gate — and mind the pitch |
+| the Ox | thick stone, one gate, no ditch | mine it; there is no water to stop you |
+| the Magpie | towers and oil, nothing behind | breach it; the front is all there is |
+| the Wolf | all of it, and the towers cover each other | engines, and plenty of them |
+
+Click a foreign town and it lists the five approaches with what each would
+meet there — `escalade the wall: 4 tower(s), and no stretch they do not cover`
+against the Wolf, and `nothing in the way` against the Boar. That is read off
+the castle as you **last saw it**, ageing in days, never off the true figure.
+
+One thing that made this worth writing down. `Works.naked` is the yards of
+wall no tower covers, and the siege reads `1 - naked/8` as how watched the
+wall is. A castle with no towers at all therefore has to report a *large*
+naked, not zero — writing the tempting zero would have made an undefended
+palisade the hardest thing in the game to put a ladder against.
+
+The style is how a lord spends, not free money: a Heron with an abbey's income
+still has an abbey's wall. And the twelve-seed balance guard holds, which is
+the only reason a change touching every castle in the game was safe to make.
+
+#### The three men who actually run your march
+
+A lord here was an unusually lonely autocrat. He set the tax rate and the tax
+rate happened; he capped the price of bread and the price of bread was
+capped; he struck coin and nobody objected. Every dial cost coin or mood, and
+none of them cost him somebody powerful being annoyed about it.
+
+    the knights      46   muster x0.90
+        -14.0  the tax you take from their manors
+        +10.0  there is a war on, and they are in it
+    the chapter      27   research x0.76
+        -16.7  you have struck coin out of nothing
+    the guilds       32   trade x0.82
+        -10.0  the tax on the market
+         -9.0  you hold the price of 1 good(s) down
+
+Three estates, each tied to something the game already simulates. The
+**knights** hold the land and bring the levies — sulking, they send word that
+the men could not be spared, and you are out the coin either way. The
+**chapter** holds the tithe and the learning; mint your way out of a deficit
+and your research slows. The **guilds** hold the market, and the assize — the
+price ceiling from the economics layer — is a guild grievance by construction.
+That is the neatest part: the lever was already there, it simply had nobody
+on the other end of it.
+
+Two rules keep this from being a fourth resource bar.
+
+**Every grievance is something you did**, dated and decaying, in the same
+shape as the chancery's opinion ledger — and read off the *state* rather than
+hooked onto the command, so a tax rise set by a script, by the console or by
+a button all register.
+
+**A privilege is a real trade.** Charter the market and the guilds are
+pleased — and `assize` now answers *"you chartered the market: prices are the
+guilds' to set while it stands"*. You can revoke it. They remember that you
+did, and taking one back is worse than never granting it.
+
+#### Seventeen things worth having done
+
+A scenario's goal tells you what the game is *for*. It does not tell you what
+the game is *capable of*, and a player who has met it twice has nothing else
+to aim at.
+
+    ── FEATS ─────────────────────────────────────── 4 of 17 ──
+      The Peaceable Kingdom     done        day 561
+          reach 60,000 in net worth without ever raising a host
+      Factor of the March       done        day 335
+          clear 40,000 coin in trade profit alone
+      Sound Money               done        day 645
+          pass 80,000 in net worth having never struck a penny
+      Lord of the Whole March   ···
+          hold every foreign town on the map
+
+The good ones in other games share a property worth copying: they are not
+"play for a hundred hours", they are *a different way to play* stated as a
+condition. "Take the whole march without ever raising a host" is a strategy
+pitch disguised as a trophy — and the four above were earned by an actual bot
+game, not written down as aspirations.
+
+The rule that keeps the list trustworthy: **no feat is instrumented into the
+thing it counts.** Each is checked against a figure the game was already
+keeping, gathered once a day into one `Standing`. The four tallies that had
+no home — hosts raised, battles won, towns stormed, towns lost — are counted
+at the single place each already passes through. Battles are counted in
+`_box_score`, because every battle in the game is reported there, and
+counting at each of the four call sites is how a tally ends up missing the
+fifth.
+
+A feat that throws is caught: a day of the game must never fail because a
+trophy miscounted.
 
 #### Five idioms
 

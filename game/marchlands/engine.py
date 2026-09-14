@@ -19,6 +19,8 @@ from .buildings import building
 from .chronicle import MOMENTOUS, NOTABLE, ROUTINE, Chronicle
 from .castle import INVEST, Works, choose, storms_now
 from .economics import MONEY_BASE, Accounts, Economy
+from . import estates as estates_mod
+from . import feats as feats_mod
 from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lords as lordly
@@ -148,6 +150,20 @@ class GameState:
     #: thing: the price level, which is the only honest way for a debasement
     #: to be felt.
     economy: Economy = field(default_factory=Economy)
+    #: The three men who actually run the march. Every dial in this game has
+    #: cost coin or mood and none has ever cost you somebody powerful being
+    #: annoyed about it.
+    estates: estates_mod.Estates = field(default_factory=estates_mod.Estates)
+    #: Things worth having done, which is not the same as things worth doing.
+    #: A scenario's goal says what the game is for; these say what it can do.
+    feats: feats_mod.Book = field(default_factory=feats_mod.Book)
+    #: Tallies nothing else keeps, because a feat must be checked against a
+    #: figure rather than instrumented into the thing it counts.
+    _hosts_raised: int = 0
+    _battles_won: int = 0
+    _stormed: int = 0
+    _towns_lost: int = 0
+    _trade_profit: float = 0.0
     chronicle: Chronicle = field(default_factory=Chronicle)
     chapter: str = ""           # which chapter of a campaign, if any
     over: str = ""              # '' while playing, else the ending
@@ -310,7 +326,8 @@ class GameState:
                 if b.complete and not before.get(b.uid, True):
                     msgs.append(f"{s.name}: {b.spec.name} finished")
             # A steward who knows the ground gets more out of the same ground.
-            led.taxes += rep.taxes * self.kin.mult("taxes", key)
+            led.taxes += (rep.taxes * self.kin.mult("taxes", key)
+                          * max(0.1, 1.0 + self.estates.effect("tax")))
             led.wages += rep.wages
             led.upkeep += rep.upkeep
             msgs += rep.notes
@@ -358,10 +375,15 @@ class GameState:
         # on a day it did not, no amount of skill invents a buyer.
         gain = self.treasury - before_trade
         if gain > 0:
-            factored = gain * (self.kin.mult("trade") - 1.0)
+            factored = gain * (self.kin.mult("trade")
+                               * self.estates.mult("trade") - 1.0)
             self.treasury += factored
             led.trade += factored
+            self._trade_profit += gain + factored
         msgs += tmsgs
+
+        msgs += self._estates_day()
+        msgs += self.feats.check(self._standing())
 
         # 6. Learning, and the slow climb between ages.
         msgs += self._study()
@@ -419,7 +441,8 @@ class GameState:
                 msgs.append(self.note(f"*** The {AGES[p.age].name} begins ***",
                                       MOMENTOUS))
         if p.researching:
-            p.research_left -= p.mult("research_speed") * self._scholars()
+            p.research_left -= (p.mult("research_speed") * self._scholars()
+                                * self.estates.mult("research"))
             if p.research_left <= 0:
                 p.researched.add(p.researching)
                 msgs.append(f"Learned: {TECHS[p.researching].name}")
@@ -517,8 +540,56 @@ class GameState:
         self._war_outlay += coin
         for k, q in goods.items():
             s.market.take(k, q)
-        s.units[unit_key] = s.units.get(unit_key, 0.0) + count
+        # The knights hold the land the levies come off. Sulking, they send
+        # word that the men could not be spared -- and you are out the coin
+        # either way, which is the part that makes their loyalty matter.
+        came = max(1, int(round(count * self.estates.mult("muster"))))
+        s.units[unit_key] = s.units.get(unit_key, 0.0) + came
+        if came < count:
+            return (f"{came} {u.name} muster at {s.name} ({coin:,.0f}c) -- "
+                    f"you paid for {count}; the knights spared what they chose")
+        if came > count:
+            return (f"{came} {u.name} muster at {s.name} ({coin:,.0f}c) -- "
+                    f"more than you asked for; the knights are keen")
         return f"{count} {u.name} muster at {s.name} ({coin:,.0f}c)"
+
+    def _standing(self) -> "feats_mod.Standing":
+        """Every figure a feat may read, gathered once and from the game's
+        own books rather than instrumented into the thing it counts."""
+        seats = list(self.world.settlements.values())
+        mine_towns = [t for t in self.world.towns.values() if t.mine]
+        idioms = {t.culture for t in mine_towns if t.culture}
+        idioms |= {getattr(s, "culture", "") for s in seats}
+        wall = sum(len(s.plan().pieces) for s in seats if hasattr(s, "plan"))
+        inside = 0
+        for s in seats:
+            if hasattr(s, "plan"):
+                from . import keep as keeps
+                inside = max(inside, len(keeps.enclosed(s.plan())))
+        loyal = sum(1 for st in self.estates.by_key.values() if st.loyalty >= 60)
+        grants = sum(len(st.privileges) for st in self.estates.by_key.values())
+        return feats_mod.Standing(
+            day=self.day, year=self.year,
+            net_worth=self.net_worth(), treasury=self.treasury,
+            population=int(sum(s.population for s in seats)),
+            towns=len(mine_towns),
+            relics=len([sh for sh in self.world.shrines.values()
+                        if getattr(sh, "holder", "") == "player"]),
+            age=self.progress.age, techs=len(self.progress.researched),
+            battles_won=self._battles_won, hosts_raised=self._hosts_raised,
+            coin_minted=float(getattr(self.economy, "minted", 0.0) or 0.0),
+            allies=len(getattr(self.court, "allies", ())),
+            coalition=len(getattr(self.court, "coalition", ())),
+            marriages=sum(1 for p in self.kin.people if p.alive and p.married_to),
+            wall_yards=wall, enclosed=inside,
+            soldiers=int(sum(sum(s.units.values()) for s in seats)),
+            trade_profit=self._trade_profit,
+            idioms_seen=len([i for i in idioms if i]),
+            estates_loyal=loyal, privileges=grants,
+            worst_estate=min((st.loyalty for st in self.estates.by_key.values()),
+                             default=100.0),
+            mood=max((s.popularity for s in seats), default=0.0),
+            took_by_storm=self._stormed, lost_towns=self._towns_lost)
 
     def raise_host(self, settlement_key: str, units: Dict[str, int],
                    name: str = "") -> Tuple[Optional[Army], str]:
@@ -541,6 +612,7 @@ class GameState:
                  owner="player", units=take, at=settlement_key, home=settlement_key)
         self.next_army_uid += 1
         self.armies.append(a)
+        self._hosts_raised += 1
         return a, ""
 
     def army(self, uid: int) -> Optional[Army]:
@@ -1096,6 +1168,13 @@ class GameState:
         shut = self.opened("decree")
         if shut:
             return shut
+        # A chartered market is theirs to price. This is the privilege
+        # actually holding rather than being described as holding: you gave
+        # away the right, and here is where you find you no longer have it.
+        if self.estates.granted("charter") and price > 0:
+            return ("you chartered the market: prices are the guilds' to set "
+                    "while it stands. `estates revoke charter` first, and they "
+                    "will remember that you did")
         spec = good(key)
         home = self.home()
         worth = home.market.fundamental(key)
@@ -1675,6 +1754,14 @@ class GameState:
         result without the game. A box score is the least a competition owes
         anybody who was in it.
         """
+        # Every battle in the game passes through here to be reported, which
+        # makes it the one honest place to count them. Counting at each of the
+        # four call sites is how a tally ends up missing the fifth.
+        won = getattr(res, "winner", "")
+        if attacker == PLAYER and won == "attacker":
+            self._battles_won += 1
+        elif defender == PLAYER and won == "defender":
+            self._battles_won += 1
         lost = lambda d: sum(d.values())          # noqa: E731 - a local shorthand
         att = self.world.node_name(attacker) if attacker != PLAYER else "yours"
         deff = self.world.node_name(defender) if defender != PLAYER else "yours"
@@ -1685,6 +1772,12 @@ class GameState:
 
     def _take_town(self, town, a: Army) -> str:
         was_mine = town.mine
+        # Tallies for the feats. Kept here, at the moment a town changes
+        # hands, because that is the only place that knows which way it went.
+        if a.owner == "player":
+            self._stormed += 1
+        elif was_mine:
+            self._towns_lost += 1
         # Whatever bones that lord had lifted are in his minster, and his
         # minster has just changed hands.
         taker = "player" if a.owner == "player" else a.owner
@@ -2162,6 +2255,56 @@ class GameState:
 
     def war_pressure(self) -> float:
         return min(2.6, 1.0 + self.day / (1.7 * C.DAYS_PER_YEAR))
+
+    def _estates_day(self) -> List[str]:
+        """What the three of them made of today.
+
+        Every grievance here is a lever the player pulled, read off the state
+        it left rather than hooked onto the command that pulled it -- so a tax
+        rise set by a script, by the console or by a button all register, and
+        none of them can be forgotten about when a fourth way of setting it
+        is added.
+        """
+        e = self.estates
+        seats = list(self.world.settlements.values())
+        if not seats:
+            return []
+        # Tax. The knights pay it on their manors and the guilds on their
+        # stalls; both notice, and the knights notice harder.
+        tax = sum(s.tax_level for s in seats) / len(seats)
+        e.note("knights", "the tax you take from their manors",
+               (2.0 - tax) * 7.0, self.day)
+        e.note("guilds", "the tax on the market", (2.0 - tax) * 5.0, self.day)
+        # The assize is a price cap, which is a guild grievance by
+        # construction: the economics layer already had the lever and simply
+        # had nobody on the other end of it.
+        capped = len(getattr(self.economy, "assize", {}) or {})
+        if capped:
+            e.note("guilds", f"you hold the price of {capped} good(s) down",
+                   -9.0 * capped, self.day)
+        elif not e.granted("charter"):
+            e.note("guilds", "prices are theirs to set", 4.0, self.day)
+        # Coin struck out of nothing is the chapter's oldest complaint.
+        minted = float(getattr(self.economy, "minted", 0.0) or 0.0)
+        if minted > 0:
+            e.note("chapter", "you have struck coin out of nothing",
+                   -min(22.0, minted / 900.0), self.day)
+        # Chapels and minsters, which is the thing they actually want built.
+        faith = sum(s.coverage("faith_reach") for s in seats) / len(seats)
+        e.note("chapter", "the souls in your towns have somewhere to pray",
+               -6.0 + 20.0 * faith, self.day)
+        # Knights want a war, and grow restless without one. A greater levy
+        # granted and then left idle is worse: you armed them for nothing.
+        at_war = any(a.owner != "player" for a in self.armies)
+        idle = self.day - getattr(self, "_last_war_day", 0)
+        if at_war:
+            self._last_war_day = self.day
+            e.note("knights", "there is a war on, and they are in it", 10.0,
+                   self.day)
+        elif idle > 240:
+            e.note("knights", "a long peace, and nothing to take",
+                   -8.0 - (4.0 if e.granted("levy") else 0.0), self.day)
+        return e.day(self.day)
 
     def _look_around(self) -> None:
         """Refresh what you know about the march.
@@ -2705,6 +2848,11 @@ class GameState:
             "economy": self.economy.to_dict(),
             "league": self.league.to_dict(),
             "court": self.court.to_dict(),
+            "estates": self.estates.to_dict(),
+            "feats": self.feats.to_dict(),
+            "tallies": {"hosts": self._hosts_raised, "won": self._battles_won,
+                        "stormed": self._stormed, "lost": self._towns_lost,
+                        "trade": self._trade_profit},
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
             "rng": list(self.rng.getstate()),
@@ -2748,6 +2896,14 @@ class GameState:
         g.economy = Economy.from_dict(d.get("economy", {}))
         g.league = League.from_dict(d.get("league", {}))
         g.court = court.Chancery.from_dict(d.get("court"))
+        g.estates = estates_mod.Estates.from_dict(d.get("estates") or {})
+        g.feats = feats_mod.Book.from_dict(d.get("feats") or {})
+        tall = d.get("tallies") or {}
+        g._hosts_raised = int(tall.get("hosts", 0))
+        g._battles_won = int(tall.get("won", 0))
+        g._stormed = int(tall.get("stormed", 0))
+        g._towns_lost = int(tall.get("lost", 0))
+        g._trade_profit = float(tall.get("trade", 0.0))
         for s in g.world.settlements.values():
             s.market.level = g.economy.price_level
             s.market.caps = dict(g.economy.assize)

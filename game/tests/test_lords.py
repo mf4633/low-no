@@ -209,3 +209,94 @@ class TestOaths(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestEachLordBuildsHisOwnCastle(unittest.TestCase):
+    """The thing people remember about Stronghold's villains is not that they
+    said different lines. It is that the Rat's castle and the Wolf's castle
+    are different problems, and you take them differently.
+
+    This game had the first half and not the second: `works()` read the
+    castle off wealth alone, so the Heron -- who does nothing but build --
+    and the Boar -- who builds nothing -- had the identical wall at the
+    identical prosperity, and every siege was the same siege.
+    """
+
+    def town(self, sort_key, base=700.0):
+        """A town of a given sort, at a fixed wealth, so only the lord differs."""
+        from marchlands.world import ForeignTown
+        from marchlands.market import Market
+        from marchlands import lords as lordly
+        key = next(k for k, v in lordly.CAST.items() if v == sort_key)
+        t = ForeignTown(key=key, name=key.title(), x=0.0, y=0.0, market=Market(key))
+        t.wall_base, t.prosperity = base, 1.0
+        return t
+
+    def test_the_same_money_buys_different_castles(self):
+        shapes = {}
+        for sort_key in ("boar", "heron", "fox", "ox", "magpie", "wolf"):
+            w = self.town(sort_key).works()
+            # `naked` counts: it is the flanking coverage, and the single
+            # number the escalade code reads to decide whether a ladder goes
+            # up unwatched. Two lords with the same tower count and different
+            # coverage are two different castles to storm.
+            shapes[sort_key] = (w.moat, w.towers, w.naked, w.depth, w.stone,
+                                w.pitch + w.pits + w.oil)
+        self.assertEqual(len(set(shapes.values())), len(shapes),
+                         f"two lords built the same castle: {shapes}")
+
+    def test_the_boar_spends_on_men_and_it_shows_on_his_wall(self):
+        boar, heron = self.town("boar").works(), self.town("heron").works()
+        self.assertLess(boar.towers, heron.towers)
+        self.assertLessEqual(boar.moat, heron.moat)
+        self.assertLess(boar.depth, heron.depth)
+
+    def test_a_wall_with_no_towers_is_the_most_naked_thing_there_is(self):
+        # The siege reads `1 - naked/8` as how watched a wall is, so writing
+        # zero here -- the tempting thing to write -- would have made a castle
+        # with nothing on it the hardest in the game to put a ladder against.
+        from marchlands.castle import ESCALADE
+        bare = self.town("boar", base=260.0).works()
+        self.assertEqual(bare.towers, 0)
+        self.assertGreaterEqual(bare.naked, 8)
+        self.assertNotIn("tower", " ".join(bare.answers(ESCALADE)))
+
+    def test_the_ox_has_no_ditch_to_stop_a_mine(self):
+        from marchlands.castle import SAP
+        ox = self.town("ox").works()
+        self.assertFalse(ox.moat)
+        self.assertFalse(any("ditch" in a for a in ox.answers(SAP)))
+
+    def test_the_heron_has_one_and_it_stops_the_mine(self):
+        from marchlands.castle import SAP
+        heron = self.town("heron", base=1100.0).works()
+        self.assertTrue(heron.moat)
+        self.assertTrue(any("ditch" in a for a in heron.answers(SAP)))
+
+    def test_the_magpie_buys_what_shows_and_nothing_behind_it(self):
+        magpie, wolf = self.town("magpie").works(), self.town("wolf").works()
+        self.assertGreaterEqual(magpie.towers, wolf.towers)
+        self.assertLess(magpie.depth, wolf.depth)
+
+    def test_every_lord_answers_at_least_one_approach_differently(self):
+        from marchlands.castle import PLANS
+        seen = {}
+        for sort_key in ("boar", "heron", "fox", "ox", "magpie", "wolf"):
+            w = self.town(sort_key).works()
+            seen[sort_key] = tuple(tuple(w.answers(p)) for p in PLANS)
+        self.assertEqual(len(set(seen.values())), len(seen))
+
+    def test_a_poor_lord_still_cannot_build_what_he_would_like(self):
+        # The style is how he spends, not free money. A Heron with an abbey's
+        # income has an abbey's wall.
+        poor = self.town("heron", base=200.0).works()
+        rich = self.town("heron", base=1400.0).works()
+        self.assertLess(poor.towers, rich.towers)
+        self.assertLessEqual(poor.moat, rich.moat)
+
+    def test_what_you_see_is_the_castle_you_last_looked_at(self):
+        t = self.town("wolf")
+        now = t.works()
+        t.prosperity = 3.0                     # he has been building
+        self.assertEqual(t.works(1.0), now, "you saw the old wall, not the new")
+        self.assertNotEqual(t.works(), now)

@@ -103,6 +103,26 @@ const Sound = (() => {
     }
   }
 
+  /* The alarm bell: rung fast, rung hard, and slightly out of tune with
+   * itself. Every other sound this file makes is meant to be pleasant to sit
+   * inside for an hour. This one is meant to make you look up, which is a
+   * different job and wants a different noise -- so it is three strikes of a
+   * pair of bells a semitone apart, which is a sound nothing in nature makes
+   * by accident.
+   *
+   * It is the honest version of the thing people quote about Stronghold. We
+   * cannot ship a recording of somebody shouting "the castle is collapsing";
+   * what we can do is make the moment sound like an emergency and put the
+   * words on the screen. */
+  function alarm(when) {
+    for (let i = 0; i < 3; i++) {
+      const t = when + i * 0.17;
+      ping(784, t, 0.42, 'triangle', 0.16);
+      ping(740, t + 0.012, 0.42, 'triangle', 0.13);
+      ping(392, t, 0.6, 'sine', 0.1);
+    }
+  }
+
   function drum(when) {
     const osc = ctx.createOscillator(), g = ctx.createGain();
     osc.type = 'sine';
@@ -181,6 +201,7 @@ const Sound = (() => {
       if (!on || !ctx) return;
       if (kind === 'bell') bell(ctx.currentTime + 0.05);
       if (kind === 'drum') drum(ctx.currentTime + 0.05);
+      if (kind === 'alarm') alarm(ctx.currentTime + 0.05);
     },
     stop() { if (timer) clearInterval(timer); },
     /* For the page to check what it is hearing. */

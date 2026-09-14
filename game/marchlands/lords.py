@@ -48,6 +48,20 @@ class Sort:
     raids: float = 0.0           # preference for burning country over walls
     bought: float = 1.0          # how cheaply a truce or a gift buys him off
     holds: float = 1.0           # how hard he is to shift once he holds a town
+    # --- how he builds -------------------------------------------------
+    #
+    # Every lord used to raise the identical castle, because `works()` read
+    # it off wealth alone: the Heron who does nothing but build and the Boar
+    # who builds nothing had the same wall at the same prosperity. These are
+    # shares of the same purse, not extra money, so a man who spends on stone
+    # has less for towers -- and each way of spending it has a different
+    # thing that cracks it.
+    stone: float = 1.0           # curtain: raises the bar for a breach
+    towers: float = 1.0          # flanking fire: what punishes an escalade
+    water: float = 1.0           # a moat, which stops a mine dead
+    traps: float = 1.0           # pitch, pits and oil at the gate
+    layers: float = 1.0          # depth: rings between the gate and the hall
+    cover: float = 1.0           # how well the towers actually cover the line
     declares: Tuple[str, ...] = ()     # when he means to move on you
     takes: Tuple[str, ...] = ()        # when he takes a town
     beaten: Tuple[str, ...] = ()       # when you break his host
@@ -58,6 +72,8 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
     Sort("boar", "the Boar",
          "arms first and thinks afterwards; comes early and comes often",
          aggression=1.75, temper=1.5, muster=1.15, thrift=0.75, bought=0.6,
+         # Spends on men, not masonry. Thin, unflanked, and climbable.
+         stone=0.7, towers=0.45, water=0.2, traps=0.8, layers=0.5, cover=0.5,
          declares=("I am coming. Do not trouble to write back.",
                    "Your gate is wood and my patience is thinner."),
          takes=("Another. I shall want another after that.",),
@@ -67,6 +83,9 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          "builds wall and stands behind it; will not come unless you make him",
          aggression=0.45, temper=0.7, muster=0.85, thrift=1.25, holds=1.5,
          bought=1.3,
+         # Wall first and wall always: water, depth, and towers that cover.
+         # Nothing cheap gets in. He still has to eat.
+         stone=1.35, towers=1.3, water=1.8, traps=1.1, layers=1.7, cover=1.4,
          declares=("I had hoped to be left alone. You have seen to that.",),
          takes=("It is mine now, and it will stay mine.",),
          beaten=("I shall be behind my own wall before you have formed up.",),
@@ -75,6 +94,9 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          "burns your fields rather than face your wall, and treats when losing",
          aggression=1.15, temper=1.2, muster=0.9, thrift=1.1, raids=0.75,
          bought=0.55,
+         # Wide, cheap and nasty: everything in traps, nothing in stone. The
+         # gate is the way in, and he has made the gate expensive.
+         stone=0.6, towers=0.7, water=0.5, traps=1.9, layers=0.8, cover=0.7,
          declares=("I have no quarrel with your walls. Your harvest is another "
                    "matter.",),
          takes=("Taken cheaply, which is the only way worth taking anything.",),
@@ -84,6 +106,9 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          "slow, steady and hard to shift; what he takes he keeps",
          aggression=0.85, temper=0.85, muster=1.25, thrift=1.0, holds=1.6,
          bought=1.1,
+         # Thick stone, one gate, and no ditch worth the name. Batter it and
+         # you will be there a month; dig under it and it is a week.
+         stone=1.7, towers=0.6, water=0.25, traps=0.9, layers=1.1, cover=0.6,
          declares=("I have written it in the roll. I shall come when I come.",),
          takes=("Held. That is the whole of it.",),
          beaten=("You have moved me. Few have.",),
@@ -91,6 +116,9 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
     Sort("magpie", "the Magpie",
          "would always rather pay than fight, and grows fat doing it",
          aggression=0.55, temper=0.6, muster=0.7, thrift=1.5, bought=0.4,
+         # Buys what shows: towers and oil, and no depth at all behind them.
+         # Get through the front of it and there is nothing else.
+         stone=0.9, towers=1.6, water=0.7, traps=1.5, layers=0.4, cover=1.2,
          declares=("Reluctantly. My factors assure me it is the cheaper course.",),
          takes=("A good acquisition, all things considered.",),
          beaten=("An expensive morning. I shall make it back by Michaelmas.",),
@@ -99,6 +127,9 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          "good at everything and in no hurry; the one you plan around",
          aggression=1.25, temper=1.0, muster=1.45, thrift=1.3, holds=1.4,
          bought=1.6,
+         # Everything, properly, and the towers actually cover each other.
+         # There is no cheap way into the Wolf's seat.
+         stone=1.3, towers=1.3, water=1.2, traps=1.2, layers=1.4, cover=1.5,
          declares=("I know what you are worth to within a hundred coins. "
                    "I am coming for it.",),
          takes=("As expected.",),

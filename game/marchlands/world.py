@@ -100,25 +100,51 @@ class ForeignTown:
         return (C.TRIBUTE_BASE + C.TRIBUTE_PER_WEALTH * self.wealth) * self.prosperity
 
     def works(self, prosperity: Optional[float] = None) -> Works:
-        """The castle a foreign lord has, read off how old and rich his seat is.
+        """The castle a foreign lord has: how rich his seat is, and how he
+        spends it.
 
-        There are no building lists out there, so a great seat is simply
-        assumed to have spent its centuries the way a great seat would: a
-        market town has a gate and a ditch, and Marchand has everything.
+        There are no building lists out there, so a seat is assumed to have
+        spent its centuries the way that lord would spend them -- and that is
+        the point, because it used to be assumed they all spent them the same
+        way. The Heron, who does nothing but build, and the Boar, who builds
+        nothing, had the identical wall at the identical wealth, and every
+        siege in the game was therefore the same siege.
+
+        The sort's dials are shares of one purse, so a man who buys stone has
+        less for towers. Each way of spending it leaves a different thing
+        wrong with the castle, which is what makes the choice of approach a
+        choice: the Ox has no ditch, so mine him; the Magpie has no depth, so
+        breach him; the Boar has nothing covering his wall, so put ladders on
+        it; the Heron has all three and has to be starved instead.
 
         Pass the prosperity you *saw* rather than the one he has, and you get
         the castle as it stood when you last looked at it.
         """
+        sort = lordly.sort_of(self.key)
         grade = self.wall_base * (0.6 + 0.4 * (self.prosperity if prosperity is None
                                                else prosperity))
+        # A tower covers so much line; a lord whose towers do not cover each
+        # other leaves a run of wall nobody is shooting along, and `Works.naked`
+        # is what the siege code reads to know it -- eight yards of it is a
+        # wall nobody is watching at all.
+        #
+        # No towers means the whole line is that. Writing zero here, which is
+        # the tempting thing to write, says the opposite: the siege reads
+        # `1 - naked/8` as how watched the wall is, so a castle with nothing
+        # on it would have been the hardest in the game to put a ladder
+        # against.
+        towers = min(5, int(grade * sort.towers // 320))
+        naked = 12 if towers <= 0 else max(0, int(26 - towers * 7 * sort.cover))
         return Works(
-            moat=1 if grade >= 600 else 0,
-            pitch=1 if grade >= 450 else 0,
-            pits=1 if grade >= 550 else 0,
-            oil=1 if grade >= 850 else 0,
-            towers=min(4, int(grade // 320)),
+            moat=1 if grade * sort.water >= 600 else 0,
+            pitch=1 if grade * sort.traps >= 450 else 0,
+            pits=1 if grade * sort.traps >= 550 else 0,
+            oil=1 if grade * sort.traps >= 850 else 0,
+            towers=towers,
             gate=grade >= 380,
-            stone=grade >= 300,
+            stone=grade * sort.stone >= 300,
+            naked=naked,
+            depth=max(1, min(3, int(1 + grade * sort.layers // 700))),
         )
 
     def observe(self, day: int) -> None:

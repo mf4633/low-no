@@ -1253,16 +1253,36 @@ class TestTheMatchupRespectsTheFog(unittest.TestCase):
                              self.a.units, self.g.believed_host(self.foe)))
         self.assertTrue(self.mine()["matchup"])
 
-    def test_it_uses_what_you_believe_not_what_is_true(self):
-        from marchlands.web import _matchup_for
+    def test_it_reads_what_you_believe_rather_than_what_is_true(self):
+        # Scaling their muster is not the test it looks like: the matchup is
+        # built from class *shares*, so a host six times the size in the same
+        # proportions is the same matchup, correctly. What matters is which
+        # figure it asks for -- the believed host, never the real muster.
+        from marchlands import web
+        from marchlands.military import matchup
         self.g.march(self.a.uid, self.foe)
-        town = self.g.world.towns[self.foe]
-        town.muster *= 6.0                    # they have raised far more
-        before = _matchup_for(self.g, self.a)
-        town.observe(self.g.day)              # now you have looked
-        after = _matchup_for(self.g, self.a)
-        self.assertNotEqual(before, after,
-                            "looking at them should change what you believe")
+        asked = []
+        real = self.g.believed_host
+
+        def spy(key):
+            asked.append(key)
+            return {"knight": 30.0}           # nothing like the true muster
+
+        self.g.believed_host = spy
+        try:
+            got = web._matchup_for(self.g, self.a)
+        finally:
+            self.g.believed_host = real
+        self.assertEqual(asked, [self.foe])
+        self.assertEqual(got, matchup(self.a.units, {"knight": 30.0}))
+        self.assertNotEqual(got, matchup(self.a.units,
+                                         self.g.likely_host(self.foe)))
+
+    def test_a_host_of_different_kinds_is_a_different_matchup(self):
+        from marchlands.military import matchup
+        horse = matchup(self.a.units, {"knight": 30})
+        foot = matchup(self.a.units, {"man_at_arms": 30})
+        self.assertNotEqual(horse, foot)
 
     def test_a_place_you_have_never_seen_says_so(self):
         from marchlands.web import _matchup_note

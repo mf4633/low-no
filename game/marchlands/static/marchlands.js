@@ -1978,6 +1978,27 @@ function nodeWrit(n, ev) {
   const skyline = set
     ? `<canvas class="skyline" data-culture="${st.culture}"></canvas>` +
       `<p class="why">built in ${esc(set.name)} — ${esc(set.blurb)}</p>` : '';
+  /* His castle, and what each way in would meet. Every lord used to build
+   * the identical wall at the same wealth, so there was never anything to
+   * adapt to -- and adapting to it is the whole of taking a town. This is
+   * the castle as you last *saw* it, which is why it carries its age. */
+  const kp = n.keep;
+  const keep = !kp || !kp.plans ? '' :
+    `<p class="why">his wall, as you last saw it ${kp.age ? `(${kp.age} days ago)` : '(today)'}: ` +
+    [kp.stone ? 'stone' : 'timber',
+     kp.towers ? `${kp.towers} tower${kp.towers > 1 ? 's' : ''}` : 'no towers',
+     kp.moat ? 'a moat' : 'no ditch',
+     kp.traps ? `${kp.traps} nasty thing${kp.traps > 1 ? 's' : ''} at the gate` : 'no traps',
+     kp.depth > 1 ? `${kp.depth} rings deep` : 'one ring',
+     kp.naked >= 8 ? `${kp.naked} yards nobody watches` : 'well covered',
+    ].join(' · ') + '</p>' +
+    '<ul class="ways">' + kp.plans.map(p => {
+      const met = p.meets.length
+        ? p.meets.map(m => esc(m)).join('; ')
+        : '<em>nothing in the way</em>';
+      return `<li><b>${esc(p.name)}</b><span>${met}</span></li>`;
+    }).join('') + '</ul>';
+
   const standing = !st ? '' :
     `<p class="standing"><b>${st.opinion > 0 ? '+' : ''}${st.opinion}</b> ` +
     `${esc(st.temper)}${marks ? ' · ' + marks : ''}</p>` +
@@ -1998,7 +2019,7 @@ function nodeWrit(n, ev) {
     </div>` : n.kind === 'site' ? `
     <div class="acts"><button data-do="found ${n.key}">settle it</button></div>` : '';
   openWrit(n.name, skyline + price + (known ? `<p class="why">${known}</p>` : '')
-           + standing + acts, ev);
+           + keep + standing + acts, ev);
   for (const c of writ.querySelectorAll('canvas.skyline')) {
     c.width = Math.round(c.clientWidth * dpr);
     c.height = Math.round(104 * dpr);
@@ -2581,6 +2602,47 @@ function paint(s) {
                      `${v >= 0 ? '+' : ''}${num(v)}</span></li>`).join('');
   // The table, and who has said they are coming. A league is a table and a
   // schedule; without them the march is eight lords quarrelling off-screen.
+  /* The three you govern with. What each is worth is shown as the multiplier
+   * it actually applies -- fewer men at the muster, slower learning, thinner
+   * trade -- because "the knights are unhappy" is a mood face and "muster
+   * ×0.89" is a decision. */
+  const est = s.estates || [];
+  $('estates-box').hidden = !est.length;
+  if (est.length) {
+    $('estates').innerHTML = est.map(e => {
+      const cls = e.loyalty >= 60 ? 'up' : (e.loyalty >= 40 ? '' : 'down');
+      const why = (e.why || []).map(w =>
+        `<li class="why-row"><span>${esc(w.what)}</span>` +
+        `<em class="${w.by > 0 ? 'up' : 'down'}">${w.by > 0 ? '+' : ''}` +
+        `${w.by.toFixed(1)}</em></li>`).join('');
+      const held = e.held.length
+        ? `<li class="why-row"><span class="dim">granted</span>` +
+          `<em class="up">${e.held.map(esc).join(', ')}</em></li>` : '';
+      return `<li class="estate"><label>${esc(e.name)}</label>` +
+        `<span class="${cls}">${e.loyalty}</span>` +
+        `<span class="dim">${esc(e.gives)} \u00d7${e.worth.toFixed(2)}</span>` +
+        `</li><li><ul class="why-list">${why}${held}</ul></li>`;
+    }).join('');
+  }
+
+  /* Feats. Only the ones you have, plus the nearest few you have not, so
+   * the panel is a thing to aim at rather than a list to scroll. */
+  const ft = s.feats;
+  $('feats-box').hidden = !ft || !ft.list;
+  if (ft && ft.list) {
+    $('feats-count').textContent = `${ft.done} of ${ft.of}`;
+    const done = ft.list.filter(f => f.day !== null && f.day !== undefined);
+    const todo = ft.list.filter(f => f.day === null || f.day === undefined)
+                        .sort((a, b) => a.hard - b.hard).slice(0, 4);
+    $('feats').innerHTML = done.map(f =>
+      `<li class="feat got"><label>${esc(f.name)}</label>` +
+      `<span class="dim">day ${f.day}</span></li>`).join('') +
+      todo.map(f =>
+      `<li class="feat"><label>${esc(f.name)}</label>` +
+      `<span class="dim">${'\u00b7'.repeat(f.hard)}</span></li>` +
+      `<li class="feat-why">${esc(f.blurb)}</li>`).join('');
+  }
+
   const lea = s.league;
   if (lea && lea.table && lea.table.length) {
     $('standings').innerHTML = lea.table.map((r, i) =>
@@ -3330,7 +3392,7 @@ document.addEventListener('keydown', e => {
  * The clock stops itself when something happens. The banner says what,
  * because "why has it stopped" is a question you should never have to answer
  * by reading the log. */
-let speedNow = 0, seqNow = 0, polling = false;
+let speedNow = 0, seqNow = 0, polling = false, wasHalted = false;
 
 async function setSpeed(n) {
   const c = await post('/speed', { speed: n });
@@ -3345,12 +3407,19 @@ function applyClock(c) {
     $(`c-${i}`).setAttribute('aria-pressed', i === c.speed ? 'true' : 'false');
   }
   const halt = $('halt');
-  if (c.stopped_for && !c.speed) {
-    halt.textContent = c.stopped_for;
+  const why = c.stopped_for && !c.speed;
+  if (why) {
+    // The line, not the category. "a host has sat down before your walls"
+    // says what kind of thing happened; "Dunmere besieges Aldworth" says what
+    // happened, which is what you actually wanted to be told.
+    halt.textContent = c.stopped_at || c.stopped_for;
+    halt.title = c.stopped_for;
+    if (!wasHalted) Sound.mark('alarm');
     halt.hidden = false;
   } else {
     halt.hidden = true;
   }
+  wasHalted = why;
 }
 
 async function pollOn() {

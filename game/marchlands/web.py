@@ -40,6 +40,8 @@ from . import culture as cultures
 from . import keep as keeps
 from . import voices
 from .clock import Clock
+from . import estates as estates_mod
+from . import feats as feats_mod
 from .buildings import BUILDINGS
 from .layout import plan_for
 
@@ -104,6 +106,36 @@ def _matchup_note(game, a) -> str:
     return counter_note(a.units, theirs)
 
 
+def _believed_works(game, key: str) -> dict:
+    """What you think that lord's castle is, and what each approach would
+    find there.
+
+    Off the prosperity you *saw*, so a seat that has been building since you
+    last sent a cart is the seat you remember, not the one that is there.
+    Never off the true figure: that would be reading his mason's accounts.
+    """
+    from .castle import PLANS
+    town = game.world.towns.get(key)
+    if town is None or town.mine:
+        return {}
+    seen, age = game.known(key)
+    if age < 0:
+        return {}                          # never looked; nothing to say
+    w = town.works(seen.get("prosperity"))
+    lines = []
+    for plan in PLANS.values():
+        met = w.answers(plan.key)      # the works that bear on this approach
+        lines.append({"key": plan.key, "name": plan.name, "blurb": plan.blurb,
+                      "needs": plan.needs_siege,
+                      "engineers": plan.needs_engineers, "meets": met})
+    return {
+        "moat": w.moat, "towers": w.towers, "naked": w.naked, "depth": w.depth,
+        "stone": bool(w.stone), "gate": bool(w.gate),
+        "traps": w.pitch + w.pits + w.oil,
+        "age": age, "plans": lines,
+    }
+
+
 def _their_host_name(game, a) -> str:
     """What you call a host that is not yours. Their lord's, not its own:
     you would not know what they have named it."""
@@ -151,6 +183,10 @@ def march(game, here: str, good: str = "bread") -> dict:
                       "who": who, "port": w.is_port(key),
                       "price": round(price, 2), "stock": round(stock),
                       "known": age, "host": host,
+                      # His castle as you last saw it, and what each way in
+                      # would meet. Every lord used to build the identical
+                      # wall, so there was nothing to adapt to.
+                      "keep": _believed_works(game, key),
                       "walls": round(seen.get("wall_hp", 0.0)) if seen else None,
                       "here": key == here})
     for key, site in w.sites.items():
@@ -606,6 +642,28 @@ def snapshot(game, here: str = "") -> dict:
     return {
         "day": game.day,
         "date": game.date_str(),
+        # The three you govern with. Not a fourth resource bar: what each one
+        # is worth is a multiplier on something the game already does, so the
+        # panel shows the multiplier rather than a mood face.
+        "estates": [
+            {"key": k, "name": spec.name, "blurb": spec.blurb,
+             "gives": spec.gives,
+             "loyalty": round(game.estates.by_key[k].loyalty),
+             "worth": round(game.estates.mult(spec.gives), 3),
+             "held": list(game.estates.by_key[k].privileges),
+             "why": [{"what": w, "by": b}
+                     for w, b in game.estates.why(k, game.day)[:4]]}
+            for k, spec in estates_mod.ESTATES.items()],
+        "feats": {"done": len(game.feats.to_dict()),
+                  "of": len(feats_mod.FEATS),
+                  "list": [{"key": k, "name": f.name, "blurb": f.blurb,
+                            "hard": f.hard,
+                            "day": game.feats.to_dict().get(k)}
+                           for k, f in feats_mod.FEATS.items()]},
+        "privileges": [
+            {"key": k, "estate": p.estate, "name": p.name, "blurb": p.blurb,
+             "cost": p.cost, "held": game.estates.granted(k)}
+            for k, p in estates_mod.PRIVILEGES.items()],
         "year": game.year,
         "month": game.month,
         "season": game.season,

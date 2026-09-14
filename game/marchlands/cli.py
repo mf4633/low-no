@@ -2357,6 +2357,62 @@ class Console:
         target = args[2] if len(args) > 2 else ""
         self.say("  " + g.post(who, job, target))
 
+    def cmd_feats(self, args: List[str]) -> None:
+        """Things worth having done, and which of them you have."""
+        from . import feats as fe
+        g = self.game
+        done = g.feats.to_dict()
+        self.say(ink.head("FEATS", f"{len(done)} of {len(fe.FEATS)}"))
+        for key, feat in fe.FEATS.items():
+            day = done.get(key)
+            mark = ink.c("done", ink.LEAF) if day is not None else ink.c(
+                "·" * feat.hard, ink.DIM)
+            self.say(f"  {ink.c(ink.pad(feat.name, 26), ink.GOLD if day is None else ink.LEAF)}"
+                     f"{ink.pad(mark, 12)}"
+                     + (ink.c(f"day {day}", ink.DIM) if day is not None else ""))
+            self.say(f"      {ink.c(feat.blurb, ink.DIM)}")
+        self.say("", ink.c("  the dots are how stiff it is; a goal says what "
+                           "the game is for, these say what it can do", ink.DIM))
+
+    def cmd_estates(self, args: List[str]) -> None:
+        """The three who run your march, and what they want from you."""
+        from . import estates as est
+        g = self.game
+        e = g.estates
+        if args and args[0].lower() in ("grant", "give"):
+            if len(args) < 2:
+                return self.say("  grant <privilege>; `estates` lists them")
+            return self.say("  " + e.grant(args[1].lower(), g.day))
+        if args and args[0].lower() in ("revoke", "take"):
+            if len(args) < 2:
+                return self.say("  revoke <privilege>")
+            return self.say("  " + e.revoke(args[1].lower(), g.day))
+        self.say(ink.head("THE ESTATES", "who you govern with"))
+        for key, spec in est.ESTATES.items():
+            st = e.by_key[key]
+            worth = e.mult(spec.gives)
+            tone = (ink.LEAF if st.loyalty >= 60 else
+                    ink.AMBER if st.loyalty >= est.SULKY else ink.BLOOD)
+            self.say(f"  {ink.c(ink.pad(spec.name, 14), ink.GOLD)}"
+                     f"{ink.c(f'{st.loyalty:5.0f}', tone)}   "
+                     f"{spec.gives} {ink.c(f'x{worth:.2f}', tone)}")
+            self.say(f"      {ink.c(spec.blurb, ink.DIM)}")
+            for what, by in e.why(key, g.day)[:3]:
+                mark = ink.LEAF if by > 0 else ink.BLOOD
+                self.say(f"      {ink.c(f'{by:+6.1f}', mark)}  "
+                         f"{ink.c(what, ink.DIM)}")
+        self.say("")
+        self.say(ink.head("PRIVILEGES", "what they will take in exchange"))
+        for key, p in est.PRIVILEGES.items():
+            held = e.granted(key)
+            self.say(f"  {ink.c(ink.pad(key, 11), ink.GOLD if not held else ink.LEAF)}"
+                     f"{ink.pad(est.ESTATES[p.estate].name, 14)}"
+                     f"{ink.c('granted' if held else '', ink.LEAF)}")
+            self.say(f"      {ink.c(p.blurb, ink.DIM)}")
+            self.say(f"      {ink.c('costs you ' + p.cost, ink.AMBER)}")
+        self.say("", ink.c("  estates grant <name>  ·  estates revoke <name>",
+                           ink.DIM))
+
     def cmd_marry(self, args: List[str]) -> None:
         """Marry one of yours into a neighbouring house."""
         g = self.game
@@ -2887,6 +2943,8 @@ COMMANDS = {
     "assize": Console.cmd_assize, "decree": Console.cmd_assize,
     "post": Console.cmd_post, "posts": Console.cmd_post,
     "marry": Console.cmd_marry, "match": Console.cmd_marry,
+    "estates": Console.cmd_estates, "privileges": Console.cmd_estates,
+    "feats": Console.cmd_feats, "achievements": Console.cmd_feats,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,

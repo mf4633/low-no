@@ -142,7 +142,10 @@ class TestTheSortIsRealAndNotALabel(unittest.TestCase):
                        for f in pathlib.Path("marchlands").glob("*.py")
                        if f.name != "lords.py")
         for dial in ("aggression", "temper", "muster", "thrift",
-                     "raids", "bought", "holds"):
+                     "raids", "bought", "holds",
+                     # How he builds, which is the half that makes two lords
+                     # two different sieges rather than two different voices.
+                     "stone", "towers", "water", "traps", "layers", "cover"):
             self.assertIn(f".{dial}", code, f"{dial} does nothing")
 
 
@@ -167,11 +170,31 @@ class TestTheTownTalksBack(unittest.TestCase):
             self.assertTrue(line.strip())
 
     def test_the_two_lines_everybody_quotes_are_in_there(self):
+        # Asserting they land in the top four lines was a double lottery:
+        # which voices outrank which on the day, and which of a voice's own
+        # lines the dice pick. Neither is a promise the game makes, and the
+        # test duly broke on an unrelated two per cent change to trade.
+        #
+        # What the game does promise is this: the lines exist, and the dial
+        # each is attached to is the dial that fires it.
+        lines = [l for v in voices.VOICES for l in v.lines]
+        self.assertTrue(any("Double rations" in l for l in lines))
+        self.assertTrue(any("No taxes is good taxes" in l for l in lines))
+
+    def test_the_famous_lines_answer_the_dial_they_belong_to(self):
+        rations = next(v for v in voices.VOICES if v.key == "full rations")
+        tax = next(v for v in voices.VOICES if v.key == "light tax")
         self.s.ration_level = max(C.RATION_LEVELS)
         self.s.tax_level = 0
-        said = self.said()
-        self.assertIn("Double rations", said)
-        self.assertIn("No taxes is good taxes", said)
+        mood = voices.read(self.s, self.g)
+        self.assertTrue(rations.when(mood), "double rations said nothing")
+        self.assertTrue(tax.when(mood), "no taxes said nothing")
+        # And they stop when you stop.
+        self.s.ration_level = min(C.RATION_LEVELS)
+        self.s.tax_level = max(C.TAX_LEVELS)
+        mood = voices.read(self.s, self.g)
+        self.assertFalse(rations.when(mood))
+        self.assertFalse(tax.when(mood))
 
     def test_it_answers_the_dial_you_actually_moved(self):
         self.s.tax_level = max(C.TAX_LEVELS)

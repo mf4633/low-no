@@ -80,6 +80,7 @@ class Clock:
         self.seq = 0
         self.said: List[Tuple[int, str]] = []
         self.stopped_for = ""                 # why it paused itself, if it did
+        self.stopped_at = ""                  # and the line that did it
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
@@ -87,14 +88,15 @@ class Clock:
     def set_speed(self, speed: int) -> dict:
         self.speed = speed if speed in SPEEDS else 0
         if self.speed:
-            self.stopped_for = ""
+            self.stopped_for = self.stopped_at = ""
             self.start()
         return self.state()
 
     def state(self) -> dict:
         return {"speed": self.speed, "seq": self.seq,
                 "pace": PACE.get(self.speed, 0.0),
-                "stopped_for": self.stopped_for}
+                "stopped_for": self.stopped_for,
+                "stopped_at": self.stopped_at}
 
     # --------------------------------------------------------- what was said
     def since(self, seq: int) -> List[str]:
@@ -150,10 +152,17 @@ class Clock:
             over = bool(getattr(game, "over", False))
         for line in said:
             self._remember(line)
-        why = next((alarming(l) for l in said if alarming(l)), "")
+        # Keep the line, not only the category. "a host has sat down before
+        # your walls" tells you what kind of thing happened; "Dunmere besieges
+        # Aldworth" tells you what happened, and that is what a player wants
+        # on the screen.
+        hit = next(((l, alarming(l)) for l in said if alarming(l)), None)
         if over:
             self.speed, self.stopped_for = 0, "the game is over"
-        elif why:
+            self.stopped_at = ""
+        elif hit:
+            line, why = hit
             self.speed = 0
             self.stopped_for = why
+            self.stopped_at = line.strip()
             self._remember(f"*** the clock stops: {why} ***")

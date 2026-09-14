@@ -699,3 +699,47 @@ body.march #pace button { color: #6b5c3e; background: rgba(235,224,194,.75);
 #soul-skills b.down { color: var(--blood); }
 #soul-skills b.dim { color: var(--dim); }
 #soul-skills li span.dim { font-size: 11px; }
+
+/* The ways into somebody else's castle. Five approaches, and what each one
+   would meet -- the point being that the answer is different for each lord,
+   because they no longer all build the same wall. */
+ul.ways { list-style: none; margin: 6px 0 0; padding: 0; }
+ul.ways li {
+  display: grid; grid-template-columns: 8.5em 1fr; gap: 8px;
+  font-size: 11.5px; line-height: 1.45; padding: 4px 0;
+  border-top: 1px solid rgba(201,162,39,.1);
+}
+ul.ways b { color: var(--gold); font-weight: 400; }
+ul.ways span { color: #b9ad94; }
+ul.ways em { color: var(--leaf); font-style: normal; }
+body.march ul.ways li { border-color: rgba(120,96,58,.2); }
+body.march ul.ways b { color: #7a5c1e; }
+body.march ul.ways span { color: #5c5240; }
+body.march ul.ways em { color: #4a6b2a; }
+
+/* The three you govern with. The number that matters is the multiplier, not
+   the loyalty: "the knights are unhappy" is a mood face, "muster ×0.89" is a
+   decision. */
+#estates { list-style: none; margin: 0; padding: 0; }
+li.estate {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 8px;
+  align-items: baseline; font-size: 12.5px; padding: 3px 0;
+}
+li.estate label { color: var(--parch); }
+li.estate span.up { color: var(--leaf); }
+li.estate span.down { color: var(--blood); }
+li.estate + li .why-list { margin: 0 0 7px; }
+#estates .why-row { display: flex; justify-content: space-between; gap: 8px;
+                    font-size: 11px; padding: 1px 0; }
+#estates .why-row span { color: var(--dim); }
+
+/* Feats: what you have done, and the nearest few you have not. A list you
+   scroll is a list nobody reads, so the panel shows the earned ones and the
+   four easiest of the rest. */
+#feats { list-style: none; margin: 0; padding: 0; }
+li.feat { display: flex; justify-content: space-between; gap: 8px;
+          font-size: 12.5px; padding: 2px 0; }
+li.feat label { color: #b9ad94; }
+li.feat.got label { color: var(--leaf); }
+li.feat-why { font-size: 11px; color: var(--dim); padding: 0 0 5px;
+              line-height: 1.4; }
