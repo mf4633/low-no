@@ -10,11 +10,28 @@ WHY THIS EXISTS. Two gotchas in CLAUDE.md meet here.
     settled rows. An impossible value in the outcome variable is a WRONG LABEL,
     not noise, and it sits inside the empirical P(exceed) distribution.
 
-The 1-minute ASOS record fixes both. It is reported in whole degrees F -- the
-same unit the CLI settles in -- and the archive does not expire. The project has
-already proved CLI == the 1-minute maximum on 260 station-days, but only across
-the ELEVEN cities that got per-city offsets on 2026-09-12. This extends that
-proof, and that ground truth, to all 23.
+The 1-minute ASOS record addresses both. It is reported in whole degrees F --
+the same unit the CLI settles in -- and the archive does not expire.
+
+IT IS NOT A SETTLEMENT SUBSTITUTE. CANDIDATE.md records "CLI == the 1-minute
+maximum (proven on 260 station-days)" and an earlier version of this docstring
+repeated it. There is NO HARNESS IN THIS REPOSITORY for that claim, and the
+measurement below does not reproduce it. Over 381 city-days at 22 cities:
+
+    CLI - 1-minute max   never positive (0.0% of days)
+                         exactly  0 on 43.8%
+                         exactly -1 on 54.1%
+                         mean -0.593F
+
+So the 1-minute maximum is an UPPER BOUND on the settlement, biased about 0.6F
+high -- not equal to it. The likely mechanism is resolution: ASOS 1-minute
+temperatures are 1-minute averages while the CLI daily max derives from the
+smoothed 5-minute observations, and a noisier series has a higher maximum.
+
+WHY THE DIRECTION MATTERS MORE THAN THE SIZE. A bottom-rung NO position pays
+when the day EXCEEDS the cap, so substituting this upper bound for a settlement
+would manufacture WINS. That is why this writes a PARALLEL file and grades
+nothing.
 
 WHAT IT WRITES. `docs/settlements_1min.json`, keyed `day|CITY` exactly like
 `docs/settlements.json`, holding the 1-minute maximum, the second-highest

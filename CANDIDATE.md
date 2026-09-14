@@ -2197,3 +2197,57 @@ coverage test is the one doing the work.
 Same lesson as the quarantine's `verdict == "LADDER"` filter and the H4b meter:
 **a guard that measures something adjacent to what it is protecting is not
 protecting it.** A count is not coverage.
+
+## THE 1-MINUTE MAXIMUM IS NOT THE SETTLEMENT (2026-09-14)
+
+The summary of the 2026-09-12 work records "CLI == the 1-minute maximum (proven
+on 260 station-days)". **There is no harness in this repository for that claim**
+-- it appears once, in prose, with no code that reproduces it -- and
+`hf1min.py`'s first docstring inherited and repeated it, which is how an
+unverified number becomes a fact.
+
+Measured on 381 city-days across 22 cities, every record passing the coverage
+and quarantine guards:
+
+| CLI - 1-minute max | share |
+|---|---|
+| > 0 | **0.0%** |
+| exactly 0 | 43.8% |
+| exactly -1 | 54.1% |
+| -2 or lower | 2.1% |
+
+Mean **-0.593F**. The 1-minute maximum is an **UPPER BOUND** on the settlement,
+biased about 0.6F high -- not equal to it. It is never once below it in 381
+days, which is what makes this a resolution effect rather than noise: ASOS
+1-minute temperatures are 1-minute averages, the CLI daily max derives from the
+smoothed 5-minute observations, and a noisier series has a higher maximum.
+
+**The direction is worse than the size.** A bottom-ladder NO position pays when
+the day EXCEEDS the cap. Substituting this upper bound for a settlement would
+shift the outcome variable up and manufacture WINS -- the one direction this
+project cannot afford to be wrong in. `docs/settlements_1min.json` is therefore
+a PARALLEL file: it grades nothing, feeds no gate, and does not touch
+`docs/settlements.json`.
+
+This does not refute the 2026-09-12 claim, because that claim cannot be
+re-run. It records that the two do not agree and that only one of them ships
+with the code that produced it.
+
+### The coverage guard's cost, stated
+
+Of 704 city-days the weak first-pass guard accepted, **243 (35%) are refused**
+once >=95% coverage of the 11:00-18:00 local peak window is required. IEM's
+1-minute archive is substantially gappy, and a third of it cannot support a
+daily maximum. Before the guard, `1min - run_max` ranged **-12.80F to +6.80F**;
+after it, **-0.80F to +6.80F** -- the entire impossible tail was partial days,
+and the surviving minimum sits inside gotcha 13's 1.8F bound.
+
+### A correction to the commit that split the workflows
+
+That commit said the run "spent 25+ minutes in the regime build, throttled by
+IEM". **Wrong.** The build took 7m15s and the harvest 9m21s. The 25-minute
+figure came from a STALE GitHub jobs API response that kept reporting the step
+`in_progress` long after it had finished, and it was asserted here and to the
+operator as fact. The split is still correct -- 7 minutes of pointless refetch
+per harvest is worth removing -- but the justification was inflated by a
+measurement error of exactly the kind this file exists to catch.

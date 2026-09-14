@@ -1,9 +1,13 @@
 name: 1-minute settlement record
 # SPLIT OUT OF city-regimes.yml 2026-09-14. They were one workflow, so touching
 # hf1min.py re-fetched 23 station-years of hourly METAR before it could harvest
-# anything -- the first such run spent 25+ minutes in the regime build while
-# IEM throttled, to re-derive a file that had not changed. The regime fit and
-# the 1-minute harvest share a data source and nothing else.
+# anything: 7m15s of refetch to re-derive a city_regimes.json that had not
+# changed, ahead of a 9m21s harvest. (The commit that made this split claimed
+# "25+ minutes" and blamed IEM throttling. That was wrong -- it came from
+# reading a STALE GitHub jobs API response that kept reporting the build step
+# in_progress long after it finished. The split is still right; the number was
+# not.) The regime fit and the 1-minute harvest share a data source and
+# nothing else.
 on:
   push:
     branches: [claude/kalshi-cities-improve-jzh9z4]
