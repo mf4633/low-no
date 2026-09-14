@@ -2649,6 +2649,11 @@ $('good').innerHTML = GOODS.map(g =>
       + 'with it, or an empty plot to raise something on it.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   nextFrame();
+  // The server decides whether anybody has chosen yet. A packaged build or a
+  // bare `--web` opens on the front door; `--scenario iron_marches` does not,
+  // because that player has already answered the only question it asks.
+  doorman = await (await fetch('/front')).json();
+  if (doorman.open) openFront(false);
 })();
 
 
@@ -2872,3 +2877,121 @@ function drawSkyline(canvas, cultureKey) {
   for (const k in STYLE_CACHE) delete STYLE_CACHE[k];
   for (const k in keepCache) STYLE_CACHE[k] = keepCache[k];
 }
+
+
+/* ----------------------------------------------------------- the front door */
+/* Everything a person who double-clicked an icon needs before they can play:
+ * who they are, where they are, and whether there is a game to pick back up.
+ * These three were console commands, which is fine for somebody who opened a
+ * terminal on purpose and no use at all to somebody who did not. */
+let doorman = null, pickedHouse = 'plough', pickedWhere = 'scenario:marchlands';
+
+async function openFront(manual) {
+  if (!doorman) doorman = await (await fetch('/front')).json();
+  else doorman.saved = (await (await fetch('/front')).json()).saved;
+  $('front-resume').hidden = !doorman.saved;
+  $('front-close').hidden = !manual;
+  buildHouses();
+  buildWheres();
+  $('front').hidden = false;
+}
+function closeFront() { $('front').hidden = true; }
+
+function buildHouses() {
+  $('housepick').innerHTML = doorman.houses.map(h =>
+    `<button type="button" data-house="${h.key}" aria-pressed="false">` +
+    `${esc(h.name)}</button>`).join('');
+  for (const b of $('housepick').children) {
+    b.addEventListener('click', () => pickHouse(b.dataset.house));
+  }
+  pickHouse(pickedHouse);
+}
+function pickHouse(key) {
+  pickedHouse = key;
+  const h = doorman.houses.find(x => x.key === key) || doorman.houses[0];
+  for (const b of $('housepick').children) {
+    b.setAttribute('aria-pressed', b.dataset.house === key ? 'true' : 'false');
+  }
+  $('house-note').textContent = h ? h.blurb : '';
+}
+
+/* One row, two kinds of thing. A scenario is a written game with an ending;
+ * a region is a real place the map is drawn from. Keeping them apart on the
+ * screen would be truer to the code and worse to use -- from the player's
+ * side both answer the same question, which is where. */
+function buildWheres() {
+  const bits = doorman.scenarios.map(s =>
+    `<button type="button" data-where="scenario:${s.key}" aria-pressed="false">` +
+    `${esc(s.name)}</button>`).concat(doorman.regions.map(r =>
+    `<button type="button" data-where="region:${r.key}" aria-pressed="false">` +
+    `${esc(r.name)}</button>`));
+  $('wherepick').innerHTML = bits.join('');
+  for (const b of $('wherepick').children) {
+    b.addEventListener('click', () => pickWhere(b.dataset.where));
+  }
+  pickWhere(pickedWhere);
+}
+function pickWhere(key) {
+  pickedWhere = key;
+  const [kind, name] = key.split(':');
+  const it = kind === 'scenario'
+    ? doorman.scenarios.find(s => s.key === name)
+    : doorman.regions.find(r => r.key === name);
+  for (const b of $('wherepick').children) {
+    b.setAttribute('aria-pressed', b.dataset.where === key ? 'true' : 'false');
+  }
+  if (!it) return;
+  $('where-note').textContent = kind === 'scenario'
+    ? `${it.blurb} — ${it.years} years to see it through.`
+    : `${it.note} Drawn from the real country; the dials change it.`;
+}
+
+/* Swapping in a new game means the baked ground is a picture of somewhere
+ * else, so it has to go. Forgetting this leaves the old country's fields
+ * underneath the new country's town. */
+function enter(out) {
+  if (out.error) { say(out.error); return false; }
+  closeFront();
+  ground = null;
+  paint(out.state);
+  frameTown();
+  say(out.said);
+  return true;
+}
+
+async function post(route, body) {
+  return (await (await fetch(route, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  })).json());
+}
+
+$('front-go').addEventListener('click', async () => {
+  const [kind, name] = pickedWhere.split(':');
+  const body = { house: pickedHouse, seed: Math.floor(Math.random() * 99999) };
+  body[kind] = name;
+  enter(await post('/new', body));
+});
+$('front-continue').addEventListener('click', async () => {
+  enter(await post('/load', {}));
+});
+$('front-close').addEventListener('click', closeFront);
+$('front-dials').addEventListener('click', () => { closeFront(); openCountry(); });
+$('v-menu').addEventListener('click', () => openFront(true));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('front').hidden && !$('front-close').hidden) {
+    closeFront();
+  }
+});
+
+/* Save and load as buttons rather than typed words. The command still exists
+ * and still works; this is the same thing for somebody who never learned it. */
+$('v-save').addEventListener('click', async () => {
+  const out = await post('/save', {});
+  say(out.error || out.said, out.error ? null : 'said');
+  if (!out.error) toast('*** the chronicle is written down ***');
+});
+$('v-load').addEventListener('click', async () => {
+  const out = await post('/load', {});
+  if (!out.error) enter(out); else say(out.error);
+});

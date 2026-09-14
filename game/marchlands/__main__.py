@@ -11,10 +11,19 @@ from .scenario import drawn_game
 from .scenarios import CAMPAIGN, SCENARIOS, start
 
 
+from .tech import HOUSES
+
+
+#: True when this is a PyInstaller build rather than a checkout. A frozen
+#: Marchlands.exe is something somebody double-clicked, not something they
+#: typed, so it opens the drawn view in a browser without being asked and
+#: never shows them an argument parser.
+FROZEN = getattr(sys, "frozen", False)
+
+
 def ink_free(dials) -> str:
     """The dials in words, for the listing -- which runs before any colour."""
     return " \u00b7 ".join(word for _n, _v, word in carto.describe(dials))
-from .tech import HOUSES
 
 
 def main(argv=None) -> int:
@@ -38,6 +47,10 @@ def main(argv=None) -> int:
     ap.add_argument("--web", action="store_true",
                     help="play in a browser, with the town drawn rather than spelled")
     ap.add_argument("--port", type=int, default=8731, help="port for --web")
+    ap.add_argument("--terminal", action="store_true",
+                    help="play in this terminal rather than a browser. The "
+                         "default everywhere except a packaged build, where "
+                         "it is how you ask for the console game.")
     ap.add_argument("--no-browser", action="store_true",
                     help="with --web, do not open a browser window")
     ap.add_argument("--campaign", action="store_true",
@@ -47,6 +60,13 @@ def main(argv=None) -> int:
     ap.add_argument("--sim", type=int, metavar="DAYS",
                     help="run headless for DAYS and print a balance report")
     args = ap.parse_args(argv)
+    # A frozen build is the drawn game unless somebody explicitly asks for the
+    # other one. Keying this off "no arguments at all" was wrong twice over:
+    # it is the packaged app's own error message that tells a player to retry
+    # with `--port 9000`, and doing so dropped them into the terminal game
+    # they had just chosen not to install Python for.
+    if FROZEN and not args.terminal:
+        args.web = True
 
     if args.list:
         print("  THE MARCHER CHRONICLE  (--campaign plays these in order)")
@@ -100,7 +120,13 @@ def main(argv=None) -> int:
         game = start(args.scenario, seed=args.seed, house=args.house)
     if args.web:
         from .web import main as web_main
-        return web_main(game, port=args.port, open_browser=not args.no_browser)
+        # Open on the front door only if nobody has already answered its
+        # question. Someone who typed `--scenario iron_marches --house hansa`
+        # has chosen; showing them a house picker would be asking twice.
+        chose = bool(args.load or args.region or args.dials
+                     or args.scenario != "marchlands" or args.house != "plough")
+        return web_main(game, port=args.port, open_browser=not args.no_browser,
+                        front=not chose)
     play(game, autosave=args.autosave)
     return 0
 

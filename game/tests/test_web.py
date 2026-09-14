@@ -650,5 +650,198 @@ class TestServer(unittest.TestCase):
             self.assertNotIn(b"import", body, probe)
 
 
+class TestTheBox(unittest.TestCase):
+    """The game as something you double-click, not something you type.
+
+    A packaged build is a different animal from a checkout: the files are
+    somewhere else, there is no console to print a traceback to, and the
+    person holding it has not agreed to learn a command line. Each test here
+    is one of the ways that went wrong.
+    """
+
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def test_the_static_files_are_found_inside_a_frozen_build(self):
+        # PyInstaller unpacks a one-file build into a temporary directory and
+        # points sys._MEIPASS at it. Resolving the page off __file__ -- the
+        # obvious way, and the way this shipped first -- makes the exe serve a
+        # blank screen from a path that does not exist on the player's disk.
+        import sys as _sys
+        import tempfile
+        from marchlands import web
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "marchlands", "static"))
+            _sys._MEIPASS = tmp
+            try:
+                self.assertEqual(web._static_dir(),
+                                 os.path.join(tmp, "marchlands", "static"))
+            finally:
+                del _sys._MEIPASS
+        self.assertTrue(os.path.isfile(os.path.join(web._static_dir(), "index.html")))
+
+    def test_a_frozen_build_opens_the_drawn_game_even_when_given_a_port(self):
+        # The packaged app's own error message tells a player to retry with
+        # `--port 9000`. Keying "is this a double-click" off having no
+        # arguments therefore dropped exactly those players into the terminal
+        # game they had just chosen not to install Python for.
+        source = open(os.path.join(self.ROOT, "marchlands", "__main__.py"),
+                      encoding="utf-8").read()
+        self.assertIn("FROZEN and not args.terminal", source)
+        self.assertIn("--terminal", source)
+
+    def test_the_recipe_packs_the_page_and_opens_no_console(self):
+        spec = open(os.path.join(self.ROOT, "packaging", "marchlands.spec"),
+                    encoding="utf-8").read()
+        self.assertIn("static", spec)
+        self.assertIn("console=False", spec)      # a window, not a terminal
+        # The scenario and culture tables reach some modules by name, and
+        # PyInstaller's import graph does not always follow that -- a module
+        # left out is an exe that starts and then dies on a KeyError.
+        for reached_by_name in ("marchlands.cartography", "marchlands.culture",
+                                "marchlands.chancery"):
+            self.assertIn(reached_by_name, spec)
+
+    def test_the_launcher_says_something_when_it_cannot_start(self):
+        # A windowed build has nowhere to print a traceback, so a failure is
+        # an icon that does nothing at all. The launcher has to find its own
+        # way to speak.
+        launch = open(os.path.join(self.ROOT, "packaging", "launch.py"),
+                      encoding="utf-8").read()
+        self.assertIn("MessageBoxW", launch)
+        self.assertIn("marchlands-error.txt", launch)
+
+    def test_the_windows_double_click_file_has_windows_line_endings(self):
+        # A .bat with bare newlines is a batch file cmd.exe reads wrong.
+        raw = open(os.path.join(self.ROOT, "Marchlands.bat"), "rb").read()
+        self.assertIn(b"\r\n", raw)
+        # Every one of them, not just the first: cmd.exe reads a batch file
+        # with bare newlines wrong, and git will happily hand one over.
+        self.assertNotIn(b"\n", raw.replace(b"\r\n", b""))
+        self.assertIn(b"--web", raw)
+
+    def test_the_other_double_click_file_is_executable(self):
+        path = os.path.join(self.ROOT, "Marchlands.command")
+        self.assertTrue(os.access(path, os.X_OK), "chmod +x or nothing happens")
+        self.assertIn("--web", open(path, encoding="utf-8").read())
+
+
+class TestTheFrontDoor(unittest.TestCase):
+    """Starting, saving and resuming without typing a word.
+
+    These three were console commands. That is fine for somebody who opened a
+    terminal on purpose and no use at all to somebody who double-clicked an
+    icon, so they are routes now as well.
+    """
+
+    def setUp(self):
+        from marchlands import web
+        self.web = web
+        self.console = Console(start("marchlands", seed=5), out=StringIO())
+        self.was = web.SHOW_FRONT
+
+    def tearDown(self):
+        self.web.SHOW_FRONT = self.was
+
+    def door(self, route, **body):
+        return self.web._front_door(self.console, route, body)
+
+    def test_it_can_start_a_written_game(self):
+        out = self.door("/new", scenario="winter_crown", house="abbey")
+        self.assertNotIn("error", out)
+        self.assertEqual(self.console.game.house, "abbey")
+        self.assertIn("state", out)
+
+    def test_it_can_start_on_real_country(self):
+        out = self.door("/new", region="fens", house="hansa", seed=11)
+        self.assertNotIn("error", out)
+        self.assertEqual(self.console.game.house, "hansa")
+        self.assertTrue(out["state"]["town"]["name"])
+
+    def test_a_house_that_does_not_exist_is_a_message_not_a_crash(self):
+        out = self.door("/new", scenario="marchlands", house="nonesuch")
+        self.assertIn("error", out)
+
+    def test_saving_and_resuming_come_back_to_the_same_game(self):
+        path = os.path.join(self.tmp(), "front.save")
+        self.door("/new", scenario="winter_crown", house="abbey", seed=3)
+        keep = self.console.game.world.settlements[self.console.here].name
+        self.assertTrue(self.door("/save", path=path).get("saved"))
+        self.door("/new", scenario="salt_road", house="plough", seed=9)
+        self.assertNotEqual(
+            self.console.game.world.settlements[self.console.here].name, keep)
+        out = self.door("/load", path=path)
+        self.assertNotIn("error", out)
+        self.assertEqual(
+            self.console.game.world.settlements[self.console.here].name, keep)
+
+    def test_resuming_nothing_is_a_message_not_a_crash(self):
+        out = self.door("/load", path=os.path.join(self.tmp(), "no-such.save"))
+        self.assertIn("error", out)
+        self.assertTrue(self.console.game)      # and the game is still standing
+
+    def test_the_front_door_shuts_once_somebody_has_chosen(self):
+        # Otherwise a reload after starting a game asks the same question
+        # again, over the top of the game it just started.
+        self.web.SHOW_FRONT = True
+        self.door("/new", scenario="marchlands", house="plough")
+        self.assertFalse(self.web.SHOW_FRONT)
+
+    def test_choosing_on_the_command_line_skips_the_screen_that_asks(self):
+        main = open(os.path.join(TestTheBox.ROOT, "marchlands", "__main__.py"),
+                    encoding="utf-8").read()
+        self.assertIn("front=not chose", main)
+        self.assertIn("args.scenario != \"marchlands\"", main)
+
+    def tmp(self):
+        import tempfile
+        d = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, d, True)
+        return d
+
+
+class TestTheFrontDoorIsOnScreen(unittest.TestCase):
+    """The markup and the script have to agree about what exists.
+
+    Every one of these is a silent failure: a button whose handler addresses
+    an id that is not there throws once at load and takes the rest of the
+    file's listeners with it.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        from marchlands.web import STATIC
+        cls.page = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+        cls.js = open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8").read()
+        cls.css = open(os.path.join(STATIC, "marchlands.css"), encoding="utf-8").read()
+
+    def test_every_id_the_front_door_reaches_for_is_in_the_page(self):
+        wired = ("front", "front-go", "front-continue", "front-close",
+                 "front-dials", "front-resume", "housepick", "wherepick",
+                 "house-note", "where-note", "v-menu", "v-save", "v-load")
+        for name in wired:
+            self.assertIn('id="%s"' % name, self.page, name)
+            self.assertIn("'%s'" % name, self.js, name)
+        self.assertIn('id="front-box"', self.page)   # styled, never addressed
+
+    def test_the_new_buttons_take_clicks(self):
+        # #bar is pointer-events: none so the sky behind it can be dragged,
+        # and every control on it has to opt back in. One that does not is a
+        # button the canvas swallows -- which is how `country` shipped
+        # unclickable.
+        opted = [line for line in self.css.splitlines()
+                 if "pointer-events: auto" in line or "#ear," in line]
+        rule = self.css.split("pointer-events: auto; font: 12px/1 inherit")[0]
+        tail = rule.rsplit("\n", 1)[-1] + rule.rsplit("\n", 2)[-2]
+        for name in ("#v-menu", "#v-save", "#v-load", "#v-draw"):
+            self.assertIn(name, tail, name)
+        self.assertTrue(opted)
+
+    def test_the_door_asks_the_server_rather_than_hard_coding_the_houses(self):
+        # Five houses in the page would be five houses to forget to update.
+        self.assertIn("fetch('/front')", self.js)
+        for key in ("plough", "hansa", "ironhand", "marcher", "abbey"):
+            self.assertNotIn('data-house="%s"' % key, self.page, key)
+
+
 if __name__ == "__main__":
     unittest.main()

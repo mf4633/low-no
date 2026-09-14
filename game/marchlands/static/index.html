@@ -23,6 +23,9 @@
       <button id="v-castle" type="button" aria-pressed="false">the wall</button>
     </span>
     <button id="v-draw" type="button" title="draw a march from dials">country</button>
+    <button id="v-menu" type="button" title="new game, save, resume">menu</button>
+    <button id="v-save" type="button" title="write this game down">save</button>
+    <button id="v-load" type="button" title="pick up the saved game">resume</button>
     <button id="ear" type="button" aria-pressed="false"
             title="the sound of the town, made out of arithmetic">sound</button>
     <label id="goodpick" class="dim" hidden>price of
@@ -76,6 +79,32 @@
   </aside>
 
   <p id="scale" class="dim"></p>
+
+  <!-- The front door. A packaged build is something somebody double-clicked,
+       so the first thing it shows has to be a choice, not a prompt. -->
+  <div id="front" hidden role="dialog" aria-modal="true"
+       aria-labelledby="front-title">
+    <div id="front-box">
+      <h1 id="front-title">Marchlands</h1>
+      <p id="front-sub" class="dim">A holding, a hinterland, and seven towns
+        that each want what somebody else has.</p>
+      <div id="front-resume" hidden>
+        <button id="front-continue" type="button" class="go wide">
+          continue your last game</button>
+      </div>
+      <h3>the house you were born into</h3>
+      <div id="housepick" class="pickrow"></div>
+      <p id="house-note" class="dim">—</p>
+      <h3>where</h3>
+      <div id="wherepick" class="pickrow"></div>
+      <p id="where-note" class="dim">—</p>
+      <div class="acts">
+        <button id="front-go" type="button" class="go">begin</button>
+        <button id="front-dials" type="button">draw the country yourself…</button>
+        <button id="front-close" type="button" hidden>back to the game</button>
+      </div>
+    </div>
+  </div>
 
   <!-- The country, as dials you can actually turn. Six real places to start
        from, eight sliders, and a march that redraws under your hand. -->

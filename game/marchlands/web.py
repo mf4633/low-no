@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -39,7 +40,27 @@ from . import keep as keeps
 from . import voices
 from .layout import plan_for
 
-STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+def _static_dir() -> str:
+    """Where the page, its stylesheet and its scripts actually are.
+
+    Not simply `__file__`'s directory. A PyInstaller one-file build unpacks
+    everything into a temporary directory and points `sys._MEIPASS` at it, so
+    a frozen Marchlands.exe that resolved this the obvious way would start,
+    serve index.html from a path that does not exist, and show a blank page --
+    which is the same failure `pyproject.toml` already warns about for wheels,
+    arrived at by a different route.
+    """
+    here = getattr(sys, "_MEIPASS", None)
+    if here:
+        bundled = os.path.join(here, "marchlands", "static")
+        if os.path.isdir(bundled):
+            return bundled
+        return os.path.join(here, "static")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+
+STATIC = _static_dir()
 
 TYPES = {".html": "text/html; charset=utf-8",
          ".css": "text/css; charset=utf-8",
@@ -172,6 +193,70 @@ def _best_skill(person) -> str:
     """What one of yours is known for, or nothing if they have not been used."""
     best = max(SKILLS, key=lambda sk: person.xp.get(sk, 0.0))
     return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
+
+
+def _save_path() -> str:
+    """Where a game goes when nobody has said where.
+
+    Beside the executable for a packaged build, so a player who double-clicked
+    something can find their save without knowing what a working directory is;
+    beside the checkout otherwise.
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.join(os.path.dirname(sys.executable), "marchlands.save")
+    return os.path.abspath("marchlands.save")
+
+
+#: Whether the browser should open on the front door rather than straight into
+#: a game. True when nobody chose anything -- a packaged build somebody
+#: double-clicked, or a bare `--web` -- and False the moment they have, because
+#: a player who typed `--scenario iron_marches` has already answered the only
+#: question that screen asks.
+SHOW_FRONT = False
+
+
+def _front_door(console, route: str, body: dict) -> dict:
+    """Start, save or resume a game without anybody typing a command.
+
+    The three things a person who double-clicked an icon expects to be able
+    to do, and the three that were console-only: `save`, `load` and choosing
+    what to play at all.
+    """
+    global SHOW_FRONT
+    from .scenarios import start
+    path = body.get("path") or _save_path()
+    if route == "/save":
+        try:
+            console.game.save(path)
+        except OSError as exc:
+            return {"error": f"could not write it: {exc}"}
+        return {"said": f"saved to {path}", "saved": True}
+    if route == "/load":
+        try:
+            from .engine import GameState
+            console.game = GameState.load(path)
+        except (OSError, ValueError, KeyError) as exc:
+            return {"error": f"could not open it: {exc}"}
+        console.here = next(iter(console.game.world.settlements))
+        SHOW_FRONT = False
+        return {"said": "picked up where you left it",
+                "state": snapshot(console.game, console.here)}
+    house = body.get("house", "plough")
+    seed = int(body.get("seed") or 7)
+    region = body.get("region") or ""
+    try:
+        if region:
+            from .scenario import drawn_game
+            console.game = drawn_game(region, seed=seed, house=house)
+        else:
+            console.game = start(body.get("scenario", "marchlands"),
+                                 seed=seed, house=house)
+    except KeyError as exc:
+        return {"error": str(exc)}
+    console.here = next(iter(console.game.world.settlements))
+    SHOW_FRONT = False
+    return {"said": console.game.briefing,
+            "state": snapshot(console.game, console.here)}
 
 
 def _at(name: str, value: float) -> "carto.Dials":
@@ -443,6 +528,27 @@ class Handler(BaseHTTPRequestHandler):
                     if "good=" in self.path else "bread")
             with self.lock:
                 return self._json(march(self.console.game, self.console.here, good))
+        if route == "/front":
+            # What the front door needs: who you can be, what you can play,
+            # and whether there is a game waiting to be picked back up. A
+            # packaged build has to be able to start without anybody typing,
+            # and this is everything that screen asks for.
+            from .scenarios import CAMPAIGN, SCENARIOS
+            from .tech import HOUSES
+            save = _save_path()
+            return self._json({
+                "houses": [{"key": k, "name": h.name, "blurb": h.blurb}
+                           for k, h in HOUSES.items()],
+                "scenarios": [{"key": k, "name": SCENARIOS[k].name,
+                               "blurb": SCENARIOS[k].blurb,
+                               "years": SCENARIOS[k].years}
+                              for k in CAMPAIGN if k in SCENARIOS],
+                "regions": [{"key": r.key, "name": r.name, "note": r.note}
+                            for r in carto.REGIONS.values()],
+                "saved": os.path.exists(save),
+                "save_path": save,
+                "open": SHOW_FRONT,
+            })
         if route == "/regions":
             # Everything the slider screen needs to draw itself: the dials,
             # what each setting is called in words, and the six real places.
@@ -499,7 +605,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({
                     "said": self.console.game.briefing,
                     "state": snapshot(self.console.game, self.console.here)})
-        if urlparse(self.path).path != "/do":
+        route = urlparse(self.path).path
+        if route in ("/new", "/save", "/load"):
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            with self.lock:
+                return self._json(_front_door(self.console, route, body))
+        if route != "/do":
             return self._send(404, b"no such thing", "text/plain")
         length = int(self.headers.get("Content-Length") or 0)
         try:
@@ -552,7 +664,10 @@ def serve(console: Console, host: str = "127.0.0.1", port: int = 8731,
     return server, url
 
 
-def main(game=None, port: int = 8731, open_browser: bool = True) -> int:
+def main(game=None, port: int = 8731, open_browser: bool = True,
+         front: bool = False) -> int:
+    global SHOW_FRONT
+    SHOW_FRONT = front
     from .scenarios import start
     console = Console(game or start(), out=StringIO())
     server, url = serve(console, port=port, open_browser=open_browser)

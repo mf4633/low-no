@@ -22,11 +22,28 @@ work, `chronicle` reads your reign back, `hint` tells you what a patient
 steward would point at next, `briefing` restates why you are here, and `help`
 lists everything.
 
+### Just playing it
+
+You do not need a terminal, and you do not need Python.
+
+* **Download `Marchlands.exe`** from Releases and double-click it. The game
+  opens in your browser: a title screen, a house to be born into, a country to
+  play, and a button that says *begin*. Nothing is installed. Your save lands
+  in the folder the exe is in.
+* **Or double-click `Marchlands.bat`** (Windows) or **`Marchlands.command`**
+  (macOS, Linux) in `game/`, if you already have Python 3.9 or newer. Same
+  game, no download, and it tells you where to get Python if you have not.
+
+Everything the console game could do is still there — `save`, `load`, picking
+a scenario — as buttons on the bar: **menu**, **save**, **resume**,
+**country**. The command line is now a shortcut, not the way in.
+`packaging/README.md` says how to build the exe yourself.
+
 ### Installing it
 
 ```bash
 pip install ./game            # or: python3 -m build --wheel && pip install dist/*.whl
-marchlands --web
+marchlands --web              # the drawn game; --terminal for the console one
 ```
 
 Nothing comes with it. `pip list` after installing shows one line, which is

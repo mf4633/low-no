@@ -138,18 +138,26 @@ body {
    every control on it has to opt back in. A button that does not is a button
    the canvas swallows -- which is how `country` shipped unclickable for about
    ten minutes. */
-#ear, #v-draw {
+#ear, #v-draw, #v-menu, #v-save, #v-load {
   pointer-events: auto; font: 12px/1 inherit; letter-spacing: .09em;
   text-transform: uppercase; padding: 6px 11px; cursor: pointer;
   color: var(--dim); background: rgba(20,17,13,.55);
   border: 1px solid var(--edge); border-radius: 2px;
 }
-#v-draw:hover { color: var(--parch); border-color: rgba(201,162,39,.5); }
+#v-draw:hover, #v-menu:hover, #v-save:hover, #v-load:hover {
+  color: var(--parch); border-color: rgba(201,162,39,.5);
+}
 #ear[aria-pressed="true"] { background: var(--leaf); color: #14110d; }
-#v-draw:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+#v-draw:focus-visible, #v-menu:focus-visible,
+#v-save:focus-visible, #v-load:focus-visible {
+  outline: 2px solid var(--parch); outline-offset: 1px;
+}
 #ear:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
-body.march #ear, body.march #v-draw { color: #6b5c3e; background: rgba(235,224,194,.75);
-                  border-color: rgba(120,96,58,.35); }
+body.march #ear, body.march #v-draw, body.march #v-menu,
+body.march #v-save, body.march #v-load {
+  color: #6b5c3e; background: rgba(235,224,194,.75);
+  border-color: rgba(120,96,58,.35);
+}
 #goodpick select {
   font: 12px inherit; color: var(--parch); background: rgba(20,17,13,.7);
   border: 1px solid var(--edge); border-radius: 2px; padding: 4px 6px;
@@ -544,3 +552,59 @@ body.march #scale { display: none; }
   border-radius: 3px; background: linear-gradient(rgba(40,52,64,.5),
                                                   rgba(28,26,22,.25));
 }
+
+/* ----------------------------------------------------------- the front door */
+/* Somebody who double-clicked an icon should be met by a choice, not a
+   prompt. Everything here exists so the game can be started, saved and picked
+   back up without a command being typed. */
+#front {
+  position: fixed; inset: 0; z-index: 30; display: grid; place-items: center;
+  padding: 20px; overflow: auto;
+  background: radial-gradient(120% 90% at 50% 0%, rgba(38,32,22,.96),
+                              rgba(10,9,7,.985));
+}
+#front-box { width: min(720px, 94vw); text-align: center; }
+#front h1 {
+  margin: 0 0 6px; font: 400 40px/1 var(--serif, Georgia, serif);
+  letter-spacing: .2em; color: var(--gold); text-transform: uppercase;
+}
+#front-sub { margin: 0 auto 22px; max-width: 46ch; font-size: 13px; line-height: 1.6; }
+#front h3 {
+  margin: 18px 0 8px; font: 400 11px/1 inherit; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--dim);
+}
+.pickrow { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pickrow button {
+  background: transparent; border: 1px solid rgba(201,162,39,.22);
+  color: #cdc2a8; border-radius: 5px; padding: 7px 12px; cursor: pointer;
+  font: inherit; font-size: 12.5px;
+}
+.pickrow button:hover { border-color: rgba(201,162,39,.6); color: var(--parch); }
+.pickrow button[aria-pressed="true"] {
+  background: rgba(201,162,39,.18); border-color: rgba(201,162,39,.75);
+  color: var(--gold);
+}
+#house-note, #where-note {
+  margin: 9px auto 0; max-width: 56ch; font-size: 12px; line-height: 1.6;
+  min-height: 2.6em;
+}
+#front .acts { display: flex; gap: 8px; justify-content: center; margin-top: 22px;
+               flex-wrap: wrap; }
+#front .acts button, #front-resume button {
+  background: transparent; border: 1px solid rgba(201,162,39,.3);
+  color: #cdc2a8; border-radius: 5px; padding: 9px 18px; cursor: pointer;
+  font: inherit; font-size: 13px;
+}
+#front .acts button:hover, #front-resume button:hover {
+  border-color: rgba(201,162,39,.7); color: var(--parch);
+}
+/* Specificity, not order: `#front .acts button` is one class heavier than a
+   bare `#front .go`, so the primary action lost its own fill to the rule for
+   the buttons beside it and `begin` looked exactly like `draw it yourself`. */
+#front .acts button.go, #front-resume button.go {
+  background: rgba(201,162,39,.22); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+#front-resume { margin-bottom: 4px; }
+#front-resume .wide { padding: 10px 26px; }
+@media (max-width: 520px) { #front h1 { font-size: 30px; } }

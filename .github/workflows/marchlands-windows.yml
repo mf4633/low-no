@@ -1,0 +1,87 @@
+# Builds Marchlands.exe -- a double-clickable Windows build of the game in
+# game/. Nothing to do with the trading system in this repo's root; it only
+# ever touches game/ and only runs when something in there changes.
+#
+# Two triggers on purpose. The tag build is the one that produces a release
+# people download; the push build is the one that tells you the packaging is
+# broken on the day it breaks rather than on the day you try to ship.
+name: Marchlands (Windows build)
+
+on:
+  push:
+    tags: ["marchlands-v*"]
+    branches: ["**"]
+    paths:
+      - "game/**"
+      - ".github/workflows/marchlands-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write            # to attach the exe to a release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+
+      # The game itself has no dependencies, so this is the whole build.
+      - name: Build Marchlands.exe
+        run: python -m PyInstaller --clean --noconfirm packaging/marchlands.spec
+
+      # An exe that starts and serves a blank page is the failure this whole
+      # packaging exists to avoid -- the drawn view is served off disk, so the
+      # page and its scripts have to be inside the bundle. Prove they are,
+      # against the running executable, before anybody downloads it.
+      - name: Check it actually serves the drawn view
+        shell: pwsh
+        run: |
+          $exe = "dist\Marchlands.exe"
+          if (-not (Test-Path $exe)) { throw "no exe was built" }
+          $p = Start-Process $exe -ArgumentList "--port","8913","--no-browser" -PassThru
+          try {
+            $ok = $false
+            foreach ($i in 1..30) {
+              Start-Sleep -Seconds 2
+              try {
+                $page = Invoke-WebRequest "http://127.0.0.1:8913/" -UseBasicParsing
+                $js   = Invoke-WebRequest "http://127.0.0.1:8913/marchlands.js" -UseBasicParsing
+                $st   = Invoke-WebRequest "http://127.0.0.1:8913/state" -UseBasicParsing
+                $fr   = Invoke-WebRequest "http://127.0.0.1:8913/front" -UseBasicParsing
+                if ($page.StatusCode -eq 200 -and $js.Content.Length -gt 50000 `
+                    -and $st.Content -match '"idioms"' `
+                    -and $fr.Content -match '"open": true') { $ok = $true; break }
+              } catch { }
+            }
+            if (-not $ok) { throw "the exe did not serve the drawn view" }
+            # Start a game the way the front door does -- nothing typed.
+            $body = '{"house":"hansa","scenario":"winter_crown"}'
+            $new = Invoke-WebRequest "http://127.0.0.1:8913/new" -Method POST `
+                     -ContentType "application/json" -Body $body -UseBasicParsing
+            if ($new.Content -notmatch '"town"') { throw "could not start a game from the front door" }
+            Write-Host "served the page, $($js.Content.Length) bytes of script, live state, and began a game"
+          } finally {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Marchlands-windows
+          path: game/dist/Marchlands.exe
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/marchlands-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: game/dist/Marchlands.exe
+          generate_release_notes: true
