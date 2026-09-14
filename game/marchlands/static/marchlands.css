@@ -380,3 +380,37 @@ body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
            justify-content: flex-end; max-width: calc(100% - 16px); }
   #writ { width: calc(100% - 28px); left: 14px !important; }
 }
+
+/* ------------------------------------------------------------ the pencil */
+/* Drawing a castle is the one thing in here that is not a report, so the
+   bar it lives on sits over the picture rather than beside it: your hands
+   are on the ground, not on a panel. */
+#drawbar {
+  /* Clear of the console: the log runs to 132px plus its prompt and its own
+     12px of air, and a toolbar that covers the line telling you what you
+     just laid is a toolbar that hides its own result. */
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 196px;
+  display: flex; align-items: center; gap: 14px; z-index: 6;
+  padding: 7px 13px; border-radius: 9px;
+  background: rgba(20,18,15,.92); border: 1px solid rgba(201,162,39,.28);
+  box-shadow: 0 8px 26px rgba(0,0,0,.45);
+  font-size: 12px; max-width: min(94vw, 780px); flex-wrap: wrap;
+}
+#drawbar .tools { display: flex; gap: 4px; flex-wrap: wrap; }
+#drawbar button {
+  background: transparent; border: 1px solid rgba(201,162,39,.22);
+  color: #cdc2a8; border-radius: 5px; padding: 4px 9px; cursor: pointer;
+  font: inherit; letter-spacing: .02em;
+}
+#drawbar button:hover { border-color: rgba(201,162,39,.55); color: var(--parch); }
+#drawbar button[aria-pressed="true"] {
+  background: rgba(201,162,39,.18); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+#drawbar .hand { color: var(--gold); white-space: nowrap; }
+#drawbar #drawread { color: var(--dim); }
+#drawbar #drawread b { color: #cdc2a8; font-weight: normal; }
+#drawbar #drawread .bad { color: #c46a5a; }
+@media (max-width: 620px) {
+  #drawbar { bottom: 176px; gap: 6px; font-size: 11px; padding: 6px 9px; }
+}

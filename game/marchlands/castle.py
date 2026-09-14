@@ -102,6 +102,11 @@ class Works:
     towers: int = 0
     gate: bool = False
     stone: bool = False
+    #: Read off the drawing rather than off the shopping list. A castle with
+    #: four towers all on one side has four towers and one open flank, and
+    #: these are the two numbers that tell the difference.
+    naked: int = 0          # yards in the longest run no tower covers
+    depth: int = 1          # rings a man has to get through to reach the keep
 
     @classmethod
     def of(cls, standing: List[str]) -> "Works":
@@ -116,6 +121,25 @@ class Works:
             stone=any(k in standing for k in ("stone_wall", "gatehouse", "wall_tower")),
         )
 
+    @classmethod
+    def read(cls, castle, reading=None) -> "Works":
+        """The works as they actually stand on the ground.
+
+        The same five questions as `of`, asked of a drawing instead of a list
+        of purchases -- so a moat dug on the far side from where they are
+        digging is not a moat that answers this mine, and four towers in a
+        clump are not four towers covering the wall.
+        """
+        from . import keep as keeps
+        r = reading if reading is not None else keeps.read(castle)
+        counts = castle.spent()
+        return cls(moat=counts.get(keeps.MOAT, 0),
+                   pitch=counts.get(keeps.PITCH, 0),
+                   pits=counts.get(keeps.PITS, 0),
+                   oil=0, towers=r.towers, gate=bool(r.gates),
+                   stone=bool(r.stone or r.towers or r.gates),
+                   naked=len(r.weak), depth=max(1, r.depth))
+
     def answers(self, plan: str) -> List[str]:
         """The works that bear on this plan, named so a player can see why."""
         out: List[str] = []
@@ -127,8 +151,11 @@ class Works:
             out.append("a moat to cross first")
         if plan in (BATTER, ESCALADE) and self.pitch:
             out.append("a pitch ditch waiting to be lit")
-        if plan == ESCALADE and self.towers:
-            out.append(f"{self.towers} tower(s) enfilading the ladders")
+        if plan == ESCALADE and self.towers and not self.naked:
+            out.append(f"{self.towers} tower(s), and no stretch they do not cover")
+        elif plan == ESCALADE and self.towers:
+            out.append(f"{self.towers} tower(s) -- but {self.naked} yards "
+                       f"they cannot see")
         if plan == BREACH and self.towers:
             out.append(f"{self.towers} tower(s) shooting back at the engine crews")
         if plan == BREACH and self.stone:
@@ -137,6 +164,8 @@ class Works:
             out.append("killing pits under the wall")
         if plan == INVEST and self.gate:
             out.append("a gatehouse they can sortie from")
+        if self.depth > 1:
+            out.append(f"{self.depth} walls between them and the hall")
         return out
 
 
@@ -183,6 +212,11 @@ def approach(plan_key: str, works: Works, state: SiegeState, *,
     plan = PLANS.get(plan_key, PLANS[BREACH])
     out = Approach(attacker_mult=plan.exposure, defender_mult=plan.reach)
     state.days += 1
+    # A second ring is not more stone, it is a yard they have to cross with
+    # a wall shooting into it: most of the garrison is not on the wall they
+    # have just taken. It reduces what a day of this can reach, not what it
+    # has to knock down.
+    inner = 1.0 / max(1, works.depth)
 
     # A moat has to be filled before anything that needs to touch the wall.
     if works.moat and plan.key in (BATTER, ESCALADE) and state.crossed < CROSS_DAYS:
@@ -224,14 +258,22 @@ def approach(plan_key: str, works: Works, state: SiegeState, *,
 
     if plan.key == ESCALADE:
         # Ladders against an intact wall are the worst trade in the game, and
-        # towers are exactly what makes them worse.
+        # towers are exactly what makes them worse -- but only the towers that
+        # can see where the ladders are going. A besieger puts them on the
+        # longest stretch nobody covers, so a tower on the far side of the
+        # castle is a tower he has already walked past.
         intact = min(1.0, wall / wall_max) if wall_max > 0 else 0.0
+        watched = max(0.0, 1.0 - works.naked / 8.0)
         out.attacker_mult = plan.exposure * (1.0 + 0.55 * intact
-                                             + 0.22 * works.towers)
-        out.defender_mult = plan.reach * (1.0 - 0.45 * intact)
+                                             + 0.22 * works.towers * watched)
+        out.defender_mult = plan.reach * (1.0 - 0.45 * intact) * inner
         if works.pits:
             out.burst += 0.02 * works.pits
-        out.lines.append("ladders go up against the wall")
+        if works.naked and works.towers:
+            out.lines.append(f"the ladders go up on the {works.naked} yards "
+                             f"no tower covers")
+        else:
+            out.lines.append("ladders go up against the wall")
         return out
 
     # batter and breach both work stone; the gate is softer but better covered.
@@ -252,6 +294,7 @@ def approach(plan_key: str, works: Works, state: SiegeState, *,
         if works.stone:
             out.wall_damage *= 0.85
         out.lines.append("the engines work on the curtain")
+    out.defender_mult *= inner
     return out
 
 
@@ -281,8 +324,14 @@ def choose(works: Works, *, siege_power: float, engineers: float,
             # stone: an intact wall with nobody on it is simply a tall step.
             odds = min(4.0, host / max(garrison, 1.0))
             manned = min(1.0, garrison / max(1.0, 0.30 * host))
+            # A captain does not average your towers. He walks round the
+            # wall until he finds the longest stretch none of them covers,
+            # and that is where the ladders go -- so towers are worth
+            # something to him only while there is no such stretch.
+            watched = max(0.0, 1.0 - works.naked / 8.0)
             s = (0.30 + 0.55 * odds - 1.45 * intact * manned
-                 - 0.30 * works.towers * manned
+                 - 0.30 * works.towers * manned * watched
+                 + 0.55 * min(1.0, works.naked / 8.0) * manned
                  + 2.20 * (1.0 - manned))   # an empty wall is a tall step, not a siege
         elif key == SAP:
             s = 1.25 if intact > 0.5 else 0.6

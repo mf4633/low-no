@@ -1412,7 +1412,40 @@ function frame() {
     ctx.restore();
   }
   drawWeather(w, h, t);
+  if (plan && drawing()) {
+    ctx.save();
+    ctx.translate(w / 2 + camera.x, h / 2 + camera.y);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-(plan.w - plan.h) * TW / 4, -(plan.w + plan.h) * TH / 4);
+    drawPencil(t);
+    ctx.restore();
+  }
   nextFrame();
+}
+
+/* What the pencil is about to do, over the top of everything. Two layers:
+ * the yards no tower covers, marked in red so the hole in your own castle is
+ * a thing you can see rather than a line in a report; and the run under the
+ * mouse while it is down. */
+function drawPencil(t) {
+  const weak = (state && state.castle && state.castle.weak) || [];
+  for (const p of weak) tileMark(p.x, p.y, 'rgba(196,90,74,.42)');
+  if (!stroke) return;
+  const laying = lay === 'unwall' ? 'rgba(196,90,74,.55)' : 'rgba(201,162,39,.55)';
+  for (const [x, y] of runBetween(stroke.from, stroke.to)) tileMark(x, y, laying);
+}
+function tileMark(x, y, fill) {
+  const [sx, sy] = iso(x, y);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - TH / 2);
+  ctx.lineTo(sx + TW / 2, sy);
+  ctx.lineTo(sx, sy + TH / 2);
+  ctx.lineTo(sx - TW / 2, sy);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.restore();
 }
 /* Still means still: one redraw every so often is enough to pick up a new day. */
 function nextFrame() {
@@ -1572,6 +1605,7 @@ document.addEventListener('keydown', e => {
   if (e.key === '?') { $('keys').hidden = !$('keys').hidden; e.preventDefault(); return; }
   if (e.key === 't' || e.key === 'T') { setMode('town'); return; }
   if (e.key === 'r' || e.key === 'R') { setMode('march'); return; }
+  if (e.key === 'w' || e.key === 'W') { setMode(drawing() ? 'town' : 'castle'); return; }
   const line = KEYS[e.key.toLowerCase()] || (e.key === ' ' ? 'next' : '');
   if (line) { send(line); e.preventDefault(); }
 });
@@ -1591,12 +1625,48 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
+/* ------------------------------------------------------------ the pencil */
+/* Drawing is a drag along the ground rather than a form: press where the
+ * wall starts, let go where it ends. The run is previewed while the mouse
+ * is down and only sent when it is released, so a slip costs nothing. */
+let lay = 'wall', stroke = null;
+function drawing() { return mode === 'castle'; }
+function runBetween(a, b) {
+  const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]));
+  if (!n) return [a];
+  const out = [];
+  for (let i = 0; i <= n; i++)
+    out.push([Math.round(a[0] + (b[0] - a[0]) * i / n),
+              Math.round(a[1] + (b[1] - a[1]) * i / n)]);
+  return out;
+}
+for (const btn of document.querySelectorAll('#drawbar [data-lay]')) {
+  btn.addEventListener('click', () => {
+    lay = btn.dataset.lay;
+    for (const o of document.querySelectorAll('#drawbar [data-lay]'))
+      o.setAttribute('aria-pressed', String(o === btn));
+  });
+}
+
 let drag = null, pressed = null;
 canvas.addEventListener('pointerdown', e => {
+  if (drawing() && plan) {
+    stroke = { from: screenToTile(e), to: screenToTile(e) };
+    pressed = null;
+    return;
+  }
   drag = { x: e.clientX, y: e.clientY };
   pressed = { x: e.clientX, y: e.clientY, t: performance.now() };
 });
 window.addEventListener('pointerup', e => {
+  if (stroke) {
+    const a = stroke.from, b = stroke.to;
+    stroke = null;
+    const one = a[0] === b[0] && a[1] === b[1];
+    const where = one ? `${a[0]},${a[1]}` : `${a[0]},${a[1]} ${b[0]},${b[1]}`;
+    send(`${lay} ${where}`);
+    return;
+  }
   drag = null;
   // A click is a press that did not turn into a drag. Without this the writ
   // opens every time you finish moving the camera.
@@ -1619,6 +1689,7 @@ window.addEventListener('pointerup', e => {
   closeWrit();
 });
 window.addEventListener('pointermove', e => {
+  if (stroke) { stroke.to = screenToTile(e); return; }
   if (!drag) return;
   camera.x += e.clientX - drag.x; camera.y += e.clientY - drag.y;
   drag = { x: e.clientX, y: e.clientY };
@@ -1683,6 +1754,7 @@ function paint(s) {
     if (wasAge && s.age !== wasAge) Sound.mark('bell');
     if (s.over) Sound.mark('bell');
   }
+  paintDrawbar(s);
   $('place').textContent = s.town.name;
   // A browser tab full of identical "Marchlands" is no use to anyone playing
   // two chapters at once.
@@ -1829,11 +1901,17 @@ function frameTown() {
 
 function setMode(next) {
   mode = next;
-  for (const [id, m] of [['v-town', 'town'], ['v-march', 'march']])
+  for (const [id, m] of [['v-town', 'town'], ['v-march', 'march'],
+                         ['v-castle', 'castle']])
     $(id).setAttribute('aria-pressed', String(mode === m));
   document.body.classList.toggle('march', mode === 'march');
   $('goodpick').hidden = mode !== 'march';
   $('trade').hidden = mode !== 'march';
+  // The pencil is the town with your hands on it, so the town is still what
+  // is drawn underneath -- only the click means something else.
+  $('drawbar').hidden = mode !== 'castle';
+  canvas.style.cursor = mode === 'castle' ? 'crosshair' : '';
+  if (mode === 'castle') closeWrit();
   if (state) paint(state);
   $('tip').hidden = true;
   scrollCue();
@@ -1846,6 +1924,8 @@ $('ear').addEventListener('click', () => {
 });
 $('v-town').addEventListener('click', () => setMode('town'));
 $('v-march').addEventListener('click', () => setMode('march'));
+$('v-castle').addEventListener('click', () =>
+  setMode(mode === 'castle' ? 'town' : 'castle'));
 $('good').addEventListener('change', e => { good = e.target.value; loadMarch(); });
 
 const GOODS = ['bread', 'wheat', 'flour', 'ale', 'cheese', 'wool', 'cloth',
@@ -1865,3 +1945,27 @@ $('good').innerHTML = GOODS.map(g =>
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   nextFrame();
 })();
+
+
+/* The wall, read back to whoever is drawing it. Four facts and no score:
+ * how long it is, whether it is actually shut, what the towers cannot see,
+ * and how many men are standing on each yard. */
+function paintDrawbar(s) {
+  const c = s.castle;
+  if (!c) return;
+  const hand = Object.entries(c.hand || {})
+    .map(([k, v]) => `${v} ${k}`).join(', ');
+  $('drawhand').textContent = hand ? `in hand: ${hand}` : 'nothing left in hand';
+  const bits = [];
+  bits.push(`<b>${c.yards}</b> yards`);
+  if (!c.shut && c.yards) bits.push('<span class="bad">the ring is open</span>');
+  bits.push(c.towers ? `towers cover <b>${c.covered}</b> of <b>${c.yards}</b>`
+                     : '<span class="bad">no towers</span>');
+  if (c.weak && c.weak.length)
+    bits.push(`<span class="bad">${c.weak.length} yards on the ${c.side}` +
+              ` nothing watches</span>`);
+  bits.push(`<b>${c.per_yard}</b> men to the yard`);
+  if (c.outside) bits.push(`<span class="bad">${c.outside} outside</span>`);
+  if (c.depth > 1) bits.push(`<b>${c.depth}</b> walls deep`);
+  $('drawread').innerHTML = bits.join(' &middot; ');
+}

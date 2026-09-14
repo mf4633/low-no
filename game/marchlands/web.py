@@ -32,6 +32,7 @@ from . import config as C
 from .economics import marginal_hands
 from .kin import SKILLS
 from .league import PLAYER as LEAGUE_PLAYER
+from . import keep as keeps
 from . import voices
 from .layout import plan_for
 
@@ -170,6 +171,24 @@ def _best_skill(person) -> str:
     return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
 
 
+def _castle(s) -> dict:
+    """What the wall is, for the bar you draw it with."""
+    drawing = s.plan()
+    r = keeps.read(drawing)
+    return {
+        "yards": r.yards, "stone": r.stone, "timber": r.timber,
+        "towers": r.towers, "gates": r.gates, "shut": r.shut,
+        "inside": r.inside, "covered": r.covered, "depth": r.depth,
+        "weak": [{"x": x, "y": y} for x, y in r.weak],
+        "side": r.weak_side,
+        "per_yard": round(s.per_yard(), 2),
+        "outside": len(s.outside_the_wall()),
+        "own": bool(s.castle.own),
+        "hand": {k: v for k, v in keeps.unlaid(s.buildings, drawing).items()
+                 if v > 0},
+    }
+
+
 def snapshot(game, here: str = "") -> dict:
     """Everything the picture needs, and nothing it does not."""
     key = here or next(iter(game.world.settlements))
@@ -236,6 +255,9 @@ def snapshot(game, here: str = "") -> dict:
                       for k, v in game.economy.shortage.items() if v > 0.01],
         },
         "here": key,
+        # The castle, read: what you drew and what a besieger makes of it.
+        # The same numbers `castle` prints, because there is one answer.
+        "castle": _castle(s),
         # What the street would say, for a roof somebody clicks on. The same
         # facts as the mood breakdown, from somebody who has to live in it.
         "street": [{"who": who, "said": said}

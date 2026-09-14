@@ -23,6 +23,7 @@ from .goods import resolve as resolve_good
 from . import kin as kinly
 from . import league as lg
 from . import lord as lordly
+from . import keep as keeps
 from . import lords as lordkind
 from . import voices
 from . import render as ink
@@ -248,6 +249,17 @@ class Console:
                  f"  garrison {s.garrison_line()}"]
         if not flat:
             lines.append("  standing " + self._roll(s))
+        # Neither town screen can draw the castle at its real shape -- both
+        # are a rectangle round the town and the castle is a thirty-yard
+        # square of ground. So the one thing they would otherwise hide gets
+        # said instead: a workshop the ring does not reach.
+        left = s.outside_the_wall()
+        if left:
+            names = [b.spec.name for b in s.buildings if b.uid in left]
+            lines.append(ink.c(
+                f"  outside  {len(left)} building(s) the wall does not reach: "
+                + ", ".join(names[:3]) + (" ..." if len(names) > 3 else "")
+                + "   `castle` draws the shape of it", ink.AMBER))
         return lines
 
     def _roll(self, s) -> str:
@@ -646,6 +658,43 @@ class Console:
                   "  settlement is still a lord."]
         return "\n".join(lines)
 
+    def _castle_hints(self, coming: bool) -> List[Tuple[float, str]]:
+        """The shape of the wall, which is where they will actually come in.
+
+        Ranked rather than appended, and ranked hard when there is a host on
+        the road: a hole in your own castle is the most urgent sentence in
+        the game at that moment, and it was falling off the bottom of a list
+        capped at four because it happened to be written last.
+        """
+        s = self.settlement()
+        r = keeps.read(s.plan())
+        urgent = 1.0 if coming else 0.0
+        out: List[Tuple[float, str]] = []
+        if r.yards and not r.shut:
+            out.append((62.0 + 12.0 * urgent,
+                        f"The ring at {s.name} is not closed -- the hall is "
+                        f"not behind anything. `castle` draws where; "
+                        f"`wall <x,y> <x,y>` shuts it."))
+        left = s.outside_the_wall()
+        if left:
+            out.append((41.0 + 17.0 * urgent,
+                        f"{len(left)} building(s) at {s.name} stand outside "
+                        f"the wall, and outside is what gets burned. `castle` "
+                        f"names them."))
+        if len(r.weak) >= 5:
+            out.append((38.0 + 17.0 * urgent,
+                        f"{len(r.weak)} yards on the {r.weak_side} of "
+                        f"{s.name} have no tower looking down at them, which "
+                        f"is where the ladders go. `tower <x,y>` fixes it; "
+                        f"`castle` shows it."))
+        held = r.density(sum(s.units.values()))
+        if r.yards and held < keeps.HELD * 0.6:
+            out.append((36.0 + 16.0 * urgent,
+                        f"{s.name} has {held:.1f} men to the yard over "
+                        f"{r.yards} yards of wall. Recruit, or draw a shorter "
+                        f"castle -- `castle` has both numbers."))
+        return out
+
     def _kin_hints(self) -> List[Tuple[float, str]]:
         """The house is the easiest system in the game to never notice.
 
@@ -914,7 +963,8 @@ class Console:
         # which is how the house and the accounts both went unmentioned for a
         # hundred turns each while the fourth line was about a guildhall.
         ranked = [(50.0 - 0.01 * i, text) for i, text in enumerate(out)]
-        ranked += self._kin_hints() + self._economy_hints()
+        ranked += (self._kin_hints() + self._economy_hints()
+                   + self._castle_hints(bool(coming)))
         ranked.sort(key=lambda row: -row[0])
         picked = [text for _, text in ranked][:4]
         if not picked:
@@ -1409,6 +1459,240 @@ class Console:
             if want in (key.lower(), s.name.lower()):
                 return key
         return ""
+
+    # ------------------------------------------------------------ the castle
+    def _coords(self, word: str):
+        """`12,9` -- the one thing a drawing command has to be able to read."""
+        try:
+            x, _, y = word.partition(",")
+            t = (int(x), int(y))
+        except ValueError:
+            return None
+        return t if keeps.on_map(t) else None
+
+    def _run(self, args: List[str]):
+        """One tile, or a straight run between two. Diagonals go by the longer
+        axis, which draws the line somebody meant rather than the line they
+        typed."""
+        here = self._coords(args[0]) if args else None
+        if here is None:
+            return None
+        if len(args) < 2:
+            return [here]
+        there = self._coords(args[1])
+        if there is None:
+            return None
+        (x0, y0), (x1, y1) = here, there
+        n = max(abs(x1 - x0), abs(y1 - y0))
+        if n > 60:
+            return None
+        if n == 0:
+            return [here]
+        out = []
+        for i in range(n + 1):
+            out.append((round(x0 + (x1 - x0) * i / n),
+                        round(y0 + (y1 - y0) * i / n)))
+        return out
+
+    def _draw(self, kind: str, args: List[str], word: str) -> None:
+        """Lay one kind of thing along a run, spending what is in hand."""
+        s = self.settlement()
+        tiles = self._run(args)
+        if not tiles:
+            return self.err(f"{word} <x,y> [<x,y>] -- `castle` has the map")
+        castle = s.take_the_pen()
+        hand = keeps.unlaid(s.buildings, castle).get(kind, 0)
+        laid, over = 0, 0
+        for t in tiles:
+            if castle.at(t) == kind:
+                continue
+            back = castle.at(t)
+            if laid >= hand + (1 if back == kind else 0):
+                over += 1
+                continue
+            castle.lay(t, kind)
+            laid += 1
+        s.castle = castle
+        name = {"timber": "timber wall", "stone": "stone wall", "tower": "tower",
+                "gate": "gatehouse", "moat": "moat", "pitch": "pitch ditch",
+                "pits": "killing pits"}.get(kind, kind)
+        if laid:
+            self.say(f"  {laid} yard(s) of {name} laid")
+        if over:
+            self.say(ink.c(f"  {over} more than you have paid for -- "
+                           f"`build {self._to_buy(kind)}` buys the next length",
+                           ink.AMBER))
+        if not laid and not over:
+            self.say(ink.c("  already laid", ink.DIM))
+        self._castle_warn(s)
+
+    @staticmethod
+    def _to_buy(kind: str) -> str:
+        return {"timber": "palisade", "stone": "stone_wall", "tower": "wall_tower",
+                "gate": "gatehouse", "moat": "moat", "pitch": "pitch_ditch",
+                "pits": "kill_pit"}.get(kind, kind)
+
+    def _castle_warn(self, s) -> None:
+        r = keeps.read(s.plan())
+        if not r.yards:
+            return
+        if not r.shut:
+            self.say(ink.c("  the ring is not closed: the hall is not behind "
+                           "anything", ink.BLOOD))
+        left = s.outside_the_wall()
+        if left:
+            self.say(ink.c(f"  {len(left)} building(s) stand outside it",
+                           ink.AMBER))
+
+    def cmd_wall(self, args: List[str]) -> None:
+        """Lay a length of wall. `wall 12,9 12,16` runs it down the east side."""
+        s = self.settlement()
+        hand = keeps.unlaid(s.buildings, s.take_the_pen())
+        kind = keeps.STONE if hand.get(keeps.STONE, 0) > 0 else keeps.TIMBER
+        if args and args[0].lower() in ("stone", "timber"):
+            kind = args[0].lower()
+            args = args[1:]
+        self._draw(kind, args, "wall")
+
+    def cmd_tower(self, args: List[str]) -> None:
+        """Put a tower on the wall. It covers the yards within an arrow of it."""
+        self._draw(keeps.TOWER, args, "tower")
+
+    def cmd_gate(self, args: List[str]) -> None:
+        """Put the gatehouse where the road comes in."""
+        self._draw(keeps.GATE, args, "gate")
+
+    def cmd_moat(self, args: List[str]) -> None:
+        """Dig water in front of the wall."""
+        self._draw(keeps.MOAT, args, "moat")
+
+    def cmd_pitchditch(self, args: List[str]) -> None:
+        """Dig a pitch ditch in front of the wall."""
+        self._draw(keeps.PITCH, args, "pitch")
+
+    def cmd_pits(self, args: List[str]) -> None:
+        """Stake killing pits under the wall."""
+        self._draw(keeps.PITS, args, "pits")
+
+    def cmd_unwall(self, args: List[str]) -> None:
+        """Take a length back down. What comes down goes back in hand."""
+        s = self.settlement()
+        tiles = self._run(args)
+        if not tiles:
+            return self.err("unwall <x,y> [<x,y>]")
+        castle = s.take_the_pen()
+        gone = sum(1 for t in tiles if castle.clear(t))
+        s.castle = castle
+        self.say(f"  {gone} yard(s) pulled down" if gone
+                 else ink.c("  nothing standing there", ink.DIM))
+        self._castle_warn(s)
+
+    def cmd_castle(self, args: List[str]) -> None:
+        """The castle, drawn, and what a besieger makes of it."""
+        g = self.game
+        s = self.settlement(self._resolve_here(args))
+        castle = s.plan()
+        r = keeps.read(castle)
+        self.say(ink.head(f"THE CASTLE AT {s.name.upper()}",
+                          "drawn" if s.castle.drawn else "as your steward laid it"))
+        if not r.yards:
+            self.say(ink.c("  No wall at all. `build palisade` buys the first "
+                           "28 yards of it.", ink.DIM))
+            return
+        self._castle_map(s, castle, r)
+        per = r.density(sum(s.units.values()))
+        rows = [
+            ("the wall", f"{r.yards} yards -- {r.stone} stone, {r.timber} timber, "
+                         f"{r.towers} tower(s), {r.gates} gatehouse(s)"),
+            ("it shuts in", f"{r.inside} plots"
+                            + ("" if r.shut else "  -- and the ring is OPEN")),
+            ("towers cover", f"{r.covered} of {r.yards} yards"
+                             if r.towers else "nothing: there are no towers"),
+        ]
+        if r.weak:
+            rows.append(("the weak side",
+                         f"{len(r.weak)} yards on the {r.weak_side} with nothing "
+                         f"looking down at them"))
+        rows.append(("men to the yard",
+                     f"{per:.1f} -- " + ("thin" if per < keeps.HELD * 0.75 else
+                                         "held" if per < keeps.HELD * 1.6 else
+                                         "deep")))
+        if r.depth > 1:
+            rows.append(("walls to the hall", f"{r.depth}"))
+        out = s.outside_the_wall()
+        if out:
+            names = [b.spec.name for b in s.buildings if b.uid in out]
+            rows.append(("outside it", f"{len(out)} building(s) nobody is "
+                                       f"defending: " + ", ".join(names[:4])
+                         + (" ..." if len(names) > 4 else "")))
+        for label, text in rows:
+            self.say(f"  {ink.c(ink.pad(label, 18), ink.DIM)}{text}")
+        hand = {k: v for k, v in keeps.unlaid(s.buildings, castle).items() if v > 0}
+        if hand:
+            self.say("", "  " + ink.c("in hand  ", ink.DIM)
+                     + ", ".join(f"{v} {k}" for k, v in sorted(hand.items())))
+        self.say("", ink.c("  wall / tower / gate / moat / pits / pitch <x,y> "
+                           "[<x,y>] draw it; unwall takes it down.", ink.DIM))
+        _ = g
+
+    def _castle_map(self, s, castle, r) -> None:
+        """The drawing itself, which is the whole point of it being a drawing.
+
+        Cropped to what is standing plus a yard of air, so a small castle does
+        not print thirty lines of empty field around itself.
+        """
+        from .layout import plan_for
+        plan = plan_for(s)
+        here = {(b.x, b.y): b for b in plan.buildings}
+        tiles = set(castle.pieces) | set(here)
+        if not tiles:
+            return
+        x0 = max(0, min(t[0] for t in tiles) - 1)
+        x1 = min(keeps.SIDE - 1, max(t[0] for t in tiles) + 1)
+        y0 = max(0, min(t[1] for t in tiles) - 1)
+        y1 = min(keeps.SIDE - 1, max(t[1] for t in tiles) + 1)
+        inside = keeps.enclosed(castle)
+        cover = keeps.covered(castle)
+        weak = set(r.weak)
+        glyph = {keeps.STONE: "#", keeps.TIMBER: "+", keeps.TOWER: "T",
+                 keeps.GATE: "G", keeps.MOAT: "~", keeps.PITCH: ":",
+                 keeps.PITS: "^"}
+        self.say("")
+        self.say("     " + ink.c("".join(str(x % 10) for x in range(x0, x1 + 1)),
+                                 ink.DIM))
+        for y in range(y0, y1 + 1):
+            row = ""
+            for x in range(x0, x1 + 1):
+                t = (x, y)
+                kind = castle.at(t)
+                if kind:
+                    ch = glyph.get(kind, "?")
+                    if kind in keeps.DITCH_KINDS:
+                        row += ink.c(ch, ink.INK)
+                    elif t in weak:
+                        row += ink.c(ch, ink.BLOOD)
+                    elif t in cover or kind == keeps.TOWER:
+                        row += ink.c(ch, ink.GOLD)
+                    else:
+                        row += ink.c(ch, ink.BONE)
+                elif t in here:
+                    b = here[t]
+                    if b.terrain not in ("urban", "rampart"):
+                        row += ink.c("v", ink.DIM)     # a farm belongs outside
+                    elif t in inside:
+                        row += ink.c("o", ink.PARCH)
+                    else:
+                        row += ink.c("x", ink.AMBER)
+                else:
+                    row += ink.c("." if t in inside else " ", ink.DIM)
+            self.say(f"  {ink.c(f'{y:>2}', ink.DIM)} {row}")
+        self.say("", ink.c("     # stone  + timber  T tower  G gate  ~ moat  "
+                           ": pitch  ^ pits", ink.DIM))
+        self.say(ink.c("     o a workshop inside   ", ink.DIM)
+                 + ink.c("x one left outside", ink.AMBER)
+                 + ink.c("   v field and wood", ink.DIM)
+                 + ink.c("   gold is covered by a tower, ", ink.DIM)
+                 + ink.c("red is not", ink.BLOOD))
 
     # ---------------------------------------------------------- the league
     def cmd_season(self, args: List[str]) -> None:
@@ -2301,6 +2585,11 @@ def _parse_stop(world, tokens: List[str]) -> Stop:
 
 
 COMMANDS = {
+    "castle": Console.cmd_castle, "keep": Console.cmd_castle,
+    "wall": Console.cmd_wall, "tower": Console.cmd_tower,
+    "gate": Console.cmd_gate, "moat": Console.cmd_moat,
+    "pitch": Console.cmd_pitchditch, "pits": Console.cmd_pits,
+    "unwall": Console.cmd_unwall,
     "help": Console.cmd_help, "?": Console.cmd_help,
     "next": Console.cmd_next, "n": Console.cmd_next, "wait": Console.cmd_next,
     "status": Console.cmd_status, "s": Console.cmd_status,
@@ -2351,6 +2640,9 @@ HELP = """
   THE DAY           next [n]        let n days pass        status / s
   YOUR TOWN         view / v        view flat              watch [days]
                     ask [town]      what the street says
+  THE CASTLE        castle          the wall as you drew it
+                    wall <x,y> <x,y>   tower <x,y>   gate <x,y>
+                    moat / pitch / pits <x,y> <x,y>  unwall <x,y> <x,y>
                     town [name]     stores [town]
                     needs
                     build <key>     buildings [filter]     info <key>

@@ -16,6 +16,8 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
+from . import keep as keeps
+
 GRASS, FIELD, FOREST, HILL, CLAY, WATER, ROAD, YARD = (
     "grass", "field", "forest", "hill", "clay", "water", "road", "yard")
 
@@ -75,6 +77,9 @@ class Plan:
     folk: List[Tuple[float, float]] = field(default_factory=list)
     hauls: List[Haul] = field(default_factory=list)
     precinct: Tuple[int, int, int, int] = (0, 0, 0, 0)
+    #: Every tile the wall actually shuts in, which for anything but a square
+    #: is not the same as the precinct's bounding box.
+    inside: List[Tuple[int, int]] = field(default_factory=list)
 
     def tile(self, x: int, y: int) -> str:
         if 0 <= x < self.w and 0 <= y < self.h:
@@ -84,19 +89,12 @@ class Plan:
     def to_dict(self) -> dict:
         x0, y0, x1, y1 = self.precinct
         return {"w": self.w, "h": self.h, "tiles": self.tiles,
+                "inside": [{"x": x, "y": y} for x, y in self.inside],
                 "buildings": [b.to_dict() for b in self.buildings],
                 "walls": [{"x": x, "y": y, "kind": k} for x, y, k in self.walls],
                 "folk": [{"x": x, "y": y} for x, y in self.folk],
                 "hauls": [h.to_dict() for h in self.hauls],
                 "precinct": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
-
-
-def _ring(x0: int, y0: int, x1: int, y1: int) -> List[Tuple[int, int]]:
-    out = [(x, y0) for x in range(x0, x1 + 1)]
-    out += [(x1, y) for y in range(y0 + 1, y1 + 1)]
-    out += [(x, y1) for x in range(x1 - 1, x0 - 1, -1)]
-    out += [(x0, y) for y in range(y1 - 1, y0, -1)]
-    return out
 
 
 def _walk(plan: Plan, a: "Placed", b: "Placed") -> List[Tuple[float, float]]:
@@ -131,60 +129,80 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
     does not rearrange itself every time you look at it.
     """
     standing = [b for b in settlement.buildings]
-    urban = [b for b in standing if b.spec.terrain in ("urban", "rampart")
-             and b.key != "keep"]
-    ramparts = [b for b in standing if b.spec.terrain == "rampart"]
+    urban = [b for b in standing if b.spec.terrain == "urban"]
+    # A wall building is not a shed on a plot any more: it is the length of
+    # wall it paid for, and it stands on it. Placing them in the precinct as
+    # well was how a killing pit came to be reported as a workshop somebody
+    # had left outside the gate.
+    ramparts = [b for b in standing
+                if b.spec.terrain == "rampart" and b.key != "keep"]
     country = [b for b in standing if b.spec.terrain in
                ("fertile", "forest", "hills", "clay", "coast")]
 
-    # The precinct grows with what has to fit inside it, and the country
-    # around it grows with the precinct.
-    inner = max(4, int((len(urban) + 2) ** 0.5 + 0.999) + 1)
-    side = size or max(16, inner + 12)
+    # The ground is a fixed square. It used to grow with the town, which was
+    # fine while nothing had a permanent address -- but a wall you drew at
+    # (12,9) cannot have the map move out from under it because somebody
+    # raised a bakery. See keep.SIDE.
+    side = size or keeps.SIDE
     plan = Plan(w=side, h=side, tiles=[[GRASS] * side for _ in range(side)])
     rng = random.Random(hash(settlement.name) & 0xFFFF)
-
     cx = cy = side // 2
-    x0, y0 = cx - inner // 2, cy - inner // 2
-    x1, y1 = x0 + inner - 1, y0 + inner - 1
+
+    # --- the castle, as drawn ---------------------------------------------
+    castle = settlement.plan() if hasattr(settlement, "plan") else keeps.Castle()
+    inside = sorted(keeps.enclosed(castle))
+    for t, kind in sorted(castle.pieces.items()):
+        x, y = t
+        if not (0 <= x < side and 0 <= y < side):
+            continue
+        if kind in keeps.DITCH_KINDS:
+            plan.tiles[y][x] = WATER if kind == keeps.MOAT else CLAY
+            continue
+        plan.walls.append((x, y, "stone" if kind == keeps.STONE else kind))
+
+    if inside:
+        x0 = min(t[0] for t in inside)
+        y0 = min(t[1] for t in inside)
+        x1 = max(t[0] for t in inside)
+        y1 = max(t[1] for t in inside)
+    else:
+        # No wall yet, so the precinct is only as big as what has to stand in
+        # it -- an open town, which is what an unwalled holding is.
+        inner = max(4, int((len(urban) + 2) ** 0.5 + 0.999) + 1)
+        x0, y0 = cx - inner // 2, cy - inner // 2
+        x1, y1 = x0 + inner - 1, y0 + inner - 1
+        inside = [(x, y) for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)]
     plan.precinct = (x0, y0, x1, y1)
+    plan.inside = list(inside)
 
     # --- the precinct and its streets -------------------------------------
-    for y in range(y0, y1 + 1):
-        for x in range(x0, x1 + 1):
-            plan.tiles[y][x] = YARD
+    yard = set(inside)
+    for (x, y) in inside:
+        plan.tiles[y][x] = YARD
     mid = (x0 + x1) // 2
-    for y in range(y0, y1 + 1):
-        plan.tiles[y][mid] = ROAD
-    for x in range(x0, x1 + 1):
-        plan.tiles[(y0 + y1) // 2][x] = ROAD
-    # The road out of the gate, south to the rest of the march.
-    for y in range(y1 + 1, side):
-        plan.tiles[y][mid] = ROAD
-
-    # --- the wall ---------------------------------------------------------
-    if ramparts:
-        stone = any(b.key in ("stone_wall", "gatehouse", "wall_tower")
-                    for b in ramparts if b.complete)
-        towers = sum(1 for b in ramparts if b.key == "wall_tower" and b.complete)
-        gate = any(b.key == "gatehouse" for b in ramparts if b.complete)
-        ring = _ring(x0 - 1, y0 - 1, x1 + 1, y1 + 1)
-        corners = {(x0 - 1, y0 - 1), (x1 + 1, y0 - 1),
-                   (x1 + 1, y1 + 1), (x0 - 1, y1 + 1)}
-        placed_towers = 0
-        for (x, y) in ring:
-            if (x, y) == (mid, y1 + 1):
-                plan.walls.append((x, y, "gate" if gate else "gap"))
-                continue
-            if (x, y) in corners and placed_towers < towers:
-                plan.walls.append((x, y, "tower"))
-                placed_towers += 1
-                continue
-            plan.walls.append((x, y, "stone" if stone else "timber"))
-        if any(b.key == "moat" and b.complete for b in ramparts):
-            for (x, y) in _ring(x0 - 2, y0 - 2, x1 + 2, y1 + 2):
-                if 0 <= x < side and 0 <= y < side and (x, y) != (mid, y1 + 2):
-                    plan.tiles[y][x] = WATER
+    for (x, y) in inside:
+        if x == mid or y == (y0 + y1) // 2:
+            plan.tiles[y][x] = ROAD
+    # The road out of the gate, to the rest of the march. It leaves by the
+    # gate you put there rather than by the south side on principle.
+    gates = [g for g in castle.gates if 0 <= g[0] < side and 0 <= g[1] < side]
+    door = min(gates, key=lambda g: (-g[1], abs(g[0] - mid))) if gates \
+        else (mid, y1 + 1)
+    gx, gy = door
+    step = (0, 1) if gy >= cy else (0, -1)
+    if abs(gx - cx) > abs(gy - cy):
+        step = (1, 0) if gx >= cx else (-1, 0)
+    x, y = gx + step[0], gy + step[1]
+    while 0 <= x < side and 0 <= y < side:
+        if (x, y) not in castle.pieces:
+            plan.tiles[y][x] = ROAD
+        x, y = x + step[0], y + step[1]
+    # And a lane from the gate to the cross inside, so the way in goes
+    # somewhere.
+    for i in range(1, 6):
+        t = (gx - step[0] * i, gy - step[1] * i)
+        if t in yard:
+            plan.tiles[t[1]][t[0]] = ROAD
 
     # --- the country ------------------------------------------------------
     # Each kind of ground gets a quarter of the compass, so a town always has
@@ -205,7 +223,7 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
                 y = cy + dy * step + (spread if dy == 0 else 0)
                 if not (0 <= x < side and 0 <= y < side):
                     continue
-                if plan.tiles[y][x] != GRASS:
+                if plan.tiles[y][x] != GRASS or (x, y) in castle.pieces:
                     continue      # the precinct, its roads and its ditch are laid
                 plan.tiles[y][x] = kind
                 laid += 1
@@ -225,15 +243,46 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
             idle=b.complete and (not b.enabled or b.throughput <= 0.05),
             burning=settlement.fires.burning(b.uid), name=b.spec.name))
 
-    keep = next((b for b in standing if b.key == "keep"), None)
-    if keep is not None:
-        _place(keep, mid, y0)
-
-    plots = [(x, y) for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)
-             if plan.tiles[y][x] == YARD and not (x == mid and y == y0)]
+    # The keep stands deepest in: the tile a besieger has to cross the most
+    # wall to reach, and the furthest from the gate among those. A hall on
+    # the gate side of its own castle is a hall somebody walks into.
+    hall = next((b for b in standing if b.key == "keep"), None)
+    taken: set = set()
+    if hall is not None:
+        seat = max(plan.inside,
+                   key=lambda t: (abs(t[0] - door[0]) + abs(t[1] - door[1]),
+                                  -t[1], -t[0])) if plan.inside else (mid, y0)
+        _place(hall, seat[0], seat[1])
+        taken = {seat}
+    plots = [(x, y) for (x, y) in plan.inside
+             if plan.tiles[y][x] == YARD and (x, y) not in taken]
     plots.sort(key=lambda p: (abs(p[0] - mid) + abs(p[1] - y0), p[1], p[0]))
-    for b, (x, y) in zip(urban, plots):
+    # And what will not fit stands outside the wall, because a town does not
+    # stop growing when the wall stops. This is the whole cost of drawing a
+    # small castle, and it is a real one: see `raid` -- what is outside is
+    # what gets burned.
+    spill = [(x, y) for y in range(side) for x in range(side)
+             if plan.tiles[y][x] in (GRASS, YARD) and (x, y) not in set(plan.inside)
+             and (x, y) not in castle.pieces]
+    spill.sort(key=lambda p: (abs(p[0] - cx) + abs(p[1] - cy), p[1], p[0]))
+    for b, (x, y) in zip(urban, plots + spill):
         _place(b, x, y)
+
+    # Each wall building on a yard of the kind it bought, spread along it, so
+    # that clicking a length of wall reaches the thing that paid for it.
+    for kind in (keeps.STONE, keeps.TIMBER, keeps.TOWER, keeps.GATE,
+                 keeps.MOAT, keeps.PITCH, keeps.PITS):
+        want = [b for b in ramparts if keeps.YARDS.get(b.key, ("",))[0] == kind]
+        line = castle.of_kind(kind)
+        if not want:
+            continue
+        if not line:
+            # Paid for and nowhere laid. It stands by the gate waiting for
+            # somebody to say where it goes -- never dropped from the picture.
+            line = [door]
+        for i, b in enumerate(want):
+            t = line[(i * max(1, len(line) // max(1, len(want)))) % len(line)]
+            _place(b, t[0], t[1])
 
     # Country buildings stand on their own ground, nearest the town first.
     used: set = set()
@@ -242,7 +291,9 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
         best, best_d = None, 1e9
         for y in range(side):
             for x in range(side):
-                if (x, y) in used or plan.tiles[y][x] != want:
+                if (x, y) in used or (x, y) in castle.pieces:
+                    continue
+                if plan.tiles[y][x] != want:
                     continue
                 d = abs(x - cx) + abs(y - cy)
                 if d < best_d:
@@ -253,7 +304,8 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
             # the picture never quietly loses a building the town really has.
             for y in range(side):
                 for x in range(side):
-                    if (x, y) not in used and plan.tiles[y][x] == GRASS:
+                    if ((x, y) not in used and plan.tiles[y][x] == GRASS
+                            and (x, y) not in castle.pieces):
                         best = (x, y)
                         break
                 if best:

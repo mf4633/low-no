@@ -20,6 +20,7 @@
     <span id="views" class="views">
       <button id="v-town" type="button" aria-pressed="true">the town</button>
       <button id="v-march" type="button" aria-pressed="false">the march</button>
+      <button id="v-castle" type="button" aria-pressed="false">the wall</button>
     </span>
     <button id="ear" type="button" aria-pressed="false"
             title="the sound of the town, made out of arithmetic">sound</button>
@@ -69,6 +70,23 @@
   </aside>
 
   <div id="tip" hidden></div>
+
+  <!-- Drawing the castle. The one screen in this game that is a pencil
+       rather than a report: pick a thing, drag along the ground, and the
+       wall is where you put it. -->
+  <div id="drawbar" hidden>
+    <span class="hand" id="drawhand">—</span>
+    <span class="tools">
+      <button type="button" data-lay="wall" aria-pressed="true">wall</button>
+      <button type="button" data-lay="tower" aria-pressed="false">tower</button>
+      <button type="button" data-lay="gate" aria-pressed="false">gate</button>
+      <button type="button" data-lay="moat" aria-pressed="false">moat</button>
+      <button type="button" data-lay="pitch" aria-pressed="false">pitch</button>
+      <button type="button" data-lay="pits" aria-pressed="false">pits</button>
+      <button type="button" data-lay="unwall" aria-pressed="false">take down</button>
+    </span>
+    <span id="drawread" class="dim">—</span>
+  </div>
 
   <!-- Everything the console will take, searchable. The one screen that
        makes a command line discoverable instead of a memory test. -->

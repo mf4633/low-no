@@ -19,6 +19,7 @@ from typing import ClassVar, Dict, List, Optional, Tuple
 from . import config as C
 from .buildings import BUILDINGS, Building, building
 from .fire import Fires, burn, hands_wanted
+from . import keep as keeps
 from .goods import ALL_KEYS, COMFORT_GOODS, LUXURY_GOODS, RATION_GOODS, good
 from .market import Market
 from .military import UNITS, describe, host_size, host_strength, host_upkeep
@@ -97,6 +98,11 @@ class Settlement:
     raid_pressure: float = 0.0   # how much of it they got through today
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
+    #: The castle as it was drawn, if anybody drew one. Empty means nobody
+    #: has, and the steward's default ring stands instead -- see `works`.
+    castle: keeps.Castle = field(default_factory=keeps.Castle)
+    _exposed: List[int] = field(default_factory=list)
+    _exposed_mark: tuple = ()
 
     # ------------------------------------------------------------------ land
     def slots_used(self, terrain: str) -> int:
@@ -121,6 +127,58 @@ class Settlement:
 
     def wall_max(self, mods: Progress = NO_PROGRESS) -> float:
         return self.effect("wall") * mods.mult("wall")
+
+    # ----------------------------------------------------------- the castle
+    def plan(self) -> "keeps.Castle":
+        """The castle as it stands: what you drew, or the steward's ring.
+
+        Nobody is obliged to draw anything. A player who never touches `wall`
+        gets the square his steward would have laid, sized to the wall he has
+        bought and the town he has to fit inside it -- which is exactly the
+        ring this game drew before the wall was a drawing. Drawing one yard
+        yourself takes the pen off him for good.
+        """
+        if self.castle.drawn:
+            keeps.trim(self.buildings, self.castle)
+            return self.castle
+        return keeps.default_castle(
+            self.buildings,
+            want_inside=1 + sum(1 for b in self.buildings
+                                if b.spec.terrain in ("urban", "rampart")
+                                and b.key != "keep"))
+
+    def take_the_pen(self) -> "keeps.Castle":
+        """Start drawing, from whatever is standing.
+
+        The first yard you lay yourself has to begin from the ring the steward
+        laid, or `wall` would be a command that knocks your castle down and
+        puts one stone back. After that it is yours and he stops rearranging
+        it behind you.
+        """
+        if not self.castle.drawn:
+            self.castle = self.plan().copy()
+        self.castle.own = True
+        return self.castle
+
+    def sheltered(self) -> bool:
+        """Whether the keep is actually behind the wall. A ring with a hole in
+        it is a fence."""
+        return keeps.shut(self.plan())
+
+    def yards(self) -> int:
+        return self.plan().yards
+
+    def per_yard(self) -> float:
+        """Men to the yard of wall. The number that decides whether a wall is
+        held or merely owned, and the price of enclosing the whole valley.
+
+        Heads, not strength: a wall-walk is manned by bodies standing on it,
+        and forty spearmen hold a hundred yards exactly as badly as forty
+        knights would. What they are worth once somebody reaches them is the
+        fight's business, not the wall's.
+        """
+        r = self.plan().yards
+        return host_size(self.units) / r if r else 0.0
 
     def defense(self, mods: Progress = NO_PROGRESS) -> float:
         works = self.effect("defense") * mods.mult("defense")
@@ -418,6 +476,34 @@ class Settlement:
                                       "charcoal_burner", "blacksmith",
                                       "armourer", "sawmill"))
 
+    def outside_the_wall(self) -> List[int]:
+        """The uids of everything standing where the wall does not reach.
+
+        A town does not stop growing when its wall stops, so what will not fit
+        stands in the field -- and a raider who finds a brewery outside the
+        gate does not go looking for one inside it. This is the whole cost of
+        drawing a small castle, and it is the reason `castle` names them.
+        """
+        from .layout import plan_for
+        # Laying the whole town out costs about as much as three game days,
+        # and a fire asks this question at the worst possible moment. The
+        # answer only changes when the buildings or the drawing do, so it is
+        # kept against exactly that.
+        mark = (tuple(b.uid for b in self.buildings if b.complete),
+                tuple(sorted(self.castle.pieces.items())))
+        if self._exposed_mark != mark:
+            plan = plan_for(self)
+            inside = set(plan.inside)
+            # Workshops only. A farm belongs outside, and a length of wall
+            # stands on the wall line, which is outside the ground it shuts
+            # in by definition -- counting either as "left in the field" made
+            # every castle look like a disaster.
+            self._exposed = [b.uid for b in plan.buildings
+                             if b.terrain == "urban"
+                             and (b.x, b.y) not in inside]
+            self._exposed_mark = mark
+        return list(self._exposed)
+
     def kindle(self, rng: random.Random, n: int = 1, *, exclude_walls: bool = True
                ) -> List[str]:
         """Set fire to something. Used by accident, by raiders, and by sieges."""
@@ -426,6 +512,10 @@ class Settlement:
                    if b.complete and not self.fires.burning(b.uid)
                    and not (exclude_walls and b.spec.terrain == "rampart")]
         rng.shuffle(options)
+        # Whatever is standing outside the wall is what catches. Not a rule
+        # bolted on: it is where the man with the torch already is.
+        exposed = set(self.outside_the_wall())
+        options.sort(key=lambda b: 0 if b.uid in exposed else 1)
         for b in options[:max(0, n)]:
             if self.fires.light(b.uid):
                 out.append(f"{self.name}: the {b.spec.name} is alight")
@@ -660,6 +750,7 @@ class Settlement:
             "besieged": self.besieged, "priority": dict(self.priority),
             "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
+            "castle": self.castle.to_dict(),
         }
 
     @classmethod
@@ -674,4 +765,5 @@ class Settlement:
                 raided=d.get("raided", False),
                 fires=Fires.from_dict(d.get("fires", {})), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
+        s.castle = keeps.Castle.from_dict(d.get("castle"))
         return s

@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 664 tests, ~18min
+python3 -m unittest discover -s tests          # 724 tests, ~19min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -141,6 +141,20 @@ the whole business to one of them. See **[Your house](#your-house)**.
 **Its own** — the trade layer. In both parents trade was a side activity. Here
 coin only enters your treasury through thin taxes and the road, so the market is
 where the game is played.
+
+## The castle
+
+```
+castle [town]             the wall as you drew it, and what it is worth
+wall [stone|timber] <x,y> [<x,y>]    lay a length of it
+tower <x,y>               a tower covers the yards within an arrow of it
+gate <x,y>                where the road comes in
+moat / pitch / pits <x,y> [<x,y>]    what is dug in front
+unwall <x,y> [<x,y>]      take it down; it goes back in hand
+```
+
+See [The castle is a shape you drew](#the-castle-is-a-shape-you-drew). In the
+browser, **the wall** view draws it with the mouse.
 
 ## The accounts
 
@@ -919,6 +933,7 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `iso.py` | the holding in perspective: tiles, sprites, smoke, people |
 | `view.py` | the same holding as a flat plan |
 | `castle.py` | works, assault plans, and what answers what |
+| `keep.py` | the castle as a drawing: enclosure, tower cover, the weak side, depth |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
 | `lords.py` | the rival lords as six sorts of person, and what each of them says |
 | `voices.py` | what the town would say, if you asked it |
@@ -1034,14 +1049,103 @@ labour still runs out, the mood still answers to bread and taxes, the house
 still ages and inherits, and the other lords still quarrel among themselves —
 merchants, not pacifists. A dead march is not a peaceful one, it is a diorama.
 
+### The castle is a shape you drew
+
+This was top of the "what we still do not have" list, and it was the right
+thing to be top of it. *"The satisfaction of seeing your vision come to life
+is unparalleled"* is the single most-repeated sentence anybody writes about
+Stronghold, and it is never about the popularity dial.
+
+We had the **works** — moat, pitch ditch, killing pits, towers — and they
+really are the right abstraction of what a castle does to a besieger. They
+were also completely invisible. You bought `stone_wall` and a square appeared
+around whatever the town happened to be; buying a second one changed the
+picture not at all. Nobody has ever posted a screenshot of an abstraction.
+
+So the wall is a drawing now.
+
+```
+     78901234567890123
+   8         x
+   9         vx
+  10        vvv
+  11       vvvvv
+  12      T######
+  13      #oo.oo# x
+  14   x v#oo.oo#vxx
+  15  xxvv#.....#vxxx
+  16   x  #oo.oo# x
+  17      #oo.oo#
+  18      ###G##T
+
+  the wall          24 yards -- 21 stone, 2 tower(s), 1 gatehouse
+  it shuts in       25 plots
+  towers cover      14 of 24 yards
+  the weak side     5 yards on the south-west with nothing looking down at them
+  men to the yard   3.1 -- held
+  outside it        15 building(s) nobody is defending: Windmill, Bakery ...
+```
+
+`wall 12,12 18,12` runs a length along the north side; `tower`, `gate`, `moat`,
+`pitch`, `pits` and `unwall` do the rest. In the browser there is a **the wall**
+view where you drag along the ground and the run goes where you dragged it —
+and the yards no tower covers are painted red on your own castle, so the hole
+in it is something you can see rather than a line in a report.
+
+**The economy is untouched.** The same buildings at the same prices buying the
+same effects: what changed is that one `stone_wall` is now 28 yards of stone
+*to lay* rather than a ring that appears, and where you lay it decides four
+things the siege actually reads.
+
+| | what the shape buys |
+|---|---|
+| **what is inside** | The town fills the ground you enclosed. What does not fit stands outside — and outside is where the man with the torch already is. |
+| **how long it is** | A garrison is men and a wall is yards, so what matters is men *to the yard*. Enclosing the valley is how you end up with a wall nobody is standing on. |
+| **what the towers see** | A tower covers the wall within an arrow of it. A besieger does not average your towers: he walks round until he finds the longest run none of them cover, and that is where the ladders go. |
+| **how many times** | A second ring inside the first is a second siege. It adds no stone; it adds a yard they have to cross with a wall shooting into it. |
+
+None of it is scored. There is no castle rating and no stars for owning a moat.
+It is read off the drawing by flood fill and arithmetic, because a castle
+should be good on account of where its towers are and not because a rubric said
+so. `shut` is a flood fill from the edge of the map; the weak side is the
+longest run of wall outside every tower's reach; depth is a 0-1 breadth-first
+walk inwards that adds one every time the path has to pass through stone.
+
+And nobody has to draw anything. A player who never types `wall` gets the
+square his steward would have laid — sized to the wall he has bought and the
+town that has to fit in it, stone where there is stone, towers on the corners,
+gate on the road. That is exactly the ring this game drew before, so a game
+that never touches the new commands plays as it always did. The first yard you
+lay yourself starts from his ring, and takes the pen off him for good.
+
+Three things had to be right or the whole feature would have been a tax:
+
+* **The steward's ring must never leave the town in the field.** It is sized by
+  *usable plots* — the interior minus the streets minus the keep — rather than
+  by the raw interior, which is how a town with thirty-six workshops first came
+  out with twelve of them standing outside their own gate.
+* **A drawing you pull down stays yours.** An emptied castle is a decision, and
+  handing the pen back to the steward at that moment would have had him
+  cheerfully redraw the square you had just spent an evening replacing.
+* **The budget rule must never punch a hole in the ring.** Drawing more than
+  you have paid for pulls the excess back down — but a tower you cannot afford
+  is still a yard of wall somebody built, so it is *demoted* to the stone under
+  it, and unpaid stone to timber, and only what has nothing to fall back on
+  comes down at all. Removing it outright turned a concentric castle of seventy
+  enclosed plots into sixteen, silently, because two towers were over.
+
+The steward points at all of this. A hole in your own ring with a host on the
+road is the most urgent sentence in the game at that moment, so it is *ranked*
+into `hint` rather than appended to it — which is how the first version of it
+fell off the bottom of a list capped at four.
+
 ### What we still do not have
 
-Honestly, and top of the list: **laying a castle out yourself**. "The
-satisfaction of seeing your vision come to life is unparalleled" is the single
-most-repeated sentence about Stronghold, and our castle is a set of works you
-buy — moat, pitch ditch, killing pits, towers — rather than a shape you draw.
-The works are the *right* abstraction of it and they are genuinely a design
-decision, but nobody has ever posted a screenshot of an abstraction.
+The flat `view` still draws a **schematic** rectangle rather than your castle:
+sixty-eight columns of terminal will not hold a thirty-yard square honestly,
+and half-doing it gives a picture that is neither. `castle` draws the real
+shape, and `view` now says in a line when the two would disagree rather than
+quietly drawing a workshop inside a wall that does not reach it.
 
 ## The march is a league
 

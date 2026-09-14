@@ -1,9 +1,18 @@
 """The town as a plan: the one screen this game was missing.
 
-Everything drawn here is read from the settlement itself -- the walls are the
-wall buildings you paid for, the fields are the fields you cleared, and a
-workshop standing dark is a workshop that had no hands or no inputs today. It
-is a picture of the state, not an illustration of it.
+Everything drawn here is read from the settlement itself -- the fields are the
+fields you cleared, and a workshop standing dark is a workshop that had no
+hands or no inputs today. It is a picture of the state, not an illustration
+of it.
+
+With one deliberate exception, which is worth being plain about: the wall here
+is a **schematic** rectangle round the town, not the castle you drew. This
+canvas is sixty-eight columns of terminal and the castle is a thirty-yard
+square of ground, and squeezing one into the other would produce a picture
+that was neither. `castle` draws the real thing at its real shape; this says
+how much wall there is and what state it is in. Where the two can disagree --
+a workshop your ring does not reach -- the caption under both town screens
+says so in a line rather than letting the picture quietly draw it inside.
 """
 
 from __future__ import annotations

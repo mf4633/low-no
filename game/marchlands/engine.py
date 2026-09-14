@@ -23,6 +23,7 @@ from .events import EventEngine
 from .goods import ALL_KEYS, good
 from . import lords as lordly
 from . import lord as manly
+from . import keep as keeps
 from .kin import POSTS, Kin, found as found_kin
 from . import league as lg
 from .league import League, PLAYER
@@ -1475,13 +1476,25 @@ class GameState:
         s.besieged = True
         besieger = Side(a.units)
         at_home = self.lord.at_home and self.lord.seat in ("", s.name)
+        # The wall as it was drawn, not as it was bought. A garrison is a
+        # number of men and a wall is a number of yards, so what decides
+        # whether the wall-walk is held is men to the yard -- which is the
+        # whole price of enclosing more ground than you can man, and the
+        # reason a small tight castle is an answer rather than a poor one.
+        castle = s.plan()
+        reading = keeps.read(castle)
         holder = Side(s.units, attack_mult=self.progress.mult("attack"),
                       defense_mult=self.progress.mult("defense"),
                       battlement=6.0 + s.effect("battlement")
                       + (manly.HOME_DEFENCE if at_home else 0.0)
-                      + self.kin.bonus("defence"))
+                      + self.kin.bonus("defence")
+                      + keeps.manning(reading.density(sum(s.units.values()))))
         works = Works.of([b.key for b in s.buildings
                           if b.complete and b.spec.terrain == "rampart"])
+        # Counts come off the shopping list (an oil pot is over the gate
+        # wherever the gate is); shape comes off the ground.
+        drawn = Works.read(castle, reading)
+        works.naked, works.depth = drawn.naked, drawn.depth
         if a.owner != "player":
             a.siege.plan = choose(works, siege_power=a.siege_power,
                                   engineers=a.units.get("engineer", 0.0),
