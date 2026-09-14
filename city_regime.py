@@ -3,7 +3,7 @@ r"""Morning-sky regime classifier for EVERY US Kalshi city.
 WHAT THIS IS. `lax_regime.py` established that a morning-observable sky regime
 splits the LAX daily high hard enough to collapse its spread from 7.05F to
 2.7-3.0F. That machinery ran at exactly one station. This file applies ONE
-classifier, unchanged, to all 24 US cities in `config.CITIES`, and measures per
+classifier, unchanged, to all 23 US cities in `config.CITIES`, and measures per
 city whether the split is real. It does not touch `lax_regime.py`,
 `lax_forecast.py` or `lax_book.py`, all frozen 2026-09-12 and carrying H15.
 
@@ -34,7 +34,7 @@ nobody later mistakes this file's output for that one's:
      silently, which is the failure mode this project keeps re-learning. A day
      here is classified only if every window has at least one observation.
 
-THE MULTIPLICITY PROBLEM, HANDLED UP FRONT. Asking 24 cities "does the regime
+THE MULTIPLICITY PROBLEM, HANDLED UP FRONT. Asking 23 cities "does the regime
 split the high?" at alpha=0.05 buys roughly one false positive by construction.
 The LAX result was a single pre-specified test; this is a family. So each city
 gets a permutation p-value (regime labels shuffled WITHIN calendar month, so

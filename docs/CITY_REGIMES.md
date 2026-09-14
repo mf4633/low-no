@@ -11,7 +11,7 @@ like every other correction in this repository.
 H15 separated its weather leg from its market claim and said so in capitals:
 "the weather leg is already measured and is NOT the hypothesis." This document
 is the weather leg, and only the weather leg, extended from one station to
-twenty-four.
+twenty-three.
 
     IT ASKS: does a morning-observable sky regime split the daily high at this
     city, once the season is removed?
@@ -73,7 +73,7 @@ superseded, and this build writes `city_regimes.json` -- never
 ## THE STATISTIC, AND THE MULTIPLICITY PROBLEM
 
 The LAX result was one pre-specified test at one station. Asking the same
-question at 24 cities is a family, and at alpha=0.05 a family of 24 buys
+question at 23 cities is a family, and at alpha=0.05 a family of 23 buys
 roughly one false positive by construction. Two guards, both fixed now:
 
 * **Statistic.** CLI highs are demeaned within calendar month, so a regime that

@@ -14,7 +14,7 @@ The 1-minute ASOS record fixes both. It is reported in whole degrees F -- the
 same unit the CLI settles in -- and the archive does not expire. The project has
 already proved CLI == the 1-minute maximum on 260 station-days, but only across
 the ELEVEN cities that got per-city offsets on 2026-09-12. This extends that
-proof, and that ground truth, to all 24.
+proof, and that ground truth, to all 23.
 
 WHAT IT WRITES. `docs/settlements_1min.json`, keyed `day|CITY` exactly like
 `docs/settlements.json`, holding the 1-minute maximum, the second-highest
