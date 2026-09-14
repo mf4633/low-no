@@ -1,26 +1,57 @@
 {
- "at": "2026-09-13T23:22:46.389977Z",
+ "at": "2026-09-14T11:23:11.160292Z",
  "traps": [
   {
-   "city": "SEA",
+   "city": "MSP",
    "ceiling": 63,
-   "price": 1,
-   "p_model": 0.0612,
-   "p_market": 0.01,
-   "edge_pts": 5.1,
+   "price": 43,
+   "p_model": 0.8956,
+   "p_market": 0.43,
+   "edge_pts": 46.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 4.0F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "43c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "PHX",
+   "ceiling": 100,
+   "price": 87,
+   "p_model": 0.9689,
+   "p_market": 0.87,
+   "edge_pts": 9.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "87c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
