@@ -1,13 +1,13 @@
 {
- "at": "2026-09-14T12:25:11.270330Z",
+ "at": "2026-09-14T13:27:23.333750Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 63,
-   "price": 52,
-   "p_model": 0.8535,
-   "p_market": 0.52,
-   "edge_pts": 33.4,
+   "price": 60,
+   "p_model": 0.9006,
+   "p_market": 0.6,
+   "edge_pts": 30.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -28,17 +28,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "PHX",
    "ceiling": 100,
-   "price": 87,
-   "p_model": 0.9703,
-   "p_market": 0.87,
-   "edge_pts": 10.0,
+   "price": 90,
+   "p_model": 0.9804,
+   "p_market": 0.9,
+   "edge_pts": 8.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -51,7 +51,22 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "87c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "DAL",
+   "ceiling": 97,
+   "price": 97,
+   "p_model": 0.9725,
+   "p_market": 0.97,
+   "edge_pts": 0.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
     }
    ]
   }
