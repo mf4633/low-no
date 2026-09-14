@@ -24,6 +24,7 @@ from . import kin as kinly
 from . import league as lg
 from . import lord as lordly
 from . import chancery
+from . import culture as cultures
 from . import keep as keeps
 from . import lords as lordkind
 from . import voices
@@ -250,6 +251,8 @@ class Console:
                  f"  garrison {s.garrison_line()}"]
         if not flat:
             lines.append("  standing " + self._roll(s))
+        lines.append(ink.c(f"  built in {s.idiom().name} -- "
+                           f"{s.idiom().blurb}", ink.DIM))
         # Neither town screen can draw the castle at its real shape -- both
         # are a rectangle round the town and the castle is a thirty-yard
         # square of ground. So the one thing they would otherwise hide gets
@@ -2505,6 +2508,8 @@ class Console:
             standing = c.opinion(key, g.day)
             self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)}"
                      f"{ink.c(ink.pad(kind.name, 12), ink.BONE)}"
+                     + ink.c(ink.pad(cultures.culture(t.culture).name, 13),
+                             ink.SLATE)
                      + ink.c(ink.pad(chancery.temper(standing), 11), ink.DIM)
                      + (ink.c("grounds: " + ground.label, ink.LEAF)
                         if ground else ink.c(kind.blurb, ink.DIM)))

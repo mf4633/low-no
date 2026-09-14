@@ -19,6 +19,7 @@ from typing import ClassVar, Dict, List, Optional, Tuple
 from . import config as C
 from .buildings import BUILDINGS, Building, building
 from .fire import Fires, burn, hands_wanted
+from . import culture as cultures
 from . import keep as keeps
 from .goods import ALL_KEYS, COMFORT_GOODS, LUXURY_GOODS, RATION_GOODS, good
 from .market import Market
@@ -101,6 +102,11 @@ class Settlement:
     #: The castle as it was drawn, if anybody drew one. Empty means nobody
     #: has, and the steward's default ring stands instead -- see `works`.
     castle: keeps.Castle = field(default_factory=keeps.Castle)
+    #: What this place is built out of. A property of the ground, not of the
+    #: player: see culture.py. Empty means nobody has said, and the renderer
+    #: falls back to the March.
+    culture: str = ""
+
     _exposed: List[int] = field(default_factory=list)
     _exposed_mark: tuple = ()
 
@@ -129,6 +135,11 @@ class Settlement:
         return self.effect("wall") * mods.mult("wall")
 
     # ----------------------------------------------------------- the castle
+    def idiom(self) -> "cultures.Culture":
+        """What this place builds in. Named rather than stored raw so the
+        renderer, the console and the map all read the same answer."""
+        return cultures.culture(self.culture or cultures.DEFAULT)
+
     def plan(self) -> "keeps.Castle":
         """The castle as it stands: what you drew, or the steward's ring.
 
@@ -751,6 +762,7 @@ class Settlement:
             "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
             "castle": self.castle.to_dict(),
+            "culture": self.culture,
         }
 
     @classmethod
@@ -766,4 +778,5 @@ class Settlement:
                 fires=Fires.from_dict(d.get("fires", {})), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         s.castle = keeps.Castle.from_dict(d.get("castle"))
+        s.culture = d.get("culture", "")
         return s

@@ -203,6 +203,10 @@ class TestTheTownTalksBack(unittest.TestCase):
         self.assertTrue(live, "a perfectly ordinary day has nobody in it")
 
     def test_a_debased_penny_is_felt_in_the_street(self):
+        # You cannot debase a coinage you do not strike: see tech.py. This
+        # test is about what the street says afterwards, not about who is
+        # allowed a mint, so it founds one first.
+        self.g.progress.researched.add("coinage")
         self.g.mint(C.MINT_LIMIT)
         self.g.tick()
         self.assertIn("debased",

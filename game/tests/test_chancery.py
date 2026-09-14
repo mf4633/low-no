@@ -27,6 +27,19 @@ from marchlands.sim import Bot, Conqueror
 from marchlands.web import snapshot
 
 
+#: The three levers that used to be simply available and are now institutions
+#: you have to found: see tech.py. A test about what a price ceiling *does* is
+#: not a test about whether you are allowed one, so these grant the charter
+#: and get on with the measurement -- and tests/test_tech.py is where being
+#: allowed one is tested.
+CHARTERED = ("coinage", "assize_of_bread", "chancery")
+
+
+def chartered(game):
+    game.progress.researched |= set(CHARTERED)
+    return game
+
+
 def plain(text: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
@@ -42,7 +55,7 @@ def _a_host(g):
 
 
 def grown(seed=5, days=300, bot=Bot):
-    g = start("marchlands", seed=seed)
+    g = chartered(start("marchlands", seed=seed))
     runner = bot(g)
     for _ in range(days):
         runner.step()
@@ -160,7 +173,7 @@ class TestTheLetterAgainstYou(unittest.TestCase):
     they started counting together."""
 
     def setUp(self):
-        self.g = new_game(seed=5)
+        self.g = chartered(new_game(seed=5))
         self.c = self.g.court
         self.keys = list(self.g.world.towns)
 
@@ -258,7 +271,7 @@ class TestAWarWantsAReason(unittest.TestCase):
     rest of the march shrugs instead of writing to each other about you."""
 
     def setUp(self):
-        self.g = new_game(seed=5)
+        self.g = chartered(new_game(seed=5))
         self.c = self.g.court
 
     def test_being_burned_out_is_a_reason(self):
@@ -275,7 +288,7 @@ class TestAWarWantsAReason(unittest.TestCase):
 
     def test_marching_with_one_offends_less_than_marching_without(self):
         def cost(ground):
-            g = new_game(seed=5)
+            g = chartered(new_game(seed=5))
             if ground:
                 g.court.give_ground("dunmere", "raided", g.day)
             g._declare(g.world.towns["dunmere"])
@@ -283,13 +296,13 @@ class TestAWarWantsAReason(unittest.TestCase):
         self.assertLess(cost(True), cost(False))
 
     def test_and_the_town_at_home_is_not_a_spectator(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         was = g.home().popularity
         g._declare(g.world.towns["dunmere"])
         self.assertLess(g.home().popularity, was)
 
     def test_but_not_when_you_had_a_reason(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.court.give_ground("dunmere", "raided", g.day)
         was = g.home().popularity
         said = g._declare(g.world.towns["dunmere"])
@@ -297,7 +310,7 @@ class TestAWarWantsAReason(unittest.TestCase):
         self.assertIn("You have grounds", said)
 
     def test_one_siege_is_one_quarrel_however_long_it_runs(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g._declare(g.world.towns["dunmere"])
         first = g.court.offence("vantry", g.day)
         for _ in range(5):
@@ -306,7 +319,7 @@ class TestAWarWantsAReason(unittest.TestCase):
 
     def test_a_town_taken_lawfully_offends_less(self):
         def take(lawful):
-            g = new_game(seed=5)
+            g = chartered(new_game(seed=5))
             if lawful:
                 g.court.give_ground("dunmere", "raided", g.day)
             g._declare(g.world.towns["dunmere"])
@@ -318,7 +331,7 @@ class TestAWarWantsAReason(unittest.TestCase):
         self.assertLess(take(True), take(False))
 
     def test_and_retaking_one_that_revolted_is_not_a_second_conquest(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         a = _a_host(g)
         town = g.world.towns["dunmere"]
         g._take_town(town, a)
@@ -331,7 +344,7 @@ class TestAWarWantsAReason(unittest.TestCase):
 
 class TestFriendsCostSomething(unittest.TestCase):
     def setUp(self):
-        self.g = new_game(seed=5)
+        self.g = chartered(new_game(seed=5))
         self.c = self.g.court
 
     def test_a_lord_who_does_not_think_much_of_you_will_not_swear(self):
@@ -404,7 +417,7 @@ class TestAHouseThatEnds(unittest.TestCase):
     comes to you with nobody in the field."""
 
     def test_a_claim_takes_the_hall(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         first = next(iter(g.world.towns))
         g.court.claims[first] = 0
         g.SUCCESSION_ODDS = 1.0
@@ -414,14 +427,14 @@ class TestAHouseThatEnds(unittest.TestCase):
         self.assertNotIn(first, g.court.claims, "the claim was spent")
 
     def test_and_no_claim_means_a_cousin_takes_it(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.SUCCESSION_ODDS = 1.0
         said = " ".join(g._succession_abroad())
         self.assertIn("cousin", said)
         self.assertFalse(any(t.mine for t in g.world.towns.values()))
 
     def test_a_marriage_makes_the_claim(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.treasury = 500000
         who = next(p for p in g.kin.people
                    if p.alive and not p.married_to and not p.spouse
@@ -431,7 +444,7 @@ class TestAHouseThatEnds(unittest.TestCase):
 
     def test_and_even_a_bloodless_one_is_noticed(self):
         """A town is a town. Coming by it without a war is cheap, not free."""
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         first = next(iter(g.world.towns))
         g.court.claims[first] = 0
         g.SUCCESSION_ODDS = 1.0
@@ -448,7 +461,7 @@ class TestItDrawsFromItsOwnDice(unittest.TestCase):
     campaign from a browser poll."""
 
     def test_the_chancery_does_not_touch_the_world_stream(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         before = g.rng.getstate()
         for _ in range(200):
             g._succession_abroad()
@@ -456,12 +469,12 @@ class TestItDrawsFromItsOwnDice(unittest.TestCase):
         self.assertEqual(before, g.rng.getstate())
 
     def test_and_it_is_seeded_from_the_game(self):
-        a, b = new_game(seed=5), new_game(seed=5)
+        a, b = chartered(new_game(seed=5)), chartered(new_game(seed=5))
         self.assertEqual(a.court.seed, b.court.seed)
-        self.assertNotEqual(new_game(seed=6).court.seed, a.court.seed)
+        self.assertNotEqual(chartered(new_game(seed=6)).court.seed, a.court.seed)
 
     def test_and_it_survives_a_save(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.court.write("dunmere", "took_town", -30.0, g.day)
         g.court.give_ground("vantry", "raided", g.day)
         g.court.allies.append("bruille")
@@ -486,7 +499,7 @@ class TestPoliticsIsPricedAsMoney(unittest.TestCase):
     """
 
     def toll(self, setup):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         setup(g)
         g.tick()
         return g.world.tariff_for("dunmere", None)
@@ -520,7 +533,7 @@ class TestPoliticsIsPricedAsMoney(unittest.TestCase):
         self.assertLess(high, 0.25)
 
     def test_a_town_of_yours_tolls_nobody(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.world.towns["dunmere"].owner = "player"
         self.assertEqual(g.world.tariff_for("dunmere", None), 0.0)
 
@@ -544,7 +557,7 @@ class TestPoliticsIsPricedAsMoney(unittest.TestCase):
         from marchlands.advisor import scan
 
         def best(setup):
-            g = new_game(seed=5)
+            g = chartered(new_game(seed=5))
             setup(g)
             g.tick()
             rows = scan(g.world, next(iter(g.world.settlements)))
@@ -561,7 +574,7 @@ class TestPoliticsIsPricedAsMoney(unittest.TestCase):
     def test_the_surplus_screen_reads_the_politics(self):
         """The one screen in the game that prices a tax properly was the only
         one that could not see who was levying it."""
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.court.write("dunmere", "took_town", -70.0, 0)
         g.tick()
         buf = io.StringIO()
@@ -570,7 +583,7 @@ class TestPoliticsIsPricedAsMoney(unittest.TestCase):
         self.assertIn("charges you more than a stranger", out)
 
     def test_and_the_court_screen_reads_the_money(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         buf = io.StringIO()
         con = Console(g, out=buf)
         con.do("court")
@@ -589,7 +602,7 @@ class TestTheStreetKnowsAboutIt(unittest.TestCase):
 
     def test_the_street_can_see_the_letter(self):
         from marchlands import voices
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.court.coalition = list(g.world.towns)[:4]
         m = voices.read(g.home(), g)
         self.assertEqual(m.signed, 4)
@@ -598,32 +611,32 @@ class TestTheStreetKnowsAboutIt(unittest.TestCase):
 
     def test_and_a_war_nobody_can_name_a_cause_for(self):
         from marchlands import voices
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g._declare(g.world.towns["dunmere"])
         self.assertTrue(voices.read(g.home(), g).unjust)
 
     def test_but_not_one_it_can(self):
         from marchlands import voices
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.court.give_ground("dunmere", "raided", g.day)
         g._declare(g.world.towns["dunmere"])
         self.assertFalse(voices.read(g.home(), g).unjust)
 
     def test_it_can_see_the_price_of_bread_last_year(self):
         from marchlands import voices
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         m = voices.read(g.home(), g)
         self.assertIsInstance(m.inflation, float)
 
     def test_and_what_the_march_charges_the_carts(self):
         from marchlands import voices
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.tick()
         self.assertGreater(voices.read(g.home(), g).toll, 0.0)
 
     def test_every_new_line_belongs_to_something_that_can_happen(self):
         from marchlands import voices
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         base = voices.read(g.home(), g)
         for key in ("called", "coalition", "blockade", "unjust", "inflation",
                     "tolls", "allies", "cheap_roads"):
@@ -636,7 +649,7 @@ class TestTheStreetKnowsAboutIt(unittest.TestCase):
 class TestTheConsoleSaysAllOfIt(unittest.TestCase):
     def setUp(self):
         self.buf = io.StringIO()
-        self.g = new_game(seed=5)
+        self.g = chartered(new_game(seed=5))
         self.con = Console(self.g, out=self.buf)
 
     def said(self):

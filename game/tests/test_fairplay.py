@@ -14,8 +14,21 @@ from marchlands.scenario import new_game
 from marchlands.sim import Bot
 
 
+#: The three levers that used to be simply available and are now institutions
+#: you have to found: see tech.py. A test about what a price ceiling *does* is
+#: not a test about whether you are allowed one, so these grant the charter
+#: and get on with the measurement -- and tests/test_tech.py is where being
+#: allowed one is tested.
+CHARTERED = ("coinage", "assize_of_bread", "chancery")
+
+
+def chartered(game):
+    game.progress.researched |= set(CHARTERED)
+    return game
+
+
 def grown(seed: int = 5, days: int = 400):
-    g = new_game(seed=seed)
+    g = chartered(new_game(seed=seed))
     bot = Bot(g)
     for _ in range(days):
         bot.step()
@@ -42,6 +55,12 @@ class TestYouCannotPrintTheWin(unittest.TestCase):
         third more coin against a hundred thousand of goods takes more than
         the twenty thousand it hands over."""
         g, _ = grown(days=900)
+        # Rich *on purpose*, rather than hoping nine hundred days of bot play
+        # lands above a threshold. The claim here is about what a debasement
+        # does to a house with holdings; "has holdings" is the setup, and a
+        # setup that depends on the economy's difficulty is one that breaks
+        # every time the economy is tuned -- which is exactly how it broke.
+        g.treasury += 60_000
         before = g.real_worth()
         self.assertGreater(before, 60_000, "this test wants a rich house")
         g.mint(C.MINT_LIMIT)
@@ -195,14 +214,14 @@ class TestTheRaceIsLegible(unittest.TestCase):
             self.assertIsInstance(land, float)
 
     def test_it_says_nothing_before_it_has_anything_to_say(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         for _what, now, _want, land in g.pace():
             self.assertAlmostEqual(now, land, places=6)   # no rate, no claim
 
     def test_a_run_that_is_going_nowhere_says_so_while_there_is_time(self):
         """Seed 47 finishes at a fifth of the goal without a single disaster
         in the log. It should be obvious by the first winter, not the last."""
-        g = new_game(seed=47)
+        g = chartered(new_game(seed=47))
         bot = Bot(g)
         for _ in range(400):
             bot.step()

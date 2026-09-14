@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 801 tests, ~20min
+python3 -m unittest discover -s tests          # 889 tests, ~22min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -142,6 +142,58 @@ the whole business to one of them. See **[Your house](#your-house)**.
 coin only enters your treasury through thin taxes and the road, so the market is
 where the game is played.
 
+## Country you have not memorised
+
+```bash
+python3 -m marchlands --region pennines
+python3 -m marchlands --region fens --dials hills=0.4,towns=9
+python3 -m marchlands --list          # every region, and what its dials say
+```
+
+The hand-made march is a good map and it is the only one. Played a sixth time
+you are no longer reading the country, you are recalling it — Vantry has the
+grain, Caldmoor has the ore, the best opening run is Dunmere and back. A map
+you have memorised has stopped asking you anything.
+
+So country can be drawn instead, from **dials** — how hilly, how marshy, how
+wooded, how fertile, how much coast, how much ore, how many neighbours and how
+far apart — and from **six real places**, each a set of those dials plus the
+naming morphology of the actual region.
+
+| | what it is | what that does |
+|---|---|---|
+| **the Welsh Marches** | oak, sandstone hills, a castle every eight miles | close, wooded, defensible |
+| **the Fens** | peat, eels and sedge, no stone for forty miles | poor until you dig |
+| **the Rhine Gorge** | one river, vines on the slope, a toll castle on every bend | nine rich neighbours at the gate |
+| **the Po Valley** | flat, wet, absurdly fertile, towns close enough to quarrel before breakfast | ten of them, grain everywhere |
+| **the Pennines** | gritstone, lead and rain; villages where the seam is | ore under everything, nothing grows |
+| **the Baltic Shore** | sand, pine and amber, every town at a river mouth | coast, timber, faces out to sea |
+
+These are **characterisations, not survey data** — this is a game and there is
+no map server behind it. What is real is the shape of the place and the way its
+places are named: `Ludmore` and `Knighton` in the Marches, `Thornmere` and
+`Quyfen` in the Fens, `Sanktberg` and `Bacharach` on the Rhine.
+
+Every dial changes what the country is **for**, not what it looks like. A hill
+town sells ore and buys bread; a fen town sells almost nothing and buys
+everything; a shore town sells salt and wants timber — all of it falling out of
+what is under the place rather than written next to it. It reaches the ledger:
+the same bot on the same seed finishes at **11,019 in the Fens and 31,844 on
+the Rhine**.
+
+### Marsh is land you own and cannot work
+
+The dial that does the most work, and the one worth being careful about. Fen is
+not "poor farmland" — it is ground that yields *nothing at all* to anybody who
+has not drained it, which is why the drainage of the Fens and the Dutch polders
+were the great capital projects of the age. So marsh here is a terrain **no
+building will stand on**, it is drawn as standing water and sedge, and the only
+thing that has ever changed that is the one that worked in life: dig.
+
+That is [`drainage`](#a-tech-tree-of-institutions), the one technology in the
+tree that changes the map — one slot a quarter, slowly enough that the wettest
+country is still the hardest place to open.
+
 ## The court
 
 ```
@@ -152,6 +204,68 @@ court buy                 pay off the whole letter against you
 ```
 
 See [The march is a web, not eight quarrels](#the-march-is-a-web-not-eight-quarrels).
+
+## A tech tree of institutions
+
+A tech tree is usually a list of multipliers with a picture on each one. It can
+be the other thing: every node an **institution** that the economics or the
+politics layer already models, where researching it is what gives you the lever
+rather than a percentage.
+
+| | opens | age |
+|---|---|---|
+| **A Coinage of Your Own** | `mint` — and the whole of seigniorage | II |
+| **The Assize of Bread** | `decree`, the legal maximum | II |
+| **A Chancery** | `ally` — nobody swears to a house that cannot write | II |
+| **The Staple** | foreign goods must be offered in your market first | III |
+| **Safe-Conducts** | a sealed letter that gets a cart through a hostile gate | III |
+| **Heralds** | a grievance you can *name* lasts twice as long | III |
+| **Drainage** | fen becomes field, a slot a quarter | III |
+| **The Exchequer** | the same tax rate collects more of itself | IV |
+
+The prerequisites are the real ones. You cannot debase a coinage you do not
+strike. You cannot fix the price of bread without a guild to enforce it and a
+court to hear the complaints — so the Assize needs the Guild Charter. You
+cannot offer a safe-conduct without an embassy to be trusted by, so both it and
+the Heralds need the Chancery. An Exchequer is what a Counting House becomes
+when it is the crown's.
+
+Three of them change a **mechanic** rather than a number, which is the point of
+the branch:
+
+* A **safe-conduct** takes 55% off the *excess* of a hostile toll and nothing
+  at all off a friendly one — protection against being stopped, not a discount,
+  which is what the thing actually was. A hostile gate falls from 7.4% to 5.5%.
+* **Heralds** double how long your own grounds for war stay good.
+* **Drainage** is the only technology that edits the map.
+
+And gating `mint`, `decree` and `ally` on institutions is the difference between
+a tree that *describes* your town and one that decides what you may do in it.
+Each gate says which institution opens it rather than failing silently.
+
+This is also the one change in the project that broke twenty-three existing
+tests at once, all of them correctly: they were written when the levers were
+unconditional. A test about what a price ceiling *does* is not a test about
+whether you are allowed one, so those grant the charter in their setup and get
+on with the measurement, and `tests/test_institutions.py` is where being
+allowed one is tested.
+
+### It also found a bot that had been buying trebuchets it never used
+
+Adding eight techs took the balance guard from two wins in twelve to none, and
+the obvious reading — "the institutions cost too much" — was wrong. The bot
+researches the first thing it can afford, in list order, and it had *always*
+been buying plate armour, trebuchet frames and the preaching orders and then
+never fielding a knight, an engine or a friar. That was invisible while every
+tech in the tree was roughly worth having. Eight institutions a trader has no
+use for made it visible.
+
+Blocklisting the new techs would have been the fudge, and it made things worse.
+The instrument's own docstring says it "plays the trading game competently and
+no better", and competently means not buying trebuchet frames when you have no
+trebuchets — so it now researches what improves what it actually does, and
+whatever is on the road to that. Two wins in twelve again, from a better
+instrument rather than a tuned number.
 
 ## The castle
 
@@ -385,6 +499,67 @@ the comfortable ones, a stone curtain with merlons along it, water in the
 ditch, mill sails turning, smoke from the ovens that are lit, windows glowing
 where somebody is working, people on the road, and snow in winter with the
 trees gone bare.
+
+#### Five idioms
+
+Age of Empires II is remembered for a lot of things, and one of them is that
+you can tell whose town you are looking at from the roofline. Not from a banner
+— from the fact that a Frankish castle and a Japanese one are different
+objects.
+
+This game had one idiom. Every settlement anybody founded, on chalk or granite,
+in the fen or on the border, came out as timber frame and thatch. There are
+five now, and a culture belongs to **the ground rather than the player** — so
+one game has several skylines in it rather than one.
+
+| | walls | roofs | silhouette |
+|---|---|---|---|
+| **the March** | timber frame, jettied | steep thatch | deep eaves, an upper floor that oversails |
+| **the Hansa** | brick | tile | crow-stepped gables, tall and narrow |
+| **the Abbey** | ashlar | slate | steep, pale, spires |
+| **the Vale** | cob and lime | thatch | long low **hipped** roofs — four slopes, no gable |
+| **the Ironhand** | drystone | slate | squat and heavy |
+
+Three rules kept it from being a reskin. **It is the same building** — a Hansa
+granary holds what a March granary holds, and a bonus attached to a roof shape
+would be a bonus pretending to be a culture. **It is legible from the picture
+alone** — four channels (wall material, roof material, roof *form*, palette),
+because any one of them on its own is a colour swap. **It is the ground's** —
+a coast builds like a port, a hill builds in stone, chalk builds low, and
+taking a town does not re-roof it.
+
+With one exception: a house's *opening* hold is raised by masons who travelled
+with it. That has to be checked before the ground or it is not an exception at
+all — testing terrain first opened all five houses on the same chalk in the
+same idiom, which is the one outcome that makes the whole feature pointless.
+
+#### One figure stands for fourteen people
+
+The tension every builder game has and most resolve by lying: the simulation
+runs on aggregates — a population is a float, a garrison is a dictionary of
+counts — and the picture draws people. One figure per soul is an unreadable
+crowd and a dead framerate. A decorative handful of dots on a road is a picture
+telling you something that is not true.
+
+So a figure is a **sample, at a ratio the interface states out loud**, doing
+something the aggregate is really doing:
+
+```
+one figure = 14 souls · 12 on the wall (6 men each)
+```
+
+A worker walks the route between the roof he sleeps under and the shed that is
+staffed today. Somebody with no work stands in the street — shut every shed and
+the whole town is in the square, with nobody drawing that as a special case.
+And the watch stands on the yards of wall that are **really being held**, drawn
+along [the castle you drew](#the-castle-is-a-shape-you-drew), so a wall you
+enclosed more ground with than you have men for *looks* thinly held. No
+warning, no icon, no number: you can see the gaps.
+
+The share of figures going somewhere is the share of the **workforce** with a
+job, not of the population — most of a town is children and the old, and
+dividing by the whole of it put two people on the road in a town with every
+shed running.
 
 #### The materials
 
@@ -987,6 +1162,8 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `view.py` | the same holding as a flat plan |
 | `castle.py` | works, assault plans, and what answers what |
 | `keep.py` | the castle as a drawing: enclosure, tower cover, the weak side, depth |
+| `culture.py` | five architecture sets, and which ground builds in which |
+| `cartography.py` | country drawn from dials, and six real places characterised as dials |
 | `lord.py` | your lord: what he is worth, and what can happen to him |
 | `lords.py` | the rival lords as six sorts of person, and what each of them says |
 | `voices.py` | what the town would say, if you asked it |

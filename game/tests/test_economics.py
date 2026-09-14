@@ -21,6 +21,19 @@ from marchlands.scenario import new_game
 from marchlands.sim import Bot
 
 
+#: The three levers that used to be simply available and are now institutions
+#: you have to found: see tech.py. A test about what a price ceiling *does* is
+#: not a test about whether you are allowed one, so these grant the charter
+#: and get on with the measurement -- and `TestTheInstitutionsAreGates` in
+#: tests/test_tech.py is where being allowed one is tested.
+CHARTERED = ("coinage", "assize_of_bread", "chancery")
+
+
+def chartered(game):
+    game.progress.researched |= set(CHARTERED)
+    return game
+
+
 def grown(seed: int = 5, days: int = 500):
     g, _ = played(seed, days)
     return g
@@ -35,7 +48,7 @@ def played(seed: int = 5, days: int = 500):
     output on a shelf nobody draws from, and a shortage cannot be measured
     against a market that has stopped.
     """
-    g = new_game(seed=seed)
+    g = chartered(new_game(seed=seed))
     bot = Bot(g)
     for _ in range(days):
         bot.step()
@@ -55,13 +68,13 @@ class TestTheIndex(unittest.TestCase):
         """The base is not day one. A new holding is sitting on its founding
         stores, so day-one prices are the floor, and an index based there
         reads the granary emptying as four hundred per cent inflation."""
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         g.tick()
         self.assertGreater(base_basket(), 0)
         self.assertAlmostEqual(g.economy.base_cpi, base_basket(), places=6)
 
     def test_the_index_reads_what_is_charged(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         m = g.home().market
         self.assertAlmostEqual(
             basket_cost(m), sum(share * m.price(k) for k, share in BASKET),
@@ -205,13 +218,31 @@ class TestTheAssize(unittest.TestCase):
 
     def test_the_index_does_not_show_the_shortage(self):
         """Which is the point. Measured prices fall while the shelf empties --
-        exactly what a price control does to a price index."""
-        before = self.g.accounts.cpi
-        self.g.decree("bread", self.m.fundamental("bread") * 0.25)
-        for _ in range(40):
-            self.g.tick()
-        self.assertLess(self.g.accounts.cpi, before)
-        self.assertGreater(self.g.economy.shortage.get("bread", 0.0), 0.3)
+        exactly what a price control does to a price index.
+
+        A comparison, not a level. Reading the index before and after forty
+        days asks whether the *whole economy* got cheaper in that time, which
+        it may not have for a dozen reasons that have nothing to do with
+        bread; the claim is that the index is lower with the ceiling than it
+        would have been without one, and that is two runs of the same save.
+        """
+        save = self.g.to_dict()
+
+        def run(decree):
+            h = GameState.from_dict(save)
+            if decree:
+                h.decree("bread", h.home().market.fundamental("bread") * 0.25)
+            for _ in range(40):
+                h.tick()
+            return h
+
+        free, capped = run(False), run(True)
+        self.assertLess(capped.accounts.cpi, free.accounts.cpi)
+        self.assertGreater(capped.economy.shortage.get("bread", 0.0), 0.3)
+        # The emptying shelf is the other half of this and it is measured in
+        # `test_and_empties_the_shelf`, where somebody is still buying. Here
+        # the town eats through its own granary either way, so a shelf
+        # comparison would compare nothing to nothing.
 
     def test_lifting_it_lets_the_price_find_its_own_level(self):
         self.g.decree("bread", 1.0)
@@ -297,7 +328,7 @@ class TestComparativeAdvantage(unittest.TestCase):
         self.assertEqual(compare({"wheat": 1.0}, {"clay": 1.0}, "silk", "x"), [])
 
     def test_it_reads_off_the_game_s_own_towns(self):
-        g = new_game(seed=5)
+        g = chartered(new_game(seed=5))
         mine = daily_output(g.home())
         town = g.world.towns["dunmere"]
         rows = compare(mine, town_output(town), "wood", town.name)

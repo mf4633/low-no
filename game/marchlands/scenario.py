@@ -16,6 +16,8 @@ from . import config as C
 from .engine import GameState
 from .events import EventEngine, RivalCompany
 from .goods import ALL_KEYS
+from . import cartography as carto
+from . import culture as cultures
 from . import lords as lordly
 from .market import Market
 from .settlement import Settlement
@@ -187,12 +189,17 @@ def found_seat(world: World, key: str, name: str, terrain: Dict[str, int],
                coords: Tuple[float, float], *, population: float,
                deposits: Dict[str, float], standing: Tuple[str, ...],
                stock: Dict[str, float],
-               units: Optional[Dict[str, float]] = None) -> Settlement:
+               units: Optional[Dict[str, float]] = None,
+               house: str = "") -> Settlement:
     """Raise a starting settlement with what it already has standing."""
     market = Market(name=name, stock={}, target={})
     home = Settlement(name=name, terrain=dict(terrain), market=market,
                       population=population, units=dict(units or {}),
-                      deposits=dict(deposits))
+                      deposits=dict(deposits),
+                      # The ground decides what a place is built out of, with
+                      # the one exception that a house's first hold is raised
+                      # by masons who travelled with it. See culture.py.
+                      culture=cultures.for_ground(terrain, house, first=True))
     home.update_market_targets()
     for b in standing:
         home.start_build(b).days_left = 0
@@ -215,6 +222,71 @@ def default_rivals() -> EventEngine:
     ])
 
 
+def drawn_game(region: str = carto.DEFAULT_REGION, seed: int = 7,
+               house: str = "plough",
+               dials: Optional[carto.Dials] = None) -> GameState:
+    """A march nobody laid out by hand.
+
+    The same game on country drawn from dials. Everything downstream -- the
+    lords' characters, the league, the chancery, the culture of each place --
+    reads the map it is given, so a generated march is a real one rather than
+    a sandbox: see cartography.py for what the dials mean.
+    """
+    if house not in HOUSES:
+        raise KeyError(f"no house called {house!r}; "
+                       f"choose from {', '.join(HOUSES)}")
+    plan = carto.draw(region, seed, dials)
+    world = World()
+    found_seat(
+        world, "seat", plan.home_name,
+        plan.home_terrain, (0.0, 0.0),
+        population=130.0, deposits=dict(plan.home_deposits),
+        units={"spearman": 4, "archer": 3},
+        standing=("keep", "palisade", "barracks", "cottage", "cottage",
+                  "cottage", "cottage", "cottage", "farm", "farm",
+                  "woodcutter", "granary", "warehouse"),
+        stock=OPENING_STORES, house=house)
+    for t in plan.towns:
+        ground = t.pop("ground")
+        town = make_town(t["key"], t["name"], t["x"], t["y"],
+                         produces=t["produces"], consumes=t["consumes"],
+                         appetite=t["appetite"], lawlessness=t["lawlessness"],
+                         tariff=t["tariff"], lord=t["lord"], walls=t["walls"],
+                         muster=t["muster"], wealth=t["wealth"],
+                         port=t["port"], blurb=t["blurb"])
+        # A generated town's idiom comes off its own ground, exactly as a
+        # settlement's does -- so a fen town and a hill town on the same map
+        # do not have the same roofline.
+        town.culture = cultures.for_ground(ground)
+        world.towns[t["key"]] = town
+        world.place(t["key"], t["x"], t["y"])
+        t["ground"] = ground
+    stagger = random.Random(seed * 7919 + 3)
+    for t in world.towns.values():
+        kind = lordly.sort_of(t.key)
+        t.temper = (0.55 + 0.95 * stagger.random()) * kind.temper
+        t.aggression = (0.45 + 1.2 * stagger.random()) * kind.aggression
+        t.hostility = 12.0 + 48.0 * stagger.random()
+        t.ambition = 20.0 * stagger.random() * kind.aggression
+    for s in plan.sites:
+        world.sites[s["key"]] = Site(
+            s["key"], s["name"], s["x"], s["y"], dict(s["terrain"]),
+            s["coin_cost"], s["blurb"], deposits=dict(s["deposits"]))
+    for sh in plan.shrines:
+        world.shrines[sh["key"]] = Shrine(
+            sh["key"], sh["name"], sh["x"], sh["y"], short=sh["short"],
+            relic=sh["relic"], blurb=sh["blurb"])
+        world.place(sh["key"], sh["x"], sh["y"])
+    game = GameState(world=world, treasury=1800.0, seed=seed, house=house,
+                     progress=Progress(researched={house}))
+    game.events = default_rivals()
+    game.briefing = (f"{plan.home_name}, in {carto.REGIONS[plan.region].name}. "
+                     f"{plan.note} "
+                     + ", ".join(word for _n, _v, word
+                                 in carto.describe(plan.dials)) + ".")
+    return game
+
+
 def new_game(seed: int = 7, house: str = "plough") -> GameState:
     if house not in HOUSES:
         raise KeyError(f"no house called {house!r}; "
@@ -232,7 +304,7 @@ def new_game(seed: int = 7, house: str = "plough") -> GameState:
         standing=("keep", "palisade", "barracks", "cottage", "cottage", "cottage",
                   "cottage", "cottage", "farm", "farm", "woodcutter", "granary",
                   "warehouse"),
-        stock=OPENING_STORES)
+        stock=OPENING_STORES, house=house)
 
     # ------------------------------------------------------------- the road
     build_towns(world, seed)

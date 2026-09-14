@@ -172,6 +172,17 @@ def _best_skill(person) -> str:
     return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
 
 
+def _culture(s) -> dict:
+    """The idiom, as four channels the renderer can act on: what the walls
+    are, what the roofs are, how steep, and what colour the street is."""
+    c = s.idiom()
+    return {"key": c.key, "name": c.name, "blurb": c.blurb,
+            "walls": dict(c.walls), "roofs": dict(c.roofs),
+            "pitch": c.pitch, "gable": c.gable, "stretch": c.stretch,
+            "tone": c.tone, "tint": c.tint, "tint_by": c.tint_by,
+            "roof_tint": c.roof_tint, "roof_by": c.roof_by}
+
+
 def _court(game) -> dict:
     """The march as a web of opinion, for the map that draws it."""
     c, day = game.court, game.day
@@ -185,6 +196,7 @@ def _court(game) -> dict:
             "name": t.name, "lord": t.lord,
             "opinion": round(view, 1), "temper": chancery.temper(view),
             "offence": round(c.offence(key, day), 1),
+            "culture": chancery and t.culture or t.culture,
             "signed": key in c.coalition,
             "allied": key in c.allies,
             "claim": key in c.claims,
@@ -287,6 +299,9 @@ def snapshot(game, here: str = "") -> dict:
                       for k, v in game.economy.shortage.items() if v > 0.01],
         },
         "here": key,
+        # What this place is built out of, so the renderer can draw it in its
+        # own idiom rather than in the one idiom it used to have.
+        "culture": _culture(s),
         # The politics: who thinks what, who has signed, and who is waiting
         # on an answer. The same reading `court` prints.
         "court": _court(game),

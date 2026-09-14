@@ -24,6 +24,7 @@ from .goods import ALL_KEYS, good
 from . import lords as lordly
 from . import lord as manly
 from . import chancery as court
+from . import culture as cultures
 from . import keep as keeps
 from .kin import POSTS, Kin, found as found_kin
 from . import league as lg
@@ -1032,6 +1033,30 @@ class GameState:
                     f"emptying and some of it is going out the back door."))
         return msgs
 
+    #: Which institution opens which lever. A tech tree that only multiplies
+    #: what you were already doing describes your town; one that decides what
+    #: you may do in it is a tree.
+    OPENS = {
+        "mint": ("coinage", "You have no coinage of your own -- you are using "
+                            "somebody else's pennies, and a man cannot debase "
+                            "another man's coin. `research coinage`."),
+        "decree": ("assize_of_bread", "There is no assize here: no standard "
+                                      "loaf, no legal maximum and no court to "
+                                      "hear a complaint about either. "
+                                      "`research assize_of_bread`."),
+        "ally": ("chancery", "You have no chancery -- no clerks, no seal and "
+                             "no copy of anything you have ever sent. Nobody "
+                             "swears to a house that cannot write. "
+                             "`research chancery`."),
+    }
+
+    def opened(self, lever: str) -> str:
+        """'' if the institution stands, else why it does not."""
+        want, why = self.OPENS.get(lever, ("", ""))
+        if not want or self.progress.knows(want):
+            return ""
+        return why
+
     def mint(self, coin: float) -> str:
         """Strike more pennies out of the same silver.
 
@@ -1039,6 +1064,9 @@ class GameState:
         -- but not today, and the gap between today and finding out is the
         entire reason anybody has ever done this.
         """
+        shut = self.opened("mint")
+        if shut:
+            return shut
         coin = max(0.0, float(coin))
         if coin <= 0:
             econ = self.economy
@@ -1065,6 +1093,9 @@ class GameState:
         The first thing a ceiling teaches is that one above the market price
         does nothing whatever, and the second is what one below it does.
         """
+        shut = self.opened("decree")
+        if shut:
+            return shut
         spec = good(key)
         home = self.home()
         worth = home.market.fundamental(key)
@@ -1803,6 +1834,10 @@ class GameState:
         c = self.court
         if day % 7 == 0:
             c.sweep(day)
+        # Heralds: men whose whole trade is knowing who is angry with whom.
+        # A grievance you can *name* is one you can still act on, so your own
+        # grounds for war keep while theirs wear off at the usual rate.
+        c.long_memory = self.progress.knows("heralds")
         # `favour` is not a number anybody sets any more. It is the sum of
         # what is in your favour, which is the only way a gift can be
         # forgotten -- and `wed` has claimed for a year that gifts are
@@ -1815,10 +1850,45 @@ class GameState:
             t.regard = c.opinion(key, day)
             t.signed = key in c.coalition
             t.sworn_friend = key in c.allies
+        # What the chancery's institutions actually do, applied once a day
+        # where everything else about the march is. Each of these is a
+        # mechanic rather than a percentage -- see tech.py on why that is the
+        # difference between a tree that describes your town and one that
+        # decides what you may do in it.
+        self.world.safe_conduct = self.progress.knows("safe_conduct")
+        msgs += self._drainage_day()
         msgs += self._coalition_day()
         msgs += self._alliance_day()
         msgs += self._succession_abroad()
         return msgs
+
+    #: How fast a dyke turns fen into field, in slots a year. Slow on purpose:
+    #: the drainage of the Fens and the Dutch polders took generations and the
+    #: capital of whole cities, and a tech that converted a marsh overnight
+    #: would make the wettest map the best one to start on.
+    DRAIN_DAYS = 90
+
+    def _drainage_day(self) -> List[str]:
+        """Dykes, a cut and a wind-pump.
+
+        The only tech in the tree that changes the *map*. Undrained fen is
+        land you own and cannot work -- no building will stand on it -- which
+        is exactly what made draining it worth a generation's money. One slot
+        a quarter, and it is gone when it is gone.
+        """
+        if not self.progress.knows("drainage") or self.day % self.DRAIN_DAYS:
+            return []
+        out: List[str] = []
+        for s in self.world.settlements.values():
+            left = s.terrain.get("marsh", 0)
+            if left <= 0:
+                continue
+            s.terrain["marsh"] = left - 1
+            s.terrain["fertile"] = s.terrain.get("fertile", 0) + 1
+            out.append(self.note(
+                f"The cut at {s.name} is finished and the water is off "
+                f"another field. {left - 1} of fen left."))
+        return out
 
     def _coalition_day(self) -> List[str]:
         """When the lords stop quarrelling with each other and start writing.
@@ -1965,6 +2035,9 @@ class GameState:
             return f"there is no {town_key!r} to treat with"
         if t.mine:
             return f"{t.name} is sworn to you already"
+        shut = self.opened("ally")
+        if shut:
+            return shut
         c = self.court
         if town_key in c.allies:
             return f"you are allied with {t.name} already"
@@ -2572,6 +2645,7 @@ class GameState:
         self._outlay += site.coin_cost
         market = Market(name=site.name, stock={}, target={})
         s = Settlement(name=site.name, terrain=dict(site.terrain), market=market,
+                       culture=cultures.for_ground(site.terrain, self.house),
                        population=25.0, popularity=C.POPULARITY_START,
                        deposits=dict(site.deposits))
         s.update_market_targets()

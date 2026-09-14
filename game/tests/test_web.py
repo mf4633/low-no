@@ -7,6 +7,7 @@ server hands the browser a state it can actually draw.
 """
 
 import json
+import random
 import os
 import threading
 import unittest
@@ -107,9 +108,55 @@ class TestLayout(unittest.TestCase):
     def test_the_streets_have_people_on_them_when_the_town_does(self):
         _g, s = grown()
         plan = plan_for(s)
-        self.assertTrue(plan.folk)
+        self.assertTrue([f for f in plan.folk if f.kind != "watch"])
         s.population = 2.0
-        self.assertFalse(plan_for(s).folk)
+        # The watch is not townspeople: a town with nobody left in it and a
+        # garrison still has men standing on the wall, which is exactly the
+        # sort of thing the picture ought to keep telling you.
+        self.assertFalse([f for f in plan_for(s).folk if f.kind != "watch"])
+
+    def test_every_figure_stands_for_a_stated_number_of_real_people(self):
+        """The honest answer to drawing a two-hundred-soul town: a figure is a
+        sample at a ratio the interface states, doing something the aggregate
+        is really doing."""
+        from marchlands.layout import MEN_PER_FIGURE, SOULS_PER_FIGURE
+        _g, s = grown()
+        plan = plan_for(s)
+        town = [f for f in plan.folk if f.kind != "watch"]
+        self.assertAlmostEqual(len(town),
+                               min(20, int(s.population / SOULS_PER_FIGURE)),
+                               delta=1)
+        watch = [f for f in plan.folk if f.kind == "watch"]
+        self.assertAlmostEqual(len(watch),
+                               int(sum(s.units.values()) / MEN_PER_FIGURE),
+                               delta=1)
+
+    def test_the_watch_stands_on_the_wall_it_is_holding(self):
+        """Which is what makes a thinly-held wall *look* thinly held, with no
+        warning, icon or number: you can see the gaps."""
+        _g, s = grown()
+        wall = set(s.plan().wall)
+        self.assertTrue(wall)
+        for f in plan_for(s).folk:
+            if f.kind == "watch":
+                self.assertIn((int(f.x), int(f.y)), wall)
+
+    def test_a_worker_walks_between_a_roof_and_a_shed_that_is_running(self):
+        _g, s = grown()
+        workers = [f for f in plan_for(s).folk if f.kind == "worker"]
+        self.assertTrue(workers)
+        for f in workers:
+            self.assertGreaterEqual(len(f.path), 2)
+            self.assertTrue(f.at)
+
+    def test_and_stands_in_the_street_when_there_is_no_work(self):
+        _g, s = grown()
+        for b in s.buildings:
+            b.enabled = False
+        s.tick("spring", random.Random(1))
+        kinds = {f.kind for f in plan_for(s).folk}
+        self.assertIn("idle", kinds)
+        self.assertNotIn("worker", kinds)
 
     def test_it_says_which_workshops_are_running(self):
         _g, s = grown()

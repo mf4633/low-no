@@ -13,6 +13,7 @@ from typing import ClassVar, Dict, List, Optional
 from . import config as C
 from .advisor import FAST_STEPS, route_from, scan
 from .engine import GameState
+from .tech import TECHS
 from .kin import SKILLS
 from .goods import RATION_GOODS, good, nourishment
 from .military import UNITS, host_strength
@@ -189,11 +190,45 @@ class Bot:
             self._hoard(nxt)
             self._procure(nxt)
 
+    #: What this bot's play is actually improved by.
+    #:
+    #: It used to research the first thing it could afford, in list order,
+    #: which meant a *trading* bot cheerfully bought plate armour, trebuchet
+    #: frames and the preaching orders and then never fielded a knight, an
+    #: engine or a friar. That was invisible while the tree was small and
+    #: every tech was roughly worth having. Adding eight institutions made it
+    #: visible: the bot spent its whole surplus on a chancery it would never
+    #: write a letter from and a coinage it would never debase, and the
+    #: balance guard fell to nothing.
+    #:
+    #: The fix is not to blocklist the new ones. A measuring instrument that
+    #: buys levers it never pulls is not a cautious player, it is a broken
+    #: instrument -- and its own docstring says it "plays the trading game
+    #: competently and no better". Competently means not buying trebuchet
+    #: frames when you have no trebuchets.
+    USEFUL = {"yield_field", "yield_mine", "yield_craft", "spoilage",
+              "tariff", "housing", "deposit_yield", "productivity", "storage",
+              "cart_capacity", "cart_speed", "mood", "interest",
+              "caravan_slots", "research_speed"}
+
+    def _worth_learning(self, t) -> bool:
+        """A trader buys what makes trading better, and nothing else."""
+        if t.key == "drainage":
+            return any(s.terrain.get("marsh", 0)
+                       for s in self.game.world.settlements.values())
+        if set(t.effects) & self.USEFUL:
+            return True
+        # ...and whatever is on the road to something it does want.
+        return any(o.prereq == t.key and set(o.effects) & self.USEFUL
+                   for o in TECHS.values())
+
     def _learn(self) -> None:
         g, p = self.game, self.game.progress
         if p.researching:
             return
         for t in p.available():
+            if not self._worth_learning(t):
+                continue
             if g.treasury > t.cost.get("coin", 0.0) + self.reserve * 1.5:
                 if "takes up" in g.research(t.key):
                     return

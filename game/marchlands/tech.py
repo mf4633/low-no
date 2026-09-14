@@ -124,6 +124,57 @@ TECHS: Dict[str, Tech] = {t.key: t for t in [
     _t("burgage_plots", "Burgage Plots", 3, {"coin": 950, "planks": 70}, 24,
        {"housing": 1.25}, blurb="Narrow fronts, deep yards, twice the roofs."),
 
+    # --- the institutions ---------------------------------------------------
+    #
+    # A tech tree is usually a list of multipliers with a picture on each one.
+    # This branch is the other thing a tree can be: every node is an
+    # *institution* that the economics or the politics layer already models,
+    # and researching it is what gives you the lever rather than a percentage.
+    #
+    # The prerequisites are the real ones. You cannot debase a coinage you do
+    # not strike. You cannot fix the price of bread without a guild to enforce
+    # it and an office to hear the complaints. You cannot keep a standing
+    # embassy without a chancery to write the letters, and you cannot offer a
+    # safe-conduct without an embassy to be trusted by. An exchequer is what a
+    # counting house becomes when it is the crown's.
+    #
+    # See economics.py and chancery.py: each of these opens a command that
+    # was previously simply available, which is the difference between a tree
+    # that describes your town and a tree that decides what you may do in it.
+    _t("coinage", "A Coinage of Your Own", 2, {"coin": 640, "iron": 20}, 20,
+       {"interest": 0.00010}, unlocks=(),
+       blurb="Your own die, your own penny -- and the whole of seigniorage, "
+             "which is a tax nobody has to be told about. `mint` wants this."),
+    _t("assize_of_bread", "The Assize of Bread", 2,
+       {"coin": 560, "bread": 40}, 20, {"mood": 2.0}, prereq="guild_charter",
+       blurb="A legal maximum, a standard loaf and a court to hear the "
+             "complaints. `decree` wants this; the queue comes free."),
+    _t("chancery", "A Chancery", 2, {"coin": 700, "cloth": 20}, 22,
+       {"research_speed": 1.15},
+       blurb="Clerks, a seal and a copy of every letter you ever sent. "
+             "`ally` wants this: nobody swears to a house that cannot write."),
+    _t("staple_right", "The Staple", 3, {"coin": 1150, "cloth": 30}, 26,
+       {"tariff": 0.80}, prereq="counting_house",
+       blurb="Foreign goods must be offered in your market before they may "
+             "pass. Dear for them, cheap for you, and resented by everybody."),
+    _t("safe_conduct", "Safe-Conducts", 3, {"coin": 1050, "planks": 30}, 24,
+       {}, prereq="chancery",
+       blurb="A sealed letter that gets a cart through a hostile gate. It "
+             "takes the worst off a bad lord's toll and nothing off a "
+             "friendly one's."),
+    _t("heralds", "Heralds", 3, {"coin": 980, "cloth": 25}, 24,
+       {}, prereq="chancery",
+       blurb="Men whose whole trade is knowing who is angry with whom. A "
+             "grievance you can name lasts longer than one you cannot."),
+    _t("drainage", "Drainage", 3, {"coin": 1250, "planks": 80, "tools": 25}, 30,
+       {},
+       blurb="Dykes, a cut and a wind-pump. Fen is land you own and cannot "
+             "work; this is the only thing that has ever changed that."),
+    _t("exchequer", "The Exchequer", 4, {"coin": 2300, "planks": 60}, 32,
+       {"interest": 0.00040}, prereq="counting_house",
+       blurb="A chequered cloth, a tally and a sheriff who knows the roll is "
+             "checked. The same rate collects more of itself."),
+
     # --- Age of the Crown ---------------------------------------------------
     _t("blast_furnace", "Blast Furnace", 4, {"coin": 2100, "stone": 180, "iron": 90}, 34,
        {"yield_craft": 1.30}, prereq="blast_bellows"),

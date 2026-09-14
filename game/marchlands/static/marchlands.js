@@ -120,7 +120,37 @@ const STYLE = {
   harbour:    { w: 54, roof: 'plankroof', wall: 'plank', c: '#8a6f4c', s: 0.75 },
   default:    { w: 46, roof: 'tile',   wall: 'timber', c: '#96714a', s: 1.0 },
 };
-const styleOf = k => STYLE[k] || STYLE.default;
+/* ...and then by where you are. An architecture set changes four things at
+ * once -- what the walls are, what the roofs are, how steep they sit and what
+ * colour the street is -- because any one of them alone is a palette swap and
+ * four of them together is a place. See culture.py for why it belongs to the
+ * ground rather than to the player. */
+const NO_CULTURE = { walls: {}, roofs: {}, pitch: 1, gable: 'plain',
+                     stretch: 1, tone: 1, tint: '', tint_by: 0,
+                     roof_tint: '', roof_by: 0 };
+function idiom() { return (state && state.culture) || NO_CULTURE; }
+
+const BASE_STYLE_OF = k => STYLE[k] || STYLE.default;
+function styleOf(k) {
+  const base = BASE_STYLE_OF(k);
+  const c = idiom();
+  if (c === NO_CULTURE) return base;
+  const key = c.key + ':' + k;
+  if (STYLE_CACHE[key]) return STYLE_CACHE[key];
+  const st = Object.assign({}, base);
+  st.wall = c.walls[st.wall] || st.wall;
+  st.roof = c.roofs[st.roof] || st.roof;
+  st.c = c.tint ? mix(st.c, c.tint, c.tint_by) : st.c;
+  if (c.tone !== 1) st.c = shade(st.c, c.tone);
+  st.s = base.s * (c.stretch || 1);
+  st.pitch = c.pitch || 1;
+  st.gable = c.gable || 'plain';
+  st.roof_tint = c.roof_tint;
+  st.roof_by = c.roof_by;
+  STYLE_CACHE[key] = st;
+  return st;
+}
+const STYLE_CACHE = {};
 
 /* ---------------------------------------------------------------- helpers */
 const $ = id => document.getElementById(id);
@@ -211,6 +241,7 @@ function drawTile(x, y, kind) {
   else if (kind === 'forest') base = mix(p.grass, shade(p.tree, 0.88), 0.52);
   else if (kind === 'hill') base = '#8e8a80';
   else if (kind === 'clay') base = '#9a6742';
+  else if (kind === 'marsh') base = mix('#5f6b4a', p.water, 0.28);
   else if (kind === 'water') base = p.water;
   else if (kind === 'road') base = shade(p.earth, 1.32);
   else if (kind === 'yard') base = shade(p.earth, 1.18);
@@ -335,6 +366,33 @@ function drawTile(x, y, kind) {
       const gy = sy + (rnd(x, y, i + 55) - 0.5) * TH * 0.84;
       ctx.fillStyle = shade(base, 0.76 + rnd(x, y, i + 58) * 0.5);
       ctx.beginPath(); ctx.ellipse(gx, gy, 1.4, 0.85, 0, 0, 7); ctx.fill();
+    }
+  } else if (kind === 'marsh') {
+    // Fen: standing water in the hollows, sedge standing out of it, and the
+    // odd hummock of peat somebody has been cutting. Land you own and cannot
+    // work until you drain it, and it ought to look like it.
+    for (let i = 0; i < 3; i++) {
+      const px = sx + (rnd(x, y, i + 120) - 0.5) * TW * 0.75;
+      const py = sy + (rnd(x, y, i + 124) - 0.5) * TH * 0.75;
+      ctx.fillStyle = shade(pal().water, 1.02);
+      ctx.beginPath();
+      ctx.ellipse(px, py, 7 + rnd(x, y, i + 128) * 9, 3 + rnd(x, y, i + 130) * 2,
+                  0, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      ctx.beginPath();
+      ctx.ellipse(px - 1, py - 0.8, 5 + rnd(x, y, i + 128) * 6, 1.2, 0, 0, 7);
+      ctx.fill();
+    }
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 18; i++) {
+      const bx = sx + (rnd(x, y, i + 140) - 0.5) * TW * 0.85;
+      const by = sy + (rnd(x, y, i + 150) - 0.5) * TH * 0.85;
+      ctx.strokeStyle = shade(base, 0.72 + rnd(x, y, i + 160) * 0.8);
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      ctx.lineTo(bx + (rnd(x, y, i + 164) - 0.5) * 2.2,
+                 by - 4.0 - rnd(x, y, i + 168) * 4.5);   // sedge, taller than grass
+      ctx.stroke();
     }
   } else if (kind === 'hill' || kind === 'clay') {
     // Broken ground: scree and exposed faces catching the light on one side.
@@ -541,6 +599,24 @@ function along(a, b, f) {
   return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
 }
 
+/* A stepped gable, drawn as courses climbing the rake of the roof. `eave` and
+ * `apex` are the two ends of the slope; `side` is which way the steps face. */
+function drawCrowSteps(eave, apex, low, st, side) {
+  const n = 5;
+  const brick = shade(st.c, 1.06);
+  for (let i = 0; i < n; i++) {
+    const f0 = i / n, f1 = (i + 1) / n;
+    const a = along(low, apex, f0), b = along(low, apex, f1);
+    const rise = 3.2;
+    poly([[a[0], a[1]], [b[0], a[1] - rise * 0.2],
+          [b[0], b[1] - rise], [a[0], b[1] - rise * 0.4]], brick);
+    ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1] - rise);
+    ctx.stroke();
+  }
+  void eave; void side;
+}
+
 /* ----------------------------------------------------------------- masonry */
 function wallFace(pts, colour, kind) {
   poly(pts, colour);
@@ -611,6 +687,27 @@ function wallFace(pts, colour, kind) {
       }
     }
     ctx.lineCap = 'butt';
+  } else if (kind === 'brick') {
+    // Brick is regular where rubble is not: that is the whole visual
+    // difference, and it is why a brick town reads as a richer one.
+    let row = 0;
+    for (let yy = y0 - 3; yy < y1 + 6; yy += 4.2, row++) {
+      let xx = x0 - 16 + (row % 2) * 5.5;
+      while (xx < x1 + 6) {
+        const lift = (xx - x0) * slope;
+        const v = 0.93 + ((row * 29 + xx * 7) % 100) / 700;
+        poly([[xx, yy + lift], [xx + 10, yy + lift + 10 * slope],
+              [xx + 10, yy + 3.4 + lift + 10 * slope], [xx, yy + 3.4 + lift]],
+             shade(colour, v));
+        xx += 11;
+      }
+    }
+    if (baking || near()) {
+      const damp = ctx.createLinearGradient(0, y1 - (y1 - y0) * 0.4, 0, y1);
+      damp.addColorStop(0, 'rgba(26,20,18,0)');
+      damp.addColorStop(1, 'rgba(26,20,18,.26)');
+      ctx.fillStyle = damp; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    }
   } else if (kind === 'plank') {
     // Sawn boards: a seam every few inches and a grain running with them.
     ctx.strokeStyle = 'rgba(48,34,20,.45)'; ctx.lineWidth = 1;
@@ -623,7 +720,7 @@ function wallFace(pts, colour, kind) {
   }
   ctx.restore();
   tooth(pts, kind === 'stone' ? 2 : 1, kind === 'timber' ? 0.22 : 0.34,
-        kind === 'stone' ? 0.30 : 0.20);
+        kind === 'stone' || kind === 'brick' ? 0.30 : 0.20);
 }
 
 /* Thatch is a deep material: two feet of straw with the light only reaching
@@ -749,25 +846,55 @@ function drawBuilding(b, t) {
   wallFace([B, bb, br, R], shade(st.c, 0.80), st.wall);      // south-east face
   drawOpenings(sx, sy, w, d, h, st, b);
 
-  const rise = st.roof === 'tile' ? 13 : st.roof === 'thatch' ? 17 : 9;
+  const rise = (st.roof === 'tile' ? 13 : st.roof === 'thatch' ? 17 : 9)
+             * (st.pitch || 1);
   const M1 = [sx - w / 2, sy - d / 2 - h - rise];
   const M2 = [sx + w / 2, sy + d / 2 - h - rise];
 
   if (st.roof === 'thatch' || st.roof === 'tile' || st.roof === 'plankroof') {
-    const colour = st.roof === 'thatch' ? '#b8994f'
+    let colour = st.roof === 'thatch' ? '#b8994f'
       : st.roof === 'tile' ? '#8c4a35' : '#7d6242';
-    poly([T, M1, L], shade(colour, 0.68));                    // gable ends
-    poly([R, M2, B], shade(colour, 0.68));
-    if (st.roof === 'thatch') {
-      thatch(T, M1, M2, R, shade(colour, 1.05));
-      thatch(L, M1, M2, B, shade(colour, 0.78));
+    if (st.roof_tint) colour = mix(colour, st.roof_tint, st.roof_by);
+    if (st.gable === 'hipped') {
+      // Four slopes and no gable at all: a low wide roof that sheds wind in
+      // every direction, which is why the chalk country builds them.
+      const apex1 = [sx - w * 0.34, sy - d * 0.34 - h - rise * 0.72];
+      const apex2 = [sx + w * 0.34, sy + d * 0.34 - h - rise * 0.72];
+      poly([T, L, apex1], shade(colour, 0.86));
+      poly([R, B, apex2], shade(colour, 0.70));
+      if (st.roof === 'thatch') {
+        thatch(T, apex1, apex2, R, shade(colour, 1.05));
+        thatch(L, apex1, apex2, B, shade(colour, 0.78));
+      } else {
+        tiles(T, apex1, apex2, R, shade(colour, 1.05));
+        tiles(L, apex1, apex2, B, shade(colour, 0.76));
+      }
+      ctx.strokeStyle = shade(colour, 0.6); ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(apex1[0], apex1[1]); ctx.lineTo(apex2[0], apex2[1]);
+      ctx.stroke();
     } else {
-      tiles(T, M1, M2, R, shade(colour, 1.05));
-      tiles(L, M1, M2, B, shade(colour, 0.76));
+      poly([T, M1, L], shade(colour, 0.68));                  // gable ends
+      poly([R, M2, B], shade(colour, 0.68));
+      if (st.gable === 'stepped') {
+        // Crow steps: the gable carried up past the roof in courses, so the
+        // brickwork can be finished without a bargeboard. The one silhouette
+        // in this game you can name from the far side of the map.
+        drawCrowSteps(T, M1, L, st, 1);
+        drawCrowSteps(R, M2, B, st, -1);
+      }
+      if (st.roof === 'thatch') {
+        thatch(T, M1, M2, R, shade(colour, 1.05));
+        thatch(L, M1, M2, B, shade(colour, 0.78));
+      } else {
+        tiles(T, M1, M2, R, shade(colour, 1.05));
+        tiles(L, M1, M2, B, shade(colour, 0.76));
+      }
+      // The ridge, and the overhang that stops it looking like a wedge.
+      ctx.strokeStyle = shade(colour, 0.6); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(M1[0], M1[1]); ctx.lineTo(M2[0], M2[1]);
+      ctx.stroke();
     }
-    // The ridge, and the overhang that stops it looking like a wedge.
-    ctx.strokeStyle = shade(colour, 0.6); ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(M1[0], M1[1]); ctx.lineTo(M2[0], M2[1]); ctx.stroke();
   } else if (st.roof === 'cone' || st.roof === 'spire') {
     const apex = [sx, sy - d - h - (st.roof === 'spire' ? 44 : 15) * st.s];
     const colour = st.roof === 'spire' ? '#6a6f74' : '#8a6a4a';
@@ -948,14 +1075,56 @@ function drawWall(w, t) {
 }
 
 /* ------------------------------------------------------------------- life */
+/* One figure stands for fourteen souls, or six men on the wall, and the
+ * interface says so. What each one is *doing* is read off the town rather
+ * than invented: a worker walks the route between the roof he sleeps under
+ * and the shed that is staffed today, somebody with no work stands in the
+ * street, and the watch stands on the yards of wall that are really held --
+ * so a wall you enclosed more ground with than you have men for looks thinly
+ * held without anybody drawing a warning. */
+function walkAlong(path, f) {
+  if (!path || path.length < 2) return null;
+  const span = (path.length - 1) * f;
+  const i = Math.min(path.length - 2, Math.floor(span));
+  const g = span - i;
+  return [path[i].x + (path[i + 1].x - path[i].x) * g,
+          path[i].y + (path[i + 1].y - path[i].y) * g];
+}
+
 function drawFolk(f, i, t) {
-  // They walk the road they were put on, up and back, at their own pace.
-  const swing = Math.sin(t * 0.55 + i * 1.7);
-  const [sx, sy] = iso(f.x + swing * 0.35, f.y + Math.cos(t * 0.4 + i) * 0.2);
-  const bob = Math.abs(Math.sin(t * 3.1 + i)) * 1.6;
+  let wx = f.x, wy = f.y, bob = 0;
+  if (f.kind === 'worker' && f.path && f.path.length > 1) {
+    // Up the street and back again, each at their own pace.
+    const cycle = (t * 0.06 + i * 0.17) % 2;
+    const at = walkAlong(f.path, cycle < 1 ? cycle : 2 - cycle);
+    if (at) { wx = at[0]; wy = at[1]; }
+    bob = Math.abs(Math.sin(t * 3.1 + i)) * 1.6;
+  } else if (f.kind === 'idle') {
+    wx += Math.sin(t * 0.3 + i * 1.7) * 0.18;
+    bob = Math.abs(Math.sin(t * 0.9 + i)) * 0.5;
+  }
+  const [sx, sy] = iso(wx, wy);
+  const lift = f.kind === 'watch' ? 16 : 0;      // up on the wall-walk
   ctx.fillStyle = 'rgba(0,0,0,.2)';
-  ctx.beginPath(); ctx.ellipse(sx, sy + 1, 3.4, 1.6, 0, 0, 7); ctx.fill();
-  const coat = ['#7a5a3c', '#6a6450', '#8a6a4a', '#5c5442'][i % 4];
+  ctx.beginPath(); ctx.ellipse(sx, sy + 1 - lift * 0.5, 3.4, 1.6, 0, 0, 7);
+  ctx.fill();
+  if (f.kind === 'watch') {
+    // A spearman, facing out, shifting his weight the way a man does when
+    // he has been standing on a wall since dawn.
+    const sway = Math.sin(t * 0.5 + i * 2.3) * 0.6;
+    ctx.strokeStyle = '#5c5e63'; ctx.lineWidth = 3.2;
+    ctx.beginPath(); ctx.moveTo(sx + sway, sy - lift);
+    ctx.lineTo(sx + sway, sy - 9 - lift); ctx.stroke();
+    ctx.strokeStyle = '#8a7a58'; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(sx + sway + 3, sy - 2 - lift);
+    ctx.lineTo(sx + sway + 3, sy - 17 - lift); ctx.stroke();
+    ctx.fillStyle = '#b9b2a0';
+    ctx.beginPath(); ctx.arc(sx + sway, sy - 11.6 - lift, 2.6, 0, 7); ctx.fill();
+    return;
+  }
+  const coat = f.kind === 'idle'
+    ? ['#6a6450', '#5c5442', '#6f6152', '#585044'][i % 4]
+    : ['#7a5a3c', '#8a6a4a', '#7d6a44', '#8f6d4e'][i % 4];
   ctx.strokeStyle = coat; ctx.lineWidth = 3.2;
   ctx.beginPath(); ctx.moveTo(sx, sy - bob); ctx.lineTo(sx, sy - 9 - bob); ctx.stroke();
   ctx.fillStyle = '#d8c9a8';
@@ -1758,9 +1927,9 @@ function frame() {
     setClip(w, h);
     for (const it of things) {
       const [ix, iy] = iso(it.x !== undefined ? it.x : it.b ? it.b.x
-                           : it.w ? it.w.x : it.pos ? it.pos.x : it.f[0],
+                           : it.w ? it.w.x : it.pos ? it.pos.x : it.f.x,
                            it.y !== undefined ? it.y : it.b ? it.b.y
-                           : it.w ? it.w.y : it.pos ? it.pos.y : it.f[1]);
+                           : it.w ? it.w.y : it.pos ? it.pos.y : it.f.y);
       if (!onScreen(ix, iy, 120)) continue;
       if (it.kind === 'wood') drawTrees(it.x, it.y);
       else if (it.kind === 'b') drawBuilding(it.b, t);
@@ -2250,6 +2419,15 @@ function paint(s) {
   $('date').textContent = `${s.date} · ${s.age}`;
   show('purse', num(s.treasury) + 'c');
   show('souls', `${num(s.town.population)} of ${num(s.town.housing)} roofs`);
+  // What the picture is showing, stated. A figure that stands for fourteen
+  // people is only honest if the interface says it does.
+  if (plan && plan.per_figure) {
+    const watch = plan.folk.filter(f => f.kind === 'watch').length;
+    const out = plan.folk.filter(f => f.kind === 'idle').length;
+    $('scale').textContent =
+      `one figure = ${plan.per_figure} souls · ${watch} on the wall ` +
+      `(${plan.per_watch} men each)` + (out ? ` · ${out} with no work` : '');
+  }
   meter($('moodbar'), s.town.popularity / 100, 0.45, 0.25);
   show('hands', `${num(s.town.employed)} of ${num(s.town.workforce)}`);
   meter($('wallbar'), s.town.wall_max ? s.town.wall_hp / s.town.wall_max : 0, 0.6, 0.3);

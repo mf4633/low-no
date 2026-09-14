@@ -437,3 +437,14 @@ body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
 }
 #writ-body .why-list em.up { color: #8fb86a; }
 #writ-body .why-list em.down { color: #c46a5a; }
+
+/* What a drawn figure stands for. The picture is a readout of the numbers,
+   and a readout with no scale on it is a decoration. */
+#scale {
+  position: fixed; left: 50%; transform: translateX(-50%); top: 52px;
+  margin: 0; z-index: 4; pointer-events: none;
+  font-size: 11px; letter-spacing: .04em; color: #a8a08c;
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+}
+body.march #scale { display: none; }
+@media (max-width: 620px) { #scale { display: none; } }

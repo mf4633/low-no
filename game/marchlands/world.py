@@ -18,6 +18,7 @@ from . import config as C
 from .goods import ALL_KEYS, good
 from .castle import Works
 from .market import Market
+from . import culture as cultures
 from . import lords as lordly
 from .settlement import Settlement
 
@@ -75,6 +76,9 @@ class ForeignTown:
     #: toll was eight thousandths of one per cent, and every foreign customs
     #: post in the game had quietly stopped charging anything at all.
     tariff_base: float = C.BASE_TARIFF
+    #: What it is built out of -- see culture.py. A town looks like itself
+    #: wherever a scenario puts it, and taking one does not re-roof it.
+    culture: str = ""
     regard: float = 0.0
     signed: bool = False          # has put his name to the letter against you
     sworn_friend: bool = False    # allied to you
@@ -220,6 +224,7 @@ class ForeignTown:
                 "seen": dict(self.seen), "seen_day": self.seen_day,
                 "muster": self.muster, "temper": self.temper,
                 "sort": self.sort, "regard": self.regard,
+                "culture": self.culture,
                 "tariff_base": self.tariff_base,
                 "signed": self.signed,
                 "sworn_friend": self.sworn_friend,
@@ -241,6 +246,7 @@ class ForeignTown:
         t.wall_max = d.get("wall_max", 0.0)
         t.sort = d.get("sort", "")
         t.regard = float(d.get("regard", 0.0))
+        t.culture = d.get("culture", "")
         t.tariff_base = float(d.get("tariff_base", C.BASE_TARIFF))
         t.signed = bool(d.get("signed", False))
         t.sworn_friend = bool(d.get("sworn_friend", False))
@@ -418,6 +424,12 @@ class World:
     TOLL_CEILING = 2.6           # a man who has signed against you does not
     TOLL_SLOPE = 95.0            # points of opinion per unit of toll
 
+    #: What a sealed letter is worth at a gate that does not like you. It
+    #: takes the worst off a hostile toll and nothing at all off a friendly
+    #: one, which is what a safe-conduct actually did: it was protection
+    #: against being stopped, not a discount.
+    safe_conduct: bool = False
+
     def toll_mood(self, node: str) -> float:
         """The multiplier this lord's feelings put on his own toll."""
         t = self.towns.get(node)
@@ -428,7 +440,10 @@ class World:
         mult = 1.0 - t.regard / self.TOLL_SLOPE
         if t.signed:
             mult = max(mult, 1.9)
-        return max(self.TOLL_FLOOR, min(self.TOLL_CEILING, mult))
+        mult = max(self.TOLL_FLOOR, min(self.TOLL_CEILING, mult))
+        if self.safe_conduct and mult > 1.0:
+            mult = 1.0 + (mult - 1.0) * 0.45
+        return mult
 
     def tariff_for(self, node: str, home: Optional[Settlement]) -> float:
         """Toll charged at `node`, after any relief your trading posts bought."""
@@ -465,6 +480,7 @@ class World:
                 "towns": {k: t.to_dict() for k, t in self.towns.items()},
                 "coords": {k: list(v) for k, v in self.coords.items()},
                 "sites": {k: v.to_dict() for k, v in self.sites.items()},
+                "safe_conduct": self.safe_conduct,
                 "shrines": {k: v.to_dict() for k, v in self.shrines.items()}}
 
     @classmethod
@@ -475,6 +491,7 @@ class World:
         w.coords = {k: tuple(v) for k, v in d["coords"].items()}
         w.sites = {k: Site(**v) for k, v in d.get("sites", {}).items()}
         w.shrines = {k: Shrine.from_dict(v) for k, v in d.get("shrines", {}).items()}
+        w.safe_conduct = bool(d.get("safe_conduct", False))
         return w
 
 
@@ -514,7 +531,7 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
     # another rival is a number with a name on it.
     kind = lordly.sort_of(key)
     return ForeignTown(key=key, name=name, x=x, y=y, market=m, flow=flow,
-                       tariff_base=tariff,
+                       tariff_base=tariff, culture=cultures.of_town(key),
                        base_target=dict(target), lawlessness=lawlessness,
                        wealth=wealth, blurb=blurb, lord=lord,
                        sort=kind.key,

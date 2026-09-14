@@ -180,6 +180,10 @@ class Chancery:
     #: a bookkeeping marker filed among the real reasons is a marker that
     #: turns up in somebody's reason-to-march list.
     declared: Dict[str, int] = field(default_factory=dict)
+    #: Heralds. A grievance you can name lasts longer than one you cannot --
+    #: so your own grounds for war keep twice as long, which is the whole of
+    #: what a herald was for.
+    long_memory: bool = False
     #: ...and which of those wars had a reason the march accepted. Kept
     #: separately because it has to outlive the ground itself: a claim that
     #: expires in the third month of a siege does not retroactively make the
@@ -221,7 +225,9 @@ class Chancery:
                 self.ledger.pop(key, None)
 
     def opinion(self, key: str, day: int) -> float:
-        return sum(g.value(day) for g in self.ledger.get(key, ()))
+        # 0.0 rather than sum()'s int 0, so a lord nobody has written anything
+        # about returns the same type as one they have.
+        return sum((g.value(day) for g in self.ledger.get(key, ())), 0.0)
 
     def goodwill(self, key: str, day: int) -> float:
         """Only what is in your favour -- the number the old `favour` was.
@@ -230,8 +236,8 @@ class Chancery:
         a letter against you; it is not a reason he warms to you, and letting
         it read as one made a man you had beaten twice into a friend.
         """
-        return sum(g.value(day) for g in self.ledger.get(key, ())
-                   if g.value(day) > 0 and not WHYS[g.why].awe)
+        return sum((g.value(day) for g in self.ledger.get(key, ())
+                    if g.value(day) > 0 and not WHYS[g.why].awe), 0.0)
 
     def offence(self, key: str, day: int) -> float:
         """Only aggressive ill-will: what a coalition is actually about.
@@ -271,9 +277,10 @@ class Chancery:
     def ground_for(self, key: str, day: int) -> Optional[Ground]:
         """The best reason you have to march on this lord today, if any."""
         live = []
+        keep = 2.0 if self.long_memory else 1.0
         for name, when in self.grounds.get(key, {}).items():
             spec = GROUNDS[name]
-            if not spec.days or day - when <= spec.days:
+            if not spec.days or day - when <= spec.days * keep:
                 live.append(spec)
         if key in self.coalition:
             live.append(GROUNDS["coalition"])
@@ -287,12 +294,13 @@ class Chancery:
     def grounds_left(self, key: str, day: int) -> List[Tuple[str, int]]:
         """Every live reason and how many days it has left; 0 means forever."""
         out = []
+        keep = 2.0 if self.long_memory else 1.0
         for name, when in sorted(self.grounds.get(key, {}).items()):
             spec = GROUNDS[name]
             if not spec.days:
                 out.append((spec.label, 0))
-            elif day - when <= spec.days:
-                out.append((spec.label, spec.days - (day - when)))
+            elif day - when <= spec.days * keep:
+                out.append((spec.label, int(spec.days * keep - (day - when))))
         if key in self.claims:
             out.append((GROUNDS["claim"].label, 0))
         if key in self.coalition:
@@ -329,6 +337,7 @@ class Chancery:
             "called": list(self.called) if self.called else None,
             "claims": dict(self.claims),
             "declared": dict(self.declared),
+            "long_memory": self.long_memory,
             "justified": dict(self.justified),
             "taken": sorted(self.taken),
             "seed": self.seed,
@@ -350,6 +359,7 @@ class Chancery:
         c.called = (called[0], int(called[1])) if called else None
         c.claims = {k: int(v) for k, v in d.get("claims", {}).items()}
         c.declared = {k: int(v) for k, v in d.get("declared", {}).items()}
+        c.long_memory = bool(d.get("long_memory", False))
         c.justified = {k: int(v) for k, v in d.get("justified", {}).items()}
         c.taken = set(d.get("taken", []))
         raw = d.get("rng")

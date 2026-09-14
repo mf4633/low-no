@@ -16,10 +16,12 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
+from .buildings import BUILDINGS
 from . import keep as keeps
 
-GRASS, FIELD, FOREST, HILL, CLAY, WATER, ROAD, YARD = (
-    "grass", "field", "forest", "hill", "clay", "water", "road", "yard")
+GRASS, FIELD, FOREST, HILL, CLAY, WATER, ROAD, YARD, MARSH = (
+    "grass", "field", "forest", "hill", "clay", "water", "road", "yard",
+    "marsh")
 
 #: Which ground a building of each terrain wants under it.
 GROUND_FOR = {"fertile": FIELD, "forest": FOREST, "hills": HILL,
@@ -67,6 +69,40 @@ class Haul:
                 "path": [{"x": x, "y": y} for x, y in self.path]}
 
 
+#: How many souls one drawn figure stands for, and how many men one figure on
+#: the wall stands for.
+#:
+#: This is the honest answer to a real tension. The simulation runs on
+#: aggregates -- a population is a float, a garrison is a dictionary of counts
+#: -- and the picture draws people. Draw one figure per soul and a town of two
+#: hundred is an unreadable crowd and a dead framerate; draw an arbitrary
+#: handful of decorative dots and the picture is telling you something that is
+#: not true.
+#:
+#: So a figure is a *sample*, at a ratio the interface states out loud, doing
+#: something the aggregate is actually doing: a worker walks between the roof
+#: he sleeps under and the shed he is staffed at today, and a spearman stands
+#: on a yard of wall that is really being held. Thin the garrison and the wall
+#: visibly empties. The picture is then a readout rather than an illustration,
+#: which is the same rule the rest of this codebase follows.
+SOULS_PER_FIGURE = 14
+MEN_PER_FIGURE = 6
+
+
+@dataclass
+class Walker:
+    """One person, standing for fourteen of them, going somewhere real."""
+    x: float
+    y: float
+    kind: str                       # 'worker', 'idle', 'watch'
+    path: List[Tuple[float, float]] = field(default_factory=list)
+    at: str = ""                    # what they are doing, for the tooltip
+
+    def to_dict(self) -> dict:
+        return {"x": self.x, "y": self.y, "kind": self.kind, "at": self.at,
+                "path": [{"x": x, "y": y} for x, y in self.path]}
+
+
 @dataclass
 class Plan:
     w: int
@@ -74,7 +110,7 @@ class Plan:
     tiles: List[List[str]]
     buildings: List[Placed] = field(default_factory=list)
     walls: List[Tuple[int, int, str]] = field(default_factory=list)
-    folk: List[Tuple[float, float]] = field(default_factory=list)
+    folk: List[Walker] = field(default_factory=list)
     hauls: List[Haul] = field(default_factory=list)
     precinct: Tuple[int, int, int, int] = (0, 0, 0, 0)
     #: Every tile the wall actually shuts in, which for anything but a square
@@ -92,7 +128,9 @@ class Plan:
                 "inside": [{"x": x, "y": y} for x, y in self.inside],
                 "buildings": [b.to_dict() for b in self.buildings],
                 "walls": [{"x": x, "y": y, "kind": k} for x, y, k in self.walls],
-                "folk": [{"x": x, "y": y} for x, y in self.folk],
+                "folk": [f.to_dict() for f in self.folk],
+                "per_figure": SOULS_PER_FIGURE,
+                "per_watch": MEN_PER_FIGURE,
                 "hauls": [h.to_dict() for h in self.hauls],
                 "precinct": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
@@ -207,11 +245,17 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
     # --- the country ------------------------------------------------------
     # Each kind of ground gets a quarter of the compass, so a town always has
     # its wood on the same side and you can learn the shape of the place.
-    quarters = {FIELD: (0, -1), FOREST: (-1, 0), HILL: (1, 0), CLAY: (0, 1)}
+    # Marsh gets the low corner, because water goes downhill and because a
+    # fen you can see is the only way the dial means anything. Nothing will
+    # stand on it: see cartography.py on why undrained fen is land you own
+    # and cannot work.
+    quarters = {FIELD: (0, -1), FOREST: (-1, 0), HILL: (1, 0), CLAY: (0, 1),
+                MARSH: (-1, 1)}
     counts = {FIELD: settlement.terrain.get("fertile", 0),
               FOREST: settlement.terrain.get("forest", 0),
               HILL: settlement.terrain.get("hills", 0),
-              CLAY: settlement.terrain.get("clay", 0)}
+              CLAY: settlement.terrain.get("clay", 0),
+              MARSH: settlement.terrain.get("marsh", 0)}
     for kind, (dx, dy) in quarters.items():
         want = max(0, counts.get(kind, 0)) * 3
         laid = 0
@@ -345,14 +389,54 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
                     + abs(placed[h.frm].y - placed[h.to].y))
     del plan.hauls[14:]
 
-    # --- people in the streets --------------------------------------------
+    # --- people, each standing for fourteen of them ------------------------
+    #
+    # Not dots on a road. Every figure is a sample of the real population at
+    # SOULS_PER_FIGURE to one, and every one of them is doing what the town is
+    # actually doing today: walking from a roof to the shed that is staffed,
+    # or standing in the street because nothing is. A town with half its sheds
+    # idle has half its people in the square, without anybody drawing that as
+    # a special case.
+    roofs = [b for b in plan.buildings
+             if b.key in ("cottage", "hovel", "townhouse")]
+    working = [b for b in plan.buildings if b.running
+               and BUILDINGS.get(b.key) and BUILDINGS[b.key].jobs]
     roads = [(x, y) for y in range(side) for x in range(side)
              if plan.tiles[y][x] == ROAD]
-    n = int(min(18, max(0, settlement.population) / 18))
-    for i in range(n):
-        if not roads:
-            break
-        x, y = roads[(i * 7 + 3) % len(roads)]
-        plan.folk.append((x + rng.random() * 0.6 - 0.3,
-                          y + rng.random() * 0.6 - 0.3))
+    want = int(min(20, max(0.0, settlement.population) / SOULS_PER_FIGURE))
+    # What share of the figures are going somewhere is the share of the
+    # *workforce* that has a job, not the share of the population -- most of
+    # a town is children and the old, and dividing by the whole of it put two
+    # people on the road in a town with every shed running.
+    busy = settlement.employed / max(1.0, float(settlement.workforce))
+    at_work = int(round(want * max(0.0, min(1.0, busy))))
+    for i in range(want):
+        if i < at_work and roofs and working:
+            home_roof = roofs[(i * 5 + 1) % len(roofs)]
+            shed = working[(i * 3) % len(working)]
+            route = _walk(plan, home_roof, shed)
+            plan.folk.append(Walker(x=route[0][0], y=route[0][1], kind="worker",
+                                    path=route, at=shed.name))
+        elif roads:
+            x, y = roads[(i * 7 + 3) % len(roads)]
+            plan.folk.append(Walker(
+                x=x + rng.random() * 0.6 - 0.3, y=y + rng.random() * 0.6 - 0.3,
+                kind="idle", at="nothing to do"))
+
+    # --- and the watch, standing on the wall they are actually holding -----
+    #
+    # The other half of the same idea, and the one that pays for itself: the
+    # garrison is drawn along the castle you drew, so a wall you enclosed more
+    # ground with than you have men for *looks* thinly held. There is no
+    # separate warning, no icon and no number: you can see it.
+    line = castle.of_kind(keeps.TOWER, keeps.GATE) + castle.of_kind(
+        keeps.STONE, keeps.TIMBER)
+    garrison = sum(settlement.units.values())
+    watch = int(min(len(line), garrison / MEN_PER_FIGURE))
+    if watch and line:
+        step = max(1, len(line) // watch)
+        for i in range(watch):
+            wx, wy = line[(i * step) % len(line)]
+            plan.folk.append(Walker(x=float(wx), y=float(wy), kind="watch",
+                                    at="on the wall"))
     return plan
