@@ -1,0 +1,53 @@
+name: 1-minute settlement record
+# SPLIT OUT OF city-regimes.yml 2026-09-14. They were one workflow, so touching
+# hf1min.py re-fetched 23 station-years of hourly METAR before it could harvest
+# anything -- the first such run spent 25+ minutes in the regime build while
+# IEM throttled, to re-derive a file that had not changed. The regime fit and
+# the 1-minute harvest share a data source and nothing else.
+on:
+  push:
+    branches: [claude/kalshi-cities-improve-jzh9z4]
+    paths: [hf1min.py, .github/workflows/hf1min.yml]
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  # Its own group, and NOT city-regimes': both hammer IEM, and letting them
+  # evict each other would mean the one that survives still competes for the
+  # same rate limit.
+  group: hf1min
+  cancel-in-progress: false
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: claude/kalshi-cities-improve-jzh9z4 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: harvest 1-minute maxima
+        run: python hf1min.py --since 2026-08-06 2>&1 | tee hf1min_out.txt
+      - name: commit
+        if: always()
+        # `bash -e` kills the step on a short-circuiting `&&`; both guards are
+        # `if` blocks for that reason. See city-regimes.yml.
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          for f in docs/settlements_1min.json hf1min_out.txt; do
+            if [ -e "$f" ]; then git add -- "$f"; fi
+          done
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "1-minute settlement record $(date -u +%FT%H:%MZ)"
+          for i in 1 2 3 4; do
+            if git pull --rebase --autostash origin "$BRANCH" && \
+               git push origin "HEAD:$BRANCH"; then
+              exit 0
+            fi
+            sleep $((2 ** i))
+          done
+          exit 1
+        env:
+          BRANCH: claude/kalshi-cities-improve-jzh9z4

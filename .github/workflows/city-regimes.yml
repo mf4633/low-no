@@ -13,7 +13,6 @@ on:
     paths:
       - city_regime.py
       - city_forecast.py
-      - hf1min.py
       - .github/workflows/city-regimes.yml
   workflow_dispatch: {}
 permissions: { contents: write }
@@ -38,14 +37,6 @@ jobs:
       - name: regime-conditioned cells
         run: python city_forecast.py 2>&1 | tee city_forecast_out.txt
 
-      - name: 1-minute settlement record
-        # Never fails the job: the regime build is the deliverable and the
-        # 1-minute harvest is additive. A partial harvest is still committed --
-        # every city-day recorded is one the 7-day CLI window can no longer
-        # take away.
-        continue-on-error: true
-        run: python hf1min.py --since 2026-08-06 2>&1 | tee hf1min_out.txt
-
       - name: commit results
         if: always()
         # GitHub runs `run:` under `bash -e`, so a bare `cmd && cmd` that
@@ -55,8 +46,7 @@ jobs:
         run: |
           git config user.name lowno-bot && git config user.email bot@lowno
           for f in city_regimes.json docs/city_regimes_summary.json \
-                   docs/settlements_1min.json city_regimes_out.txt \
-                   city_forecast_out.txt hf1min_out.txt; do
+                   city_regimes_out.txt city_forecast_out.txt; do
             if [ -e "$f" ]; then git add -- "$f"; fi
           done
           if git diff --cached --quiet; then
