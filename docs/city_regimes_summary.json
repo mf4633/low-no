@@ -1,0 +1,1366 @@
+{
+ "built_at": "2026-09-14T00:47:55.694083Z",
+ "years": [
+  2022,
+  2023,
+  2024,
+  2025,
+  2026
+ ],
+ "stratus_ft": 3000.0,
+ "windows": {
+  "dawn": [
+   5,
+   6,
+   7
+  ],
+  "midmorn": [
+   9,
+   10,
+   11
+  ],
+  "earlypm": [
+   12,
+   13,
+   14
+  ]
+ },
+ "n_perm": 2000,
+ "alpha": 0.05,
+ "cities": {
+  "ATL": {
+   "n": 1713,
+   "eta_sq": 0.0306,
+   "p_perm": 0.0005,
+   "sd_pooled": 14.33,
+   "sd_within_month": 7.39,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1107,
+     "mean": 76.59,
+     "sd": 14.81,
+     "vs_month": 0.35
+    },
+    "EARLY_BURN": {
+     "n": 82,
+     "mean": 76.59,
+     "sd": 13.13,
+     "vs_month": 0.84
+    },
+    "LATE_BURN": {
+     "n": 241,
+     "mean": 78.07,
+     "sd": 12.13,
+     "vs_month": 1.39
+    },
+    "NO_BURN": {
+     "n": 283,
+     "mean": 68.87,
+     "sd": 12.42,
+     "vs_month": -2.79
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 175,
+     "mean": 87.87,
+     "sd": 5.69
+    },
+    "EARLY_BURN": {
+     "n": 11,
+     "mean": 87.45,
+     "sd": 3.06
+    },
+    "LATE_BURN": {
+     "n": 26,
+     "mean": 85.54,
+     "sd": 3.9
+    },
+    "NO_BURN": {
+     "n": 26,
+     "mean": 80.5,
+     "sd": 5.85
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 1,
+   "holm_survives": true
+  },
+  "AUS": {
+   "n": 1714,
+   "eta_sq": 0.0819,
+   "p_perm": 0.0005,
+   "sd_pooled": 15.21,
+   "sd_within_month": 8.6,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 872,
+     "mean": 83.04,
+     "sd": 16.01,
+     "vs_month": -0.26
+    },
+    "EARLY_BURN": {
+     "n": 219,
+     "mean": 89.8,
+     "sd": 11.39,
+     "vs_month": 2.39
+    },
+    "LATE_BURN": {
+     "n": 376,
+     "mean": 87.87,
+     "sd": 9.22,
+     "vs_month": 2.59
+    },
+    "NO_BURN": {
+     "n": 247,
+     "mean": 70.17,
+     "sd": 14.62,
+     "vs_month": -5.15
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 171,
+     "mean": 97.49,
+     "sd": 5.03
+    },
+    "EARLY_BURN": {
+     "n": 17,
+     "mean": 97.65,
+     "sd": 4.03
+    },
+    "LATE_BURN": {
+     "n": 47,
+     "mean": 96.0,
+     "sd": 4.82
+    },
+    "NO_BURN": {
+     "n": 3,
+     "mean": 85.0,
+     "sd": 6.38
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 2,
+   "holm_survives": true
+  },
+  "BOS": {
+   "n": 1713,
+   "eta_sq": 0.0209,
+   "p_perm": 0.0005,
+   "sd_pooled": 18.14,
+   "sd_within_month": 8.8,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1221,
+     "mean": 61.77,
+     "sd": 18.93,
+     "vs_month": 0.43
+    },
+    "EARLY_BURN": {
+     "n": 87,
+     "mean": 67.53,
+     "sd": 17.18,
+     "vs_month": 2.39
+    },
+    "LATE_BURN": {
+     "n": 105,
+     "mean": 61.85,
+     "sd": 17.08,
+     "vs_month": 0.4
+    },
+    "NO_BURN": {
+     "n": 300,
+     "mean": 56.01,
+     "sd": 13.85,
+     "vs_month": -2.6
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 166,
+     "mean": 75.81,
+     "sd": 7.36
+    },
+    "EARLY_BURN": {
+     "n": 13,
+     "mean": 75.62,
+     "sd": 8.19
+    },
+    "LATE_BURN": {
+     "n": 16,
+     "mean": 74.94,
+     "sd": 7.69
+    },
+    "NO_BURN": {
+     "n": 43,
+     "mean": 69.3,
+     "sd": 5.47
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 1,
+   "holm_survives": true
+  },
+  "CHI": {
+   "n": 1717,
+   "eta_sq": 0.0194,
+   "p_perm": 0.0005,
+   "sd_pooled": 20.84,
+   "sd_within_month": 10.22,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1152,
+     "mean": 66.85,
+     "sd": 20.44,
+     "vs_month": 0.99
+    },
+    "EARLY_BURN": {
+     "n": 84,
+     "mean": 54.81,
+     "sd": 22.81,
+     "vs_month": -2.37
+    },
+    "LATE_BURN": {
+     "n": 139,
+     "mean": 61.88,
+     "sd": 19.21,
+     "vs_month": -2.3
+    },
+    "NO_BURN": {
+     "n": 342,
+     "mean": 52.11,
+     "sd": 17.58,
+     "vs_month": -1.83
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 187,
+     "mean": 81.52,
+     "sd": 7.68
+    },
+    "EARLY_BURN": {
+     "n": 6,
+     "mean": 80.0,
+     "sd": 3.74
+    },
+    "LATE_BURN": {
+     "n": 18,
+     "mean": 77.67,
+     "sd": 4.78
+    },
+    "NO_BURN": {
+     "n": 27,
+     "mean": 76.19,
+     "sd": 5.85
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 3,
+   "holm_survives": true
+  },
+  "DAL": {
+   "n": 1713,
+   "eta_sq": 0.0559,
+   "p_perm": 0.0005,
+   "sd_pooled": 16.61,
+   "sd_within_month": 9.17,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1192,
+     "mean": 82.15,
+     "sd": 16.82,
+     "vs_month": 0.78
+    },
+    "EARLY_BURN": {
+     "n": 112,
+     "mean": 79.55,
+     "sd": 14.51,
+     "vs_month": 0.53
+    },
+    "LATE_BURN": {
+     "n": 195,
+     "mean": 82.26,
+     "sd": 10.82,
+     "vs_month": 1.22
+    },
+    "NO_BURN": {
+     "n": 214,
+     "mean": 67.36,
+     "sd": 15.03,
+     "vs_month": -5.72
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 208,
+     "mean": 95.43,
+     "sd": 6.62
+    },
+    "EARLY_BURN": {
+     "n": 6,
+     "mean": 92.33,
+     "sd": 6.7
+    },
+    "LATE_BURN": {
+     "n": 13,
+     "mean": 87.31,
+     "sd": 3.71
+    },
+    "NO_BURN": {
+     "n": 11,
+     "mean": 83.27,
+     "sd": 4.96
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 2,
+   "holm_survives": true
+  },
+  "DC": {
+   "n": 1708,
+   "eta_sq": 0.0344,
+   "p_perm": 0.0005,
+   "sd_pooled": 17.48,
+   "sd_within_month": 8.61,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1306,
+     "mean": 69.74,
+     "sd": 18.14,
+     "vs_month": 0.4
+    },
+    "EARLY_BURN": {
+     "n": 60,
+     "mean": 73.57,
+     "sd": 16.92,
+     "vs_month": 2.86
+    },
+    "LATE_BURN": {
+     "n": 110,
+     "mean": 75.5,
+     "sd": 14.01,
+     "vs_month": 1.72
+    },
+    "NO_BURN": {
+     "n": 232,
+     "mean": 64.8,
+     "sd": 13.6,
+     "vs_month": -3.79
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 163,
+     "mean": 84.42,
+     "sd": 6.65
+    },
+    "EARLY_BURN": {
+     "n": 11,
+     "mean": 82.73,
+     "sd": 4.67
+    },
+    "LATE_BURN": {
+     "n": 23,
+     "mean": 83.35,
+     "sd": 6.0
+    },
+    "NO_BURN": {
+     "n": 41,
+     "mean": 74.8,
+     "sd": 7.59
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 4,
+   "holm_survives": true
+  },
+  "DEN": {
+   "n": 1716,
+   "eta_sq": 0.2648,
+   "p_perm": 0.0005,
+   "sd_pooled": 20.19,
+   "sd_within_month": 11.53,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1464,
+     "mean": 70.22,
+     "sd": 18.82,
+     "vs_month": 2.28
+    },
+    "EARLY_BURN": {
+     "n": 66,
+     "mean": 60.55,
+     "sd": 21.51,
+     "vs_month": -6.48
+    },
+    "LATE_BURN": {
+     "n": 81,
+     "mean": 60.22,
+     "sd": 20.39,
+     "vs_month": -10.05
+    },
+    "NO_BURN": {
+     "n": 105,
+     "mean": 41.71,
+     "sd": 16.53,
+     "vs_month": -19.96
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 217,
+     "mean": 86.14,
+     "sd": 7.22
+    },
+    "EARLY_BURN": {
+     "n": 7,
+     "mean": 77.86,
+     "sd": 8.24
+    },
+    "LATE_BURN": {
+     "n": 6,
+     "mean": 69.5,
+     "sd": 5.25
+    },
+    "NO_BURN": {
+     "n": 8,
+     "mean": 65.38,
+     "sd": 8.4
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 1,
+   "holm_survives": true
+  },
+  "EWR": {
+   "n": 1714,
+   "eta_sq": 0.0302,
+   "p_perm": 0.0005,
+   "sd_pooled": 18.7,
+   "sd_within_month": 8.88,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1240,
+     "mean": 66.78,
+     "sd": 19.37,
+     "vs_month": 0.33
+    },
+    "EARLY_BURN": {
+     "n": 87,
+     "mean": 70.6,
+     "sd": 17.91,
+     "vs_month": 2.74
+    },
+    "LATE_BURN": {
+     "n": 122,
+     "mean": 71.3,
+     "sd": 17.22,
+     "vs_month": 1.86
+    },
+    "NO_BURN": {
+     "n": 265,
+     "mean": 61.44,
+     "sd": 14.92,
+     "vs_month": -3.3
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 164,
+     "mean": 81.63,
+     "sd": 6.87
+    },
+    "EARLY_BURN": {
+     "n": 15,
+     "mean": 83.6,
+     "sd": 5.23
+    },
+    "LATE_BURN": {
+     "n": 18,
+     "mean": 82.39,
+     "sd": 4.99
+    },
+    "NO_BURN": {
+     "n": 41,
+     "mean": 73.88,
+     "sd": 9.0
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 2,
+   "holm_survives": true
+  },
+  "HOU": {
+   "n": 1713,
+   "eta_sq": 0.0428,
+   "p_perm": 0.0005,
+   "sd_pooled": 12.88,
+   "sd_within_month": 7.37,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1069,
+     "mean": 84.26,
+     "sd": 13.25,
+     "vs_month": -0.47
+    },
+    "EARLY_BURN": {
+     "n": 150,
+     "mean": 82.77,
+     "sd": 11.55,
+     "vs_month": 2.27
+    },
+    "LATE_BURN": {
+     "n": 262,
+     "mean": 83.82,
+     "sd": 9.31,
+     "vs_month": 2.61
+    },
+    "NO_BURN": {
+     "n": 232,
+     "mean": 73.82,
+     "sd": 11.82,
+     "vs_month": -2.26
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 199,
+     "mean": 94.31,
+     "sd": 4.36
+    },
+    "EARLY_BURN": {
+     "n": 10,
+     "mean": 90.3,
+     "sd": 6.1
+    },
+    "LATE_BURN": {
+     "n": 19,
+     "mean": 92.42,
+     "sd": 3.77
+    },
+    "NO_BURN": {
+     "n": 10,
+     "mean": 85.6,
+     "sd": 2.33
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 0,
+   "holm_survives": true
+  },
+  "LAS": {
+   "n": 1711,
+   "eta_sq": 0.0084,
+   "p_perm": 0.002,
+   "sd_pooled": 18.5,
+   "sd_within_month": 7.64,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1699,
+     "mean": 82.53,
+     "sd": 18.44,
+     "vs_month": 0.05
+    },
+    "EARLY_BURN": {
+     "n": 4,
+     "mean": 62.75,
+     "sd": 10.43,
+     "vs_month": -12.06
+    },
+    "LATE_BURN": {
+     "n": 5,
+     "mean": 65.8,
+     "sd": 18.12,
+     "vs_month": -4.07
+    },
+    "NO_BURN": {
+     "n": 3,
+     "mean": 50.67,
+     "sd": 2.49,
+     "vs_month": -7.51
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 236,
+     "mean": 97.48,
+     "sd": 7.93
+    },
+    "EARLY_BURN": {
+     "n": 1,
+     "mean": 76.0,
+     "sd": null
+    },
+    "LATE_BURN": {
+     "n": 0,
+     "mean": null,
+     "sd": null
+    },
+    "NO_BURN": {
+     "n": 0,
+     "mean": null,
+     "sd": null
+    }
+   },
+   "n_trading_window": 237,
+   "n_2layer_disagree": 0,
+   "holm_survives": true
+  },
+  "LAX": {
+   "n": 1713,
+   "eta_sq": 0.1661,
+   "p_perm": 0.0005,
+   "sd_pooled": 7.05,
+   "sd_within_month": 5.55,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 898,
+     "mean": 72.18,
+     "sd": 7.86,
+     "vs_month": 1.98
+    },
+    "EARLY_BURN": {
+     "n": 271,
+     "mean": 70.79,
+     "sd": 5.54,
+     "vs_month": -0.92
+    },
+    "LATE_BURN": {
+     "n": 289,
+     "mean": 70.05,
+     "sd": 5.08,
+     "vs_month": -1.7
+    },
+    "NO_BURN": {
+     "n": 255,
+     "mean": 66.24,
+     "sd": 5.16,
+     "vs_month": -4.06
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 120,
+     "mean": 81.32,
+     "sd": 6.41
+    },
+    "EARLY_BURN": {
+     "n": 43,
+     "mean": 76.6,
+     "sd": 2.9
+    },
+    "LATE_BURN": {
+     "n": 48,
+     "mean": 74.92,
+     "sd": 2.6
+    },
+    "NO_BURN": {
+     "n": 26,
+     "mean": 71.65,
+     "sd": 2.96
+    }
+   },
+   "n_trading_window": 237,
+   "n_2layer_disagree": 19,
+   "holm_survives": true
+  },
+  "MIA": {
+   "n": 1706,
+   "eta_sq": 0.0186,
+   "p_perm": 0.0005,
+   "sd_pooled": 6.49,
+   "sd_within_month": 3.85,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1286,
+     "mean": 86.23,
+     "sd": 6.47,
+     "vs_month": 0.19
+    },
+    "EARLY_BURN": {
+     "n": 89,
+     "mean": 85.63,
+     "sd": 5.48,
+     "vs_month": -0.37
+    },
+    "LATE_BURN": {
+     "n": 181,
+     "mean": 85.74,
+     "sd": 5.78,
+     "vs_month": 0.18
+    },
+    "NO_BURN": {
+     "n": 150,
+     "mean": 81.41,
+     "sd": 6.38,
+     "vs_month": -1.64
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 192,
+     "mean": 91.79,
+     "sd": 2.32
+    },
+    "EARLY_BURN": {
+     "n": 12,
+     "mean": 90.08,
+     "sd": 2.56
+    },
+    "LATE_BURN": {
+     "n": 21,
+     "mean": 90.52,
+     "sd": 2.81
+    },
+    "NO_BURN": {
+     "n": 13,
+     "mean": 88.77,
+     "sd": 2.42
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 1,
+   "holm_survives": true
+  },
+  "MSP": {
+   "n": 1717,
+   "eta_sq": 0.017,
+   "p_perm": 0.0005,
+   "sd_pooled": 24.02,
+   "sd_within_month": 10.7,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1185,
+     "mean": 61.89,
+     "sd": 24.12,
+     "vs_month": 0.91
+    },
+    "EARLY_BURN": {
+     "n": 66,
+     "mean": 52.23,
+     "sd": 23.66,
+     "vs_month": -2.99
+    },
+    "LATE_BURN": {
+     "n": 128,
+     "mean": 60.48,
+     "sd": 23.43,
+     "vs_month": -1.26
+    },
+    "NO_BURN": {
+     "n": 338,
+     "mean": 45.89,
+     "sd": 19.14,
+     "vs_month": -2.14
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 179,
+     "mean": 80.34,
+     "sd": 7.53
+    },
+    "EARLY_BURN": {
+     "n": 3,
+     "mean": 73.33,
+     "sd": 8.96
+    },
+    "LATE_BURN": {
+     "n": 29,
+     "mean": 78.34,
+     "sd": 7.55
+    },
+    "NO_BURN": {
+     "n": 27,
+     "mean": 76.48,
+     "sd": 5.85
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 0,
+   "holm_survives": true
+  },
+  "MSY": {
+   "n": 1442,
+   "eta_sq": 0.0318,
+   "p_perm": 0.0005,
+   "sd_pooled": 12.44,
+   "sd_within_month": 6.92,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 998,
+     "mean": 81.77,
+     "sd": 13.03,
+     "vs_month": -0.48
+    },
+    "EARLY_BURN": {
+     "n": 84,
+     "mean": 79.55,
+     "sd": 9.74,
+     "vs_month": 2.64
+    },
+    "LATE_BURN": {
+     "n": 200,
+     "mean": 81.02,
+     "sd": 9.89,
+     "vs_month": 2.35
+    },
+    "NO_BURN": {
+     "n": 160,
+     "mean": 72.96,
+     "sd": 9.75,
+     "vs_month": -1.3
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 162,
+     "mean": 92.19,
+     "sd": 3.93
+    },
+    "EARLY_BURN": {
+     "n": 3,
+     "mean": 89.33,
+     "sd": 2.62
+    },
+    "LATE_BURN": {
+     "n": 15,
+     "mean": 89.2,
+     "sd": 2.9
+    },
+    "NO_BURN": {
+     "n": 11,
+     "mean": 81.27,
+     "sd": 2.38
+    }
+   },
+   "n_trading_window": 191,
+   "n_2layer_disagree": 4,
+   "holm_survives": true
+  },
+  "NYC": {
+   "n": 1714,
+   "eta_sq": 0.023,
+   "p_perm": 0.0005,
+   "sd_pooled": 17.8,
+   "sd_within_month": 8.46,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1216,
+     "mean": 64.35,
+     "sd": 18.72,
+     "vs_month": 0.31
+    },
+    "EARLY_BURN": {
+     "n": 101,
+     "mean": 69.46,
+     "sd": 16.99,
+     "vs_month": 2.64
+    },
+    "LATE_BURN": {
+     "n": 119,
+     "mean": 69.09,
+     "sd": 14.36,
+     "vs_month": 0.71
+    },
+    "NO_BURN": {
+     "n": 278,
+     "mean": 59.56,
+     "sd": 13.65,
+     "vs_month": -2.64
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 153,
+     "mean": 79.29,
+     "sd": 6.55
+    },
+    "EARLY_BURN": {
+     "n": 25,
+     "mean": 80.04,
+     "sd": 4.8
+    },
+    "LATE_BURN": {
+     "n": 20,
+     "mean": 77.85,
+     "sd": 5.27
+    },
+    "NO_BURN": {
+     "n": 40,
+     "mean": 71.65,
+     "sd": 7.67
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 0,
+   "holm_survives": true
+  },
+  "OKC": {
+   "n": 1712,
+   "eta_sq": 0.0896,
+   "p_perm": 0.0005,
+   "sd_pooled": 18.41,
+   "sd_within_month": 10.18,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1293,
+     "mean": 77.27,
+     "sd": 17.87,
+     "vs_month": 1.51
+    },
+    "EARLY_BURN": {
+     "n": 67,
+     "mean": 71.03,
+     "sd": 19.93,
+     "vs_month": -1.8
+    },
+    "LATE_BURN": {
+     "n": 104,
+     "mean": 74.87,
+     "sd": 14.49,
+     "vs_month": -0.57
+    },
+    "NO_BURN": {
+     "n": 248,
+     "mean": 62.1,
+     "sd": 16.78,
+     "vs_month": -7.16
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 213,
+     "mean": 91.88,
+     "sd": 7.05
+    },
+    "EARLY_BURN": {
+     "n": 2,
+     "mean": 84.5,
+     "sd": 7.5
+    },
+    "LATE_BURN": {
+     "n": 5,
+     "mean": 82.8,
+     "sd": 4.17
+    },
+    "NO_BURN": {
+     "n": 17,
+     "mean": 79.35,
+     "sd": 5.66
+    }
+   },
+   "n_trading_window": 237,
+   "n_2layer_disagree": 6,
+   "holm_survives": true
+  },
+  "PHL": {
+   "n": 1716,
+   "eta_sq": 0.0262,
+   "p_perm": 0.0005,
+   "sd_pooled": 18.32,
+   "sd_within_month": 8.62,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1250,
+     "mean": 67.06,
+     "sd": 18.94,
+     "vs_month": 0.24
+    },
+    "EARLY_BURN": {
+     "n": 95,
+     "mean": 74.07,
+     "sd": 16.37,
+     "vs_month": 2.22
+    },
+    "LATE_BURN": {
+     "n": 117,
+     "mean": 74.51,
+     "sd": 16.68,
+     "vs_month": 2.15
+    },
+    "NO_BURN": {
+     "n": 254,
+     "mean": 62.51,
+     "sd": 14.47,
+     "vs_month": -2.99
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 162,
+     "mean": 82.53,
+     "sd": 6.44
+    },
+    "EARLY_BURN": {
+     "n": 16,
+     "mean": 86.06,
+     "sd": 4.21
+    },
+    "LATE_BURN": {
+     "n": 24,
+     "mean": 84.67,
+     "sd": 4.58
+    },
+    "NO_BURN": {
+     "n": 36,
+     "mean": 73.19,
+     "sd": 7.82
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 1,
+   "holm_survives": true
+  },
+  "PHX": {
+   "n": 1713,
+   "eta_sq": 0.0265,
+   "p_perm": 0.0005,
+   "sd_pooled": 16.4,
+   "sd_within_month": 7.19,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1687,
+     "mean": 90.4,
+     "sd": 16.23,
+     "vs_month": 0.14
+    },
+    "EARLY_BURN": {
+     "n": 11,
+     "mean": 70.36,
+     "sd": 15.8,
+     "vs_month": -11.09
+    },
+    "LATE_BURN": {
+     "n": 8,
+     "mean": 70.0,
+     "sd": 8.17,
+     "vs_month": -7.24
+    },
+    "NO_BURN": {
+     "n": 7,
+     "mean": 62.86,
+     "sd": 3.18,
+     "vs_month": -8.83
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 237,
+     "mean": 104.4,
+     "sd": 6.52
+    },
+    "EARLY_BURN": {
+     "n": 0,
+     "mean": null,
+     "sd": null
+    },
+    "LATE_BURN": {
+     "n": 0,
+     "mean": null,
+     "sd": null
+    },
+    "NO_BURN": {
+     "n": 0,
+     "mean": null,
+     "sd": null
+    }
+   },
+   "n_trading_window": 237,
+   "n_2layer_disagree": 1,
+   "holm_survives": true
+  },
+  "SAN": {
+   "n": 1714,
+   "eta_sq": 0.1482,
+   "p_perm": 0.0005,
+   "sd_pooled": 6.43,
+   "sd_within_month": 4.76,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 736,
+     "mean": 71.65,
+     "sd": 7.45,
+     "vs_month": 1.87
+    },
+    "EARLY_BURN": {
+     "n": 355,
+     "mean": 72.54,
+     "sd": 5.73,
+     "vs_month": -0.21
+    },
+    "LATE_BURN": {
+     "n": 296,
+     "mean": 70.91,
+     "sd": 4.77,
+     "vs_month": -1.2
+    },
+    "NO_BURN": {
+     "n": 327,
+     "mean": 67.81,
+     "sd": 4.69,
+     "vs_month": -2.89
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 82,
+     "mean": 81.91,
+     "sd": 6.35
+    },
+    "EARLY_BURN": {
+     "n": 68,
+     "mean": 77.85,
+     "sd": 2.95
+    },
+    "LATE_BURN": {
+     "n": 48,
+     "mean": 76.17,
+     "sd": 2.85
+    },
+    "NO_BURN": {
+     "n": 40,
+     "mean": 74.2,
+     "sd": 2.41
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 3,
+   "holm_survives": true
+  },
+  "SAT": {
+   "n": 1715,
+   "eta_sq": 0.0802,
+   "p_perm": 0.0005,
+   "sd_pooled": 14.52,
+   "sd_within_month": 8.19,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 721,
+     "mean": 81.13,
+     "sd": 15.51,
+     "vs_month": -0.64
+    },
+    "EARLY_BURN": {
+     "n": 237,
+     "mean": 92.68,
+     "sd": 10.61,
+     "vs_month": 2.2
+    },
+    "LATE_BURN": {
+     "n": 464,
+     "mean": 89.72,
+     "sd": 8.27,
+     "vs_month": 2.47
+    },
+    "NO_BURN": {
+     "n": 293,
+     "mean": 73.05,
+     "sd": 13.79,
+     "vs_month": -4.11
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 129,
+     "mean": 96.09,
+     "sd": 5.17
+    },
+    "EARLY_BURN": {
+     "n": 40,
+     "mean": 97.42,
+     "sd": 3.4
+    },
+    "LATE_BURN": {
+     "n": 63,
+     "mean": 95.71,
+     "sd": 2.94
+    },
+    "NO_BURN": {
+     "n": 6,
+     "mean": 86.17,
+     "sd": 5.05
+    }
+   },
+   "n_trading_window": 238,
+   "n_2layer_disagree": 0,
+   "holm_survives": true
+  },
+  "SEA": {
+   "n": 1711,
+   "eta_sq": 0.1294,
+   "p_perm": 0.0005,
+   "sd_pooled": 13.58,
+   "sd_within_month": 6.84,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 841,
+     "mean": 65.46,
+     "sd": 14.71,
+     "vs_month": 2.48
+    },
+    "EARLY_BURN": {
+     "n": 160,
+     "mean": 61.01,
+     "sd": 12.41,
+     "vs_month": -1.72
+    },
+    "LATE_BURN": {
+     "n": 327,
+     "mean": 60.71,
+     "sd": 10.7,
+     "vs_month": -2.25
+    },
+    "NO_BURN": {
+     "n": 383,
+     "mean": 53.85,
+     "sd": 9.59,
+     "vs_month": -2.81
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 132,
+     "mean": 76.51,
+     "sd": 7.85
+    },
+    "EARLY_BURN": {
+     "n": 22,
+     "mean": 73.82,
+     "sd": 5.88
+    },
+    "LATE_BURN": {
+     "n": 47,
+     "mean": 71.06,
+     "sd": 5.08
+    },
+    "NO_BURN": {
+     "n": 36,
+     "mean": 67.19,
+     "sd": 4.89
+    }
+   },
+   "n_trading_window": 237,
+   "n_2layer_disagree": 3,
+   "holm_survives": true
+  },
+  "SFO": {
+   "n": 1710,
+   "eta_sq": 0.1167,
+   "p_perm": 0.0005,
+   "sd_pooled": 7.64,
+   "sd_within_month": 5.66,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 969,
+     "mean": 67.9,
+     "sd": 8.47,
+     "vs_month": 1.67
+    },
+    "EARLY_BURN": {
+     "n": 230,
+     "mean": 67.53,
+     "sd": 6.2,
+     "vs_month": -1.49
+    },
+    "LATE_BURN": {
+     "n": 288,
+     "mean": 65.56,
+     "sd": 6.07,
+     "vs_month": -2.27
+    },
+    "NO_BURN": {
+     "n": 223,
+     "mean": 63.28,
+     "sd": 5.29,
+     "vs_month": -2.77
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 114,
+     "mean": 78.04,
+     "sd": 7.05
+    },
+    "EARLY_BURN": {
+     "n": 45,
+     "mean": 72.22,
+     "sd": 4.14
+    },
+    "LATE_BURN": {
+     "n": 47,
+     "mean": 71.49,
+     "sd": 3.15
+    },
+    "NO_BURN": {
+     "n": 30,
+     "mean": 70.37,
+     "sd": 2.94
+    }
+   },
+   "n_trading_window": 236,
+   "n_2layer_disagree": 27,
+   "holm_survives": true
+  },
+  "TTN": {
+   "n": 1711,
+   "eta_sq": 0.0353,
+   "p_perm": 0.0005,
+   "sd_pooled": 18.57,
+   "sd_within_month": 8.82,
+   "by_regime": {
+    "NO_STRATUS": {
+     "n": 1185,
+     "mean": 63.91,
+     "sd": 19.37,
+     "vs_month": 0.05
+    },
+    "EARLY_BURN": {
+     "n": 91,
+     "mean": 72.0,
+     "sd": 16.2,
+     "vs_month": 4.43
+    },
+    "LATE_BURN": {
+     "n": 138,
+     "mean": 72.75,
+     "sd": 14.86,
+     "vs_month": 2.39
+    },
+    "NO_BURN": {
+     "n": 297,
+     "mean": 61.18,
+     "sd": 15.68,
+     "vs_month": -2.67
+    }
+   },
+   "trading_window": {
+    "NO_STRATUS": {
+     "n": 146,
+     "mean": 79.81,
+     "sd": 6.68
+    },
+    "EARLY_BURN": {
+     "n": 15,
+     "mean": 85.0,
+     "sd": 4.46
+    },
+    "LATE_BURN": {
+     "n": 23,
+     "mean": 80.22,
+     "sd": 5.74
+    },
+    "NO_BURN": {
+     "n": 53,
+     "mean": 73.83,
+     "sd": 8.72
+    }
+   },
+   "n_trading_window": 237,
+   "n_2layer_disagree": 3,
+   "holm_survives": true
+  }
+ }
+}
