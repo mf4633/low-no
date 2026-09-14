@@ -341,18 +341,18 @@ kbd {
 #writ-body .why.up { color: #8fb86a; }
 #writ-body .why.down { color: #cc7b6e; }
 .acts { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
-.acts button, #clock button {
+.acts button, #advance button {
   font: 12px/1 inherit; padding: 7px 10px; cursor: pointer;
   color: var(--parch); background: rgba(232,220,196,.09);
   border: 1px solid var(--edge); border-radius: 2px;
 }
 /* The writ's buttons sit on a panel; the clock's sit on the sky. */
-#clock button { background: rgba(20,17,13,.62); }
-.acts button:focus-visible, #clock button:focus-visible,
+#advance button { background: rgba(20,17,13,.62); }
+.acts button:focus-visible, #advance button:focus-visible,
 #writ-close:focus-visible {
   outline: 2px solid var(--gold); outline-offset: 1px;
 }
-.acts button:hover, #clock button:hover { background: var(--gold); color: #14110d; }
+.acts button:hover, #advance button:hover { background: var(--gold); color: #14110d; }
 .acts button:disabled { opacity: .35; cursor: not-allowed; }
 .acts button:disabled:hover { background: rgba(232,220,196,.09); color: var(--parch); }
 .pick { display: grid; gap: 3px; }
@@ -365,12 +365,12 @@ kbd {
 .pick button:disabled { color: var(--dim); cursor: not-allowed; }
 .pick em { font-style: normal; color: var(--dim); font-size: 12px;
            font-variant-numeric: tabular-nums; }
-#clock {
+#advance {
   position: absolute; right: 14px; top: 52px; z-index: 3; display: flex; gap: 4px;
 }
-body.march #clock button { color: #6b5c3e; background: rgba(235,224,194,.8);
+body.march #advance button { color: #6b5c3e; background: rgba(235,224,194,.8);
                            border-color: rgba(120,96,58,.35); }
-body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
+body.march #advance button:hover { background: #96731a; color: #f2e9d2; }
 /* Narrow. The panel used to be hidden outright, which took the four numbers
    the game is actually played on off the screen. It lies down instead. */
 @media (max-width: 720px) {
@@ -390,7 +390,7 @@ body.march #clock button:hover { background: #96731a; color: #f2e9d2; }
      instead of sliding about as the log fills. */
   #console { left: 8px; right: 8px; bottom: 65px; }
   #log { height: 84px; max-height: none; }
-  #clock { right: 8px; top: auto; bottom: 196px; flex-wrap: wrap;
+  #advance { right: 8px; top: auto; bottom: 196px; flex-wrap: wrap;
            justify-content: flex-end; max-width: calc(100% - 16px); }
   #writ { width: calc(100% - 28px); left: 14px !important; }
 }
@@ -664,3 +664,38 @@ body.march #scale { display: none; }
 @media (max-width: 560px) {
   #soul { left: 14px; right: 14px; width: auto; max-height: 52vh; }
 }
+
+/* --------------------------------------------------------------- the clock */
+/* Time runs on its own now, so the pace of it is a control rather than a
+   command. It sits with the view buttons because it is the same kind of
+   thing: what you are looking at, and how fast. */
+#pace { margin-right: 4px; }
+#pace button {
+  pointer-events: auto; font: 12px/1 inherit; padding: 6px 8px; cursor: pointer;
+  color: var(--dim); background: rgba(20,17,13,.55);
+  border: 1px solid var(--edge); border-radius: 2px; letter-spacing: -1px;
+}
+#pace button:hover { color: var(--parch); border-color: rgba(201,162,39,.5); }
+#pace button[aria-pressed="true"] {
+  background: rgba(201,162,39,.2); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+#pace button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+body.march #pace button { color: #6b5c3e; background: rgba(235,224,194,.75);
+                          border-color: rgba(120,96,58,.35); }
+/* Why it stopped, said where you are looking rather than in the log. */
+#halt {
+  position: fixed; left: 50%; top: 58px; transform: translateX(-50%); z-index: 13;
+  padding: 7px 15px; font-size: 12.5px; letter-spacing: .04em;
+  color: #f0d9a0; background: rgba(86,26,20,.94);
+  border: 1px solid rgba(201,162,39,.45); border-radius: 3px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.45); pointer-events: none;
+}
+
+/* The matchup, in the person panel's skill slot. Green is an advantage,
+   red is one against you, and the number is the multiplier the battle will
+   actually use -- not a rating invented for the display. */
+#soul-skills b.up { color: var(--leaf); }
+#soul-skills b.down { color: var(--blood); }
+#soul-skills b.dim { color: var(--dim); }
+#soul-skills li span.dim { font-size: 11px; }

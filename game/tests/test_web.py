@@ -1174,5 +1174,118 @@ class TestHostsOnTheMap(unittest.TestCase):
         self.assertEqual(a.seen_size, 25)
 
 
+class TestTheCountersAreSayable(unittest.TestCase):
+    """A rock-paper-scissors nobody can see is a dice roll with extra
+    arithmetic. The counters have decided every battle since the first one
+    and the game had never once mentioned them."""
+
+    def test_it_is_the_same_sum_the_battle_uses(self):
+        # Not a rating invented for the display: the number shown is the
+        # multiplier `_damage` will apply.
+        from marchlands.military import Side, UNITS, matchup
+        mine, theirs = {"spearman": 40}, {"knight": 20, "man_at_arms": 30}
+        shares = Side(dict(theirs)).class_share()
+        u = UNITS["spearman"]
+        expect = sum(s * u.counters.get(c, 1.0) for c, s in shares.items())
+        self.assertAlmostEqual(matchup(mine, theirs)[0]["worth"],
+                               round(expect, 2), places=2)
+
+    def test_spears_are_worth_more_against_horse(self):
+        from marchlands.military import matchup
+        horse = matchup({"spearman": 30}, {"knight": 30})[0]["worth"]
+        foot = matchup({"spearman": 30}, {"man_at_arms": 30})[0]["worth"]
+        self.assertGreater(horse, foot)
+        self.assertGreater(horse, 1.0)
+
+    def test_the_best_of_yours_comes_first(self):
+        from marchlands.military import matchup
+        rows = matchup({"spearman": 30, "archer": 30}, {"knight": 40})
+        self.assertEqual(rows[0]["key"], "spearman")
+
+    def test_a_host_with_no_advantage_is_warned_about_theirs(self):
+        # A shrug is no use. What has the better of you is the thing worth
+        # saying, and it is the same sum the other way round.
+        from marchlands.military import counter_note
+        said = counter_note({"archer": 50}, {"knight": 40})
+        self.assertIn("nothing of yours", said)
+        self.assertIn("knights", said)
+
+    def test_an_even_fight_says_so(self):
+        from marchlands.military import counter_note
+        self.assertIn("straight fight",
+                      counter_note({"spearman": 30}, {"spearman": 30}))
+
+    def test_it_ignores_units_you_have_fewer_than_one_of(self):
+        from marchlands.military import matchup
+        self.assertEqual(matchup({"spearman": 0.4}, {"knight": 10}), [])
+
+    def test_every_house_has_a_unit_of_its_own(self):
+        # The civilisations borrowed from AOE2 are not only architecture.
+        from marchlands.military import UNITS
+        from marchlands.tech import HOUSES
+        gated = {u.needs_tech for u in UNITS.values() if u.needs_tech}
+        for house in HOUSES:
+            self.assertIn(house, gated, f"{house} has no unit of its own")
+
+
+class TestTheMatchupRespectsTheFog(unittest.TestCase):
+    """Costing a battle off the enemy's true muster would be reading their
+    books. It is costed off what you last saw, like everything else."""
+
+    def setUp(self):
+        self.g, _s = grown(seed=5, days=420)
+        self.here = next(iter(self.g.world.settlements))
+        self.g.world.settlements[self.here].units.update(
+            {"spearman": 60, "archer": 30})
+        self.g.raise_host(self.here, {"spearman": 30, "archer": 15})
+        self.a = self.g.armies[-1]
+        self.foe = next(k for k, t in self.g.world.towns.items() if not t.mine)
+
+    def mine(self):
+        from marchlands.web import march as march_map
+        return [h for h in march_map(self.g, self.here)["hosts"] if h["mine"]][0]
+
+    def test_a_marching_host_is_costed_against_where_it_is_going(self):
+        from marchlands.web import _matchup_for
+        self.g.march(self.a.uid, self.foe)
+        self.assertEqual(_matchup_for(self.g, self.a),
+                         __import__("marchlands.military", fromlist=["matchup"]).matchup(
+                             self.a.units, self.g.believed_host(self.foe)))
+        self.assertTrue(self.mine()["matchup"])
+
+    def test_it_uses_what_you_believe_not_what_is_true(self):
+        from marchlands.web import _matchup_for
+        self.g.march(self.a.uid, self.foe)
+        town = self.g.world.towns[self.foe]
+        town.muster *= 6.0                    # they have raised far more
+        before = _matchup_for(self.g, self.a)
+        town.observe(self.g.day)              # now you have looked
+        after = _matchup_for(self.g, self.a)
+        self.assertNotEqual(before, after,
+                            "looking at them should change what you believe")
+
+    def test_a_place_you_have_never_seen_says_so(self):
+        from marchlands.web import _matchup_note
+        town = self.g.world.towns[self.foe]
+        town.seen_day, town.seen = -1, {}
+        self.g.march(self.a.uid, self.foe)
+        self.assertIn("never looked", _matchup_note(self.g, self.a))
+
+    def test_a_host_standing_at_home_is_not_costed_against_anything(self):
+        from marchlands.web import _matchup_for
+        self.assertEqual(_matchup_for(self.g, self.a), [])
+
+    def test_their_hosts_carry_no_matchup_of_yours(self):
+        from marchlands.military import Army
+        self.g.armies.append(Army(uid=960, name="x", owner=self.foe,
+                                  units={"spearman": 25}, at=self.here))
+        self.g._look_around()
+        from marchlands.web import march as march_map
+        theirs = [h for h in march_map(self.g, self.here)["hosts"]
+                  if not h["mine"]][0]
+        self.assertEqual(theirs["matchup"], [])
+        self.assertEqual(theirs["note"], "")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -200,6 +200,66 @@ class BattleResult:
     log: List[str] = field(default_factory=list)
 
 
+def matchup(mine: Dict[str, float], theirs: Dict[str, float]) -> List[dict]:
+    """Which of yours eats which of theirs, and by how much.
+
+    The counters have been in the rules since the first battle -- a spearman
+    is worth two and a half of himself against horse -- and the game has never
+    once said so. A counter system nobody can see is a dice roll with extra
+    arithmetic: you cannot bring spears to a cavalry fight if nothing ever
+    told you spears beat cavalry.
+
+    So this is the same sum `_damage` does, kept apart and returned as facts
+    rather than a number: for each kind you have, what it is worth against
+    the enemy in front of it and which part of that enemy it is worth it
+    against. Nothing here decides anything; the battle still runs on
+    `_damage`. This is that calculation, said out loud.
+    """
+    foe = Side(dict(theirs))
+    shares = foe.class_share()
+    out: List[dict] = []
+    for key, n in sorted(mine.items()):
+        if n < 1 or key not in UNITS:
+            continue
+        u = UNITS[key]
+        mult = sum(share * u.counters.get(cls, 1.0)
+                   for cls, share in shares.items()) or 1.0
+        against = sorted(
+            ((cls, u.counters[cls]) for cls in u.counters if shares.get(cls, 0) > 0),
+            key=lambda kv: -kv[1])
+        out.append({
+            "key": key, "name": u.name, "count": int(n), "class": u.unit_class,
+            "worth": round(mult, 2),
+            "against": [{"class": c, "times": v} for c, v in against],
+        })
+    out.sort(key=lambda d: -d["worth"])
+    return out
+
+
+def counter_note(mine: Dict[str, float], theirs: Dict[str, float]) -> str:
+    """One line about the matchup, for a player who will not read a table."""
+    ours = matchup(mine, theirs)
+    rows = [r for r in ours if r["against"]]
+    if not rows:
+        # No advantage of yours is worth saying. What has the advantage over
+        # you is worth saying very much, and is the same sum the other way
+        # round -- a warning being more use than a shrug.
+        back = [r for r in matchup(theirs, mine) if r["against"]]
+        if not back:
+            return "neither host has the better of the other; it is a straight fight"
+        them = back[0]
+        return (f"nothing of yours has the better of them, and their "
+                f"{plural(them['name']).lower()} are worth "
+                f"{them['worth']:.2f} against yours")
+    best = rows[0]
+    worst = min(ours, key=lambda r: r["worth"])
+    said = (f"your {plural(best['name']).lower()} are worth "
+            f"{best['worth']:.2f} of themselves against that host")
+    if worst["worth"] < 0.999:
+        said += f", your {plural(worst['name']).lower()} rather less"
+    return said
+
+
 def _damage(side: Side, foe: Side, *, ranged_only: bool, cover: float) -> float:
     shares = foe.class_share()
     total = 0.0

@@ -2689,6 +2689,10 @@ async function send(line) {
   if (data.said) say(data.said, 'said');
   if (data.state) paint(data.state);
   if (mode === 'march') loadMarch(); else loadOptions();
+  // A typed `next` moves the day too, and the clock's stream knows about it.
+  // Skipping to the head keeps those lines from arriving a second time.
+  const c = await (await fetch('/clock')).json();
+  if (c && typeof c.seq === 'number') { seqNow = c.seq; applyClock(c); }
 }
 
 $('ask').addEventListener('submit', e => {
@@ -2773,6 +2777,9 @@ $('good').innerHTML = GOODS.map(g =>
   // because that player has already answered the only question it asks.
   doorman = await (await fetch('/front')).json();
   if (doorman.open) openFront(false);
+  const clock = await (await fetch('/clock')).json();
+  if (clock && typeof clock.seq === 'number') seqNow = clock.seq;
+  applyClock(clock);
 })();
 
 
@@ -3240,8 +3247,22 @@ function openHost(h) {
   $('soul-facts').innerHTML = rows.map(([k, v]) =>
     `<li><span class="dim">${esc(k)}</span><span>${esc(v)}</span></li>`).join('');
 
-  $('soul-said').hidden = true;
-  $('soul-person').hidden = true;
+  // The counters, said out loud. They have decided every battle since the
+  // first one and the game has never once mentioned them -- and you cannot
+  // bring spears to a cavalry fight if nothing told you spears beat cavalry.
+  $('soul-said').textContent = h.note || '';
+  $('soul-said').hidden = !h.note;
+  const mt = h.matchup || [];
+  $('soul-person').hidden = !mt.length;
+  if (mt.length) {
+    $('soul-age').textContent = 'against what you believe they can field';
+    $('soul-skills').innerHTML = mt.map(r => {
+      const beats = r.against.map(a => `${a.class} \u00d7${a.times}`).join(', ');
+      const cls = r.worth > 1.02 ? 'up' : (r.worth < 0.99 ? 'down' : 'dim');
+      return `<li>${esc(r.name)} <b class="${cls}">\u00d7${r.worth.toFixed(2)}</b>` +
+             (beats ? ` <span class="dim">${esc(beats)}</span>` : '') + '</li>';
+    }).join('');
+  }
   // Emptied, not just hidden. A panel that keeps the last host's orders in
   // its markup is one stylesheet change away from offering you the recall of
   // somebody else's army.
@@ -3295,4 +3316,70 @@ document.addEventListener('keydown', e => {
     canvas.style.cursor = '';
     say('the host stays where it is.');
   }
+});
+
+
+/* ------------------------------------------------------------- the clock */
+/* The game used to wait for you. Now it does not, and this is the dial.
+ *
+ * The poll only runs while the clock does, and it carries where it has got
+ * to: a poll that lands after three days have passed must be given three
+ * days of news, not the last one with the other two dropped. That is what
+ * `seq` is for on both ends.
+ *
+ * The clock stops itself when something happens. The banner says what,
+ * because "why has it stopped" is a question you should never have to answer
+ * by reading the log. */
+let speedNow = 0, seqNow = 0, polling = false;
+
+async function setSpeed(n) {
+  const c = await post('/speed', { speed: n });
+  applyClock(c);
+  if (c.speed) pollOn(); 
+}
+
+function applyClock(c) {
+  if (!c) return;
+  speedNow = c.speed;
+  for (let i = 0; i <= 3; i++) {
+    $(`c-${i}`).setAttribute('aria-pressed', i === c.speed ? 'true' : 'false');
+  }
+  const halt = $('halt');
+  if (c.stopped_for && !c.speed) {
+    halt.textContent = c.stopped_for;
+    halt.hidden = false;
+  } else {
+    halt.hidden = true;
+  }
+}
+
+async function pollOn() {
+  if (polling) return;
+  polling = true;
+  try {
+    while (speedNow) {
+      const s = await (await fetch(`/state?since=${seqNow}`)).json();
+      for (const line of (s.said || [])) say(line, 'said');
+      if (s.clock) { seqNow = s.clock.seq; applyClock(s.clock); }
+      paint(s);
+      if (mode === 'march') loadMarch();
+      // A beat under the fastest pace, so a day is never shown twice and
+      // never missed. Faster than this is polling for the sake of it.
+      await new Promise(r => setTimeout(r, 350));
+    }
+  } finally {
+    polling = false;
+  }
+}
+
+for (let i = 0; i <= 3; i++) {
+  $(`c-${i}`).addEventListener('click', () => setSpeed(i));
+}
+/* Space is pause, the way it is in every game that runs a clock. Not while
+ * you are typing into the command line, obviously. */
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.target.tagName === 'INPUT') return;
+  if (!$('front').hidden || !$('drawmap').hidden) return;
+  e.preventDefault();
+  setSpeed(speedNow ? 0 : 1);
 });

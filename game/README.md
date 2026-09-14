@@ -534,6 +534,70 @@ ditch, mill sails turning, smoke from the ovens that are lit, windows glowing
 where somebody is working, people on the road, and snow in winter with the
 trees gone bare.
 
+#### Time runs on its own
+
+The game used to wait for you, because a console has no other option: nothing
+happens until somebody types `next`. A drawn view does have another option,
+and taking it changes what the game *is* — a siege you watched arrive is a
+different thing from a siege that was in the report when you pressed next.
+
+So the bar has a pace: **stopped, and three speeds**. Space pauses, the way it
+does in every game that runs a clock.
+
+Two things make a running clock usable rather than merely running.
+
+**It stops itself.** A host sits down before your walls, war is declared, a
+town changes hands, something is burning — the clock stops and a line at the
+top of the screen says which. A clock that keeps running while your castle
+burns is not being exciting, it is being unreadable. The other half of that
+bargain matters as much: it does *not* stop for a good harvest or a cart
+arriving, because a clock that stops at everything is one nobody leaves
+running, and then the game is turn-based again with extra steps.
+
+**No day is lost.** The browser polls, and a poll that lands after three days
+have passed is given three days. Each line the clock produces gets a sequence
+number and the page asks for everything after where it had got to.
+
+The clock advances the day through the engine's own `advance` — the identical
+call `next` makes, under the same lock the request handler takes, autosaving
+after it the same way. Two writers of one game with two locks is not locking.
+What it does not do is print the console's status block each day: that is a
+console's answer to "what happened", and the browser has a better one, which
+is that it reads the state. Running `next` verbatim buried seven days of
+events under a hundred and fifty lines of banner.
+
+The terminal game is still turn-based, and honestly so: `next` is the right
+verb where there is nothing to watch.
+
+#### The counters, said out loud
+
+Spearmen have been worth two and a half of themselves against horse since the
+first battle in this codebase, and the game had never once mentioned it. A
+rock-paper-scissors nobody can see is a dice roll with extra arithmetic — you
+cannot bring spears to a cavalry fight if nothing tells you spears beat
+cavalry.
+
+Click one of your hosts and it says so:
+
+    your archers are worth 1.28 of themselves against that host
+      Archer      ×1.28   foot ×1.5
+      Spearman    ×1.00
+
+That multiplier is not a rating invented for the display. It is the same sum
+`_damage` applies when the fight happens — the display calls the calculation,
+it does not imitate it. And when nothing of yours has the advantage, the line
+says what has the advantage over *you*, because a warning is more use than a
+shrug.
+
+It is costed against what you **believe** they can field, not what they can.
+Costing it off their true muster would be reading their books, and this game
+has been careful about that everywhere else.
+
+Each of the five houses also has a unit only it can raise — the Hanse guard,
+the Ironhand serjeant, the border horse, the abbey guard, the billman — gated
+behind that house's own technology. There is a test that no house is ever
+left without one.
+
 #### Five idioms
 
 Age of Empires II is remembered for a lot of things, and one of them is that

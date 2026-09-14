@@ -22,6 +22,12 @@
       <button id="v-march" type="button" aria-pressed="false">the march</button>
       <button id="v-castle" type="button" aria-pressed="false">the wall</button>
     </span>
+    <span id="pace" class="views" role="group" aria-label="the pace of time">
+      <button id="c-0" type="button" aria-pressed="true" title="stop the clock">&#9208;</button>
+      <button id="c-1" type="button" aria-pressed="false" title="let the days pass">&#9205;</button>
+      <button id="c-2" type="button" aria-pressed="false" title="faster">&#9205;&#9205;</button>
+      <button id="c-3" type="button" aria-pressed="false" title="faster still">&#9205;&#9205;&#9205;</button>
+    </span>
     <button id="v-draw" type="button" title="draw a march from dials">country</button>
     <button id="v-menu" type="button" title="new game, save, resume">menu</button>
     <button id="v-save" type="button" title="write this game down">save</button>
@@ -79,6 +85,8 @@
   </aside>
 
   <p id="scale" class="dim"></p>
+
+  <p id="halt" hidden role="status"></p>
 
   <!-- Somebody you clicked on. -->
   <aside id="soul" hidden aria-live="polite">
@@ -210,7 +218,7 @@
     <div id="writ-body"></div>
   </div>
 
-  <div id="clock">
+  <div id="advance">
     <button type="button" data-do="next">a day</button>
     <button type="button" data-do="next 7">a week</button>
     <button type="button" data-do="next 30">a month</button>

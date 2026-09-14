@@ -39,6 +39,7 @@ from . import chancery
 from . import culture as cultures
 from . import keep as keeps
 from . import voices
+from .clock import Clock
 from .buildings import BUILDINGS
 from .layout import plan_for
 
@@ -68,6 +69,39 @@ TYPES = {".html": "text/html; charset=utf-8",
          ".css": "text/css; charset=utf-8",
          ".js": "text/javascript; charset=utf-8",
          ".json": "application/json"}
+
+
+def _matchup_target(game, a):
+    """Whose host this one would meet. Where it is going if it is going
+    somewhere, otherwise whoever is standing in front of it."""
+    from .military import BESIEGING, MARCHING
+    key = a.bound_for if a.state == MARCHING else a.at
+    if key in game.world.towns and not game.world.towns[key].mine:
+        return key
+    foe = next((b for b in game.armies
+                if b.owner != "player" and b.at == a.at and b.uid != a.uid), None)
+    return foe.owner if foe else ""
+
+
+def _matchup_for(game, a) -> list:
+    key = _matchup_target(game, a)
+    if not key:
+        return []
+    from .military import matchup
+    # What you *believe* they can field, not what they can. Costing a battle
+    # off the true muster would be reading their books.
+    return matchup(a.units, game.believed_host(key))
+
+
+def _matchup_note(game, a) -> str:
+    key = _matchup_target(game, a)
+    if not key:
+        return ""
+    from .military import counter_note
+    theirs = game.believed_host(key)
+    if not theirs:
+        return f"you have never looked at {game.world.node_name(key)}"
+    return counter_note(a.units, theirs)
 
 
 def _their_host_name(game, a) -> str:
@@ -174,6 +208,11 @@ def march(game, here: str, good: str = "bread") -> dict:
             "upkeep": round(a.upkeep, 1) if mine else 0.0,
             "siege_days": a.siege_days if fresh else 0,
             "captain": led,
+            # What this host is worth against the place it is going, said in
+            # counters rather than left in the arithmetic. A rock-paper-
+            # scissors nobody can see is a dice roll.
+            "matchup": _matchup_for(game, a) if mine else [],
+            "note": _matchup_note(game, a) if mine else "",
             "stale": 0 if fresh else max(0, game.day - a.seen_day),
             "owner": "" if mine else w.node_name(a.owner),
         })
@@ -407,6 +446,11 @@ def _save_path() -> str:
 #: question that screen asks.
 SHOW_FRONT = False
 
+#: The thread letting the days pass, once a server is up. None in the tests
+#: that call these functions directly, which is the point: the game does not
+#: need a clock to be a game.
+CLOCK = None
+
 
 def _front_door(console, route: str, body: dict) -> dict:
     """Start, save or resume a game without anybody typing a command.
@@ -448,6 +492,8 @@ def _front_door(console, route: str, body: dict) -> dict:
         return {"error": str(exc)}
     console.here = next(iter(console.game.world.settlements))
     SHOW_FRONT = False
+    if CLOCK is not None:
+        CLOCK.set_speed(0)                 # a new country starts stopped
     return {"said": console.game.briefing,
             "state": snapshot(console.game, console.here)}
 
@@ -707,8 +753,21 @@ class Handler(BaseHTTPRequestHandler):
         if route == "/favicon.ico":
             return self._send(200, b"", "image/x-icon")
         if route == "/state":
+            # `since` is the browser's place in the clock's stream. Without it
+            # a poll that lands after three days have passed would show the
+            # last one and quietly eat the other two.
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                since = int(q.get("since", ["-1"])[0])
+            except ValueError:
+                since = -1
             with self.lock:
-                return self._json(snapshot(self.console.game, self.console.here))
+                out = snapshot(self.console.game, self.console.here)
+            if CLOCK is not None:
+                out["clock"] = CLOCK.state()
+                if since >= 0:
+                    out["said"] = CLOCK.since(since)
+            return self._json(out)
         if route == "/commands":
             # Straight off the console's own registry, so the palette cannot
             # drift from what the game will actually accept.
@@ -721,6 +780,8 @@ class Handler(BaseHTTPRequestHandler):
                     if "good=" in self.path else "bread")
             with self.lock:
                 return self._json(march(self.console.game, self.console.here, good))
+        if route == "/clock":
+            return self._json(CLOCK.state() if CLOCK else {"speed": 0})
         if route == "/folk":
             # Somebody clicked a person. The index is the figure's place in
             # the plan, which is stable while the town is: the plan is laid
@@ -810,6 +871,12 @@ class Handler(BaseHTTPRequestHandler):
                     "said": self.console.game.briefing,
                     "state": snapshot(self.console.game, self.console.here)})
         route = urlparse(self.path).path
+        if route == "/speed":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            if CLOCK is None:
+                return self._json({"error": "no clock"})
+            return self._json(CLOCK.set_speed(int(body.get("speed", 0))))
         if route in ("/new", "/save", "/load"):
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
@@ -864,7 +931,12 @@ class _Server(ThreadingHTTPServer):
 
 def serve(console: Console, host: str = "127.0.0.1", port: int = 8731,
           open_browser: bool = True) -> Tuple[ThreadingHTTPServer, str]:
+    global CLOCK
     Handler.console = console
+    # Same lock the request handler takes, not a second one: the clock is
+    # another writer of the same game, and two writers with two locks is not
+    # locking.
+    CLOCK = Clock(console, Handler.lock)
     # Somebody already on that port is the commonest way this fails, and a
     # traceback about EADDRINUSE is not an answer. Walk up a few and then let
     # the operating system pick.
@@ -903,5 +975,7 @@ def main(game=None, port: int = 8731, open_browser: bool = True,
     except KeyboardInterrupt:
         print("\n  stopped.")
     finally:
+        if CLOCK is not None:
+            CLOCK.close()
         server.server_close()
     return 0
