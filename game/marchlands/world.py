@@ -63,6 +63,21 @@ class ForeignTown:
     muster: float = 1.0           # how big a host this town can put in the field
     temper: float = 1.0           # how quickly this lord takes offence
     sort: str = ""                # what kind of lord he is (see lords.py)
+    #: What he thinks of you, copied off the chancery's ledger each morning.
+    #: The world does not know what politics is and should not -- it only
+    #: needs the number, the way a customs post only needs today's rate.
+    #: The toll this lord charges a stranger, before anything you have done
+    #: about it. Kept on the town rather than on its market because the
+    #: market's `tariff_rate` is the *working* rate a visiting cart trades
+    #: at -- and the trade engine writes the effective rate back into it on
+    #: every visit. Reading that back as the base compounded the trading
+    #: posts' relief once per cart: after two hundred visits a six per cent
+    #: toll was eight thousandths of one per cent, and every foreign customs
+    #: post in the game had quietly stopped charging anything at all.
+    tariff_base: float = C.BASE_TARIFF
+    regard: float = 0.0
+    signed: bool = False          # has put his name to the letter against you
+    sworn_friend: bool = False    # allied to you
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
     last_pilgrimage: int = -999   # day this lord last sent men to a shrine
@@ -204,7 +219,10 @@ class ForeignTown:
                 "wall_max": self.wall_max, "wall_base": self.wall_base,
                 "seen": dict(self.seen), "seen_day": self.seen_day,
                 "muster": self.muster, "temper": self.temper,
-                "sort": self.sort,
+                "sort": self.sort, "regard": self.regard,
+                "tariff_base": self.tariff_base,
+                "signed": self.signed,
+                "sworn_friend": self.sworn_friend,
                 "prosperity": self.prosperity, "harbour": self.harbour}
 
     @classmethod
@@ -222,6 +240,10 @@ class ForeignTown:
         t.wall_hp = d.get("wall_hp", 0.0)
         t.wall_max = d.get("wall_max", 0.0)
         t.sort = d.get("sort", "")
+        t.regard = float(d.get("regard", 0.0))
+        t.tariff_base = float(d.get("tariff_base", C.BASE_TARIFF))
+        t.signed = bool(d.get("signed", False))
+        t.sworn_friend = bool(d.get("sworn_friend", False))
         for name in ("ambition", "aggression", "truce_days", "favour", "muster",
                      "temper", "prosperity", "wall_base", "harbour",
                      "last_pilgrimage", "seen_day"):
@@ -386,15 +408,37 @@ class World:
             raise KeyError(f"no place matches {prefix!r}")
         raise KeyError(f"{prefix!r} is ambiguous: {', '.join(hits)}")
 
+    #: What a lord's opinion is worth at his own customs post. A merchant's
+    #: world is the diplomatic one: this is the seam where the two halves of
+    #: the game meet, and it runs both ways. Politics decides what your carts
+    #: pay, which decides what routes are worth running, which decides where
+    #: your money comes from -- and a gift or a marriage is an investment with
+    #: a rate of return rather than only war insurance.
+    TOLL_FLOOR = 0.35            # an ally waves your carts through
+    TOLL_CEILING = 2.6           # a man who has signed against you does not
+    TOLL_SLOPE = 95.0            # points of opinion per unit of toll
+
+    def toll_mood(self, node: str) -> float:
+        """The multiplier this lord's feelings put on his own toll."""
+        t = self.towns.get(node)
+        if t is None or t.mine:
+            return 0.0
+        if t.sworn_friend:
+            return self.TOLL_FLOOR
+        mult = 1.0 - t.regard / self.TOLL_SLOPE
+        if t.signed:
+            mult = max(mult, 1.9)
+        return max(self.TOLL_FLOOR, min(self.TOLL_CEILING, mult))
+
     def tariff_for(self, node: str, home: Optional[Settlement]) -> float:
         """Toll charged at `node`, after any relief your trading posts bought."""
         if node in self.settlements:
             return 0.0
         if self.towns[node].mine:
             return 0.0                     # a vassal does not toll its lord
-        base = self.towns[node].market.tariff_rate
+        base = self.towns[node].tariff_base
         relief = max((s.tariff_relief for s in self.settlements.values()), default=0.0)
-        return base * (1.0 - relief)
+        return base * (1.0 - relief) * self.toll_mood(node)
 
     # --------------------------------------------------------- arbitrage aid
     def spreads(self, key: str, limit: int = 6) -> List[Tuple[str, str, float, float]]:
@@ -470,6 +514,7 @@ def make_town(key: str, name: str, x: float, y: float, *, produces: Dict[str, fl
     # another rival is a number with a name on it.
     kind = lordly.sort_of(key)
     return ForeignTown(key=key, name=name, x=x, y=y, market=m, flow=flow,
+                       tariff_base=tariff,
                        base_target=dict(target), lawlessness=lawlessness,
                        wealth=wealth, blurb=blurb, lord=lord,
                        sort=kind.key,

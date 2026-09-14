@@ -14,7 +14,7 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 785 tests, ~20min
+python3 -m unittest discover -s tests          # 801 tests, ~20min
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it
@@ -385,6 +385,48 @@ the comfortable ones, a stone curtain with merlons along it, water in the
 ditch, mill sails turning, smoke from the ovens that are lit, windows glowing
 where somebody is working, people on the road, and snow in winter with the
 trees gone bare.
+
+#### The materials
+
+Every surface used to be a flat polygon with a few ruled lines on it: thatch
+was five arcs, a tiled roof was four straight strokes, a stone wall was a grid
+at six-pixel intervals. What makes a painted surface read as a material is not
+the lines on it — it is that no two square inches of it are the same.
+
+* **Thatch** is thirteen courses, each lighter at its head and shadowed where
+  the next laps over it, combed with stalks down the fall of the roof, a bound
+  ridge at the top and the shadow the overhang throws on itself.
+* **Tiles** are objects rather than stripes: sixty-three separately fired
+  things, offset half a tile every other course, each a slightly different
+  colour, with moss gathering at the eave where the roof stays wet longest.
+* **Stone** is rubble, not graph paper — courses of uneven height, blocks of
+  uneven width within them, each block its own shade, and damp at the foot of
+  the wall where a stone wall is always darkest.
+* **Timber** is a real frame: sill, top plate, studs and a brace every third
+  bay, with lime daub panels between them.
+* **The ground** is two scales of variation, and the second one is the whole
+  trick. Per-tile noise alone paints a *checkerboard* — every diamond a
+  different shade with a hard seam at its edge, which is exactly what the eye
+  is best at finding. A broad smooth swell laid over the top gives sunlit and
+  shaded ground that crosses tile boundaries, and the per-tile part can then be
+  small enough to read as texture. On top of that: crop rows that stand taller
+  in summer than in spring, cart ruts and gravel on the roads, tufts and bare
+  patches and the odd ploughed-up stone in the meadow, and flowers in season.
+* And a **grain** over all of it, baked once into a tiling bitmap and used as a
+  fill pattern, because canvas cannot do per-pixel noise at thirty frames a
+  second but it can composite one small texture a hundred times.
+
+All of which is **free**, which is the part worth recording. Measured before
+and after on the same machine: 24 fps before the materials pass, 23–25 after.
+It is paid for by three things the renderer should have been doing anyway —
+the static ground is baked into a bitmap once and blitted (9.6ms → 0.1ms a
+frame), every water tile is clipped in one path instead of ninety (a third of
+the frame budget was going on the cheapest-looking thing on the screen), and
+buildings off the side of the screen are not drawn at all. Detail drops to
+courses rather than individual tiles below about three-quarter zoom, which is
+not a compromise: a roof drawn with sixty-three tiles at a zoom where each is
+a pixel and a half looks *worse* than one drawn with seven courses, as well as
+costing more.
 
 ### The hour of the day
 
@@ -1264,6 +1306,75 @@ with nobody in the field. It is rare on purpose — but it is the only way a tow
 arrives without a war, and the only thing in this game that makes a dowry look
 cheap in hindsight. Without a claim, a cousin takes the hall and you hear about
 it, which is what most history is.
+
+### And it is priced as money, not kept in a screen
+
+The question a system like this has to answer is whether it is *integrated* or
+merely *present*. A diplomacy screen you visit is a spreadsheet; a diplomacy
+that decides what your carts pay is a world.
+
+**A lord's opinion is the rate his customs post charges you.** That is the
+whole seam, and it is one function:
+
+| | his toll on your carts |
+|---|---|
+| allied | 1.4% |
+| married into his house | 2.2% |
+| a stranger | 4.0% |
+| hostile | 6.5% |
+| signed against you | 7.6% |
+
+Which means a gift is an investment with a rate of return rather than only war
+insurance, that a marriage pays a dividend every day for the rest of the
+campaign, and that the cost of the third town is a number you watch in the
+ledger long after the war is over.
+
+And because the toll was already the thing the route-finder asked about,
+everything downstream reads the politics **without a line of new code**. The
+same `scan`, same seeds, three different diplomatic positions:
+
+```
+neutral :  dunmere -> aldworth  264.6c/day
+hated   :  dunmere -> aldworth  246.8c/day   (and the 2nd and 3rd swap places)
+married :  dunmere -> aldworth  278.9c/day
+```
+
+`surplus <good> <town>` — the one screen in the game that prices a tax
+properly, with its consumer surplus, producer surplus and deadweight-loss
+triangle — now names who is levying it and why. It was previously the only
+screen that could not see the politics of the toll it was weighing.
+
+**And the street knows.** A coalition is not a diplomatic event to a carter:
+
+```
+  One of the wall guard
+    "My brother carts to Ostmark and they turned him at the bridge. He
+     says every lord on the march has put his name to something."
+  A fishwife
+    "My son is in the host and I cannot tell his mother what for."
+```
+
+Eight new voices keyed to the politics and the accounts — the letter, an
+unanswered call, a blockade, a war with no cause anybody can name, prices that
+have moved, tolls that have doubled, and roads that are quiet because you paid
+for them to be. They sit among the rest by weight rather than in a section of
+their own, because that is how they arrive: you find out you have a coalition
+from somebody whose brother was turned back at a bridge.
+
+**The bug this turned up.** The toll had been quietly decaying to nothing for
+the life of the project. `tariff_for` read the base rate off the market, the
+trade engine wrote the *effective* rate back into the same field on every
+visit, and so the trading posts' relief compounded once per cart: after two
+hundred visits a six per cent toll was eight thousandths of one per cent, and
+every customs post on the march had stopped charging for anything. The base
+rate now lives on the town and the working rate on the market, which are two
+different things that had been one field.
+
+Fixing it makes the game **meaningfully harder** — an ordinary trading policy
+now finishes at a mean of 87,300 against a goal of 120,000, where before the
+fix it finished at 108,000. That is not a balance change dressed as a bugfix;
+it is a designed cost that had been silently refunded. The balance guard
+passes on its own twelve seeds with room, and the goal is still reached.
 
 ### Two things this cost to get right
 

@@ -1809,6 +1809,12 @@ class GameState:
         # forgotten while `favour` only ever went up.
         for key, t in self.world.towns.items():
             t.favour = c.goodwill(key, day)
+            # And what his customs post charges, which is where the politics
+            # stops being a screen and starts being money. See
+            # World.toll_mood.
+            t.regard = c.opinion(key, day)
+            t.signed = key in c.coalition
+            t.sworn_friend = key in c.allies
         msgs += self._coalition_day()
         msgs += self._alliance_day()
         msgs += self._succession_abroad()

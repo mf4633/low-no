@@ -13,7 +13,7 @@
 
 const TW = 64, TH = 32;                 // tile, in screen pixels
 const canvas = document.getElementById('view');
-const ctx = canvas.getContext('2d');
+let ctx = canvas.getContext('2d');   /* let, not const: the ground is baked on a second context of its own */
 
 let state = null, plan = null, t0 = performance.now(), smoke = [], flames = [];
 let camera = { x: 0, y: 0, zoom: 1 }, hover = null, dpr = 1;
@@ -181,6 +181,19 @@ function poly(pts, fill, stroke) {
   if (fill) { ctx.fillStyle = fill; ctx.fill(); }
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
 }
+/* Smooth low-frequency noise over the tile grid: bilinear between hash values
+ * on a coarse lattice. Cheap, stable, and the only thing that makes a meadow
+ * look like ground rather than like a spreadsheet of greens. */
+function swell(x, y, scale) {
+  const gx = x / scale, gy = y / scale;
+  const x0 = Math.floor(gx), y0 = Math.floor(gy);
+  const fx = gx - x0, fy = gy - y0;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const a = rnd(x0, y0, 91), b = rnd(x0 + 1, y0, 91);
+  const c = rnd(x0, y0 + 1, 91), e = rnd(x0 + 1, y0 + 1, 91);
+  return (a + (b - a) * sx) + ((c + (e - c) * sx) - (a + (b - a) * sx)) * sy;
+}
+
 /* A cheap deterministic hash, so the same tile always grows the same tuft. */
 const rnd = (x, y, n) => {
   const s = Math.sin(x * 127.1 + y * 311.7 + n * 74.7) * 43758.5453;
@@ -201,27 +214,139 @@ function drawTile(x, y, kind) {
   else if (kind === 'water') base = p.water;
   else if (kind === 'road') base = shade(p.earth, 1.32);
   else if (kind === 'yard') base = shade(p.earth, 1.18);
-  const tint = 0.94 + 0.12 * rnd(x, y, 1);
+  // Two scales of variation, and the second one is what stops the ground
+  // reading as a checkerboard. Per-tile noise alone paints a grid: every
+  // diamond a different shade with a hard seam at its edge, which is exactly
+  // what the eye is best at picking out. A broad smooth swell laid over the
+  // top gives sunlit and shaded ground that crosses tile boundaries, and the
+  // per-tile part can then be small enough to read as texture rather than
+  // tiling.
+  const tint = (0.975 + 0.05 * rnd(x, y, 1)) * (0.93 + 0.15 * swell(x, y, 5));
   poly(d, shade(base, tint));
 
+  if (kind !== 'water')
+    tooth(d, kind === 'grass' || kind === 'forest' ? 2 : 1, 0.40,
+          kind === 'yard' || kind === 'road' ? 0.34 : 0.30);
+
   if (kind === 'field') {
-    // Furrows, running the same way across the whole field.
-    ctx.strokeStyle = shade(base, 0.82);
+    // Furrows, running the same way across the whole field -- and a crop
+    // standing in them that is not the same crop in February as in August.
+    ctx.strokeStyle = shade(base, 0.80);
     ctx.lineWidth = 1;
-    for (let i = 1; i < 5; i++) {
-      const f = i / 5;
+    for (let i = 1; i < 8; i++) {
+      const f = i / 8;
       ctx.beginPath();
       ctx.moveTo(sx - TW / 2 + f * TW / 2, sy - f * TH / 2);
       ctx.lineTo(sx + f * TW / 2, sy + TH / 2 - f * TH / 2);
       ctx.stroke();
+      ctx.strokeStyle = shade(base, 1.10);
+      ctx.beginPath();
+      ctx.moveTo(sx - TW / 2 + f * TW / 2, sy - f * TH / 2 + 1.2);
+      ctx.lineTo(sx + f * TW / 2, sy + TH / 2 - f * TH / 2 + 1.2);
+      ctx.stroke();
+      ctx.strokeStyle = shade(base, 0.80);
     }
-  } else if (kind === 'grass' && rnd(x, y, 2) > 0.55) {
-    ctx.strokeStyle = shade(base, 0.78);
+    const season = state && state.season;
+    if (season && season !== 'winter') {
+      const tall = season === 'summer' ? 4.2 : season === 'autumn' ? 3.0 : 1.8;
+      ctx.strokeStyle = shade(base, season === 'autumn' ? 1.22 : 1.12);
+      ctx.lineWidth = 0.9;
+      for (let i = 0; i < 14; i++) {
+        const cx = sx + (rnd(x, y, i + 40) - 0.5) * TW * 0.78;
+        const cy = sy + (rnd(x, y, i + 60) - 0.5) * TH * 0.78;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + 0.8, cy - tall - rnd(x, y, i + 80) * 1.6);
+        ctx.stroke();
+      }
+    }
+  } else if (kind === 'grass') {
+    // A meadow is tufts and bare patches and the odd stone, not a green
+    // diamond with three ticks on it. The patches are large and soft so they
+    // cross tile edges; the tufts are many and small so they read as grass
+    // rather than as marks.
+    for (let i = 0; i < 4; i++) {
+      const px = sx + (rnd(x, y, i + 11) - 0.5) * TW * 0.85;
+      const py = sy + (rnd(x, y, i + 13) - 0.5) * TH * 0.85;
+      ctx.fillStyle = shade(base, 0.88 + rnd(x, y, i + 15) * 0.26);
+      ctx.beginPath();
+      ctx.ellipse(px, py, 7 + rnd(x, y, i + 17) * 11, 3 + rnd(x, y, i + 19) * 3,
+                  0, 0, 7);
+      ctx.fill();
+    }
     ctx.lineWidth = 1;
-    for (let i = 0; i < 3; i++) {
-      const bx = sx + (rnd(x, y, i + 3) - 0.5) * TW * 0.5;
-      const by = sy + (rnd(x, y, i + 7) - 0.5) * TH * 0.5;
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 1, by - 3); ctx.stroke();
+    for (let i = 0; i < 22; i++) {
+      const bx = sx + (rnd(x, y, i + 3) - 0.5) * TW * 0.84;
+      const by = sy + (rnd(x, y, i + 7) - 0.5) * TH * 0.84;
+      ctx.strokeStyle = shade(base, 0.68 + rnd(x, y, i + 21) * 0.62);
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      ctx.lineTo(bx + (rnd(x, y, i + 23) - 0.5) * 3.0,
+                 by - 2.0 - rnd(x, y, i + 27) * 3.2);
+      ctx.stroke();
+    }
+    if (rnd(x, y, 30) > 0.80) {         // a clump of something in flower
+      const fx = sx + (rnd(x, y, 31) - 0.5) * 26;
+      const fy = sy + (rnd(x, y, 32) - 0.5) * 12;
+      ctx.fillStyle = state && state.season === 'spring' ? '#d9d27a'
+                    : state && state.season === 'summer' ? '#c9b8d2' : '#b8ab72';
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.ellipse(fx + (rnd(x, y, i + 60) - 0.5) * 9,
+                    fy + (rnd(x, y, i + 64) - 0.5) * 5, 0.9, 0.7, 0, 0, 7);
+        ctx.fill();
+      }
+    }
+    if (rnd(x, y, 33) > 0.88) {                 // a stone somebody ploughed up
+      ctx.fillStyle = '#948d82';
+      ctx.beginPath();
+      ctx.ellipse(sx + (rnd(x, y, 34) - 0.5) * 20, sy + (rnd(x, y, 35) - 0.5) * 9,
+                  2.4, 1.5, 0, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(30,28,22,.28)';
+      ctx.beginPath();
+      ctx.ellipse(sx + (rnd(x, y, 34) - 0.5) * 20 + 1.2,
+                  sy + (rnd(x, y, 35) - 0.5) * 9 + 1.2, 2.2, 1.1, 0, 0, 7);
+      ctx.fill();
+    }
+  } else if (kind === 'road' || kind === 'yard') {
+    // Trodden earth: two ruts where the carts go, gravel where they do not,
+    // and the puddles they leave in the hollows.
+    if (kind === 'road') {
+      ctx.strokeStyle = shade(base, 0.80); ctx.lineWidth = 2.2;
+      for (const off of [-4, 4]) {
+        ctx.beginPath();
+        ctx.moveTo(sx - TW / 2, sy + off * 0.5);
+        ctx.lineTo(sx + TW / 2, sy + off * 0.5);
+        ctx.stroke();
+      }
+    }
+    // Trodden ground is not one colour: it is bare patches, gravel, and the
+    // places the water stands after rain.
+    for (let i = 0; i < 4; i++) {
+      const px = sx + (rnd(x, y, i + 44) - 0.5) * TW * 0.7;
+      const py = sy + (rnd(x, y, i + 46) - 0.5) * TH * 0.7;
+      ctx.fillStyle = shade(base, 0.88 + rnd(x, y, i + 48) * 0.22);
+      ctx.beginPath();
+      ctx.ellipse(px, py, 6 + rnd(x, y, i + 49) * 9, 3 + rnd(x, y, i + 51) * 3,
+                  0, 0, 7);
+      ctx.fill();
+    }
+    for (let i = 0; i < 16; i++) {
+      const gx = sx + (rnd(x, y, i + 50) - 0.5) * TW * 0.84;
+      const gy = sy + (rnd(x, y, i + 55) - 0.5) * TH * 0.84;
+      ctx.fillStyle = shade(base, 0.76 + rnd(x, y, i + 58) * 0.5);
+      ctx.beginPath(); ctx.ellipse(gx, gy, 1.4, 0.85, 0, 0, 7); ctx.fill();
+    }
+  } else if (kind === 'hill' || kind === 'clay') {
+    // Broken ground: scree and exposed faces catching the light on one side.
+    for (let i = 0; i < 6; i++) {
+      const px = sx + (rnd(x, y, i + 70) - 0.5) * TW * 0.7;
+      const py = sy + (rnd(x, y, i + 74) - 0.5) * TH * 0.7;
+      const r = 2 + rnd(x, y, i + 78) * 3;
+      ctx.fillStyle = shade(base, 0.80 + rnd(x, y, i + 82) * 0.12);
+      ctx.beginPath(); ctx.ellipse(px, py + 1, r, r * 0.55, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = shade(base, 1.14);
+      ctx.beginPath(); ctx.ellipse(px - r * 0.2, py - 0.4, r * 0.7, r * 0.38, 0, 0, 7);
+      ctx.fill();
     }
   } else if (kind === 'water') {
     // Three things make water read as water: it moves, it is darker where it
@@ -323,6 +448,99 @@ function drawTrees(x, y) {
   }
 }
 
+/* ------------------------------------------------------------------ grain */
+/* What makes a painted surface read as a material is not the lines on it, it
+ * is that no two square inches of it are the same colour. Canvas cannot do
+ * that per pixel at thirty frames a second, so the noise is baked once into a
+ * small tiling bitmap and used as a fill pattern -- which costs one composite
+ * per face instead of a hundred thousand arithmetic operations.
+ *
+ * Three weights, because thatch wants a coarse tooth, plaster a fine one and
+ * stone something between. */
+let GRAIN = {}, GRAIN_OWNER = null;
+function grain(step, strength) {
+  // A CanvasPattern belongs to the context that made it. The ground is baked
+  // on a second context, so the cache has to know which one it is holding.
+  if (GRAIN_OWNER !== ctx) { GRAIN = {}; GRAIN_OWNER = ctx; }
+  const key = step + ':' + strength;
+  if (GRAIN[key]) return GRAIN[key];
+  const n = 64, c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d');
+  const img = g.createImageData(n, n);
+  let s = 1;
+  for (let y = 0; y < n; y += step) {
+    for (let x = 0; x < n; x += step) {
+      // xorshift: deterministic, and the same tooth every time the page loads.
+      s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+      const v = 128 + ((s & 255) - 128) * strength;
+      for (let dy = 0; dy < step; dy++) {
+        for (let dx = 0; dx < step; dx++) {
+          const i = ((y + dy) * n + (x + dx)) * 4;
+          if (i >= img.data.length) continue;
+          img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+          img.data[i + 3] = 255;
+        }
+      }
+    }
+  }
+  g.putImageData(img, 0, 0);
+  GRAIN[key] = ctx.createPattern(c, 'repeat');
+  return GRAIN[key];
+}
+
+/* How close the eye is. Grain, individual tiles and rubble coursing are all
+ * invisible below about three-quarter zoom and all of them cost real time, so
+ * they are simply not drawn there. This is not a compromise: a roof drawn with
+ * sixty-three separate tiles at a zoom where each one is a pixel and a half is
+ * worse than one drawn with seven courses, as well as slower. */
+function near() { return camera.zoom >= 1.25; }
+
+/* And what is actually in front of the eye. Fifty roofs of sixty-three tiles
+ * each is nine thousand filled paths a frame, and at two-and-a-bit zoom four
+ * fifths of them are off the side of the screen. Culling is what pays for the
+ * detail: far out there is less of it per building, close in there are fewer
+ * buildings. */
+let clipBox = null;
+function onScreen(sx, sy, pad) {
+  if (!clipBox) return true;
+  return sx > clipBox[0] - pad && sx < clipBox[2] + pad
+      && sy > clipBox[1] - pad && sy < clipBox[3] + pad;
+}
+function setClip(w, h) {
+  const z = camera.zoom;
+  const ox = (plan.w - plan.h) * TW / 4, oy = (plan.w + plan.h) * TH / 4;
+  clipBox = [(-w / 2 - camera.x) / z + ox, (-h / 2 - camera.y) / z + oy,
+             (w / 2 - camera.x) / z + ox, (h / 2 - camera.y) / z + oy];
+}
+
+/* Lay grain over whatever has just been painted, inside the given outline.
+ * `overlay` keeps the hue and moves only the value, which is what weathering
+ * does to a real surface. */
+function tooth(pts, step, strength, alpha) {
+  if (!baking && !near()) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  ctx.clip();
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = grain(step, strength);
+  const x0 = Math.min(...pts.map(p => p[0])) - 64;
+  const y0 = Math.min(...pts.map(p => p[1])) - 64;
+  const x1 = Math.max(...pts.map(p => p[0])) + 64;
+  const y1 = Math.max(...pts.map(p => p[1])) + 64;
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.restore();
+}
+
+/* Points along the edge a->b, used by every roof and course below. */
+function along(a, b, f) {
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+
 /* ----------------------------------------------------------------- masonry */
 function wallFace(pts, colour, kind) {
   poly(pts, colour);
@@ -333,54 +551,180 @@ function wallFace(pts, colour, kind) {
   ctx.closePath(); ctx.clip();
   const x0 = Math.min(...pts.map(p => p[0])), x1 = Math.max(...pts.map(p => p[0]));
   const y0 = Math.min(...pts.map(p => p[1])), y1 = Math.max(...pts.map(p => p[1]));
+  const slope = 0.16;                 // the rake of a course across this face
   if (kind === 'stone') {
-    ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1;
-    for (let yy = y0; yy < y1; yy += 6) {
-      ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy + (x1 - x0) * 0.16); ctx.stroke();
-      for (let xx = x0 + ((yy / 6) % 2) * 9; xx < x1; xx += 18) {
-        ctx.beginPath(); ctx.moveTo(xx, yy + (xx - x0) * 0.16);
-        ctx.lineTo(xx, yy + 6 + (xx - x0) * 0.16); ctx.stroke();
+    // Rubble, not graph paper. Courses of uneven height, blocks of uneven
+    // width within them, and each block a shade of its own -- which is the
+    // whole difference between a wall and a fill with lines ruled on it.
+    let row = 0;
+    const one = !baking && !near();       // far off: courses, not blocks
+    for (let yy = y0 - 4; yy < y1 + 8; row++) {
+      const hgt = 5 + (row * 37 % 5);
+      let xx = x0 - 20 + (row * 53 % 17);
+      while (xx < x1 + 8) {
+        const wid = one ? (x1 - x0 + 40) : 11 + ((row * 31 + xx) % 13);
+        const lift = (xx - x0) * slope;
+        const v = 0.90 + ((row * 71 + xx * 13) % 100) / 420;
+        poly([[xx, yy + lift], [xx + wid, yy + lift + wid * slope],
+              [xx + wid, yy + hgt + lift + wid * slope], [xx, yy + hgt + lift]],
+             shade(colour, v));
+        xx += wid + 1.1;
+      }
+      yy += hgt + 1.1;
+    }
+    // Mortar catches the light; the joints under each block do not.
+    ctx.strokeStyle = 'rgba(0,0,0,.16)'; ctx.lineWidth = 0.9;
+    for (let yy = y0; yy < y1; yy += 6.1) {
+      ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy + (x1 - x0) * slope);
+      ctx.stroke();
+    }
+    // Damp at the foot of the wall, where a stone wall is always darkest.
+    if (!baking && !near()) { ctx.restore(); return; }
+    const damp = ctx.createLinearGradient(0, y1 - (y1 - y0) * 0.42, 0, y1);
+    damp.addColorStop(0, 'rgba(30,26,20,0)');
+    damp.addColorStop(1, 'rgba(30,26,20,.30)');
+    ctx.fillStyle = damp; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  } else if (kind === 'timber') {
+    // Half-timbering: daub panels between a real frame. A sill, a top plate,
+    // studs between them and a brace in the end bays, which is how the frame
+    // actually stood up and is what the eye recognises it by.
+    const mid = (y0 + y1) / 2;
+    ctx.fillStyle = 'rgba(226,214,188,.40)';        // lime daub, not timber
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.strokeStyle = 'rgba(58,40,24,.80)';
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+    for (const yy of [y0 + 2.5, mid, y1 - 2.5]) {
+      ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy + (x1 - x0) * slope * 0.5);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 2;
+    let i = 0;
+    for (let xx = x0 + 5; xx < x1; xx += 11, i++) {
+      ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx + 2, y1); ctx.stroke();
+      if (i % 3 === 1) {                              // a brace every third bay
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(xx, mid + (xx - x0) * slope * 0.5);
+        ctx.lineTo(xx + 9, y1);
+        ctx.stroke();
+        ctx.lineWidth = 2;
       }
     }
-  } else if (kind === 'timber') {
-    ctx.strokeStyle = 'rgba(58,40,24,.75)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x0, (y0 + y1) / 2); ctx.lineTo(x1, (y0 + y1) / 2 + 5);
-    ctx.stroke();
-    for (let xx = x0 + 5; xx < x1; xx += 11) {
-      ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx + 2, y1); ctx.stroke();
-    }
+    ctx.lineCap = 'butt';
   } else if (kind === 'plank') {
+    // Sawn boards: a seam every few inches and a grain running with them.
     ctx.strokeStyle = 'rgba(48,34,20,.45)'; ctx.lineWidth = 1;
     for (let xx = x0 + 4; xx < x1; xx += 7) {
       ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx + 2, y1); ctx.stroke();
+      ctx.strokeStyle = 'rgba(48,34,20,.16)';
+      ctx.beginPath(); ctx.moveTo(xx + 3.5, y0); ctx.lineTo(xx + 5, y1); ctx.stroke();
+      ctx.strokeStyle = 'rgba(48,34,20,.45)';
     }
   }
   ctx.restore();
+  tooth(pts, kind === 'stone' ? 2 : 1, kind === 'timber' ? 0.22 : 0.34,
+        kind === 'stone' ? 0.30 : 0.20);
 }
 
+/* Thatch is a deep material: two feet of straw with the light only reaching
+ * the top inch of it. Five ruled arcs read as a striped tarpaulin. What it
+ * wants is many fine courses, each one slightly ragged, a dark eave where the
+ * overhang shades itself, and a bound ridge along the top. */
 function thatch(a, b, c, d, colour) {
   poly([a, b, c, d], colour);
-  ctx.strokeStyle = shade(colour, 0.8); ctx.lineWidth = 1;
-  for (let i = 1; i < 6; i++) {
-    const f = i / 6;
-    const p1 = [a[0] + (d[0] - a[0]) * f, a[1] + (d[1] - a[1]) * f];
-    const p2 = [b[0] + (c[0] - b[0]) * f, b[1] + (c[1] - b[1]) * f];
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]);
+  for (const q of [b, c, d]) ctx.lineTo(q[0], q[1]);
+  ctx.closePath(); ctx.clip();
+  const N = near() ? 13 : 7;
+  ctx.lineWidth = 1;
+  for (let i = 1; i < N; i++) {
+    const f = i / N;
+    const p1 = along(a, d, f), p2 = along(b, c, f);
+    // Straw laid in courses: each course is lighter at its head and shadowed
+    // where the next one laps over it.
+    ctx.strokeStyle = shade(colour, 1.06 - 0.02 * (i % 3));
     ctx.beginPath(); ctx.moveTo(p1[0], p1[1]);
-    ctx.quadraticCurveTo((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2 - 1.5, p2[0], p2[1]);
+    ctx.quadraticCurveTo((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2 - 1.8,
+                         p2[0], p2[1]);
+    ctx.stroke();
+    ctx.strokeStyle = shade(colour, 0.80);
+    ctx.beginPath(); ctx.moveTo(p1[0], p1[1] + 1.1);
+    ctx.quadraticCurveTo((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2 - 0.7,
+                         p2[0], p2[1] + 1.1);
     ctx.stroke();
   }
+  // The stalks themselves, combed down the fall of the roof.
+  ctx.strokeStyle = shade(colour, 0.86);
+  ctx.lineWidth = 0.6;
+  for (let j = 1; near() && j < 16; j++) {
+    const g = j / 16;
+    const t1 = along(a, b, g), t2 = along(d, c, g);
+    ctx.beginPath(); ctx.moveTo(t1[0], t1[1]); ctx.lineTo(t2[0], t2[1]);
+    ctx.stroke();
+  }
+  // A bound ridge at the head, and the shadow the overhang throws on itself.
+  ctx.strokeStyle = shade(colour, 0.72); ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(a[0], a[1] + 1); ctx.lineTo(b[0], b[1] + 1);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(28,22,14,.34)'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(d[0], d[1] - 0.6); ctx.lineTo(c[0], c[1] - 0.6);
+  ctx.stroke();
+  ctx.restore();
+  tooth([a, b, c, d], 2, 0.45, 0.34);
 }
 
+/* Tiles are objects, not stripes: every one of them is a separate fired thing
+ * that came out of the kiln a slightly different colour and has been on that
+ * roof for thirty years. */
 function tiles(a, b, c, d, colour) {
   poly([a, b, c, d], colour);
-  ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1;
-  for (let i = 1; i < 5; i++) {
-    const f = i / 5;
-    ctx.beginPath();
-    ctx.moveTo(a[0] + (d[0] - a[0]) * f, a[1] + (d[1] - a[1]) * f);
-    ctx.lineTo(b[0] + (c[0] - b[0]) * f, b[1] + (c[1] - b[1]) * f);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]);
+  for (const q of [b, c, d]) ctx.lineTo(q[0], q[1]);
+  ctx.closePath(); ctx.clip();
+  const ROWS = near() ? 7 : 5, COLS = near() ? 9 : 1;
+  for (let i = 0; i < ROWS; i++) {
+    const f0 = i / ROWS, f1 = (i + 1) / ROWS;
+    const l0 = along(a, d, f0), r0 = along(b, c, f0);
+    const l1 = along(a, d, f1), r1 = along(b, c, f1);
+    for (let j = 0; j < COLS; j++) {
+      // Every other course offset by half a tile, as they are laid.
+      const g0 = (j + (i % 2) * 0.5) / COLS, g1 = (j + 1 + (i % 2) * 0.5) / COLS;
+      if (g0 >= 1) continue;
+      const h1 = Math.min(1, g1);
+      const v = 0.88 + ((i * 17 + j * 41) % 100) / 330;
+      poly([along(l0, r0, g0), along(l0, r0, h1),
+            along(l1, r1, h1), along(l1, r1, g0)], shade(colour, v));
+    }
+    // The lap: every course throws a line of shade on the one below it.
+    ctx.strokeStyle = 'rgba(0,0,0,.30)'; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(l1[0], l1[1]); ctx.lineTo(r1[0], r1[1]);
     ctx.stroke();
   }
+  // Moss gathers at the eave, where the roof stays wet longest.
+  if (!baking && !near()) {
+    ctx.strokeStyle = shade(colour, 0.74); ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1] + 0.8); ctx.lineTo(b[0], b[1] + 0.8);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  const moss = ctx.createLinearGradient(0, (a[1] + d[1]) / 2, 0, (d[1] + c[1]) / 2 + 4);
+  moss.addColorStop(0, 'rgba(96,110,66,0)');
+  moss.addColorStop(1, 'rgba(96,110,66,.20)');
+  ctx.fillStyle = moss;
+  ctx.fillRect(Math.min(a[0], d[0]) - 4, Math.min(a[1], b[1]) - 4,
+               Math.abs(b[0] - a[0]) + Math.abs(c[0] - d[0]) + 8,
+               Math.abs(c[1] - a[1]) + 12);
+  // A ridge tile along the top.
+  ctx.strokeStyle = shade(colour, 0.74); ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(a[0], a[1] + 0.8); ctx.lineTo(b[0], b[1] + 0.8);
+  ctx.stroke();
+  ctx.restore();
+  tooth([a, b, c, d], 1, 0.30, 0.22);
 }
 
 /* --------------------------------------------------------------- buildings */
@@ -1395,8 +1739,7 @@ function frame() {
     ctx.translate(w / 2 + camera.x, h / 2 + camera.y);
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-(plan.w - plan.h) * TW / 4, -(plan.w + plan.h) * TH / 4);
-    for (let y = 0; y < plan.h; y++)
-      for (let x = 0; x < plan.w; x++) drawTile(x, y, plan.tiles[y][x]);
+    drawGround();
     // Everything that stands up, painted back to front.
     const things = [];
     for (let y = 0; y < plan.h; y++)
@@ -1412,7 +1755,13 @@ function frame() {
       if (p) things.push({ d: p.x + p.y + 0.4, kind: 'h', h, i, at, pos: p });
     });
     things.sort((a, b) => a.d - b.d);
+    setClip(w, h);
     for (const it of things) {
+      const [ix, iy] = iso(it.x !== undefined ? it.x : it.b ? it.b.x
+                           : it.w ? it.w.x : it.pos ? it.pos.x : it.f[0],
+                           it.y !== undefined ? it.y : it.b ? it.b.y
+                           : it.w ? it.w.y : it.pos ? it.pos.y : it.f[1]);
+      if (!onScreen(ix, iy, 120)) continue;
       if (it.kind === 'wood') drawTrees(it.x, it.y);
       else if (it.kind === 'b') drawBuilding(it.b, t);
       else if (it.kind === 'w') drawWall(it.w, t);
@@ -1469,6 +1818,123 @@ function tileMark(x, y, fill) {
   ctx.fill();
   ctx.restore();
 }
+/* The ground, painted once and kept.
+ *
+ * Nine hundred tiles of crop rows, cart ruts and grass tufts is a great deal
+ * of drawing to do sixty times a second for a picture that does not change
+ * between days. It is baked into a bitmap the size of the plan instead, and
+ * redrawn only when the plan or the season does -- which is what pays for the
+ * texture being worth looking at in the first place. Water is the exception:
+ * water has to move, so it stays live on top.
+ */
+let ground = null, groundKey = '', baking = false;
+function drawGround() {
+  const wet = [];
+  const key = [plan.w, plan.h, state && state.season,
+               plan.tiles.map(r => r.join('')).join('')].join('|');
+  if (!ground || groundKey !== key) {
+    const pad = TW, W = (plan.w + plan.h) * TW / 2 + pad * 2;
+    const H = (plan.w + plan.h) * TH / 2 + pad * 2;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(W * dpr); c.height = Math.ceil(H * dpr);
+    const keepCtx = ctx;
+    baking = true;
+    ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(plan.h * TW / 2 + pad, pad);
+    for (let y = 0; y < plan.h; y++)
+      for (let x = 0; x < plan.w; x++)
+        if (plan.tiles[y][x] !== 'water') drawTile(x, y, plan.tiles[y][x]);
+    ctx = keepCtx;
+    baking = false;
+    ground = { canvas: c, dx: -(plan.h * TW / 2 + pad), dy: -pad };
+    groundKey = key;
+    GRAIN_OWNER = null;              // the patterns belong to a context
+  }
+  ctx.drawImage(ground.canvas, ground.dx, ground.dy,
+                ground.canvas.width / dpr, ground.canvas.height / dpr);
+  for (let y = 0; y < plan.h; y++)
+    for (let x = 0; x < plan.w; x++)
+      if (plan.tiles[y][x] === 'water') {
+        const [sx, sy] = iso(x, y);
+        if (onScreen(sx, sy, TW)) wet.push([x, y, sx, sy]);
+      }
+  drawWater(wet);
+}
+
+/* Water, all of it at once.
+ *
+ * A clip region is the dearest thing on a canvas and the old painter set one
+ * per tile: a moat and a river came to ninety clips a frame and nine
+ * milliseconds, which was a third of the budget spent on the cheapest-looking
+ * thing on the screen. One path round every wet tile, clipped once, and the
+ * waves drawn inside it.
+ */
+function drawWater(wet) {
+  if (!wet.length) return;
+  const t = clock(), s = sun(), p = pal();
+  ctx.save();
+  ctx.beginPath();
+  for (const [x, y, sx, sy] of wet) {
+    ctx.moveTo(sx, sy - TH / 2);
+    ctx.lineTo(sx + TW / 2, sy);
+    ctx.lineTo(sx, sy + TH / 2);
+    ctx.lineTo(sx - TW / 2, sy);
+    ctx.closePath();
+  }
+  ctx.fillStyle = p.water;
+  ctx.fill();
+  ctx.clip();
+  // Swell: three crossing waves at different speeds, so the surface never
+  // repeats on any count a player could hold.
+  for (let i = 0; i < 3; i++) {
+    const a = 0.055 + 0.05 * (2 - i);
+    ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+    ctx.beginPath();
+    for (const [x, y, sx, sy] of wet) {
+      const wy = sy + (i - 1) * 8
+        + Math.sin(t * (0.9 + i * 0.35) + (x + y) * 0.8 + i * 2.1) * 3.0;
+      ctx.moveTo(sx - TW / 2, wy);
+      ctx.quadraticCurveTo(sx - TW / 4, wy - 3.4, sx, wy);
+      ctx.quadraticCurveTo(sx + TW / 4, wy + 3.4, sx + TW / 2, wy);
+      ctx.lineTo(sx + TW / 2, wy + 2.6);
+      ctx.quadraticCurveTo(sx + TW / 4, wy + 6.0, sx, wy + 2.6);
+      ctx.quadraticCurveTo(sx - TW / 4, wy - 0.8, sx - TW / 2, wy + 2.6);
+      ctx.closePath();
+    }
+    ctx.fill();
+  }
+  // The sun's own road across the water, which only exists when it is low.
+  const glint = Math.max(0, 1 - Math.abs(s.up) * 2.2) * (1 - s.night);
+  if (glint > 0.02) {
+    ctx.fillStyle = `rgba(255,226,168,${(0.38 * glint).toFixed(3)})`;
+    ctx.beginPath();
+    for (const [x, y, sx, sy] of wet) {
+      for (let i = 0; i < 3; i++) {
+        const gy = sy + (i - 1) * 7 + Math.sin(t * 1.6 + x * 1.3 + i) * 2.4;
+        const gw = 7 + 5 * Math.sin(t * 2.1 + y + i);
+        ctx.moveTo(sx + Math.cos(s.az) * 7 + gw, gy);
+        ctx.ellipse(sx + Math.cos(s.az) * 7, gy, gw, 1.15, 0, 0, 7);
+      }
+    }
+    ctx.fill();
+  }
+  // And the moon's, colder and narrower.
+  if (s.night > 0.2) {
+    ctx.fillStyle = `rgba(198,216,245,${(0.22 * s.night).toFixed(3)})`;
+    ctx.beginPath();
+    for (const [x, y, sx, sy] of wet) {
+      for (let i = 0; i < 2; i++) {
+        const gy = sy + (i - 0.5) * 9 + Math.sin(t * 1.1 + x + i) * 2.0;
+        ctx.moveTo(sx + 6, gy);
+        ctx.ellipse(sx, gy, 6, 0.9, 0, 0, 7);
+      }
+    }
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /* Still means still: one redraw every so often is enough to pick up a new day. */
 function nextFrame() {
   if (STILL) setTimeout(frame, 500); else requestAnimationFrame(frame);

@@ -476,6 +476,163 @@ class TestItDrawsFromItsOwnDice(unittest.TestCase):
         self.assertEqual(back.court.rng.random(), g.court.rng.random())
 
 
+class TestPoliticsIsPricedAsMoney(unittest.TestCase):
+    """The seam where the two halves of the game meet.
+
+    A merchant's world is the diplomatic one. A lord's opinion is the rate his
+    customs post charges *you*, which makes a gift an investment with a return
+    rather than only war insurance -- and makes the third town you take
+    something you watch in the ledger every day afterwards.
+    """
+
+    def toll(self, setup):
+        g = new_game(seed=5)
+        setup(g)
+        g.tick()
+        return g.world.tariff_for("dunmere", None)
+
+    def test_a_lord_who_likes_you_charges_you_less(self):
+        plain = self.toll(lambda g: None)
+        fond = self.toll(lambda g: g.court.write("dunmere", "marriage", 70.0, 0))
+        self.assertLess(fond, plain)
+
+    def test_and_one_who_does_not_charges_more(self):
+        plain = self.toll(lambda g: None)
+        sour = self.toll(lambda g: g.court.write("dunmere", "took_town", -70.0, 0))
+        self.assertGreater(sour, plain)
+
+    def test_an_ally_waves_your_carts_through(self):
+        def swear(g):
+            g.court.write("dunmere", "marriage", 90.0, 0)
+            g.ally("dunmere")
+        self.assertLess(self.toll(swear), self.toll(lambda g: None) * 0.5)
+
+    def test_and_a_signatory_does_not(self):
+        def sign(g):
+            g.court.write("dunmere", "took_town", -60.0, 0)
+            g.court.coalition.append("dunmere")
+        self.assertGreater(self.toll(sign), self.toll(lambda g: None) * 1.5)
+
+    def test_it_cannot_run_away_in_either_direction(self):
+        low = self.toll(lambda g: g.court.write("dunmere", "marriage", 900.0, 0))
+        high = self.toll(lambda g: g.court.write("dunmere", "took_town", -900.0, 0))
+        self.assertGreater(low, 0.0)
+        self.assertLess(high, 0.25)
+
+    def test_a_town_of_yours_tolls_nobody(self):
+        g = new_game(seed=5)
+        g.world.towns["dunmere"].owner = "player"
+        self.assertEqual(g.world.tariff_for("dunmere", None), 0.0)
+
+    def test_the_base_rate_does_not_wear_away_with_use(self):
+        """It did, for the life of the project. The trade engine wrote the
+        *effective* rate back into the market and `tariff_for` read that as
+        the base, so the trading posts' relief compounded once per visiting
+        cart: two hundred visits turned a six per cent toll into eight
+        thousandths of one per cent, and every customs post on the march had
+        quietly stopped charging for anything."""
+        g = grown(days=400)
+        for key, t in g.world.towns.items():
+            if t.mine:
+                continue
+            self.assertGreater(g.world.tariff_for(key, None), 0.005, key)
+
+    def test_the_scanner_prices_it_without_being_told_to(self):
+        """No new code: the route-finder already asked what the toll was. The
+        point of putting the politics *into* the toll rather than beside it is
+        that everything downstream reads it for free."""
+        from marchlands.advisor import scan
+
+        def best(setup):
+            g = new_game(seed=5)
+            setup(g)
+            g.tick()
+            rows = scan(g.world, next(iter(g.world.settlements)))
+            return rows[0].per_day if rows else 0.0
+
+        plain = best(lambda g: None)
+        fond = best(lambda g: [g.court.write(k, "marriage", 80.0, 0)
+                               for k in g.world.towns])
+        sour = best(lambda g: [g.court.write(k, "took_town", -80.0, 0)
+                               for k in g.world.towns])
+        self.assertGreater(fond, plain)
+        self.assertLess(sour, plain)
+
+    def test_the_surplus_screen_reads_the_politics(self):
+        """The one screen in the game that prices a tax properly was the only
+        one that could not see who was levying it."""
+        g = new_game(seed=5)
+        g.court.write("dunmere", "took_town", -70.0, 0)
+        g.tick()
+        buf = io.StringIO()
+        Console(g, out=buf).do("surplus bread dunmere")
+        out = plain(buf.getvalue())
+        self.assertIn("charges you more than a stranger", out)
+
+    def test_and_the_court_screen_reads_the_money(self):
+        g = new_game(seed=5)
+        buf = io.StringIO()
+        con = Console(g, out=buf)
+        con.do("court")
+        self.assertIn("toll", plain(buf.getvalue()))
+        buf.truncate(0)
+        buf.seek(0)
+        con.do("court dunmere")
+        self.assertIn("his toll on you", plain(buf.getvalue()))
+
+
+class TestTheStreetKnowsAboutIt(unittest.TestCase):
+    """Politics and prices are not screens to the people living under them. A
+    coalition is the Ostmark road closing; inflation is what bread cost last
+    year. If neither ever comes up in the street, both are spreadsheets a
+    player reads instead of a world a player lives in."""
+
+    def test_the_street_can_see_the_letter(self):
+        from marchlands import voices
+        g = new_game(seed=5)
+        g.court.coalition = list(g.world.towns)[:4]
+        m = voices.read(g.home(), g)
+        self.assertEqual(m.signed, 4)
+        said = voices.loudest(g.home(), g)
+        self.assertTrue(said)
+
+    def test_and_a_war_nobody_can_name_a_cause_for(self):
+        from marchlands import voices
+        g = new_game(seed=5)
+        g._declare(g.world.towns["dunmere"])
+        self.assertTrue(voices.read(g.home(), g).unjust)
+
+    def test_but_not_one_it_can(self):
+        from marchlands import voices
+        g = new_game(seed=5)
+        g.court.give_ground("dunmere", "raided", g.day)
+        g._declare(g.world.towns["dunmere"])
+        self.assertFalse(voices.read(g.home(), g).unjust)
+
+    def test_it_can_see_the_price_of_bread_last_year(self):
+        from marchlands import voices
+        g = new_game(seed=5)
+        m = voices.read(g.home(), g)
+        self.assertIsInstance(m.inflation, float)
+
+    def test_and_what_the_march_charges_the_carts(self):
+        from marchlands import voices
+        g = new_game(seed=5)
+        g.tick()
+        self.assertGreater(voices.read(g.home(), g).toll, 0.0)
+
+    def test_every_new_line_belongs_to_something_that_can_happen(self):
+        from marchlands import voices
+        g = new_game(seed=5)
+        base = voices.read(g.home(), g)
+        for key in ("called", "coalition", "blockade", "unjust", "inflation",
+                    "tolls", "allies", "cheap_roads"):
+            v = next(x for x in voices.VOICES if x.key == key)
+            self.assertTrue(v.lines, key)
+            self.assertFalse(v.when(base) and key in ("coalition", "called"),
+                             f"{key} fires on a quiet day")
+
+
 class TestTheConsoleSaysAllOfIt(unittest.TestCase):
     def setUp(self):
         self.buf = io.StringIO()

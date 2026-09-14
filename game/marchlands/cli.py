@@ -1772,9 +1772,12 @@ class Console:
                 marks.append(ink.c("claim", ink.GOLD))
             if t.truce_days > 0:
                 marks.append(ink.c(f"treaty {t.truce_days}d", ink.DIM))
+            toll = g.world.tariff_for(key, None)
             self.say(f"  {ink.c(ink.pad(t.name, 13), ink.PARCH)}"
                      + ink.c(f"{view:>+5.0f}  ", self._standing_colour(view))
-                     + ink.c(ink.pad(chancery.temper(view), 12), ink.DIM)
+                     + ink.c(ink.pad(chancery.temper(view), 11), ink.DIM)
+                     + ink.c(ink.pad(f"toll {toll * 100:.1f}%", 11),
+                             ink.LEAF if toll < 0.05 else ink.AMBER)
                      + "  ".join(marks))
             top = c.reasons(key, g.day)[:2]
             for label, value, decay in top:
@@ -1784,9 +1787,10 @@ class Console:
                                  else f"  {abs(value) / decay:,.0f} days left",
                                  ink.FAINT))
         self._letter()
-        self.say("", ink.c("  `court <town>` for one of them in full. "
-                           "`ally <town>` swears to a friendly one; `gift` and "
-                           "`wed` are how one gets friendly.", ink.DIM))
+        self.say("", ink.c("  The toll is what his customs post charges *you*: "
+                           "a lord's opinion is a tax rate, which is\n  why a "
+                           "gift is an investment and not only insurance. "
+                           "`court <town>` for one in full.", ink.DIM))
 
     def _letter(self) -> None:
         """The coalition, and the three ways out of it."""
@@ -1858,6 +1862,11 @@ class Console:
                      + ink.c("none. Marching anyway costs the mood at home "
                              "and offends every other lord twice over.",
                              ink.AMBER))
+        toll = g.world.tariff_for(key, None)
+        mood = g.world.toll_mood(key)
+        self.say("  " + ink.c(ink.pad("his toll on you", 18), ink.DIM)
+                 + ink.c(f"{toll * 100:.1f}%", ink.GOLD)
+                 + ink.c(f"  ({mood:.2f}x what he asks a stranger)", ink.DIM))
         say = []
         if key in c.allies:
             say.append("allied: he comes when you are attacked, and calls "
@@ -2085,8 +2094,23 @@ class Console:
             return self.err("surplus <good> [town]")
         key = resolve_good(args[0])
         where = self._node(args[1]) if len(args) > 1 else ""
+        political = ""
         if where and where in g.world.towns:
-            m, name = g.world.towns[where].market, g.world.towns[where].name
+            t = g.world.towns[where]
+            m, name = t.market, t.name
+            # The toll a foreign lord charges is the toll he charges *you*,
+            # and what he thinks of you sets it. Reading the rate the last
+            # cart happened to leave on the market meant this screen -- the
+            # one place in the game that prices a tax properly -- was the
+            # only one that could not see the politics.
+            m.tariff_rate = g.world.tariff_for(where, None)
+            mood = g.world.toll_mood(where)
+            if abs(mood - 1.0) > 0.03:
+                political = (f"{t.lord} charges you "
+                             f"{'less' if mood < 1 else 'more'} than a stranger "
+                             f"-- {mood:.2f}x, because he thinks of you as "
+                             f"{chancery.temper(t.regard)}. `court {where}` "
+                             f"says what would move him.")
         else:
             s = self.settlement(args[1] if len(args) > 1 else "")
             m, name = s.market, s.name
@@ -2118,6 +2142,8 @@ class Console:
                 f"{r.deadweight:,.0f}c on the way. The second number is the one "
                 f"nobody\n  ever sees, because it is not a payment -- it is the "
                 f"trade that did not happen.", ink.DIM))
+            if political:
+                self.say("  " + ink.c(political, ink.AMBER))
         else:
             el = good(key).elasticity
             self.say("", ink.c(

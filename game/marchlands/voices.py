@@ -61,6 +61,18 @@ class Mood:
     lord_gone: bool = False
     minted: float = 0.0
     variety: int = 1
+    # The two things a town has an opinion on that are not about the town.
+    # Politics and prices are not screens to the people who live under them:
+    # a coalition is the Ostmark road closing, and inflation is what bread
+    # cost last year. If neither ever comes up in the street, both are
+    # spreadsheets a player reads instead of a world a player lives in.
+    signed: int = 0                     # lords who have signed against you
+    allied: int = 0                     # lords sworn to you
+    called: bool = False                # an ally is waiting on your answer
+    unjust: bool = False                # a war nobody here can name a cause for
+    inflation: float = 0.0              # the yearly rate, as a fraction
+    toll: float = 0.0                   # what the march charges your carts
+    blockaded: bool = False
 
 
 def _q(name: str, weight: float, when, *lines: str) -> Voice:
@@ -70,6 +82,51 @@ def _q(name: str, weight: float, when, *lines: str) -> Voice:
 #: Ordered by weight when they fire. A town with a host at the gate does not
 #: want to talk about the beer.
 VOICES: Tuple[Voice, ...] = (
+    # -- what the politics and the accounts feel like from the street --------
+    # These sit among the rest by weight rather than in a section of their
+    # own, which is the point: a coalition is not a diplomatic event to a
+    # carter, it is the Ostmark road closing, and inflation is not an index,
+    # it is what bread cost last year.
+    _q("called", 93, lambda m: m.called,
+       "Vantry has sent again, my lord. The man is still standing in the "
+       "yard and he has been there since Tuesday.",
+       "They called for us and we have not answered. People notice a thing "
+       "like that, and they remember it longer than they remember a battle."),
+    _q("coalition", 86, lambda m: m.signed >= 3,
+       "My brother carts to Ostmark and they turned him at the bridge. He "
+       "says every lord on the march has put his name to something.",
+       "It is not one of them any more, my lord. It is all of them, and they "
+       "are writing to each other about us.",
+       "The tolls have doubled everywhere at once. That does not happen by "
+       "accident."),
+    _q("blockade", 84, lambda m: m.blockaded,
+       "Nothing has come up the road in a fortnight. Not a cart, not a "
+       "pedlar, not a letter.",
+       "The roads are shut. Whatever is in the store is what there is."),
+    _q("unjust", 74, lambda m: m.unjust,
+       "My son is in the host and I cannot tell his mother what for.",
+       "We are at war, they say. With whom, and over what, nobody in this "
+       "street can tell me.",
+       "There was no quarrel that I ever heard of. There is a war, though."),
+    _q("inflation", 62, lambda m: m.inflation > 0.10,
+       "Bread was a penny three farthings last year. It is tuppence "
+       "ha'penny now and the loaf is smaller.",
+       "My wages have not moved and everything else has. You may call that "
+       "what you like; I call it a pay cut."),
+    _q("tolls", 46, lambda m: m.toll > 0.08,
+       "Every gate on the march has its hand out. By the time a cart of ours "
+       "gets to Havnhold there is nothing left in it worth selling.",
+       "The carters say it is cheaper to stay home than to pay what the "
+       "march is asking at the bridges."),
+    _q("allies", 34, lambda m: m.allied and m.signed < 3,
+       "There is a treaty, they say. My cousin got his wool through Ostmark "
+       "without paying a penny, which is proof enough for me.",
+       "It is a quieter road than it was. Whatever you paid for that, my "
+       "lord, it was worth it."),
+    _q("cheap_roads", 28, lambda m: m.toll and m.toll < 0.03,
+       "The gates hardly trouble us now. A cart goes out full and comes back "
+       "full, which is how it ought to be and mostly is not."),
+
     _q("siege", 100, lambda m: m.besieged,
        "There are men at the gate, my lord. Ours are on the wall. "
        "That is all anybody is thinking about.",
@@ -193,9 +250,24 @@ def read(settlement, game=None) -> Mood:
         m.queue = min(1.0, -s.assize_mood / 14.0)
     if s.workforce:
         m.idle = (s.workforce - s.employed) / s.workforce > 0.35
+    m.blockaded = bool(s.blockaded)
     if game is not None:
         m.crowded = s.housing(game.progress) < s.population
         m.minted = game.economy.minted
+        m.inflation = float(getattr(game.accounts, "inflation", 0.0) or 0.0)
+        c = getattr(game, "court", None)
+        if c is not None:
+            m.signed = len(c.coalition)
+            m.allied = len(c.allies)
+            m.called = c.called is not None
+            m.unjust = any(
+                key not in c.justified
+                and game.day - when < getattr(game, "WAR_MEMORY", 200)
+                for key, when in c.declared.items())
+        foreign = [k for k, t in game.world.towns.items() if not t.mine]
+        if foreign:
+            m.toll = sum(game.world.tariff_for(k, None)
+                         for k in foreign) / len(foreign)
     else:
         m.crowded = s.housing() < s.population
     return m
