@@ -1,5 +1,78 @@
 {
- "at": "2026-09-14T15:31:58.263979Z",
- "tracked": [],
+ "at": "2026-09-14T16:34:19.586427Z",
+ "tracked": [
+  {
+   "city": "DAL",
+   "station": "KDFW",
+   "ticker": "KXHIGHTDAL-26SEP14-T98",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 97,
+   "run_max": 89.6,
+   "gap_to_clear": 7.4,
+   "already_cleared": false,
+   "guide": 101,
+   "pop": 1,
+   "no_ask": 0.96,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-14T16:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T16:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T16:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-14T15:30:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 7.0,
+    "q50": 9.1,
+    "q90": 11.4
+   },
+   "projected_max": {
+    "q10": 96.6,
+    "q50": 98.7,
+    "q90": 101.0
+   },
+   "p_exceed_empirical": 0.8429,
+   "emp_n": 68,
+   "convergence_hour": 16,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
