@@ -8,8 +8,5 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **OKC** QUALIFIED @ 0.96 ceil 96 guide 100 -> CLI 101 :: **WIN**
-- **DAL** QUALIFIED @ 0.95 ceil 97 guide 101 -> CLI 101 :: **WIN**
-- **EWR** DEAD_SCAVENGE @ 0.86 ceil 78 guide 82 -> CLI 83 :: **WIN**
 
-**3/3 hit** (100%) vs 98.2% breakeven at 0.98
+no qualified flags today -- a complete and acceptable outcome
