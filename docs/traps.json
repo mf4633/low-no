@@ -1,25 +1,5 @@
 {
- "at": "2026-09-14T21:57:37.567663Z",
- "traps": [
-  {
-   "city": "CHI",
-   "ceiling": 71,
-   "price": 86,
-   "p_model": 1.0,
-   "p_market": 0.86,
-   "edge_pts": 14.0,
-   "size_lcb": 0.3468,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "86c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  }
- ],
+ "at": "2026-09-14T22:58:51.194144Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
