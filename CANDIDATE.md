@@ -2070,3 +2070,121 @@ hourly print, so "the market's implied distribution for the upcoming :51" is
 not a measurable object.
 
 Harnesses: `edge_test.py`, `edge_div.py`.
+
+---
+
+# RESULT -- the morning-sky regime at all 23 cities (2026-09-14)
+
+Registration: `docs/CITY_REGIMES.md`, frozen before any city's numbers were
+read. Build: `city_regime.py` -> `city_regimes.json`. Nothing below touches the
+gate, and `lax_regime.py` / `lax_forecast.py` / `lax_regimes.json` are NOT
+modified -- H15 keeps its own frozen input.
+
+## The headline is the one the registration named in advance
+
+**23 of 23 cities survive Holm-Bonferroni on the full year.** The registration's
+"what would make this wrong" section called this outcome before it happened:
+
+> If nearly every city survives, the statistic is picking up something
+> structural -- cloud cover suppresses daytime heating everywhere, which is
+> meteorology, not an inefficiency.
+
+So the p-values are not the finding. The magnitudes and the CELL POPULATIONS
+are, and they say something the full-year table hides.
+
+## Full year is the wrong window, and it reverses the ranking
+
+Restricted to the traded season (Aug 15 - Oct 5), month still removed:
+
+| | eta^2 full yr | eta^2 Aug15-Oct5 | non-clear days in window |
+|---|---|---|---|
+| DEN | 0.265 | **0.345** | **21 of 238 (9%)** |
+| LAX | 0.166 | 0.330 | 117 of 237 (49%) |
+| SAN | 0.148 | 0.318 | 156 of 238 (66%) |
+| NYC | 0.023 | 0.165 | 85 of 238 (36%) |
+| PHX | 0.026 | **0.000, p=1.00** | 0 of 237 |
+
+PHX is the one city that FAILS Holm in the window: 237 of 237 days are
+NO_STRATUS, so the classifier correctly reports that it has nothing to say about
+Phoenix in September. A test that rubber-stamped everything would not have
+produced that row.
+
+## The three stations with existing machinery
+
+**KDEN -- the largest effect in the record, and unusable.** NO_BURN runs
+**-20.0F** against its own month's mean (n=105 full year), the biggest regime
+split of any city. But it is an upslope-season phenomenon: the suppressed strata
+are 5-6% of days in Jul-Sep against 15-18% in Apr-Jun. In the traded window the
+cells are n=7/6/8, far below `city_forecast.MIN_N=25`. At ~9% of calendar days,
+20 DEN units needs roughly **220 calendar days** -- it cannot report before the
+2026-12-31 stop. Record the effect; do not build on it.
+
+**KNYC -- the best candidate for a second H15-style registration.** Its
+suppressed-strata share is the most STABLE of the three, 19-28% in every month
+of the year (LAX swings 16-57%, DEN 4-18%). In the traded window NO_BURN is
+-5.7F on n=40. And the book infrastructure already exists: `logs/poll/` carries
+**1,092 NYC poll rows over 14 days**, the same coverage DEN has, against
+`logs/poll_lax/`'s **2 days**. NYC is the only one of the three where "is the
+regime in the price" could be asked this season with infrastructure already
+running. It is NOT registered here -- that is a new registration with its own
+units, its own baselines and its own bar.
+
+**KLAX -- two corrections to H15's input, neither applied.**
+
+Comparing the frozen `lax_regimes.json` against this build, 71 of 1,712 LAX days
+(4.15%) get a different label. The decomposition is exact:
+
+| | disagreements | rate |
+|---|---|---|
+| PDT months (Mar-Oct) | 19 of 1,172 | 1.62% |
+| PST months (Nov-Feb) | 52 of 540 | **9.63%** |
+
+The 19 PDT-month disagreements are *exactly* the 3-layer-vs-2-layer count, so
+under PDT the UTC and local windows agree perfectly and every PST-month
+disagreement is the window shift. `lax_regime.py`'s windows are UTC 12-14 /
+16-18 / 19-21, which are 05-07 / 09-11 / 12-14 **PDT** but 04-06 / 08-10 /
+11-13 **PST**.
+
+1. **This is NOT a train/serve break.** `lax_regimes.json` was built the same
+   way all year, so November history and a November forecast are classified
+   identically. H15 stays internally valid. What it does mean is that the regime
+   is not solar-anchored and asks a slightly different question in November --
+   which is the month H15's bar lands in.
+
+2. **The 3-layer read moves 4 trading-window days across H15's marine
+   boundary**, all from NO_STRATUS/EARLY_BURN into LATE_BURN. H15's frozen
+   trading-window table has LATE_BURN n=44; the corrected read gives 48 (+9%),
+   with NO_STRATUS 123 -> 120. That contaminates the test stratum and the
+   control stratum at once, which is the pairing H15's whole comparison rests
+   on.
+
+3. **The November marine rate is 16%, not the 20% H15.md assumes.** H15's
+   timeline ("Sep 32%, Oct 34%, Nov 20%, Dec 28%") reaches 20 marine days around
+   2026-11-20. On the corrected read (Sep 33%, Oct 35%, Nov 16%) the arithmetic
+   still lands near 20.0 expected marine days by 2026-11-20 -- but the margin
+   H15 called "real but not large" is thinner than registered.
+
+4. **The binding constraint is not the marine rate at all.** H15's unit requires
+   >= 20 poll rows carrying the bottom-rung book, and `logs/poll_lax/` holds
+   **2 days**. At that coverage the 20-day bar is unreachable regardless of how
+   the regime is classified.
+
+**NOTHING ABOVE WAS APPLIED.** H15.md says the thresholds "DO NOT MOVE", and
+editing a frozen input mid-measurement is the failure the constitution exists to
+prevent. These are recorded so the decision is a decision.
+
+## The 1-minute record, and a bug it caught in itself
+
+`hf1min.py`'s first pass guarded only on an observation count. It admitted 28 of
+704 city-days whose 1-minute "maximum" sat up to **12.8F BELOW our own running
+max**, because the missing part of the record was the afternoon -- gotcha 12
+returning through a different door, invisible in the CLI column because the CLI
+agreed on the days that were complete. Three guards now: an observation floor,
+>= 95% coverage of the 11:00-18:00 local peak window, and the settlement
+quarantine's arithmetic test against `run_max` at gotcha 13's 1.8F tolerance.
+The regression case carries 1,020 observations and passes both floors, so the
+coverage test is the one doing the work.
+
+Same lesson as the quarantine's `verdict == "LADDER"` filter and the H4b meter:
+**a guard that measures something adjacent to what it is protecting is not
+protecting it.** A count is not coverage.
