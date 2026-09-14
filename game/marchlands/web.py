@@ -70,6 +70,12 @@ TYPES = {".html": "text/html; charset=utf-8",
          ".json": "application/json"}
 
 
+def _their_host_name(game, a) -> str:
+    """What you call a host that is not yours. Their lord's, not its own:
+    you would not know what they have named it."""
+    return f"{game.world.node_name(a.owner)}'s host"
+
+
 def march(game, here: str, good: str = "bread") -> dict:
     """The map the trade layer actually lives on.
 
@@ -134,6 +140,44 @@ def march(game, here: str, good: str = "bread") -> dict:
             "profit": round(c.total_profit),
         })
 
+    # --- the hosts in the field ------------------------------------------
+    #
+    # Yours in full, because they are yours. Theirs only as far as you can
+    # actually see: on your doorstep it is a host, anywhere else it is the
+    # last place you saw it with a date on it, and where you have never seen
+    # it at all there is nothing to draw. The map has always been willing to
+    # lie by omission and must not start lying by commission.
+    from .military import BESIEGING, MARCHING, RAIDING
+    hosts = []
+    for a in game.armies:
+        mine = a.owner == "player"
+        fresh = mine or (a.seen_day >= 0 and a.seen_day == game.day)
+        if not mine and a.seen_day < 0:
+            continue                      # never seen: it is not on your map
+        at = a.at if fresh else a.seen_at
+        frm, to = (a.at, a.bound_for) if (fresh and a.state == MARCHING) else ("", "")
+        total = max(1.0, a.days_left + 1.0)
+        led = None
+        if mine:
+            who = next((p for p in game.kin.living()
+                        if p.post == "captain" and p.target == str(a.uid)), None)
+            led = who.name if who else None
+        hosts.append({
+            "uid": a.uid, "name": a.name if mine else _their_host_name(game, a),
+            "mine": mine, "at": at, "from": frm, "to": to,
+            "done": 0.0 if not frm else max(0.0, min(1.0, 1.0 - a.days_left / total)),
+            "moving": bool(frm), "state": a.state if fresh else "remembered",
+            "size": a.size if mine else (a.seen_size or a.size),
+            "units": ({k: round(v) for k, v in a.units.items() if v >= 1}
+                      if mine else {}),
+            "days_left": round(a.days_left, 1) if fresh else 0.0,
+            "upkeep": round(a.upkeep, 1) if mine else 0.0,
+            "siege_days": a.siege_days if fresh else 0,
+            "captain": led,
+            "stale": 0 if fresh else max(0, game.day - a.seen_day),
+            "owner": "" if mine else w.node_name(a.owner),
+        })
+
     runs = []
     seat = here if here in w.settlements else next(iter(w.settlements))
     try:
@@ -158,7 +202,7 @@ def march(game, here: str, good: str = "bread") -> dict:
                  "at_you": f.target in w.settlements}
                 for f in game.league.season.fixtures if not f.done]
     return {"good": good, "nodes": nodes, "carts": carts, "runs": runs,
-            "fixtures": fixtures}
+            "hosts": hosts, "fixtures": fixtures}
 
 
 def options(game, here: str = "") -> dict:

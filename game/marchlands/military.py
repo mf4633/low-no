@@ -440,6 +440,14 @@ class Army:
     home: str = ""
     siege_days: int = 0
     errand: str = ""              # 'pilgrimage' for a relic party; '' for a host
+    #: What the PLAYER last saw of this host, which is not the same as where
+    #: it is. Kept on the army for the same reason `Town.seen` is kept on the
+    #: town: what you know is what you last looked at, and it goes stale while
+    #: the other lord goes on marching. Never read for anything the world
+    #: itself decides.
+    seen_day: int = -1
+    seen_at: str = ""
+    seen_size: int = 0
     siege: SiegeState = field(default_factory=SiegeState)
     log: List[str] = field(default_factory=list)
 

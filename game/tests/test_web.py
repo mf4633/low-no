@@ -1081,5 +1081,98 @@ class TestThePlanIsTheSamePlanTomorrow(unittest.TestCase):
                          "the town moved between two runs of the program")
 
 
+class TestHostsOnTheMap(unittest.TestCase):
+    """A host crossing the country was the one thing happening on the march
+    map that the map did not show. Yours in full; theirs only as far as you
+    can see, because drawing every enemy army where it really is would
+    quietly delete the fog of war, and the fog is most of what makes a march
+    tense."""
+
+    def setUp(self):
+        from marchlands.military import Army, BESIEGING
+        self.Army, self.BESIEGING = Army, BESIEGING
+        self.g, _s = grown(seed=5, days=420)
+        self.here = next(iter(self.g.world.settlements))
+        self.g.world.settlements[self.here].units.update(
+            {"spearman": 60, "archer": 30})
+        self.g.raise_host(self.here, {"spearman": 30, "archer": 15})
+        self.mine = self.g.armies[-1]
+        self.foe = next(k for k, t in self.g.world.towns.items() if not t.mine)
+
+    def hosts(self):
+        from marchlands.web import march as march_map
+        return {h["uid"]: h for h in march_map(self.g, self.here)["hosts"]}
+
+    def test_your_own_host_is_on_the_map_with_what_it_costs(self):
+        h = self.hosts()[self.mine.uid]
+        self.assertTrue(h["mine"])
+        self.assertEqual(h["size"], 45)
+        self.assertGreater(h["upkeep"], 0)
+        self.assertEqual(h["units"], {"spearman": 30, "archer": 15})
+
+    def test_the_captain_you_posted_is_named_on_his_host(self):
+        who = [p for p in self.g.kin.living() if p.grown(self.g.day)][1]
+        self.g.post(who.name, "captain", str(self.mine.uid))
+        self.assertEqual(self.hosts()[self.mine.uid]["captain"], who.name)
+
+    def test_a_host_you_have_never_seen_is_not_on_your_map(self):
+        self.g.armies.append(self.Army(uid=901, name="x", owner=self.foe,
+                                       units={"spearman": 20}, at=self.foe))
+        self.g._look_around()
+        self.assertNotIn(901, self.hosts(), "that is a live enemy tracker")
+
+    def test_a_host_on_your_doorstep_is_seen(self):
+        self.g.armies.append(self.Army(uid=902, name="y", owner=self.foe,
+                                       units={"spearman": 25}, at=self.here,
+                                       state=self.BESIEGING))
+        self.g._look_around()
+        h = self.hosts()[902]
+        self.assertFalse(h["mine"])
+        self.assertEqual(h["state"], "besieging")
+        self.assertEqual(h["stale"], 0)
+        self.assertEqual(h["units"], {}, "you do not get their order of battle")
+        self.assertEqual(h["upkeep"], 0, "nor their books")
+
+    def test_once_it_leaves_it_is_a_memory_with_a_date_on_it(self):
+        self.g.armies.append(self.Army(uid=903, name="z", owner=self.foe,
+                                       units={"spearman": 25}, at=self.here,
+                                       state=self.BESIEGING))
+        self.g._look_around()
+        seen_at = self.hosts()[903]["at"]
+        self.g.armies[-1].at = self.foe          # it marched off
+        self.g.day += 9
+        self.g._look_around()
+        h = self.hosts()[903]
+        self.assertEqual(h["state"], "remembered")
+        self.assertEqual(h["stale"], 9)
+        self.assertEqual(h["at"], seen_at, "a memory is of where it was")
+
+    def test_what_you_remember_is_the_strength_you_saw(self):
+        self.g.armies.append(self.Army(uid=904, name="w", owner=self.foe,
+                                       units={"spearman": 25}, at=self.here,
+                                       state=self.BESIEGING))
+        self.g._look_around()
+        self.g.armies[-1].units = {"spearman": 90}   # they reinforced, unseen
+        self.g.armies[-1].at = self.foe
+        self.g.day += 3
+        self.g._look_around()
+        self.assertEqual(self.hosts()[904]["size"], 25,
+                         "you cannot count men you did not see")
+
+    def test_a_sighting_survives_being_saved_and_loaded(self):
+        import tempfile
+        self.g.armies.append(self.Army(uid=905, name="v", owner=self.foe,
+                                       units={"spearman": 25}, at=self.here,
+                                       state=self.BESIEGING))
+        self.g._look_around()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "g.save")
+            self.g.save(path)
+            back = type(self.g).load(path)
+        a = next(x for x in back.armies if x.uid == 905)
+        self.assertEqual(a.seen_day, self.g.day)
+        self.assertEqual(a.seen_size, 25)
+
+
 if __name__ == "__main__":
     unittest.main()

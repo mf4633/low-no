@@ -2182,6 +2182,32 @@ class GameState:
         for a in self.armies:
             if a.owner == "player" and a.at in self.world.towns:
                 self.world.towns[a.at].observe(self.day)
+        self._sight_hosts()
+
+    def _sight_hosts(self) -> None:
+        """Which of their hosts you can actually see today.
+
+        A field army is not a town: it moves, and there is nothing standing
+        there to report. So you see one when it is close enough that you could
+        not miss it -- sitting on something of yours, besieging or raiding it,
+        marching for it -- or when one of yours is at the same place. Anything
+        else is a memory with a date on it, which is what `seen_day` is for.
+
+        Drawing every enemy host wherever it really is would quietly delete
+        the fog of war, and the fog is most of what makes a march tense.
+        """
+        mine = set(self.world.settlements)
+        mine |= {k for k, t in self.world.towns.items() if t.mine}
+        standing = {a.at for a in self.armies if a.owner == "player" and a.at}
+        for a in self.armies:
+            if a.owner == "player":
+                continue
+            close = (a.at in mine or a.bound_for in mine or a.at in standing
+                     or (a.state in (BESIEGING, RAIDING) and a.at in mine))
+            if close:
+                a.seen_day = self.day
+                a.seen_at = a.at or a.bound_for
+                a.seen_size = a.size
 
     def known(self, town_key: str) -> Tuple[Dict[str, float], int]:
         """What you believe about a town, and how many days old it is."""

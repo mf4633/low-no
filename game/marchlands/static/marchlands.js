@@ -1105,6 +1105,11 @@ function walkAlong(path, f) {
  * time from the clock would be a second answer to the same question. */
 const folkSpots = new Map();
 
+/* Where each host was drawn, so one can be clicked. Same bargain as the
+ * figures in the town: the thing that moved is only clickable where it was
+ * actually painted. */
+const hostSpots = new Map();
+
 function drawFolk(f, i, t) {
   let wx = f.x, wy = f.y, bob = 0;
   if (f.kind === 'worker' && f.path && f.path.length > 1) {
@@ -1622,6 +1627,48 @@ function drawMarch(w, h, t) {
     }
   }
 
+  /* The hosts. Drawn the way the carts are, because a host crossing the
+   * country is the same problem the carts already solved -- and it was the
+   * one thing happening on this map that the map did not show.
+   *
+   * Yours are solid. Theirs, seen today, are red. Theirs remembered are the
+   * ghost of a sighting with the days written on it, because the alternative
+   * is a live tracker of every enemy army, which would quietly delete the
+   * fog of war. */
+  hostSpots.clear();
+  for (const h of (world.hosts || [])) {
+    const a = by[h.at] || by[h.from];
+    if (!a) continue;
+    const [ax, ay] = mapXY(a, f);
+    const b = h.to ? by[h.to] : null;
+    const [bx, by2] = b ? mapXY(b, f) : [ax, ay];
+    const x = ax + (bx - ax) * h.done, y = ay + (by2 - ay) * h.done - 9;
+    hostSpots.set(h.uid, [x, y, h]);
+    const ghost = h.state === 'remembered';
+    const ink = h.mine ? '#c9a227' : (ghost ? 'rgba(150,120,110,.5)' : '#96221c');
+    ctx.globalAlpha = ghost ? 0.55 : 1;
+    ctx.fillStyle = 'rgba(40,30,18,.25)';
+    ctx.beginPath(); ctx.ellipse(x, y + 12, 9, 3.2, 0, 0, 7); ctx.fill();
+    // A pennon on a staff. Its length is the size of the host, so a thin
+    // one looks thin without a number being read.
+    const flag = 6 + Math.min(11, h.size / 14);
+    ctx.strokeStyle = ghost ? 'rgba(90,76,60,.6)' : '#4a3a22';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x, y + 11); ctx.lineTo(x, y - 11); ctx.stroke();
+    poly([[x, y - 11], [x + flag, y - 8], [x, y - 5]], ink);
+    if (h.state === 'besieging') {
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(x, y + 2, 10, 0, 7); ctx.stroke();
+    }
+    if (ghost) {
+      ctx.font = '9px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      label(`${h.stale}d`, x, y + 22, '#6a5c4a');
+      ctx.textAlign = 'left';
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // The places themselves.
   for (const n of world.nodes) {
     const [x, y] = mapXY(n, f);
@@ -1780,6 +1827,18 @@ function folkAt(ev) {
   for (const [i, at] of folkSpots) {
     const d = Math.hypot(at[0] - px, (at[1] - 7 - py) * 0.85);
     if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
+function hostAt(ev) {
+  if (!world) return null;
+  const r = canvas.getBoundingClientRect();
+  const px = ev.clientX - r.left, py = ev.clientY - r.top;
+  let best = null, bestD = 16;
+  for (const [, at] of hostSpots) {
+    const d = Math.hypot(at[0] + 4 - px, at[1] - py);
+    if (d < bestD) { bestD = d; best = at[2]; }
   }
   return best;
 }
@@ -2397,7 +2456,20 @@ window.addEventListener('pointerup', e => {
   if (moved > 5 || !quick) return;
   if (e.target !== canvas) return;
   if (mode === 'march') {
+    // Sending a host somewhere is two clicks: the host, then the place. While
+    // the second is pending every node is a destination, so the node writ
+    // would be in the way.
     const n = townNodeAt(e);
+    if (sending !== null) {
+      const to = n ? n.key : '';
+      const uid = sending;
+      sending = null;
+      canvas.style.cursor = '';
+      if (!to) return say('nowhere there to march to');
+      return send(`march ${uid} ${to}`);
+    }
+    const h = hostAt(e);
+    if (h) return openHost(h);
     return n ? nodeWrit(n, e) : closeWrit();
   }
   if (!plan) return;
@@ -3096,6 +3168,7 @@ function paintSoul(d) {
   // The jobs, as buttons. `post` is still the command that runs; this only
   // saves somebody typing it, which is the whole point of the exercise.
   $('soul-posts').hidden = !mine;
+  if (!mine) $('soul-posts').innerHTML = '';
   if (mine) {
     const held = d.person ? d.person.post : '';
     // The target matters: a steward governs a named town and a captain rides
@@ -3126,4 +3199,100 @@ function paintSoul(d) {
 $('soul-close').addEventListener('click', closeSoul);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('soul').hidden) closeSoul();
+});
+
+
+/* ------------------------------------------------------------- a host */
+/* Clicking a pennon. The same panel the town figures use, because a host is
+ * the same kind of question -- who is that, what are they doing, and can I
+ * tell them to do something else -- and one answer shape is easier to read
+ * than two.
+ *
+ * Yours gets orders. Theirs gets what you actually know, which on a
+ * remembered sighting is a date and not much else. */
+let sending = null;
+
+function openHost(h) {
+  closeWrit();
+  soulNow = null;
+  $('soul-name').textContent = h.name;
+  $('soul-count').textContent = h.mine ? 'one of your hosts'
+    : (h.state === 'remembered' ? `last seen ${h.stale} days ago`
+       : `${h.owner}'s, and in sight`);
+  $('soul-count').classList.toggle('mine', h.mine);
+  $('soul-doing').textContent = hostDoing(h);
+
+  const rows = [['strength', `${h.size} men`]];
+  if (h.captain) rows.push(['led by', h.captain]);
+  if (h.mine) {
+    for (const [k, n] of Object.entries(h.units || {})) {
+      rows.push([k.replace(/_/g, ' '), String(n)]);
+    }
+    rows.push(['costing', `${h.upkeep}c a day`]);
+  }
+  if (h.state === 'besieging' && h.siege_days) {
+    rows.push(['sat down', `${h.siege_days} days`]);
+  }
+  if (h.state === 'remembered') {
+    rows.push(['where', `near ${nodeName(h.at)}`]);
+    rows.push(['since then', 'anywhere within a few days’ march']);
+  }
+  $('soul-facts').innerHTML = rows.map(([k, v]) =>
+    `<li><span class="dim">${esc(k)}</span><span>${esc(v)}</span></li>`).join('');
+
+  $('soul-said').hidden = true;
+  $('soul-person').hidden = true;
+  // Emptied, not just hidden. A panel that keeps the last host's orders in
+  // its markup is one stylesheet change away from offering you the recall of
+  // somebody else's army.
+  $('soul-posts').hidden = !h.mine;
+  if (!h.mine) $('soul-posts').innerHTML = '';
+  if (h.mine) {
+    $('soul-posts').innerHTML =
+      '<h4>orders</h4><div class="pickrow">' +
+      `<button type="button" data-host="march">march to…</button>` +
+      `<button type="button" data-host="recall">recall</button>` +
+      `<button type="button" data-host="siege">lay siege</button>` +
+      `<button type="button" data-host="disband">disband</button>` +
+      '</div><p class="dim">the same orders you can type, and they go through ' +
+      'the same commands</p>';
+    for (const b of $('soul-posts').querySelectorAll('button')) {
+      b.addEventListener('click', () => {
+        const what = b.dataset.host;
+        closeSoul();
+        if (what === 'march') {
+          // Pick the place next. A destination cannot be guessed from here.
+          sending = h.uid;
+          canvas.style.cursor = 'crosshair';
+          return say('now click where it should march.');
+        }
+        send(`${what} ${h.uid}`);
+      });
+    }
+  }
+  $('soul').hidden = false;
+}
+
+function hostDoing(h) {
+  if (h.state === 'marching') {
+    return `marching on ${nodeName(h.to)}, ${h.days_left} days out`;
+  }
+  if (h.state === 'besieging') return `sitting before ${nodeName(h.at)}`;
+  if (h.state === 'raiding') return `burning the country around ${nodeName(h.at)}`;
+  if (h.state === 'remembered') return 'you have not seen it since';
+  return `standing at ${nodeName(h.at)}`;
+}
+
+function nodeName(key) {
+  const n = world && world.nodes.find(q => q.key === key);
+  return n ? n.name : (key || 'somewhere');
+}
+
+/* Escape gives up on picking a destination as well as closing the panel. */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sending !== null) {
+    sending = null;
+    canvas.style.cursor = '';
+    say('the host stays where it is.');
+  }
 });
