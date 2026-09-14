@@ -1,13 +1,32 @@
 {
- "at": "2026-09-14T17:43:11.519670Z",
+ "at": "2026-09-14T18:42:29.657897Z",
  "traps": [
+  {
+   "city": "SAT",
+   "ceiling": 97,
+   "price": 92,
+   "p_model": 0.9453,
+   "p_market": 0.92,
+   "edge_pts": 2.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.1 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    }
+   ]
+  },
   {
    "city": "MSP",
    "ceiling": 63,
-   "price": 61,
-   "p_model": 0.7302,
-   "p_market": 0.61,
-   "edge_pts": 12.0,
+   "price": 60,
+   "p_model": 0.6003,
+   "p_market": 0.6,
+   "edge_pts": 0.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -24,22 +43,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "61c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "PHX",
-   "ceiling": 100,
-   "price": 95,
-   "p_model": 0.9827,
-   "p_market": 0.95,
-   "edge_pts": 3.3,
-   "size_lcb": 0.1575,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
