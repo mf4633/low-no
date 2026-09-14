@@ -81,6 +81,18 @@ to a single-slot assumption -- but a wide window with hourly crons would lock
 the same city two or three times and silently triple its weight in every later
 score. `dawn12.already_locked()` enforces one per city-day.
 
+## THE BOOK IS CAPTURED, AND CAPTURED ONLY
+
+Each locked record carries the Kalshi ladder as quoted AT ISSUANCE, in a `book`
+field that feeds nothing and is read by nothing. It exists because it cannot be
+captured later: "is this prediction already inside the price?" is a separate
+registration, and it would be unanswerable in sixty days if the pre-dawn book
+were not recorded now. A missing book degrades to `null` and never costs a
+prediction.
+
+Recording it is not the same as testing it. Nothing in this file compares the
+two, and doing so is a new registration with its own units.
+
 ## THIS IS A FORECAST, NOT A SIGNAL
 
 Nothing here claims the number is outside the price, and the standing evidence

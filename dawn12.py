@@ -287,6 +287,28 @@ def quantiles(dist, ts=(0.10, 0.50, 0.90)):
     return q
 
 
+def book_snapshot(city):
+    """The ladder as quoted AT ISSUANCE. TELEMETRY -- feeds nothing.
+
+    Captured because it cannot be captured later. Whether this prediction is
+    already inside the price is a separate registration with its own units, and
+    it will be unanswerable in sixty days if the pre-dawn book is not recorded
+    now. Degrades to None on anything: a missing book must never cost a
+    prediction.
+    """
+    try:
+        ymd = dt.datetime.now(dt.timezone.utc).strftime("%y%b%d").upper()
+        rows = sources.kalshi_ladder(CITIES[city]["series"], ymd, probe_path=None) or []
+        out = []
+        for g in rows:
+            out.append({k: g.get(k) for k in
+                        ("ticker", "floor", "cap", "yes_bid", "yes_ask",
+                         "no_bid", "no_ask", "quote_src")})
+        return out or None
+    except Exception:
+        return None
+
+
 def already_locked(day):
     """{city} already holding a prediction for `day`.
 
@@ -355,11 +377,12 @@ def predict(cities, calib, force=False, day=None, skip=()):
             inputs_all={k: v for k, v in f.items() if isinstance(v, (int, float))},
             point=round(point, 2), dist={str(k): round(v, 5) for k, v in dist.items()},
             dist_src=src, p10=q.get(0.10), p50=q.get(0.50), p90=q.get(0.90),
-            alternatives=alts)
+            alternatives=alts, book=book_snapshot(city))
         out.append(rec)
         print(f"  {city:<5}{loc.strftime('%H:%M')} local  point {point:>6.1f}  "
               f"p10/50/90 {q.get(0.10)}/{q.get(0.50)}/{q.get(0.90)}  "
-              f"lead {rec['lead_h_to_median_peak']}h")
+              f"lead {rec['lead_h_to_median_peak']}h  "
+              f"book {len(rec['book']) if rec['book'] else 0} rungs")
     return out
 
 
