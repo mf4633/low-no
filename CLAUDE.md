@@ -67,6 +67,10 @@ Earliest ~mid-October. The date is set by flag rate, not by cleverness.
 | `traps.py` | positive-edge rungs carrying measured trap signals |
 | `advection.py` | upstream station + intraday stall telemetry |
 | `forecasts.py` / `skill.py` | 6 competing forecasts, scored against CLI |
+| `city_regime.py` | morning-sky regime, ALL cities. Local-hour windows; refuses a day whose decision windows were not observed |
+| `city_forecast.py` | regime-conditioned empirical CLI-high cells, per city |
+| `hf1min.py` | 1-minute settlement truth -> `docs/settlements_1min.json`. PARALLEL to settlements.json; grades nothing |
+| `lax_*.py` | FROZEN 2026-09-12, carry H15. The city_* files do not touch them |
 | `score_run.py` | nightly grade; grades ALL ungraded log days, ET trading date |
 
 ## HARD-WON GOTCHAS — do not re-learn these
