@@ -80,6 +80,21 @@
 
   <p id="scale" class="dim"></p>
 
+  <!-- Somebody you clicked on. -->
+  <aside id="soul" hidden aria-live="polite">
+    <button id="soul-close" type="button" title="close">×</button>
+    <h3 id="soul-name">somebody</h3>
+    <p id="soul-count" class="dim">one figure</p>
+    <p id="soul-doing"></p>
+    <ul id="soul-facts"></ul>
+    <p id="soul-said" hidden></p>
+    <div id="soul-person" hidden>
+      <p id="soul-age" class="dim"></p>
+      <ul id="soul-skills"></ul>
+    </div>
+    <div id="soul-posts" hidden></div>
+  </aside>
+
   <!-- The front door. A packaged build is something somebody double-clicked,
        so the first thing it shows has to be a choice, not a prompt. -->
   <div id="front" hidden role="dialog" aria-modal="true"

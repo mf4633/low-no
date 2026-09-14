@@ -19,8 +19,9 @@ from io import StringIO
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 from marchlands.cli import Console
-from marchlands.layout import (CLAY, FIELD, FOREST, GRASS, HILL, ROAD, WATER,
-                               YARD, plan_for)
+from marchlands.layout import (CLAY, FIELD, FOREST, GRASS, HILL, MEN_PER_FIGURE,
+                               ROAD, SOULS_PER_FIGURE, WATER, YARD, plan_for)
+from marchlands.layout import POST_WHERE as layout_POST_WHERE
 from marchlands.scenarios import start
 from marchlands.settlement import BuildingInstance
 from marchlands.sim import Bot
@@ -858,7 +859,10 @@ class TestTheFrontDoorIsOnScreen(unittest.TestCase):
     def test_every_id_the_front_door_reaches_for_is_in_the_page(self):
         wired = ("front", "front-go", "front-continue", "front-close",
                  "front-dials", "front-resume", "housepick", "wherepick",
-                 "house-note", "where-note", "v-menu", "v-save", "v-load")
+                 "house-note", "where-note", "v-menu", "v-save", "v-load",
+                 "soul", "soul-close", "soul-name", "soul-count", "soul-doing",
+                 "soul-facts", "soul-said", "soul-person", "soul-age",
+                 "soul-skills", "soul-posts")
         for name in wired:
             self.assertIn('id="%s"' % name, self.page, name)
             self.assertIn("'%s'" % name, self.js, name)
@@ -882,6 +886,199 @@ class TestTheFrontDoorIsOnScreen(unittest.TestCase):
         self.assertIn("fetch('/front')", self.js)
         for key in ("plough", "hansa", "ironhand", "marcher", "abbey"):
             self.assertNotIn('data-house="%s"' % key, self.page, key)
+
+
+class TestClickingSomebody(unittest.TestCase):
+    """Who a figure is, when you point at one.
+
+    The rule the whole panel is built on: nothing here is invented. A worker
+    already knew the roof he sleeps under and the shed he walks to, because
+    that is how his path was drawn, and the watch already knew which yard of
+    wall it stands on. All that was missing was somewhere to put the answer.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        from marchlands import web as w
+        cls.w = w
+        cls.g, _s = grown(seed=5, days=300)
+        cls.here = next(iter(cls.g.world.settlements))
+        kin = [p for p in cls.g.kin.living() if p.grown(cls.g.day)]
+        cls.g.post(kin[1].name, "master", cls.here)
+        cls.officer = kin[1].name
+
+    def plan(self):
+        return plan_for(self.g.world.settlements[self.here],
+                        officers=self.w._officers(self.g, self.here))
+
+    def first(self, kind):
+        for i, f in enumerate(self.plan().folk):
+            if f.kind == kind:
+                return i, f
+        return None, None
+
+    # ------------------------------------------------- what a figure knows
+    def test_a_worker_knows_his_roof_and_his_shed(self):
+        i, f = self.first("worker")
+        self.assertIsNotNone(f, "a grown town with hands should have workers")
+        uids = {b.uid: b for b in self.plan().buildings}
+        self.assertIn(f.home, uids)
+        self.assertIn(f.work, uids)
+        self.assertIn(uids[f.home].key, ("cottage", "hovel", "townhouse"))
+        self.assertTrue(uids[f.work].running, "walking to a shed nobody staffs")
+        self.assertEqual(f.souls, SOULS_PER_FIGURE)
+
+    def test_the_watch_stands_for_fewer_men_than_a_worker_does_souls(self):
+        i, f = self.first("watch")
+        if f is None:
+            return self.skipTest("no garrison in this town")
+        self.assertEqual(f.souls, MEN_PER_FIGURE)
+
+    def test_one_of_yours_stands_where_you_posted_them(self):
+        i, f = self.first("kin")
+        self.assertIsNotNone(f, "a posted officer should be standing somewhere")
+        uids = {b.uid: b for b in self.plan().buildings}
+        held = self.g.kin.by_name(f.who)
+        self.assertIsNotNone(held)
+        self.assertIn(uids[f.work].key, layout_POST_WHERE[held.post])
+
+    def test_the_envoy_is_not_drawn_because_he_is_not_here(self):
+        # "sits with the other lords" means away. A figure of him in your own
+        # square would be a lie about where he is.
+        self.assertNotIn("envoy", layout_POST_WHERE)
+
+    # ------------------------------------------------------- the dossier
+    def test_it_answers_for_every_kind_of_figure(self):
+        seen = set()
+        for i, f in enumerate(self.plan().folk):
+            if f.kind in seen:
+                continue
+            seen.add(f.kind)
+            d = self.w.folk(self.g, self.here, i)
+            self.assertNotIn("error", d, f.kind)
+            self.assertTrue(d["title"], f.kind)
+            self.assertTrue(d["doing"], f.kind)
+            self.assertTrue(d["facts"], f.kind)
+        self.assertIn("worker", seen)
+        self.assertIn("kin", seen)
+
+    def test_pointing_at_nobody_is_a_message_not_a_crash(self):
+        self.assertIn("error", self.w.folk(self.g, self.here, 9999))
+        self.assertIn("error", self.w.folk(self.g, self.here, -1))
+
+    def test_a_worker_is_told_what_he_makes_and_what_he_eats(self):
+        i, _ = self.first("worker")
+        d = self.w.folk(self.g, self.here, i)
+        keys = {f["k"] for f in d["facts"]}
+        self.assertIn("makes", keys)
+        self.assertIn("eating", keys)
+        self.assertTrue(d["home"], "he sleeps somewhere and it should say where")
+
+    def test_one_of_yours_is_a_person_rather_than_a_sample(self):
+        i, _ = self.first("kin")
+        d = self.w.folk(self.g, self.here, i)
+        self.assertEqual(d["souls"], 1)
+        self.assertIn("person", d)
+        self.assertGreater(d["person"]["age"], 0)
+        self.assertTrue(d["posts"])
+
+    # --------------------------------------------- the jobs, and their where
+    def test_a_post_that_needs_a_town_is_offered_the_town_you_are_looking_at(self):
+        # `post X steward` with no town resolves to whichever settlement comes
+        # first in the dictionary, which is not the one on screen. The panel
+        # has to send the target or the button quietly does the wrong thing.
+        i, _ = self.first("kin")
+        offer = {p["key"]: p for p in self.w.folk(self.g, self.here, i)["posts"]}
+        for key in ("steward", "master"):
+            self.assertEqual(offer[key]["needs"], "town", key)
+            self.assertEqual(offer[key]["target"], self.here, key)
+            self.assertTrue(offer[key]["can"], key)
+
+    def test_a_post_with_nowhere_to_stand_is_offered_but_not_clickable(self):
+        i, _ = self.first("kin")
+        offer = {p["key"]: p for p in self.w.folk(self.g, self.here, i)["posts"]}
+        cap = offer["captain"]
+        self.assertEqual(cap["needs"], "host")
+        has_host = any(a.owner == "player" for a in self.g.armies)
+        self.assertEqual(cap["can"], has_host)
+        if not has_host:
+            self.assertTrue(cap["why"], "a dead button should say why")
+
+    def test_the_command_the_button_sends_actually_works(self):
+        # The panel is a shortcut for `post`, not a second way of doing it.
+        i, f = self.first("kin")
+        d = self.w.folk(self.g, self.here, i)
+        offer = {p["key"]: p for p in d["posts"]}["steward"]
+        first_name = d["person"]["name"].split()[0]
+        said = self.g.post(first_name, "steward", offer["target"])
+        self.assertNotIn("nobody of yours", said)
+        self.assertNotIn("no settlement", said)
+        who = self.g.kin.by_name(first_name)
+        self.assertEqual(who.post, "steward")
+        self.assertEqual(who.target, self.here)
+        self.g.post(first_name, "master", self.here)      # put it back
+
+    # ------------------------------------------------------ the old rule
+    def test_asking_who_somebody_is_does_not_move_the_dice(self):
+        """Fifth time. The kin moved the weather, the league re-rolled twelve
+        seeds of balance measurement, the voices and the chancery each did it
+        once more. A panel that opens on a click and names a household is the
+        same shape of mistake."""
+        before = self.g.rng.getstate()
+        for i in range(min(12, len(self.plan().folk))):
+            self.w.folk(self.g, self.here, i)
+        self.assertEqual(before, self.g.rng.getstate(),
+                         "clicking a villager re-rolled the campaign")
+
+    def test_the_same_person_is_the_same_person_while_you_look_at_them(self):
+        i, _ = self.first("worker")
+        once = self.w.folk(self.g, self.here, i)
+        twice = self.w.folk(self.g, self.here, i)
+        self.assertEqual(once["title"], twice["title"])
+        self.assertEqual(once["said"], twice["said"],
+                         "a second click would be a different person")
+
+    def test_two_figures_out_of_the_same_door_are_the_same_family(self):
+        plan = self.plan()
+        byroof = {}
+        for i, f in enumerate(plan.folk):
+            if f.kind == "worker" and f.home >= 0:
+                byroof.setdefault(f.home, []).append(i)
+        shared = [v for v in byroof.values() if len(v) > 1]
+        if not shared:
+            return self.skipTest("nobody shares a roof in this town")
+        names = {self.w.folk(self.g, self.here, i)["title"] for i in shared[0]}
+        self.assertEqual(len(names), 1, "a house does not rename itself")
+
+
+class TestThePlanIsTheSamePlanTomorrow(unittest.TestCase):
+    """The layout promises determinism in its own docstring, and `hash()` of
+    a str is salted per process -- so the idle folk it seeded stood in
+    slightly different places every time the program started. That was
+    cosmetic until a figure's place in the list became a click target."""
+
+    def test_the_same_town_lays_out_the_same_way_in_a_fresh_process(self):
+        import subprocess
+        import sys as _sys
+        code = (
+            "import sys; sys.path.insert(0, %r)\n"
+            "from marchlands.scenarios import start\n"
+            "from marchlands.sim import Bot\n"
+            "from marchlands.layout import plan_for\n"
+            "g = start('marchlands', seed=5); Bot(g).run(120)\n"
+            "s = g.world.settlements[next(iter(g.world.settlements))]\n"
+            "p = plan_for(s)\n"
+            "print([(round(f.x, 6), round(f.y, 6), f.kind) for f in p.folk])\n"
+        ) % os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        runs = []
+        for salt in ("1", "2"):
+            env = dict(os.environ, PYTHONHASHSEED=salt)
+            out = subprocess.run([_sys.executable, "-c", code], env=env,
+                                 capture_output=True, text=True)
+            self.assertEqual(out.returncode, 0, out.stderr[-400:])
+            runs.append(out.stdout.strip())
+        self.assertEqual(runs[0], runs[1],
+                         "the town moved between two runs of the program")
 
 
 if __name__ == "__main__":

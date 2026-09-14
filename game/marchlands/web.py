@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import sys
 import threading
 import webbrowser
@@ -38,6 +39,7 @@ from . import chancery
 from . import culture as cultures
 from . import keep as keeps
 from . import voices
+from .buildings import BUILDINGS
 from .layout import plan_for
 
 
@@ -193,6 +195,153 @@ def _best_skill(person) -> str:
     """What one of yours is known for, or nothing if they have not been used."""
     best = max(SKILLS, key=lambda sk: person.xp.get(sk, 0.0))
     return f"{best} {person.level(best)}" if person.level(best) > 0 else ""
+
+
+#: The names a household answers to. Seeded on the roof rather than the day or
+#: the figure's place in the list, because a house does not rename itself
+#: overnight and two figures out of the same door are the same family.
+def _household(game, settlement, roof_uid: int) -> str:
+    from . import kin as kinly
+    rng = random.Random(f'{getattr(game, "seed", 0)}:'
+                        f'{getattr(settlement, "key", "")}:{roof_uid}')
+    return "the " + rng.choice(kinly.FIRST_M + kinly.FIRST_F) + "s"
+
+
+def _officers(game, key: str) -> list:
+    """The few people in this town who are somebody, for the layout to place.
+
+    Resolved here rather than in `layout`, which knows nothing about houses
+    and should go on knowing nothing about them.
+    """
+    from . import kin as kinly
+    out = []
+    kin = getattr(game, "kin", None)
+    if kin is None:
+        return out
+    for post in kinly.POSTS:
+        who = kin.holder(post)
+        if not who or post not in ("steward", "factor", "master", "captain"):
+            continue
+        # A steward governs one town and a captain rides with one host. Draw
+        # them where they actually are, not in every town at once.
+        if who.target and who.target != key and post == "steward":
+            continue
+        out.append({"name": who.name, "post": post})
+    return out
+
+
+def folk(game, here: str, index: int) -> dict:
+    """Who one figure in the picture is, and what they would say.
+
+    Every answer here is read off the town rather than invented. A worker
+    already knew the roof he sleeps under and the shed he walks to -- that is
+    how his path was drawn -- and the watch already knew which yard of wall it
+    is standing on. The only thing this adds is a name for the household and a
+    voice, and both are seeded rather than rolled, because a browser polling
+    once a second must not re-roll anybody.
+    """
+    from . import kin as kinly
+    key = here or next(iter(game.world.settlements))
+    s = game.world.settlements[key]
+    plan = plan_for(s, officers=_officers(game, key))
+    if not 0 <= index < len(plan.folk):
+        return {"error": "nobody there"}
+    f = plan.folk[index]
+    named = {b.uid: b for b in plan.buildings}
+    rep = s.report
+
+    # A different figure is a different person with a different worry, so the
+    # dice turn on the figure as well as the day.
+    rng = random.Random(f'{getattr(game, "seed", 0)}:{game.day}:{key}:{index}')
+    heard = voices.speak(s, game, rng, how_many=4)
+    said = heard[index % len(heard)] if heard else None
+
+    out = {"i": index, "kind": f.kind, "souls": f.souls, "facts": [],
+           "said": f'{said[0]}: “{said[1]}”' if said else "",
+           "home": named[f.home].name if f.home in named else "",
+           "work": named[f.work].name if f.work in named else ""}
+
+    if f.kind == "kin":
+        who = game.kin.holder(f.post)
+        spec = kinly.POSTS.get(f.post)
+        out["title"] = f.who
+        out["doing"] = (spec.verb.replace("{t}", f.at) if spec
+                        else "one of yours")
+        if who:
+            out["person"] = {
+                "name": who.name, "age": who.age(game.day), "post": who.post,
+                "skills": sorted(
+                    ({"skill": sk, "level": who.level(sk)}
+                     for sk in kinly.SKILLS if who.level(sk) > 0),
+                    key=lambda d: -d["level"]),
+                "traits": sorted(who.traits),
+            }
+            out["facts"].append(
+                {"k": "holds", "v": f"{spec.key} — {spec.blurb}"
+                 if spec else who.post})
+            if spec:
+                out["facts"].append(
+                    {"k": "gaining", "v": f"{spec.skill} "
+                     f"{who.level(spec.skill)}, by doing it"})
+            if who.target:
+                out["facts"].append({"k": "posted to", "v": who.target})
+        # Two of the five posts need somewhere to be -- a steward governs a
+        # named town and a captain rides with a named host -- and the panel
+        # has to supply that, or the button quietly does the wrong thing.
+        # `post X steward` with no town resolves to whichever settlement comes
+        # first in the dictionary, which is not the one you are looking at.
+        host = next((a.uid for a in game.armies if a.owner == "player"), None)
+        offer = []
+        for k, v in kinly.POSTS.items():
+            if v.needs == "town":
+                target, can = key, True
+            elif v.needs == "host":
+                target, can = ("" if host is None else str(host)), host is not None
+            else:
+                target, can = "", True
+            offer.append({"key": k, "blurb": v.blurb, "needs": v.needs,
+                          "held": bool(game.kin.holder(k)), "target": target,
+                          "can": can,
+                          "why": "" if can else "you have no host in the field"})
+        out["posts"] = offer
+        return out
+
+    if f.kind == "watch":
+        held = sum(1 for w in plan.folk if w.kind == "watch")
+        yards = len(plan.walls)
+        out["title"] = f"{f.souls} of the garrison"
+        out["doing"] = "standing this stretch of the wall"
+        out["facts"].append({"k": "the wall", "v": f"{yards} yards drawn"})
+        out["facts"].append(
+            {"k": "standing it", "v": f"{held} such watches, "
+             f"{held * f.souls} men"})
+        if yards and held * f.souls < yards:
+            out["facts"].append(
+                {"k": "which is", "v": "fewer men than yards of wall"})
+        return out
+
+    trade = named[f.work].name if f.work in named else ""
+    out["title"] = (_household(game, s, f.home) if f.home >= 0
+                    else "folk of the town")
+    if f.kind == "worker":
+        out["doing"] = f"walking between their roof and {trade}"
+        spec = BUILDINGS.get(named[f.work].key) if f.work in named else None
+        if spec and spec.outputs:
+            out["facts"].append(
+                {"k": "makes", "v": ", ".join(sorted(spec.outputs))})
+    else:
+        out["doing"] = "standing in the street, because nothing is staffed"
+        out["facts"].append(
+            {"k": "why", "v": f"{s.employed:.0f} of {s.workforce:.0f} "
+             f"hands have work"})
+    out["facts"].append({"k": "eating", "v": f"{s.ration_level} rations, "
+                         f"{int(rep.variety or 1)} kinds of food"})
+    out["facts"].append({"k": "paying", "v": f"tax {s.tax_level}"})
+    if rep.unpaid:
+        out["facts"].append({"k": "owed", "v": "they have not been paid"})
+    if s.housing(game.progress) < s.population:
+        out["facts"].append({"k": "roof", "v": "more people than beds"})
+    return out
 
 
 def _save_path() -> str:
@@ -471,7 +620,7 @@ def snapshot(game, here: str = "") -> dict:
         "ledger": {"taxes": round(led.taxes, 1), "trade": round(led.trade, 1),
                    "tribute": round(led.tribute, 1), "wages": round(led.wages, 1),
                    "upkeep": round(led.upkeep, 1), "net": round(led.net, 1)},
-        "plan": plan_for(s).to_dict(),
+        "plan": plan_for(s, officers=_officers(game, key)).to_dict(),
         "caravans": len(game.caravans),
         "age": game.progress.age_name(),
         "relics": game.relics_held(),
@@ -528,6 +677,17 @@ class Handler(BaseHTTPRequestHandler):
                     if "good=" in self.path else "bread")
             with self.lock:
                 return self._json(march(self.console.game, self.console.here, good))
+        if route == "/folk":
+            # Somebody clicked a person. The index is the figure's place in
+            # the plan, which is stable while the town is: the plan is laid
+            # out deterministically and the folk are built by index off it.
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                i = int(q.get("i", ["-1"])[0])
+            except ValueError:
+                return self._json({"error": "nobody there"})
+            with self.lock:
+                return self._json(folk(self.console.game, self.console.here, i))
         if route == "/front":
             # What the front door needs: who you can be, what you can play,
             # and whether there is a game waiting to be picked back up. A

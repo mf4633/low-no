@@ -1099,6 +1099,12 @@ function walkAlong(path, f) {
           path[i].y + (path[i + 1].y - path[i].y) * g];
 }
 
+/* Where each figure was drawn this frame, in the same space `buildingAt`
+ * works in. A worker moves along his path every frame, so the only honest
+ * hit target is the place he was actually painted -- computing it a second
+ * time from the clock would be a second answer to the same question. */
+const folkSpots = new Map();
+
 function drawFolk(f, i, t) {
   let wx = f.x, wy = f.y, bob = 0;
   if (f.kind === 'worker' && f.path && f.path.length > 1) {
@@ -1113,6 +1119,7 @@ function drawFolk(f, i, t) {
   }
   const [sx, sy] = iso(wx, wy);
   const lift = f.kind === 'watch' ? 16 : 0;      // up on the wall-walk
+  folkSpots.set(i, [sx, sy - lift]);
   ctx.fillStyle = 'rgba(0,0,0,.2)';
   ctx.beginPath(); ctx.ellipse(sx, sy + 1 - lift * 0.5, 3.4, 1.6, 0, 0, 7);
   ctx.fill();
@@ -1128,6 +1135,24 @@ function drawFolk(f, i, t) {
     ctx.lineTo(sx + sway + 3, sy - 17 - lift); ctx.stroke();
     ctx.fillStyle = '#b9b2a0';
     ctx.beginPath(); ctx.arc(sx + sway, sy - 11.6 - lift, 2.6, 0, 7); ctx.fill();
+    return;
+  }
+  if (f.kind === 'kin') {
+    // One of yours, and the only figure on the board that is one person
+    // rather than fourteen. Marked so you can find them to click: a ring on
+    // the ground, a taller stance, and the house's gold instead of a coat
+    // the colour of mud.
+    const pulse = 0.8 + Math.sin(t * 1.6 + i) * 0.14;
+    ctx.strokeStyle = `rgba(201,162,39,${0.3 * pulse})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(sx, sy + 1, 6.4, 3.1, 0, 0, 7); ctx.stroke();
+    ctx.strokeStyle = '#8a6a2e'; ctx.lineWidth = 3.6;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - 11); ctx.stroke();
+    ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(sx - 2.6, sy - 8); ctx.lineTo(sx + 2.6, sy - 8);
+    ctx.stroke();
+    ctx.fillStyle = '#e8dcc0';
+    ctx.beginPath(); ctx.arc(sx, sy - 13.8, 2.9, 0, 7); ctx.fill();
     return;
   }
   const coat = f.kind === 'idle'
@@ -1742,6 +1767,23 @@ function buildingAt(ev) {
   }
   return best;
 }
+/* Which figure was clicked. Tighter than the building test on purpose: a
+ * person is small, and a near miss should open the roof behind them rather
+ * than the wrong villager. */
+function folkAt(ev) {
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
+           + (plan.w - plan.h) * TW / 4;
+  const py = (ev.clientY - r.top - r.height / 2 - camera.y) / camera.zoom
+           + (plan.w + plan.h) * TH / 4;
+  let best = null, bestD = 13;
+  for (const [i, at] of folkSpots) {
+    const d = Math.hypot(at[0] - px, (at[1] - 7 - py) * 0.85);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
 function townNodeAt(ev) {
   if (!world) return null;
   const r = canvas.getBoundingClientRect();
@@ -1931,6 +1973,7 @@ function frame() {
     drawGround();
     // Everything that stands up, painted back to front.
     const things = [];
+    folkSpots.clear();
     for (let y = 0; y < plan.h; y++)
       for (let x = 0; x < plan.w; x++)
         if (plan.tiles[y][x] === 'forest') things.push({ d: x + y, x, y, kind: 'wood' });
@@ -2358,6 +2401,10 @@ window.addEventListener('pointerup', e => {
     return n ? nodeWrit(n, e) : closeWrit();
   }
   if (!plan) return;
+  // People first. A figure standing in front of a roof is the thing you were
+  // pointing at, and the roof is a bigger target that would always win.
+  const who = folkAt(e);
+  if (who !== null) return openSoul(who);
   const b = buildingAt(e);
   if (b) return buildingWrit(b, e);
   const [tx, ty] = screenToTile(e);
@@ -2994,4 +3041,89 @@ $('v-save').addEventListener('click', async () => {
 $('v-load').addEventListener('click', async () => {
   const out = await post('/load', {});
   if (!out.error) enter(out); else say(out.error);
+});
+
+
+/* --------------------------------------------------------------- a person */
+/* What clicking somebody says. Every line of it is read off the town by the
+ * server -- who they are, the roof they sleep under, the shed they walk to,
+ * whether they were paid -- because a panel that invented any of it would be
+ * the one place in this game where the picture and the ledger disagreed.
+ *
+ * The scale is stated rather than hidden. Fourteen souls is what a figure is;
+ * pretending otherwise to make it feel like a villager would be the lie. The
+ * few who are one person are your own, and those you can give a job to. */
+let soulNow = null;
+
+async function openSoul(i) {
+  closeWrit();
+  const d = await (await fetch(`/folk?i=${i}`)).json();
+  if (d.error) return say(d.error);
+  soulNow = d;
+  paintSoul(d);
+  $('soul').hidden = false;
+}
+function closeSoul() { $('soul').hidden = true; soulNow = null; }
+
+function paintSoul(d) {
+  const mine = d.kind === 'kin';
+  $('soul-name').textContent = d.title || 'somebody';
+  $('soul-doing').textContent = d.doing || '';
+  $('soul-count').textContent = mine ? 'one of yours'
+    : `one figure · ${d.souls} ${d.kind === 'watch' ? 'men' : 'souls'}`;
+  $('soul-count').classList.toggle('mine', mine);
+
+  const rows = [];
+  if (d.home) rows.push(['sleeps at', d.home]);
+  if (d.work && !mine) rows.push(['works at', d.work]);
+  if (d.work && mine) rows.push(['stands at', d.work]);
+  for (const f of d.facts || []) rows.push([f.k, f.v]);
+  $('soul-facts').innerHTML = rows.map(([k, v]) =>
+    `<li><span class="dim">${esc(k)}</span><span>${esc(v)}</span></li>`).join('');
+
+  $('soul-said').textContent = d.said || '';
+  $('soul-said').hidden = !d.said;
+
+  const p = d.person;
+  $('soul-person').hidden = !p;
+  if (p) {
+    $('soul-age').textContent = `${p.age} years old`;
+    $('soul-skills').innerHTML = (p.skills.length ? p.skills : [])
+      .map(sk => `<li>${esc(sk.skill)} <b>${sk.level}</b></li>`).join('')
+      || '<li class="dim">nothing learned yet</li>';
+  }
+
+  // The jobs, as buttons. `post` is still the command that runs; this only
+  // saves somebody typing it, which is the whole point of the exercise.
+  $('soul-posts').hidden = !mine;
+  if (mine) {
+    const held = d.person ? d.person.post : '';
+    // The target matters: a steward governs a named town and a captain rides
+    // with a named host. Sent blank, the first resolves to whichever town
+    // happens to come first rather than the one you are looking at, and the
+    // second fails. The server says what each post needs and what to send.
+    $('soul-posts').innerHTML =
+      '<h4>give them a different job</h4><div class="pickrow">' +
+      (d.posts || []).map(q =>
+        `<button type="button" data-post="${q.key}" data-target="${q.target}"` +
+        ` title="${esc(q.can ? q.blurb : q.why)}"${q.can ? '' : ' disabled'}` +
+        ` aria-pressed="${q.key === held ? 'true' : 'false'}">` +
+        `${esc(q.key)}${q.held && q.key !== held ? ' \u00b7' : ''}</button>`).join('') +
+      '<button type="button" data-post="none" data-target="">call them home' +
+      '</button></div>' +
+      '<p class="dim">a dot means one of yours already holds it — ' +
+      'everybody can only be in one place</p>';
+    const first = (d.person ? d.person.name : d.title).split(' ')[0];
+    for (const b of $('soul-posts').querySelectorAll('button')) {
+      b.addEventListener('click', async () => {
+        await send(`post ${first} ${b.dataset.post} ${b.dataset.target}`.trim());
+        closeSoul();
+      });
+    }
+  }
+}
+
+$('soul-close').addEventListener('click', closeSoul);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('soul').hidden) closeSoul();
 });

@@ -602,6 +602,38 @@ job, not of the population — most of a town is children and the old, and
 dividing by the whole of it put two people on the road in a town with every
 shed running.
 
+##### And you can click one
+
+The obvious objection to a 14:1 ratio is that it puts a wall between you and
+the town: a crowd is not people. So clicking a figure answers, and every line
+of the answer is read off the town rather than invented — because a worker
+already knew the roof he sleeps under and the shed he walks to. That is how
+his path was drawn. It was simply being thrown away.
+
+    the Aldreds                   one figure · 14 souls
+    walking between their roof and Windmill
+      sleeps at                              Cottage Row
+      works at                                  Windmill
+      makes                                        flour
+      eating                 1 rations, 2 kinds of food
+      paying                                     tax 2
+    A widow from the row: "My wages have not moved and everything
+    else has. You may call that what you like; I call it a pay cut."
+
+The scale is stated rather than hidden, because pretending a figure is one
+villager in order to make it feel like *Age of Empires* would be the lie. Two
+figures out of the same door get the same family name — a household is a
+household. Click a spearman and you are told how many yards of wall there
+are and how many men are standing them, which is the same readout the wall
+already was, asked from the other end.
+
+The few figures that *are* one person are your own. A posted officer stands
+at the building their post attaches to, marked in the house's gold, and
+clicking them gives their age, what they are good at, what the post is worth
+and a row of buttons to move them — which sends the same `post` command a
+person would have typed, target and all. The envoy is not drawn, because
+"sits with the other lords" means he is somewhere else.
+
 #### The materials
 
 Every surface used to be a flat polygon with a few ruled lines on it: thatch

@@ -608,3 +608,59 @@ body.march #scale { display: none; }
 #front-resume { margin-bottom: 4px; }
 #front-resume .wide { padding: 10px 26px; }
 @media (max-width: 520px) { #front h1 { font-size: 30px; } }
+
+/* ------------------------------------------------------------- a person */
+/* Clicking somebody opens this. It sits in the corner rather than over the
+   town, because the answer to "who is that" is worth nothing if it covers up
+   the person you were pointing at. */
+#soul {
+  position: fixed; right: 14px; bottom: 14px; z-index: 12;
+  width: min(300px, calc(100vw - 28px)); max-height: min(70vh, 620px);
+  overflow: auto; padding: 14px 15px 15px;
+  background: rgba(16,14,11,.99); border: 1px solid rgba(201,162,39,.28);
+  border-radius: 4px; box-shadow: 0 10px 34px rgba(0,0,0,.5);
+}
+#soul-close {
+  position: absolute; top: 6px; right: 7px; width: 22px; height: 22px;
+  background: transparent; border: 0; color: var(--dim); cursor: pointer;
+  font-size: 17px; line-height: 1;
+}
+#soul-close:hover { color: var(--parch); }
+#soul h3 {
+  margin: 0 20px 2px 0; font: 400 16px/1.25 var(--serif, Georgia, serif);
+  color: var(--gold); letter-spacing: .02em;
+}
+#soul-count {
+  margin: 0 0 8px; font-size: 10.5px; letter-spacing: .13em;
+  text-transform: uppercase;
+}
+#soul-count.mine { color: var(--gold); }
+#soul-doing { margin: 0 0 10px; font-size: 12.5px; line-height: 1.5; }
+#soul-facts, #soul-skills { list-style: none; margin: 0; padding: 0; }
+#soul-facts li {
+  display: flex; gap: 10px; justify-content: space-between;
+  font-size: 12px; padding: 3px 0; border-top: 1px solid rgba(201,162,39,.09);
+}
+#soul-facts li span:last-child { text-align: right; color: #cdc2a8; }
+#soul-said {
+  margin: 11px 0 0; padding: 9px 11px; font-size: 12px; line-height: 1.55;
+  font-style: italic; color: #cdc2a8;
+  background: rgba(201,162,39,.07); border-left: 2px solid rgba(201,162,39,.4);
+  border-radius: 0 3px 3px 0;
+}
+#soul-person { margin-top: 11px; padding-top: 9px;
+               border-top: 1px solid rgba(201,162,39,.16); }
+#soul-age { margin: 0 0 6px; font-size: 11.5px; }
+#soul-skills li { font-size: 12px; padding: 2px 0; }
+#soul-skills b { color: var(--gold); font-weight: 400; }
+#soul-posts { margin-top: 11px; padding-top: 9px;
+              border-top: 1px solid rgba(201,162,39,.16); }
+#soul-posts h4 {
+  margin: 0 0 7px; font: 400 10.5px/1 inherit; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--dim);
+}
+#soul-posts .pickrow { justify-content: flex-start; }
+#soul-posts p { margin: 7px 0 0; font-size: 11px; }
+@media (max-width: 560px) {
+  #soul { left: 14px; right: 14px; width: auto; max-height: 52vh; }
+}

@@ -13,6 +13,7 @@ The renderer's only job is to make it look like something.
 from __future__ import annotations
 
 import random
+import zlib
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
@@ -91,15 +92,28 @@ MEN_PER_FIGURE = 6
 
 @dataclass
 class Walker:
-    """One person, standing for fourteen of them, going somewhere real."""
+    """One person, standing for fourteen of them, going somewhere real.
+
+    The identity fields are here so that clicking a figure can answer a
+    question rather than invent one. A worker already knows the roof he
+    sleeps under and the shed he is walking to -- that is how his path was
+    drawn -- and it was simply being thrown away.
+    """
     x: float
     y: float
-    kind: str                       # 'worker', 'idle', 'watch'
+    kind: str                       # 'worker', 'idle', 'watch', 'kin'
     path: List[Tuple[float, float]] = field(default_factory=list)
     at: str = ""                    # what they are doing, for the tooltip
+    home: int = -1                  # uid of the roof they sleep under
+    work: int = -1                  # uid of the shed they are walking to
+    souls: int = 0                  # how many of them this one figure is
+    who: str = ""                   # a name, for the few who have one
+    post: str = ""                  # and the job they hold, if any
 
     def to_dict(self) -> dict:
         return {"x": self.x, "y": self.y, "kind": self.kind, "at": self.at,
+                "home": self.home, "work": self.work, "souls": self.souls,
+                "who": self.who, "post": self.post,
                 "path": [{"x": x, "y": y} for x, y in self.path]}
 
 
@@ -160,11 +174,29 @@ def _walk(plan: Plan, a: "Placed", b: "Placed") -> List[Tuple[float, float]]:
             (float(r2[0]), float(r2[1])), (b.x, b.y)]
 
 
-def plan_for(settlement, *, size: int = 0) -> Plan:
+#: Where one of yours stands when they hold a post here. First roof of the
+#: first kind that is standing; a post whose building has not been raised yet
+#: waits at the hall, because they are still in the town doing the job.
+POST_WHERE = {
+    "steward": ("keep", "guildhall", "market"),
+    "factor": ("trading_post", "market", "warehouse", "harbour"),
+    "master": ("siege_yard", "quarry", "sawmill", "kiln"),
+    "captain": ("barracks", "gatehouse", "keep"),
+}
+#: The envoy is not on this list on purpose: "sits with the other lords" means
+#: away. A figure of him in your own square would be a lie about where he is.
+
+
+def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
     """Lay a settlement out on a square of ground.
 
     Deterministic: the same town always comes out the same way, so the picture
     does not rearrange itself every time you look at it.
+
+    `officers` are the few people in the town who are somebody rather than a
+    sample of fourteen: pass a list of `{"name", "post"}` and each is placed
+    at the building their post attaches to. The caller resolves who holds
+    what, so this module still knows nothing about houses and marriages.
     """
     standing = [b for b in settlement.buildings]
     urban = [b for b in standing if b.spec.terrain == "urban"]
@@ -183,7 +215,10 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
     # raised a bakery. See keep.SIDE.
     side = size or keeps.SIDE
     plan = Plan(w=side, h=side, tiles=[[GRASS] * side for _ in range(side)])
-    rng = random.Random(hash(settlement.name) & 0xFFFF)
+    # crc32 rather than hash(): hash() of a str is salted per process, so the
+    # idle folk this seeds would stand in slightly different places every time
+    # the program started -- and the docstring above promises they do not.
+    rng = random.Random(zlib.crc32(settlement.name.encode("utf-8")))
     cx = cy = side // 2
 
     # --- the castle, as drawn ---------------------------------------------
@@ -416,12 +451,18 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
             shed = working[(i * 3) % len(working)]
             route = _walk(plan, home_roof, shed)
             plan.folk.append(Walker(x=route[0][0], y=route[0][1], kind="worker",
-                                    path=route, at=shed.name))
+                                    path=route, at=shed.name,
+                                    home=home_roof.uid, work=shed.uid,
+                                    souls=SOULS_PER_FIGURE))
         elif roads:
             x, y = roads[(i * 7 + 3) % len(roads)]
+            # Idle folk sleep somewhere too, and being able to say where is
+            # half of what makes them people rather than filler.
+            roof = roofs[(i * 5 + 1) % len(roofs)] if roofs else None
             plan.folk.append(Walker(
                 x=x + rng.random() * 0.6 - 0.3, y=y + rng.random() * 0.6 - 0.3,
-                kind="idle", at="nothing to do"))
+                kind="idle", at="nothing to do", souls=SOULS_PER_FIGURE,
+                home=roof.uid if roof else -1))
 
     # --- and the watch, standing on the wall they are actually holding -----
     #
@@ -438,5 +479,31 @@ def plan_for(settlement, *, size: int = 0) -> Plan:
         for i in range(watch):
             wx, wy = line[(i * step) % len(line)]
             plan.folk.append(Walker(x=float(wx), y=float(wy), kind="watch",
-                                    at="on the wall"))
+                                    at="on the wall", souls=MEN_PER_FIGURE))
+
+    # --- and the handful who are somebody ---------------------------------
+    #
+    # Everyone above is a sample. These are not: they have a name, an age, a
+    # skill that is going up, and a job you gave them. Standing them at the
+    # building their post attaches to means the picture shows where you sent
+    # them, and an empty works is an empty works.
+    by_key: Dict[str, "Placed"] = {}
+    for b in plan.buildings:
+        by_key.setdefault(b.key, b)
+    for off in (officers or []):
+        where = None
+        for key in POST_WHERE.get(off.get("post", ""), ()):  # first that stands
+            if key in by_key:
+                where = by_key[key]
+                break
+        if where is None:
+            continue
+        # In front of the door, not behind it. The scene is painted back to
+        # front on x+y, so a figure placed at a lower y than its building is
+        # a figure the building paints over -- recorded as a click target and
+        # invisible, which is the worst of both.
+        plan.folk.append(Walker(x=float(where.x), y=float(where.y) + 0.62,
+                                kind="kin", at=where.name, work=where.uid,
+                                souls=1, who=off.get("name", ""),
+                                post=off.get("post", "")))
     return plan
