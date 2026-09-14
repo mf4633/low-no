@@ -34,7 +34,8 @@ from . import league as lg
 from .league import League, PLAYER
 from .lord import Lord
 from .market import Market
-from .military import (BESIEGING, GARRISON, MARCHING, RAIDING, RETURNING,
+from .military import (BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
+                       RETURNING,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_speed,
                        host_strength, raid_day, recruit_cost, siege_day, unit)
@@ -172,6 +173,12 @@ class GameState:
     #: house has been playing the identical campaign with different
     #: multipliers; this is what makes the Hansa's game a Hansa's game.
     missions: missions_mod.Roll = field(default_factory=missions_mod.Roll)
+    #: What you are, as distinct from who you are -- see roles.py. Every game
+    #: has opened from the same position; this is the one you opened from.
+    role: str = "lord"
+    #: The lord you hold this valley from, for a game that opens sworn to
+    #: somebody. "" for everybody else, which is almost everybody.
+    liege: str = ""
     #: Tallies nothing else keeps, because a feat must be checked against a
     #: figure rather than instrumented into the thing it counts.
     _hosts_raised: int = 0
@@ -1471,6 +1478,20 @@ class GameState:
 
     RAID_PATIENCE = 12           # days a host will work a country before going home
 
+    def order_host(self, uid: int, key: str) -> str:
+        """Tell a host how to fight before it has to."""
+        from .military import ORDERS, order as order_of, order_note
+        a = self.army(uid)
+        if not a:
+            return f"no host {uid}"
+        if a.owner != "player":
+            return "that host is not yours to order"
+        if key not in ORDERS:
+            return (f"there is no order called {key!r}; try "
+                    + ", ".join(ORDERS))
+        a.order = key
+        return f"{a.name}: {order_of(key).name}. {order_note(a.units, key)}"
+
     def raid(self, uid: int) -> str:
         """Order a host of yours to burn the country instead of the walls."""
         a = self.army(uid)
@@ -1606,7 +1627,8 @@ class GameState:
         if self.day % 5 == 0 and lines and (player or town.mine):
             msgs.append(f"{a.name}: {lines[0]}")
         if storms_now(a.siege.plan, wall, holder.alive()):
-            res = fight(besieger, holder, rng=self.rng, place=town.name)
+            res = fight(besieger, holder, rng=self.rng, place=town.name,
+                        orders=(a.order, lordly.sort_of(town.key).fights))
             msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
                         f"the ground after {res.rounds} rounds")
             msgs.append(self._box_score(f"{a.name} storms {town.name}", res,
@@ -1705,7 +1727,9 @@ class GameState:
         s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
         a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
         if storms_now(a.siege.plan, wall, holder.alive()):
-            res = fight(besieger, holder, rng=self.rng, place=s.name)
+            # Your own wall: whatever you told the garrison to do.
+            res = fight(besieger, holder, rng=self.rng, place=s.name,
+                        orders=(a.order, getattr(s, "order", "") or HOLD))
             msgs.append(self._box_score(f"{a.name} storms {s.name}", res,
                                         a.owner, PLAYER))
             self.scored(a.owner, won=res.winner == "attacker")
@@ -2943,6 +2967,8 @@ class GameState:
             "estates": self.estates.to_dict(),
             "feats": self.feats.to_dict(),
             "missions": self.missions.to_dict(),
+            "role": self.role,
+            "liege": self.liege,
             "tallies": {"hosts": self._hosts_raised, "won": self._battles_won,
                         "stormed": self._stormed, "lost": self._towns_lost,
                         "trade": self._trade_profit},
@@ -2992,6 +3018,8 @@ class GameState:
         g.estates = estates_mod.Estates.from_dict(d.get("estates") or {})
         g.feats = feats_mod.Book.from_dict(d.get("feats") or {})
         g.missions = missions_mod.Roll.from_dict(d.get("missions") or {})
+        g.role = str(d.get("role") or "lord")
+        g.liege = str(d.get("liege") or "")
         tall = d.get("tallies") or {}
         g._hosts_raised = int(tall.get("hosts", 0))
         g._battles_won = int(tall.get("won", 0))

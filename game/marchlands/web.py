@@ -41,6 +41,7 @@ from . import keep as keeps
 from . import voices
 from .clock import Clock
 from . import estates as estates_mod
+from . import roles as roles_mod
 from . import feats as feats_mod
 from . import missions as missions_mod
 from .buildings import BUILDINGS
@@ -516,15 +517,18 @@ def _front_door(console, route: str, body: dict) -> dict:
         return {"said": "picked up where you left it",
                 "state": snapshot(console.game, console.here)}
     house = body.get("house", "plough")
+    role = body.get("role") or "lord"
     seed = int(body.get("seed") or 7)
     region = body.get("region") or ""
     try:
         if region:
             from .scenario import drawn_game
             console.game = drawn_game(region, seed=seed, house=house)
+            if role != "lord":
+                roles_mod.apply(console.game, role)
         else:
             console.game = start(body.get("scenario", "marchlands"),
-                                 seed=seed, house=house)
+                                 seed=seed, house=house, role=role)
     except KeyError as exc:
         return {"error": str(exc)}
     console.here = next(iter(console.game.world.settlements))
@@ -878,6 +882,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({
                 "houses": [{"key": k, "name": h.name, "blurb": h.blurb}
                            for k, h in HOUSES.items()],
+                # What you are, as against who: the same map, a different
+                # place to be standing on it.
+                "roles": [{"key": k, "name": r.name, "blurb": r.blurb,
+                           "problem": r.problem}
+                          for k, r in roles_mod.ROLES.items()],
                 "scenarios": [{"key": k, "name": SCENARIOS[k].name,
                                "blurb": SCENARIOS[k].blurb,
                                "years": SCENARIOS[k].years}

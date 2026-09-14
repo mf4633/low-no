@@ -825,6 +825,81 @@ hand-written list of columns beside `Ledger.income`'s own hand-written list;
 adding a column to one and not the other is exactly the bug two such sums
 invite, so `net` is written as income minus outgoings now.
 
+#### What you are, as against who you are
+
+The house changes your bonuses. It never changed your *situation*: every game
+opened with one hill, a full chest and nobody's permission needed, and the
+only question was how you spent three years.
+
+    --role merchant    carts and coin, and a garrison you could count from the gate
+    --role mercenary   a company that costs more than your land earns
+    --role vassal      somebody else's peace, and his reeve taking a cut
+    --role king        two holdings and the suspicion of everyone who has one
+
+Same map, different place to be standing on it — and each is built from what
+the game already does, because a role that needed a new mechanic would be one
+I could not test. The merchant starts with the trading posts that *earn* the
+extra carts, rather than the rule bent for him. The vassal's liege is a
+standing truce and a favour in the existing ledger. The king needs no
+handicap written: aggressive expansion and coalitions already read how much
+you hold.
+
+The captain took two goes. A hundred and ten men cost 106 a day against 60 in
+tax, on thirteen days of runway — and raiding does not close a gap that size,
+so the company was a death sentence whatever the player did. A role you cannot
+play is not a role. At fifty-two men he breaks about even standing still, and
+the pressure is the right one: an army that earns nothing where it is.
+
+#### Telling a host how to fight
+
+The thing worth taking from a real-time battle is not the clicking. It is that
+you arrived having *decided* something — where the horse would go, whether to
+hold the line or break it — and then watched the decision be right or wrong.
+
+    line      shields together, nobody clever
+    flank     the horse goes round, or arrives late
+    reserve   two ranks fight and one waits
+    storm     everything forward at once
+    hold      stand and shoot, worth nothing without bows
+
+No new combat model: each multiplies dials `fight` already reads, and each has
+a cost as well as a gain, because an order with no downside is not a decision.
+
+The numbers are small, and measurement is why. This combat model is a knife
+edge — at even strength the attacker wins one time in sixty, at ten per cent
+over he wins every time, and the whole transition happens inside that band.
+Orders worth a quarter therefore did not tilt battles, they decided them:
+*form the line* won 1.8% of the fights that *send the horse wide* won 95.5%
+of. At the size they are now, a close fight swings 38% → 78% and a rout is
+untouched in either direction — which is what an order should be.
+
+Each lord fights the way he talks, too. The Boar storms, the Heron stands
+behind what he built, the Fox goes round. Meet a man once and you know what to
+expect the second time.
+
+#### A folder of files that change the game
+
+Every table here is a dictionary of frozen dataclasses — good to read,
+impossible to *tune*, because tuning means editing the source and then your
+changes and the next commit are the same file.
+
+    mods/cheap_siege.json
+    { "units": { "trebuchet": {"coin": 300}, "ram": {"coin": 90} } }
+
+**A mod patches fields, it does not replace tables** — so one written against
+an old version cannot silently delete what a new one added. **Anything it
+cannot apply is printed**, with the reason and a suggestion where there is an
+obvious one (`nothing called 'speargoon' -- did you mean spearman?`), because
+a mod that quietly does nothing is worse than one that refuses to load. And
+**nothing is executed**: these are tables, not scripts. A game that ships no
+dependencies should not acquire the ability to run a stranger's code the week
+it acquires mods — and there is a test that greps its own source to keep it
+that way.
+
+The example in the folder is named `.example` so it does not load. One that
+shipped live would quietly change the price of every siege engine in
+everybody's game.
+
 #### Five idioms
 
 Age of Empires II is remembered for a lot of things, and one of them is that

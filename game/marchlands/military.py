@@ -420,11 +420,129 @@ def raid_day(raiders: Side, garrison: Side, *, out_of_doors: float,
     return worked, 0.0, losses, lines
 
 
+# ------------------------------------------------------------ the order
+#: How a host is told to fight, which is the honest version of "command
+#: massive tactical battles" in a game that is not real time.
+#:
+#: The thing worth taking from a real-time battle is not the clicking. It is
+#: that you arrived having decided something -- where the horse would go,
+#: whether to hold the line or break it -- and then watched the decision be
+#: right or wrong. A day-ticked game can offer exactly that, and it costs no
+#: new simulation: every one of these multiplies dials `fight` already reads,
+#: and every one of them has a cost as well as a gain, because an order with
+#: no downside is not a decision.
+LINE = "line"
+FLANK = "flank"
+RESERVE = "reserve"
+STORM = "storm"
+HOLD = "hold"
+
+
+@dataclass(frozen=True)
+class Order:
+    key: str
+    name: str
+    blurb: str
+    attack: float = 1.0       # what your blows are worth
+    defense: float = 1.0      # and what theirs are worth against you
+    morale: float = 1.0       # how long your men stand
+    #: What the order wants in the host to be worth anything, and how much
+    #: better it gets when it has it.
+    wants: str = ""
+    bonus: float = 1.0
+    rounds: int = 14
+
+
+ORDERS: Dict[str, Order] = {o.key: o for o in [
+    Order(LINE, "form the line",
+          "Shields together, nobody clever. The order you give when you do "
+          "not know what is in front of you.",
+          attack=1.0, defense=1.0, morale=1.0),
+    Order(FLANK, "send the horse wide",
+          "The horse goes round. It wins the battle or it arrives late and "
+          "you fought the middle without them.",
+          attack=1.06, defense=0.95, morale=1.0, wants=HORSE, bonus=1.08),
+    Order(RESERVE, "keep a third back",
+          "Two ranks fight and one waits. You hit softer and you break much "
+          "later, which is how an outnumbered host lives to be reinforced.",
+          attack=0.95, defense=1.05, morale=1.15, rounds=18),
+    Order(STORM, "straight at them",
+          "Everything forward at once. Short, expensive, and the only order "
+          "that ends a fight before their archers have spent their arrows.",
+          attack=1.08, defense=0.93, morale=0.96, rounds=8),
+    Order(HOLD, "stand and shoot",
+          "Hold the ground and let them come onto you. Worth most with bows "
+          "in the host and nothing at all without them.",
+          attack=0.96, defense=1.06, morale=1.05, wants=RANGED, bonus=1.08,
+          rounds=18),
+]}
+
+#: Why these numbers are small. The combat model is a knife edge: at even
+#: strength the attacker wins one time in sixty, at ten per cent over he wins
+#: every time, and the whole transition happens inside that band. An order
+#: worth a quarter therefore did not tilt battles, it decided them -- "form
+#: the line" won two per cent of the fights that "send the horse wide" won
+#: ninety-five per cent of. At this size an order is the difference in a
+#: close battle and nothing at all in a rout, which is what an order should
+#: be.
+
+DEFAULT_ORDER = LINE
+
+
+def order(key: str) -> Order:
+    return ORDERS.get(key or DEFAULT_ORDER, ORDERS[DEFAULT_ORDER])
+
+
+def ordered(side: Side, key: str) -> Side:
+    """A side as its order leaves it.
+
+    Returns a *new* Side rather than editing the one passed in: a battle is
+    resolved against copies, and an order that quietly changed the host it
+    was given would leave the survivors permanently braver.
+    """
+    o = order(key)
+    share = side.class_share().get(o.wants, 0.0) if o.wants else 0.0
+    # An order that asks for horse and gets none is worth nothing; one given
+    # to a host of horse is worth all of it.
+    got = 1.0 + (o.bonus - 1.0) * min(1.0, share * 2.0)
+    return Side(units=dict(side.units),
+                attack_mult=side.attack_mult * o.attack * got,
+                defense_mult=side.defense_mult * o.defense,
+                battlement=side.battlement,
+                morale=side.morale * o.morale)
+
+
+def order_note(units: Dict[str, float], key: str) -> str:
+    """What this order is worth to this host, in words."""
+    o = order(key)
+    if not o.wants:
+        return o.blurb
+    share = Side(dict(units)).class_share().get(o.wants, 0.0)
+    if share <= 0.02:
+        return f"{o.blurb} You have no {o.wants} at all."
+    got = 1.0 + (o.bonus - 1.0) * min(1.0, share * 2.0)
+    return f"{o.blurb} With your {o.wants}: worth {got:.2f} of itself."
+
+
 def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
           rng: Optional[random.Random] = None, max_rounds: int = 14,
-          place: str = "the field") -> BattleResult:
-    """Resolve a battle round by round. Walls change everything until they fall."""
+          place: str = "the field", orders: Tuple[str, str] = ("", "")
+          ) -> BattleResult:
+    """Resolve a battle round by round. Walls change everything until they fall.
+
+    `orders` is (attacker, defender) -- how each side was told to fight. An
+    order multiplies dials this function already reads and lengthens or
+    shortens the fight, so a decision made before the battle is visible in
+    its outcome without a second combat model being written.
+    """
     rng = rng or random.Random()
+    if any(orders):
+        att_key, def_key = orders
+        if att_key:
+            attacker = ordered(attacker, att_key)
+            max_rounds = order(att_key).rounds
+        if def_key:
+            defender = ordered(defender, def_key)
     res = BattleResult(winner="stalemate")
     start_att, start_def = attacker.alive(), defender.alive()
     if start_att <= 0:
@@ -505,6 +623,11 @@ class Army:
     #: town: what you know is what you last looked at, and it goes stale while
     #: the other lord goes on marching. Never read for anything the world
     #: itself decides.
+    #: How this host has been told to fight. Read when a battle happens, so
+    #: the decision is made before the fight rather than during it -- which
+    #: is the part of commanding a battle a day-ticked game can honestly
+    #: offer.
+    order: str = LINE
     seen_day: int = -1
     seen_at: str = ""
     seen_size: int = 0

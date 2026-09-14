@@ -3086,7 +3086,8 @@ function drawSkyline(canvas, cultureKey) {
  * who they are, where they are, and whether there is a game to pick back up.
  * These three were console commands, which is fine for somebody who opened a
  * terminal on purpose and no use at all to somebody who did not. */
-let doorman = null, pickedHouse = 'plough', pickedWhere = 'scenario:marchlands';
+let doorman = null, pickedHouse = 'plough', pickedWhere = 'scenario:marchlands',
+    pickedRole = 'lord';
 
 async function openFront(manual) {
   if (!doorman) doorman = await (await fetch('/front')).json();
@@ -3094,6 +3095,7 @@ async function openFront(manual) {
   $('front-resume').hidden = !doorman.saved;
   $('front-close').hidden = !manual;
   buildHouses();
+  buildRoles();
   buildWheres();
   $('front').hidden = false;
 }
@@ -3115,6 +3117,26 @@ function pickHouse(key) {
     b.setAttribute('aria-pressed', b.dataset.house === key ? 'true' : 'false');
   }
   $('house-note').textContent = h ? h.blurb : '';
+}
+
+/* What you are, as against who you are. The same map either way: a merchant
+ * begins with carts and no garrison, a captain with a company and no income. */
+function buildRoles() {
+  $('rolepick').innerHTML = (doorman.roles || []).map(r =>
+    `<button type="button" data-role="${r.key}" aria-pressed="false">` +
+    `${esc(r.name)}</button>`).join('');
+  for (const b of $('rolepick').children) {
+    b.addEventListener('click', () => pickRole(b.dataset.role));
+  }
+  pickRole(pickedRole);
+}
+function pickRole(key) {
+  pickedRole = key;
+  const r = (doorman.roles || []).find(x => x.key === key);
+  for (const b of $('rolepick').children) {
+    b.setAttribute('aria-pressed', b.dataset.role === key ? 'true' : 'false');
+  }
+  $('role-note').textContent = r ? `${r.blurb} — first problem: ${r.problem}` : '';
 }
 
 /* One row, two kinds of thing. A scenario is a written game with an ending;
@@ -3170,7 +3192,8 @@ async function post(route, body) {
 
 $('front-go').addEventListener('click', async () => {
   const [kind, name] = pickedWhere.split(':');
-  const body = { house: pickedHouse, seed: Math.floor(Math.random() * 99999) };
+  const body = { house: pickedHouse, role: pickedRole,
+                 seed: Math.floor(Math.random() * 99999) };
   body[kind] = name;
   enter(await post('/new', body));
 });

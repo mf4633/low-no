@@ -11,6 +11,8 @@ from .scenario import drawn_game
 from .scenarios import CAMPAIGN, SCENARIOS, start
 
 
+from .roles import ROLES
+from . import mods, roles
 from .tech import HOUSES
 
 
@@ -33,12 +35,21 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--house", default="plough", choices=sorted(HOUSES),
                     help="the house you were born into; see `tech` in game")
+    ap.add_argument("--role", default="lord", choices=sorted(ROLES),
+                    help="what you are, as against who: a merchant begins "
+                         "with carts and no garrison, a captain with a "
+                         "company and no income")
     ap.add_argument("--region", choices=sorted(carto.REGIONS),
                     help="draw a march on real country instead of the "
                          "hand-made map: " + ", ".join(sorted(carto.REGIONS)))
     ap.add_argument("--dials", metavar="hills=0.8,marsh=0.3",
                     help="turn the country's dials yourself. "
                          + ", ".join(carto.DIAL_NAMES))
+    ap.add_argument("--mods", metavar="FOLDER", default="mods",
+                    help="a folder of .json files that change the tables: "
+                         "buildings, units, goods, houses, techs, lords. "
+                         "Applied before anything starts, and every change "
+                         "and refusal is printed.")
     ap.add_argument("--list", action="store_true",
                     help="describe the scenarios and the houses, then stop")
     ap.add_argument("--autosave", metavar="FILE",
@@ -68,6 +79,13 @@ def main(argv=None) -> int:
     if FROZEN and not args.terminal:
         args.web = True
 
+    # Before anything is built, because a game is made out of these tables.
+    loaded = mods.load(args.mods)
+    if loaded:
+        print(f"  mods from {args.mods}/")
+        for line in mods.report(loaded):
+            print("    " + line)
+
     if args.list:
         print("  THE MARCHER CHRONICLE  (--campaign plays these in order)")
         for i, ch in enumerate(CHAPTERS, 1):
@@ -85,6 +103,11 @@ def main(argv=None) -> int:
             print("     " + ink_free(reg.dials))
         print("\n     --dials turns them yourself, e.g. "
               "--region fens --dials hills=0.4,towns=9")
+        print("\n  ROLES  (--role changes where you start, not which map)")
+        for key, r in ROLES.items():
+            print(f"     {key:<11} {r.name}")
+            print(f"                 {r.blurb}")
+            print(f"                 first problem: {r.problem}")
         print("\n  HOUSES")
         for key, h in HOUSES.items():
             print(f"  {key:<10} {h.name}")
@@ -116,15 +139,19 @@ def main(argv=None) -> int:
                 ap.error(str(exc))
         game = drawn_game(region, seed=args.seed, house=args.house,
                           dials=dials)
+        if args.role != "lord":
+            roles.apply(game, args.role)
     else:
-        game = start(args.scenario, seed=args.seed, house=args.house)
+        game = start(args.scenario, seed=args.seed, house=args.house,
+                     role=args.role)
     if args.web:
         from .web import main as web_main
         # Open on the front door only if nobody has already answered its
         # question. Someone who typed `--scenario iron_marches --house hansa`
         # has chosen; showing them a house picker would be asking twice.
         chose = bool(args.load or args.region or args.dials
-                     or args.scenario != "marchlands" or args.house != "plough")
+                     or args.scenario != "marchlands" or args.house != "plough"
+                     or args.role != "lord")
         return web_main(game, port=args.port, open_browser=not args.no_browser,
                         front=not chose)
     play(game, autosave=args.autosave)

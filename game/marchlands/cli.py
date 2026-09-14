@@ -2359,6 +2359,37 @@ class Console:
         target = args[2] if len(args) > 2 else ""
         self.say("  " + g.post(who, job, target))
 
+    def cmd_order(self, args: List[str]) -> None:
+        """Tell a host how to fight, before it has to."""
+        from .military import ORDERS, order_note
+        g = self.game
+        mine = [a for a in g.armies if a.owner == "player"]
+        if not args:
+            self.say(ink.head("ORDERS", "decided before the fight, not during"))
+            for key, o in ORDERS.items():
+                self.say(f"  {ink.c(ink.pad(key, 9), ink.GOLD)}{o.name}")
+                self.say(f"      {ink.c(o.blurb, ink.DIM)}")
+            if mine:
+                self.say("")
+                for a in mine:
+                    o = ORDERS.get(a.order, ORDERS["line"])
+                    self.say(f"  {ink.c(ink.pad(a.name, 12), ink.PARCH)}"
+                             f"{ink.c(o.name, ink.LEAF)}")
+                    self.say(f"      {ink.c(order_note(a.units, a.order), ink.DIM)}")
+            else:
+                self.say("", ink.c("  you have no host to order", ink.DIM))
+            return self.say("", ink.c("  order <host> <what>", ink.DIM))
+        if len(args) < 2:
+            return self.err("order <host> <what>")
+        try:
+            uid = int(args[0])
+        except ValueError:
+            match = [a for a in mine if args[0].lower() in a.name.lower()]
+            if not match:
+                return self.err(f"no host of yours called {args[0]!r}")
+            uid = match[0].uid
+        self.say("  " + g.order_host(uid, args[1].lower()))
+
     def cmd_missions(self, args: List[str]) -> None:
         """Your house's own path through the game, and what it pays."""
         from . import missions as mi
@@ -2974,6 +3005,7 @@ COMMANDS = {
     "estates": Console.cmd_estates, "privileges": Console.cmd_estates,
     "feats": Console.cmd_feats, "achievements": Console.cmd_feats,
     "missions": Console.cmd_missions, "roll": Console.cmd_missions,
+    "order": Console.cmd_order, "orders": Console.cmd_order,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,
     "standdown": Console.cmd_standdown, "war": Console.cmd_war,
     "battles": Console.cmd_battles, "age": Console.cmd_age,

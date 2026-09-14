@@ -15,6 +15,7 @@ from .engine import Goals, GameState
 from .scenario import (OPENING_STORES, build_shrines, build_sites, build_towns,
                        default_rivals, found_seat, new_game)
 from .tech import HOUSES, Progress
+from . import roles
 from .world import World
 
 
@@ -26,12 +27,21 @@ class Scenario:
     blurb: str = ""
     years: float = 3
 
-    def start(self, seed: int = 7, house: str = "plough") -> GameState:
+    def start(self, seed: int = 7, house: str = "plough",
+              role: str = "lord") -> GameState:
         if house not in HOUSES:
             raise KeyError(f"no house called {house!r}; "
                            f"choose from {', '.join(HOUSES)}")
         g = self.build(seed, house)
         g.scenario = self.key
+        # The role goes on last, over whatever the scenario set up, because
+        # it is a different position in the same world rather than a
+        # different world.
+        if role and role != roles.DEFAULT:
+            if role not in roles.ROLES:
+                raise KeyError(f"no role called {role!r}; "
+                               f"choose from {', '.join(sorted(roles.ROLES))}")
+            roles.apply(g, role)
         return g
 
 
@@ -222,5 +232,6 @@ def scenario(key: str) -> Scenario:
                        f"choose from {', '.join(SCENARIOS)}") from None
 
 
-def start(key: str = "marchlands", seed: int = 7, house: str = "plough") -> GameState:
-    return scenario(key).start(seed=seed, house=house)
+def start(key: str = "marchlands", seed: int = 7, house: str = "plough",
+          role: str = "lord") -> GameState:
+    return scenario(key).start(seed=seed, house=house, role=role)
