@@ -34,6 +34,8 @@ import re
 import threading
 from typing import Dict, List, Optional, Tuple
 
+from .events import FLAVOUR
+
 #: Real seconds per game day at each speed. Speed 0 is paused. These are the
 #: numbers that decide whether the game feels like a map or a spreadsheet:
 #: slow enough at 1 that a day is a beat you can think in, fast enough at 3
@@ -41,33 +43,83 @@ from typing import Dict, List, Optional, Tuple
 PACE: Dict[int, float] = {1: 2.2, 2: 1.0, 3: 0.4}
 SPEEDS: Tuple[int, ...] = (0, 1, 2, 3)
 
+#: How many recent lines to check a new one against before deciding it is
+#: the same complaint again. Long enough to catch a daily repeat, short
+#: enough that a thing which stops and starts is reported twice.
+ECHO = 14
+
+_DIGITS = re.compile(r"[\d.,]+")
+
+
+def _shape(line: str) -> str:
+    """A line with its numbers taken out, which is what makes two days of
+    the same standing complaint the same line."""
+    return _DIGITS.sub("#", line.strip())
+
+
 #: How many days of messages to keep. A player who leaves the tab and comes
 #: back gets the recent past, not the whole chronicle -- `chronicle` is for
 #: the whole chronicle.
 KEEP = 400
 
-#: What stops the clock. Deliberately about things that need a decision or
-#: that you would be upset to read about afterwards, not about everything
-#: notable -- a clock that stops at every harvest is a clock nobody leaves
-#: running, and then the game is turn-based again with extra steps.
-ALARMS = (
-    (re.compile(r"\bbesieg", re.I), "a host has sat down before your walls"),
-    (re.compile(r"\bstorms? the|\bassault", re.I), "the wall is being stormed"),
-    (re.compile(r"\bdeclares war|\bdeclared war", re.I), "war has been declared"),
-    (re.compile(r"\bhas fallen|\bis taken|\brevolts?\b", re.I), "a town has changed hands"),
-    (re.compile(r"\bstarv|\bfamine", re.I), "people are starving"),
-    (re.compile(r"\bfire\b|\bburn(s|ing)\b", re.I), "something is burning"),
-    (re.compile(r"\braid(s|ing|ed)\b", re.I), "the country is being raided"),
-    (re.compile(r"\*\*\*", re.I), "something worth stopping for"),
-)
+#: What stops the clock -- read off the game rather than out of its prose.
+#:
+#: This began as a list of patterns matched against the day's messages, and
+#: playing it for five minutes showed why that cannot work. `***` marks
+#: *momentous* in this codebase, not *dangerous*, so the clock halted on day
+#: one of every game for "the season opens", and on every feat earned and
+#: every age begun: twenty-three stops in twelve hundred days, none of them
+#: an emergency. Worse, a rule for fire matched "Vantry is rebuilding after
+#: fire" -- a trade opportunity in somebody else's town -- sixteen more times.
+#:
+#: A fact about your own holdings is not open to that kind of mistake. Each
+#: of these reads the state directly and returns the words for it, and the
+#: clock stops on the *rising edge*: the day a thing becomes true, not every
+#: day it goes on being true. A siege that stopped the clock once is a
+#: warning; a siege that stops it every morning is a reason to stop using
+#: the clock.
+def watch(game) -> Dict[str, str]:
+    """The handful of facts worth interrupting a player for.
 
-
-def alarming(line: str) -> str:
-    """Why this line should stop the clock, or "" if it should not."""
-    for pattern, why in ALARMS:
-        if pattern.search(line):
-            return why
-    return ""
+    Never raises. This runs inside the clock's own thread, where an
+    exception is not an error message, it is time silently stopping.
+    """
+    out: Dict[str, str] = {}
+    world = getattr(game, "world", None)
+    if world is None:
+        # Not every caller has a world -- the clock's own tests drive it with
+        # a game that only knows how to have a day happen, and an exception
+        # raised in here would kill the thread rather than the request.
+        return out
+    for s in world.settlements.values():
+        name = s.name
+        if getattr(s, "besieged", False):
+            out[f"siege:{name}"] = f"{name} is besieged"
+        if getattr(s, "raided", False):
+            out[f"raid:{name}"] = f"the country around {name} is being raided"
+        if getattr(s, "blockaded", False):
+            out[f"blockade:{name}"] = f"{name} is blockaded"
+        if getattr(getattr(s, "fires", None), "blazes", None):
+            out[f"fire:{name}"] = f"fire in {name}"
+        if getattr(s.report, "hunger", 0.0) > 0.01:
+            out[f"hunger:{name}"] = f"{name} is going hungry"
+        if getattr(s.report, "unpaid", None):
+            out[f"unpaid:{name}"] = f"{name} has not been paid"
+        if s.popularity < 25.0:
+            out[f"unrest:{name}"] = f"{name} is close to revolt"
+    court = getattr(game, "court", None)
+    if court is not None:
+        for key in getattr(court, "declared", {}):
+            out[f"war:{key}"] = f"{game.world.node_name(key)} has declared war"
+        if len(getattr(court, "coalition", ())) >= 3:
+            out["coalition"] = (f"{len(court.coalition)} lords have signed the "
+                                f"letter against you")
+        if getattr(court, "called", None):
+            out["called"] = "an ally has called you to a war"
+    for key, t in getattr(world, "towns", {}).items():
+        if t.mine:
+            out[f"held:{key}"] = f"{t.name} is yours"
+    return out
 
 
 class Clock:
@@ -81,6 +133,14 @@ class Clock:
         self.said: List[Tuple[int, str]] = []
         self.stopped_for = ""                 # why it paused itself, if it did
         self.stopped_at = ""                  # and the line that did it
+        #: What was true of the march yesterday, so that only a *change* can
+        #: stop the clock. Filled on the first step rather than at
+        #: construction, because a game that opens besieged should not be
+        #: interrupted to be told so.
+        self._was: Optional[Dict[str, str]] = None
+        #: The shape of the last few lines, so a standing complaint is said
+        #: once rather than every morning.
+        self._recent: List[str] = []
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
@@ -105,10 +165,31 @@ class Clock:
         return [line for n, line in self.said if n > seq]
 
     def _remember(self, text: str) -> None:
+        """Keep a day's news. Not a day's weather.
+
+        Somebody else's cart on somebody else's road was one line in a day
+        you asked for. Time runs on its own now, and seven of them a day
+        buried the news in a log nobody could read -- so the lines the world
+        marks as flavour do not go into the stream the browser reads. They
+        are still said in the terminal, where a day is something you asked
+        for and the chatter is the point.
+        """
         for line in str(text).splitlines():
-            if line.strip():
-                self.seq += 1
-                self.said.append((self.seq, line))
+            if not line.strip() or line.startswith(FLAVOUR):
+                continue
+            # And not the same complaint again. A town whose stores are
+            # overflowing says so every single day, with a different number
+            # each time -- six lines of "stores overflowing, 75 / 70 / 65 /
+            # 60 units past capacity" in one screenful, which is a standing
+            # condition rather than news. A log that runs on its own has to
+            # show what changed.
+            shape = _shape(line)
+            if shape in self._recent:
+                continue
+            self._recent.append(shape)
+            del self._recent[:-ECHO]
+            self.seq += 1
+            self.said.append((self.seq, line))
         del self.said[:-KEEP]
 
     # ------------------------------------------------------------ the thread
@@ -152,17 +233,32 @@ class Clock:
             over = bool(getattr(game, "over", False))
         for line in said:
             self._remember(line)
-        # Keep the line, not only the category. "a host has sat down before
-        # your walls" tells you what kind of thing happened; "Dunmere besieges
-        # Aldworth" tells you what happened, and that is what a player wants
-        # on the screen.
-        hit = next(((l, alarming(l)) for l in said if alarming(l)), None)
+        try:
+            now = watch(game)
+        except Exception:               # time must not stop because a
+            now = self._was or {}       # readout did
+
+        fresh = [] if self._was is None else [
+            (key, words) for key, words in now.items() if key not in self._was]
+        self._was = now
         if over:
             self.speed, self.stopped_for = 0, "the game is over"
             self.stopped_at = ""
-        elif hit:
-            line, why = hit
+        elif fresh:
+            key, words = fresh[0]
             self.speed = 0
-            self.stopped_for = why
-            self.stopped_at = line.strip()
-            self._remember(f"*** the clock stops: {why} ***")
+            self.stopped_for = words
+            # And the day's own words for it, if the day said anything about
+            # that place. Matched on the name, which is distinctive, and not
+            # on the first words of the reason -- the reason begins "Aldworth
+            # is besieged", and matching its second word meant `is`, which
+            # appears in almost every line the game prints. The banner duly
+            # announced that time had stopped because the Vellani House was
+            # running bread to Caer Ithel.
+            where = key.split(":", 1)[-1] if ":" in key else ""
+            self.stopped_at = next(
+                (l.strip() for l in said
+                 if where and where in l and not l.startswith(FLAVOUR)),
+                "")
+            self._remember(
+                f"*** the clock stops: {'; '.join(w for _k, w in fresh[:3])} ***")

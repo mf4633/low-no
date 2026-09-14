@@ -464,5 +464,52 @@ class TestTheConsoleSaysIt(unittest.TestCase):
             self.assertIn("margin", " ".join(self.con.hints()))
 
 
+class TestTheInflationReadoutIsNotInvented(unittest.TestCase):
+    """Found by playing it. Day seven of a fresh campaign reported prices up
+    two hundred and seventy-six billion per cent a year -- arithmetic and
+    nonsense together, because annualising a three-day wobble raises it to
+    the hundred-and-twentieth power."""
+
+    def figures(self, days):
+        from marchlands.scenarios import start
+        g = start("marchlands", seed=11)
+        g.advance(days)
+        return g.accounts
+
+    def test_a_short_run_is_never_extrapolated_to_a_year(self):
+        for days in (3, 7, 20, 60, 120, 200):
+            a = self.figures(days)
+            self.assertLess(abs(a.inflation), 2000.0,
+                            f"day {days} reported {a.inflation:,.0f}%")
+
+    def test_a_short_run_says_it_is_a_short_run(self):
+        self.assertFalse(self.figures(20).yearly)
+
+    def test_and_a_long_one_says_it_is_a_year(self):
+        a = self.figures(int(C.DAYS_PER_YEAR) + 40)
+        self.assertTrue(a.yearly)
+
+    def test_the_words_follow_the_figure(self):
+        # "a year" printed over a figure that is not a yearly rate was the
+        # readable half of the bug.
+        import re
+        from io import StringIO
+        from marchlands.cli import Console
+        from marchlands.scenarios import start
+        for days, want in ((20, "since you began"), (400, "a year")):
+            c = Console(start("marchlands", seed=11), out=StringIO())
+            c.do(f"next {days}")
+            said = re.sub(r"\x1b\[[0-9;]*m", "", c.out.getvalue())
+            line = [l for l in said.splitlines() if "prices" in l]
+            if line:
+                self.assertIn(want, line[0], f"day {days}: {line[0].strip()}")
+
+    def test_it_is_still_a_real_measurement(self):
+        # Not silenced: a run that is genuinely getting dearer still says so.
+        early = self.figures(20).inflation
+        later = self.figures(200).inflation
+        self.assertGreater(later, early)
+
+
 if __name__ == "__main__":
     unittest.main()

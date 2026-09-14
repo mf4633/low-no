@@ -90,6 +90,11 @@ class Accounts:
     day: int = 0
     cpi: float = 100.0            # index, base = the first day of the game
     inflation: float = 0.0        # per cent a year, from the last 360 days
+    #: False while the run is shorter than a year, when `inflation` is the
+    #: plain change since the first day instead. The two want different
+    #: words on the screen, and printing "a year" over the second one was
+    #: the readable half of a bug whose other half printed 276 billion.
+    yearly: bool = False
     nominal: float = 0.0          # value of what was produced today
     real: float = 0.0             # ...the same, in first-day prices
     money: float = MONEY_BASE     # coin in circulation
@@ -166,17 +171,34 @@ class Economy:
         # Annualised, because a velocity per day is a number nobody holds.
         acc.velocity = nominal * C.DAYS_PER_YEAR / max(self.money, 1.0)
         acc.inflation = self.inflation_rate(cpi)
+        acc.yearly = len(self.series) > C.DAYS_PER_YEAR
         self.series.append(acc.to_dict())
         if len(self.series) > 2000:
             del self.series[:-2000]
         return acc
 
     def inflation_rate(self, cpi: float) -> float:
-        """Year on year, per cent. Falls back to the longest run there is."""
+        """How much dearer things have got, per cent.
+
+        Year on year once there is a year to compare, and the plain change
+        over the whole run before that -- *not* that change annualised.
+
+        Annualising a short span is arithmetic and nonsense together: it
+        raises a three-day wobble to the hundred-and-twentieth power, and
+        this game spent the opening fortnight of every campaign reporting
+        prices up two hundred and seventy-six billion per cent a year. Even
+        at ninety days it claimed forty-three thousand. The early economy is
+        settling, and extrapolating a settling economy to a year is inventing
+        a figure. "Prices are up nine per cent since you started" is a true
+        sentence; the other one never was.
+        """
         if not self.series:
             return 0.0
         want = C.DAYS_PER_YEAR
-        then = self.series[-want] if len(self.series) > want else self.series[0]
+        old = max(self.series[0]["cpi"], 1e-9)
+        if len(self.series) <= want:
+            return 100.0 * (cpi / old - 1.0)
+        then = self.series[-want]
         span = max(1, self.series[-1]["day"] - then["day"] + 1)
         old = max(then["cpi"], 1e-9)
         return 100.0 * ((cpi / old) ** (C.DAYS_PER_YEAR / span) - 1.0)

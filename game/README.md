@@ -581,6 +581,58 @@ sound like an emergency and put the actual words on the screen.
 The terminal game is still turn-based, and honestly so: `next` is the right
 verb where there is nothing to watch.
 
+##### What playing it for ten minutes found
+
+Three things, and all three were mine.
+
+**The clock stopped on day one of every game.** The halt rules matched the
+day's *prose*, and `***` marks *momentous* in this codebase rather than
+*dangerous* — so "The 1247 season opens" stopped time, and so did every feat
+earned and every age begun. Twenty-three halts in twelve hundred days, not one
+of them an emergency. A rule for fire matched "Vantry is rebuilding after
+fire" — a trade opportunity in somebody else's town — sixteen times more.
+
+It reads the state now: your settlements besieged, blockaded, burning, hungry
+or near revolt; wars declared; a coalition signed. And it stops on the
+*rising edge* — the day a thing becomes true, not every morning it goes on
+being true, because a siege that stops the clock once is a warning and a siege
+that stops it daily is a reason to stop using the clock. Same three seeds,
+same twelve hundred days: 23 halts, every one of them something you would
+want to be told.
+
+**The log became a firehose.** Other lords' caravans announce themselves —
+fine as one line in a day you asked for, seven a day with time running. Thirty
+days of play buried three pieces of news under sixty lines of somebody else's
+trade. The world now marks its own chatter and the browser's stream leaves it
+out; the engine still produces it, because it is what makes a foreign market
+feel like somewhere other people trade.
+
+**And a standing complaint was reported every morning.** A town whose stores
+are overflowing says so daily with a different number: six lines of "stores
+overflowing, 75 / 70 / 65 / 60 units past capacity" in one screenful. That is
+a condition, not news. The stream now compares a line against the last
+fourteen with its numbers taken out, so a complaint is said once and a thing
+that stops and starts is said again.
+
+**And the panels I had been adding pushed the town off the screen.** The roll,
+the feats and the estates had stacked above *souls, mood, hands* — the three
+numbers you look at constantly sat below three panels you look at
+occasionally. They are below it now.
+
+A fourth thing turned up in the corner of a screenshot: the accounts reported
+**prices up 276,321,398,138% a year** on day seven. Annualising a three-day
+wobble raises it to the hundred-and-twentieth power. It reports the plain
+change since you began until there is a year to compare, and says which of
+the two it is — printing "a year" over a figure that was not a yearly rate was
+the readable half of the same bug.
+
+A fifth, found on the replay: the halt banner announced that time had stopped
+because *"the Vellani House is running Bread from Bruille to Caer Ithel"*. It
+was looking for the day's own words for the halt by matching the first two
+words of the reason — and the second word of "Aldworth is besieged" is `is`,
+which appears in nearly every line the game prints. It matches on the place
+name now, and an empty quote is a fine answer where a wrong one was not.
+
 #### The counters, said out loud
 
 Spearmen have been worth two and a half of themselves against horse since the

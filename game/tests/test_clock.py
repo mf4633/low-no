@@ -19,7 +19,7 @@ import unittest
 import urllib.request
 from io import StringIO
 
-from marchlands.clock import ALARMS, Clock, PACE, alarming
+from marchlands.clock import Clock, PACE, watch
 
 
 class FakeGame:
@@ -54,45 +54,103 @@ def clock(lines=None, over_after=None):
 
 
 class TestWhatStopsTheClock(unittest.TestCase):
-    """A clock that runs while your castle burns is not exciting, it is
-    unreadable. A clock that stops at every harvest is one nobody leaves
-    running, and then the game is turn-based again with extra steps."""
+    """A clock that runs while your castle burns is unreadable. A clock that
+    stops at every harvest is one nobody leaves running, and then the game is
+    turn-based again with extra steps.
 
-    def test_it_stops_for_the_things_you_would_want_to_be_told(self):
-        for line in ("Dunmere besieges Aldworth",
-                     "Caldmoor declares war on you",
-                     "Aldworth has fallen",
-                     "the people are starving",
-                     "fire in the granary",
-                     "*** The Age of Faith begins ***"):
-            self.assertTrue(alarming(line), line)
+    This began as patterns matched against the day's messages, and five
+    minutes of playing it showed why that cannot work: `***` marks
+    *momentous* in this codebase rather than *dangerous*, so the clock halted
+    on day one of every game for "the season opens" -- twenty-three stops in
+    twelve hundred days, not one of them an emergency -- and a rule for fire
+    matched "Vantry is rebuilding after fire", a trade opportunity in
+    somebody else's town, sixteen times more. It reads the state now.
+    """
 
-    def test_it_does_not_stop_for_the_weather(self):
-        for line in ("Old Mare at Bruille: +56c",
-                     "the Ostmark Guild is running Weapons from Bruille to Vantry",
-                     "Aldworth: stores overflowing, 277 units past capacity",
-                     "Aldworth: Iron Mine finished"):
-            self.assertFalse(alarming(line), line)
+    def march(self, seed=11, days=0):
+        from marchlands.scenarios import start
+        g = start("marchlands", seed=seed)
+        if days:
+            g.advance(days)
+        return g
 
-    def test_every_alarm_says_why_in_words_a_player_reads(self):
-        for _pattern, why in ALARMS:
-            self.assertTrue(why and why[0].islower(), why)
+    def test_a_quiet_march_is_worth_nothing_to_stop_for(self):
+        g = self.march()
+        for words in watch(g).values():
+            self.assertNotIn("season", words.lower())
+            self.assertNotIn("age", words.lower())
 
-    def test_a_day_with_an_alarm_in_it_stops_the_clock(self):
-        c, _console = clock(["a quiet morning", "Dunmere besieges Aldworth"])
+    def test_a_siege_is(self):
+        g = self.march()
+        next(iter(g.world.settlements.values())).besieged = True
+        self.assertTrue(any("besieged" in w for w in watch(g).values()))
+
+    def test_so_is_hunger_and_so_is_a_town_near_revolt(self):
+        g = self.march()
+        s = next(iter(g.world.settlements.values()))
+        s.report.hunger = 0.5
+        s.popularity = 10.0
+        said = " ".join(watch(g).values())
+        self.assertIn("hungry", said)
+        self.assertIn("revolt", said)
+
+    def test_it_stops_on_the_day_a_thing_becomes_true_and_not_after(self):
+        # A siege that stops the clock once is a warning. A siege that stops
+        # it every morning is a reason to stop using the clock.
+        c, console = clock(["a quiet day"])
+        seat = type("S", (), {})()
         c.speed = 3
-        c.step()
-        self.assertEqual(c.speed, 0)
-        self.assertIn("besieg", c.stopped_for.lower() + "besieg")
-        self.assertTrue(c.stopped_for)
-        self.assertTrue(any("the clock stops" in l for _n, l in c.said))
+        c.step()                         # first step only learns the world
+        stops = []
 
-    def test_a_quiet_day_leaves_it_running(self):
-        c, _console = clock(["Old Mare at Bruille: +56c"])
+        def pretend(_game, state={"n": 0}):
+            state["n"] += 1
+            return {"siege:Aldworth": "Aldworth is besieged"} if state["n"] > 1 else {}
+
+        import marchlands.clock as clockmod
+        was = clockmod.watch
+        clockmod.watch = pretend
+        try:
+            c.speed = 3
+            c.step()                     # nothing yet
+            stops.append(c.speed)
+            c.speed = 3
+            c.step()                     # the siege begins: stop
+            stops.append(c.speed)
+            c.speed = 3
+            c.step()                     # still besieged: do not stop again
+            stops.append(c.speed)
+        finally:
+            clockmod.watch = was
+        self.assertEqual(stops, [3, 0, 3], "it stopped for the same siege twice")
+
+    def test_a_game_that_opens_besieged_is_not_interrupted_to_be_told_so(self):
+        c, console = clock(["a day"])
+        self.assertIsNone(c._was)
         c.speed = 2
         c.step()
-        self.assertEqual(c.speed, 2)
-        self.assertEqual(c.stopped_for, "")
+        self.assertEqual(c.speed, 2, "the first step should only look")
+
+    def test_a_real_siege_stops_a_running_clock(self):
+        # Driven through the engine rather than by setting the flag: the day
+        # clears `besieged` at the top of the tick and sets it again from the
+        # armies standing outside, so a flag poked in from a test is gone
+        # before `watch` ever sees it.
+        from marchlands.military import Army, BESIEGING
+        g = self.march()
+        console = FakeConsole(g)
+        c = Clock(console, threading.Lock())
+        c.speed = 3
+        c.step()                                   # learn the quiet world
+        seat = next(iter(g.world.settlements))
+        foe = next(k for k, t in g.world.towns.items() if not t.mine)
+        g.armies.append(Army(uid=9001, name="host", owner=foe, at=seat,
+                             state=BESIEGING, home=foe,
+                             units={"spearman": 40, "ram": 1}))
+        c.speed = 3
+        c.step()
+        self.assertEqual(c.speed, 0, "a host at the gate did not stop time")
+        self.assertIn("besieged", c.stopped_for)
 
     def test_the_end_of_the_game_stops_it(self):
         c, console = clock(["a quiet day"], over_after=1)
@@ -100,7 +158,7 @@ class TestWhatStopsTheClock(unittest.TestCase):
         c.step()
         self.assertEqual(c.speed, 0)
         self.assertEqual(c.stopped_for, "the game is over")
-        c.step()                                  # and it stays stopped
+        c.step()
         self.assertEqual(console.game.day, 1, "a finished game went on running")
 
 
@@ -109,17 +167,22 @@ class TestNoDayIsLost(unittest.TestCase):
     be given three days, not the last one with the other two dropped."""
 
     def test_what_was_said_is_handed_out_from_where_you_had_got_to(self):
-        c, _console = clock(["day happened"])
-        for _ in range(3):
+        # Distinct lines: a day that says the same thing as yesterday is
+        # collapsed on purpose, and this test is about the cursor.
+        c, console = clock(["day happened"])
+        for n in range(3):
+            console.game.lines = [["a birth", "a fire", "a wedding"][n]]
             c.step()
         self.assertEqual(len(c.since(0)), 3)
         self.assertEqual(len(c.since(1)), 2)
         self.assertEqual(c.since(c.seq), [])
 
     def test_the_sequence_only_ever_goes_up(self):
-        c, _console = clock(["one", "two"])
+        c, console = clock(["one", "two"])
         seen = []
-        for _ in range(4):
+        for n in range(4):
+            console.game.lines = ["abcd"[n] + " happened",
+                                  "wxyz"[n] + " happened too"]
             c.step()
             seen.append(c.seq)
         self.assertEqual(seen, sorted(seen))
@@ -234,28 +297,130 @@ class TestTheDialOverHttp(unittest.TestCase):
         self.assertEqual(self.get(f"/state?since={out['clock']['seq']}")["said"], [])
 
 
+
+
+class TestTheLogIsNewsAndNotWeather(unittest.TestCase):
+    """Found by playing it. Somebody else's cart on somebody else's road was
+    one line in a day you asked for; with time running on its own it is seven
+    a day, and thirty days of play buried three pieces of news under sixty of
+    other people's trade."""
+
+    def test_the_world_marks_its_own_chatter(self):
+        from marchlands.events import FLAVOUR
+        from marchlands.scenarios import start
+        g = start("marchlands", seed=11)
+        said = g.advance(8)
+        marked = [l for l in said if l.startswith(FLAVOUR)]
+        self.assertTrue(marked, "no chatter to filter; the test is not testing")
+        for line in marked:
+            self.assertIn("is running", line)
+
+    def test_the_browser_stream_leaves_it_out(self):
+        from marchlands.scenarios import start
+        console = FakeConsole(start("marchlands", seed=11))
+        c = Clock(console, threading.Lock())
+        for _ in range(12):
+            c.step()
+        for line in c.since(0):
+            self.assertNotIn("is running", line)
+
+    def test_and_the_news_is_still_there(self):
+        from marchlands.scenarios import start
+        console = FakeConsole(start("marchlands", seed=11))
+        c = Clock(console, threading.Lock())
+        for _ in range(12):
+            c.step()
+        self.assertTrue(c.since(0), "the stream was filtered down to nothing")
+
+    def test_a_standing_complaint_is_said_once(self):
+        # A town whose stores are overflowing says so every single day with a
+        # different number: six lines of "stores overflowing, 75 / 70 / 65 /
+        # 60 units past capacity" in one screenful. That is a condition, not
+        # news, and a log that runs on its own has to show what changed.
+        c, _console = clock(["Greyfell: stores overflowing, 75 units past capacity"])
+        for n in (70, 65, 60, 54):
+            c.console.game.lines = [
+                f"Greyfell: stores overflowing, {n} units past capacity"]
+            c.step()
+        c.step()
+        self.assertEqual(len(c.since(0)), 1, c.since(0))
+
+    def test_but_two_different_complaints_are_two_lines(self):
+        c, _console = clock(["Greyfell: stores overflowing, 75 units past capacity"])
+        c.step()
+        c.console.game.lines = ["Greyfell: the granary is empty"]
+        c.step()
+        self.assertEqual(len(c.since(0)), 2)
+
+    def test_the_engine_still_produces_it(self):
+        # Filtered out of the browser's stream, not out of the game: the
+        # chatter is what makes a foreign market feel like somewhere other
+        # people trade, and `log` still has it.
+        from marchlands.events import FLAVOUR
+        from marchlands.scenarios import start
+        g = start("marchlands", seed=11)
+        said = g.advance(8)
+        self.assertTrue(any("is running" in l for l in said))
+        self.assertTrue(all(l.startswith(FLAVOUR)
+                            for l in said if "is running" in l),
+                        "chatter reached the day unmarked")
+
+
+
 if __name__ == "__main__":
     unittest.main()
 
 
 class TestTheAlarmSaysWhatHappened(unittest.TestCase):
-    """Naming the category is not the same as naming the event. "a host has
-    sat down before your walls" tells you what kind of thing happened;
-    "Dunmere besieges Aldworth" tells you what happened."""
+    """Naming the category is not the same as naming the event. These used to
+    drive a fake game whose messages contained the words to match; the clock
+    reads the state now, so they drive a real one."""
 
-    def test_it_keeps_the_line_that_stopped_it(self):
-        c, _console = clock(["a quiet morning", "Dunmere besieges Aldworth"])
+    def besieged(self):
+        from marchlands.military import Army, BESIEGING
+        from marchlands.scenarios import start
+        g = start("marchlands", seed=11)
+        console = FakeConsole(g)
+        c = Clock(console, threading.Lock())
+        c.speed = 3
+        c.step()                                  # learn the quiet world
+        seat = next(iter(g.world.settlements))
+        foe = next(k for k, t in g.world.towns.items() if not t.mine)
+        g.armies.append(Army(uid=9002, name="host", owner=foe, at=seat,
+                             state=BESIEGING, home=foe,
+                             units={"spearman": 40, "ram": 1}))
         c.speed = 3
         c.step()
-        self.assertEqual(c.stopped_at, "Dunmere besieges Aldworth")
-        self.assertTrue(c.stopped_for)
-        self.assertNotEqual(c.stopped_at, c.stopped_for)
+        return c, g
+
+    def test_it_names_the_place_rather_than_the_kind_of_thing(self):
+        c, g = self.besieged()
+        seat = next(iter(g.world.settlements.values()))
+        self.assertIn(seat.name, c.stopped_for)
+        self.assertIn("besieged", c.stopped_for)
+
+    def test_it_quotes_the_day_only_when_the_day_named_that_place(self):
+        # It used to match the reason's first two words against the day's
+        # lines, and the second word of "Aldworth is besieged" is `is`, which
+        # appears in almost everything the game prints -- so the banner
+        # announced that time had stopped because the Vellani House was
+        # running bread to Caer Ithel. Empty is a fine answer; wrong is not.
+        from marchlands.events import FLAVOUR
+        c, g = self.besieged()
+        seat = next(iter(g.world.settlements.values()))
+        if c.stopped_at:
+            self.assertIn(seat.name, c.stopped_at)
+            self.assertFalse(c.stopped_at.startswith(FLAVOUR))
+        self.assertTrue(c.stopped_for, "the reason itself is never empty")
+
+    def test_the_reason_is_a_sentence_and_not_a_category(self):
+        c, g = self.besieged()
+        seat = next(iter(g.world.settlements.values()))
+        self.assertIn(seat.name, c.stopped_for)
 
     def test_starting_the_clock_again_clears_both(self):
-        c, _console = clock(["fire in the granary"])
-        c.speed = 1
-        c.step()
-        self.assertTrue(c.stopped_at)
+        c, _g = self.besieged()
+        self.assertTrue(c.stopped_for)
         c.set_speed(1)
         try:
             self.assertEqual(c.stopped_at, "")
@@ -271,10 +436,12 @@ class TestTheAlarmSaysWhatHappened(unittest.TestCase):
         self.assertEqual(c.stopped_at, "")
 
     def test_the_state_carries_both(self):
-        c, _console = clock(["Caldmoor declares war on you"])
-        c.speed = 2
-        c.step()
+        c, _g = self.besieged()
         st = c.state()
         self.assertIn("stopped_for", st)
         self.assertIn("stopped_at", st)
-        self.assertIn("declares war", st["stopped_at"])
+        self.assertIn("besieged", st["stopped_for"])
+
+
+if __name__ == "__main__":
+    unittest.main()

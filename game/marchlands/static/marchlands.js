@@ -3426,8 +3426,10 @@ function applyClock(c) {
     // The line, not the category. "a host has sat down before your walls"
     // says what kind of thing happened; "Dunmere besieges Aldworth" says what
     // happened, which is what you actually wanted to be told.
-    halt.textContent = c.stopped_at || c.stopped_for;
-    halt.title = c.stopped_for;
+    // The reason is the plain sentence the state gives -- "Aldworth is
+    // besieged". The day's own line goes underneath it when there is one.
+    halt.textContent = c.stopped_for;
+    halt.title = c.stopped_at || c.stopped_for;
     if (!wasHalted) Sound.mark('alarm');
     halt.hidden = false;
   } else {

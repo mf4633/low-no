@@ -144,7 +144,8 @@ class Console:
         a = g.accounts
         notes = []
         if abs(a.inflation) >= 4.0:
-            notes.append(ink.c(f"prices {a.inflation:+.0f}% a year",
+            notes.append(ink.c(f"prices {a.inflation:+.0f}% "
+                               + ("a year" if a.yearly else "since you began"),
                                ink.BLOOD if a.inflation > 0 else ink.SEA))
         if a.unemployment >= 25.0:
             notes.append(ink.c(f"{a.unemployment:.0f}% of hands idle", ink.AMBER))
@@ -849,7 +850,8 @@ class Console:
                 break
         a = g.accounts
         if a.inflation > 12 and g.economy.minted > 0:
-            out.append((64.0, f"Prices are running {a.inflation:.0f}% a year "
+            span = "a year" if a.yearly else "since you began"
+            out.append((64.0, f"Prices are running {a.inflation:.0f}% {span} "
                         f"and you have struck {g.economy.minted:,.0f}c. That is "
                         f"the same sentence twice. `economy`."))
         if a.unemployment > 35 and g.day > 200:

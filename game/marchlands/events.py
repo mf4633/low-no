@@ -16,6 +16,11 @@ from . import config as C
 from .goods import ALL_KEYS, good
 from .world import Shock, World
 
+#: Prefixed to a line that is the world talking rather than news of yours.
+#: One invisible character, so that nothing printing the line has to know
+#: about it and anything filtering the stream can.
+FLAVOUR = "\u200a"
+
 
 @dataclass
 class RivalCompany:
@@ -51,8 +56,12 @@ class RivalCompany:
             return None
         dear.market.sell_to(k, fill.quantity)
         if rel > 0.45:
-            return (f"{self.name} is running {good(k).name} from {cheap.name} "
-                    f"to {dear.name}")
+            # Marked as flavour. It is somebody else's cart on somebody
+            # else's road, and it was fine as one line in a day you asked
+            # for -- but time runs on its own now, and seven of these a day
+            # buried the news in a log nobody could read.
+            return (FLAVOUR + f"{self.name} is running {good(k).name} from "
+                    f"{cheap.name} to {dear.name}")
         return None
 
 
