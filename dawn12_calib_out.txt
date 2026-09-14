@@ -1,0 +1,18 @@
+calibrated on 413 pre-dawn city-days over 16 days, 23 cities
+  per-forecaster bias (forecast minus settle):
+    nbm_guide   -0.65
+    nws_grid    +0.52
+    om_gfs      -0.35
+    om_icon     -1.10
+    om_metno    -1.31
+  ensemble residual sd 2.07
+
+  configuration             MAE     sd    <=2F
+  FROZEN_ens4b            1.503  2.078   75.5%
+  ens4_nws                1.651  2.255   71.4%
+  ens5_both               1.598  2.208   72.6%
+  single_nbm              1.890  2.602   64.2%
+
+  wrote docs/dawn12_calib.json
+  NOTE: these are leave-one-day-out over the SAME 16 days the member
+        set was chosen on. The forward number comes from --score.
