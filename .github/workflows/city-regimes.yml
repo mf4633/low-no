@@ -1,0 +1,76 @@
+name: city regimes (all Kalshi cities)
+# Builds city_regimes.json and the 1-minute settlement record. Runs on the
+# development branch only -- it must never push to main, and it must never
+# touch lax_regimes.json, which is H15's frozen input.
+#
+# Pushes made with GITHUB_TOKEN do not trigger workflows, so the commit this
+# job makes cannot re-trigger this job. That is the only thing standing between
+# "commit the results" and an infinite loop; do not swap in a PAT without
+# adding an explicit guard.
+on:
+  push:
+    branches: [claude/kalshi-cities-improve-jzh9z4]
+    paths:
+      - city_regime.py
+      - city_forecast.py
+      - hf1min.py
+      - .github/workflows/city-regimes.yml
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  # Its own group. Sharing lowno-scan would let this evict a pending scan, and
+  # the scan is what feeds every registered hypothesis.
+  group: city-regimes
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: claude/kalshi-cities-improve-jzh9z4 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: build regimes for every city
+        run: python city_regime.py 2>&1 | tee city_regimes_out.txt
+
+      - name: regime-conditioned cells
+        run: python city_forecast.py 2>&1 | tee city_forecast_out.txt
+
+      - name: 1-minute settlement record
+        # Never fails the job: the regime build is the deliverable and the
+        # 1-minute harvest is additive. A partial harvest is still committed --
+        # every city-day recorded is one the 7-day CLI window can no longer
+        # take away.
+        continue-on-error: true
+        run: python hf1min.py --since 2026-08-06 2>&1 | tee hf1min_out.txt
+
+      - name: commit results
+        if: always()
+        # GitHub runs `run:` under `bash -e`, so a bare `cmd && cmd` that
+        # short-circuits false KILLS THE STEP. Both guards below are written as
+        # `if` blocks for that reason -- the natural `&&`/`||` spellings here
+        # would abort exactly when there was something to commit.
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          for f in city_regimes.json docs/city_regimes_summary.json \
+                   docs/settlements_1min.json city_regimes_out.txt \
+                   city_forecast_out.txt hf1min_out.txt; do
+            if [ -e "$f" ]; then git add -- "$f"; fi
+          done
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "city regimes: fit all Kalshi cities + 1-minute record"
+          for i in 1 2 3 4; do
+            if git pull --rebase --autostash origin "$BRANCH" && \
+               git push origin "HEAD:$BRANCH"; then
+              exit 0
+            fi
+            sleep $((2 ** i))
+          done
+          exit 1
+        env:
+          BRANCH: claude/kalshi-cities-improve-jzh9z4
