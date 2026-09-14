@@ -71,6 +71,7 @@ Earliest ~mid-October. The date is set by flag rate, not by cleverness.
 | `city_forecast.py` | regime-conditioned empirical CLI-high cells, per city |
 | `hf1min.py` | 1-minute settlement truth -> `docs/settlements_1min.json`. PARALLEL to settlements.json; grades nothing |
 | `lax_*.py` | FROZEN 2026-09-12, carry H15. The city_* files do not touch them |
+| `dawn12.py` | pre-dawn 12h-advance daily-high prediction, locked per city-day to `logs/dawn12/` and scored by `--score` |
 | `score_run.py` | nightly grade; grades ALL ungraded log days, ET trading date |
 
 ## HARD-WON GOTCHAS — do not re-learn these

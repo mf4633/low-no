@@ -1,0 +1,75 @@
+name: dawn12 (pre-dawn 12h predictions)
+# Locks one prediction per city-day at ~04:00 LOCAL, roughly 11.7h before the
+# median observed peak. Development branch only -- never pushes to main.
+#
+# FIVE CRONS, ONE PER US OFFSET, and deliberately not one. 04:00 local is 08Z
+# on the east coast and 11Z on the west, and each shifts an hour at the DST
+# boundary, so the script decides who is due (+/-1h) and the crons only have to
+# cover the span. GitHub also drops scheduled fires; the +/-1h window plus the
+# per-city-day dedupe in dawn12.already_locked() means a missed slot is caught
+# by the next one WITHOUT double-locking anybody.
+on:
+  schedule:
+    - cron: "5 8 * * *"
+    - cron: "5 9 * * *"
+    - cron: "5 10 * * *"
+    - cron: "5 11 * * *"
+    - cron: "5 12 * * *"
+  push:
+    branches: [claude/kalshi-cities-improve-jzh9z4]
+    paths: [dawn12.py, .github/workflows/dawn12.yml]
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  group: dawn12
+  cancel-in-progress: false
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: claude/kalshi-cities-improve-jzh9z4 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: recalibrate from settled days
+        # Reads only SETTLED city-days, which are strictly in the past, so this
+        # cannot leak into a prediction issued this morning. It is re-run every
+        # cycle because the per-forecaster bias drifts and a stale bias is a
+        # silent error of exactly the kind this project keeps finding.
+        run: python dawn12.py --calibrate 2>&1 | tee dawn12_calib_out.txt
+
+      - name: lock predictions for cities now at ~04:00 local
+        run: python dawn12.py 2>&1 | tee dawn12_out.txt
+
+      - name: score every locked prediction that has settled
+        continue-on-error: true
+        run: python dawn12.py --score 2>&1 | tee dawn12_score_out.txt
+
+      - name: commit
+        if: always()
+        # `bash -e` kills the step on a short-circuiting `&&`, so both guards
+        # are `if` blocks. See city-regimes.yml for the incident this repeats.
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          for f in docs/dawn12_calib.json dawn12_calib_out.txt dawn12_out.txt \
+                   dawn12_score_out.txt; do
+            if [ -e "$f" ]; then git add -- "$f"; fi
+          done
+          if [ -d logs/dawn12 ]; then git add -- logs/dawn12; fi
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "dawn12 $(date -u +%FT%H:%MZ)"
+          for i in 1 2 3 4; do
+            if git pull --rebase --autostash origin "$BRANCH" && \
+               git push origin "HEAD:$BRANCH"; then
+              exit 0
+            fi
+            sleep $((2 ** i))
+          done
+          exit 1
+        env:
+          BRANCH: claude/kalshi-cities-improve-jzh9z4

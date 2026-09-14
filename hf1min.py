@@ -36,6 +36,21 @@ for the same-day case IEM has not ingested yet; it is OFF unless asked for, and
 it refuses any response with fewer than MIN_1MIN_OBS observations rather than
 quietly recording an hourly feed as a 1-minute maximum.
 
+THREE REFUSALS, and the second one is a bug this file already had. The first
+pass shipped with only an observation-count floor of 500. That caught an hourly
+stream and waved through HALF DAYS: 28 of 704 records came back with 507-815
+observations and a "maximum" up to 12.8F BELOW our own running max, because the
+gap was the afternoon. That is gotcha 12 -- a max-so-far frozen as a settlement
+-- walking back in through a different door, and the CLI column did not show it
+because the CLI agreed on the days that were complete. So:
+
+  1. count      >= MIN_1MIN_OBS observations in the local day
+  2. COVERAGE   >= MIN_PEAK_COV of the minutes in PEAK_WIN local, because a
+                maximum outside the record is whatever the gap left behind
+  3. ARITHMETIC the max may not sit more than RUNMAX_TOL_F below our own logged
+                run_max -- the settlement quarantine's test, with gotcha 13's
+                corrected tolerance, which is a bound rather than a judgement
+
 Usage:  python hf1min.py                      (all graded days, all cities)
         python hf1min.py --day 2026-09-13
         python hf1min.py --cities SEA,SFO --day 2026-09-13 --synoptic
@@ -57,7 +72,17 @@ from lowno.config import CITIES
 OUT = "docs/settlements_1min.json"
 SETTLE = "docs/settlements.json"
 LOG_DIR = "logs"
-MIN_1MIN_OBS = 500      # a real 1-minute day has ~1440; below this, refuse
+MIN_1MIN_OBS = 1000     # a real 1-minute day has 1440
+# The max has to be INSIDE the record or the "maximum" is whatever the gap left
+# behind. Measured on 681 city-days in this log, the observed peak sits at p10
+# 12.8 / median 15.7 / p90 17.6 local, so the record must cover 11:00-18:00
+# local before its maximum means anything.
+PEAK_WIN = (11, 18)     # local hours, inclusive-exclusive
+MIN_PEAK_COV = 0.95     # share of minutes in PEAK_WIN that must be present
+# Our own run_max is a lower bound on the true daily max to within one full
+# degC step (gotcha 13). A 1-minute max further below it than that is not a
+# quantisation artefact -- it is a gap.
+RUNMAX_TOL_F = 1.8
 UA = {"User-Agent": "lowno (contact: github.com/mf4633)"}
 
 
@@ -186,7 +211,22 @@ def _synoptic_1min(station4, day, tz):
 
 
 # ------------------------------------------------------------------ CORE -----
-def harvest_day(city, day, use_synoptic=False):
+def _peak_coverage(rows, day, tz):
+    """Share of the minutes in PEAK_WIN (local) actually present in `rows`."""
+    zone = zoneinfo.ZoneInfo(tz)
+    want = (PEAK_WIN[1] - PEAK_WIN[0]) * 60
+    seen = set()
+    for ts, _v in rows:
+        try:
+            t = dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(zone)
+        except Exception:
+            continue
+        if PEAK_WIN[0] <= t.hour < PEAK_WIN[1]:
+            seen.add(t.hour * 60 + t.minute)
+    return len(seen) / want if want else 0.0
+
+
+def harvest_day(city, day, use_synoptic=False, runmax=None):
     meta = CITIES[city]
     st4, site, tz = meta["station"], meta["station"][1:].upper(), meta["tz"]
     rows = _iem_1min(site, day, tz)
@@ -202,10 +242,23 @@ def harvest_day(city, day, use_synoptic=False):
             return None
     if not rows or len(rows) < MIN_1MIN_OBS:
         return None
+    cov = _peak_coverage(rows, day, tz)
+    if cov < MIN_PEAK_COV:
+        print(f"    peak-window coverage {cov:.0%} < {MIN_PEAK_COV:.0%} "
+              f"({len(rows)} obs) -- REFUSED, the max may be in the gap")
+        return None
     vals = sorted((v for _, v in rows), reverse=True)
     top = max(rows, key=lambda r: r[1])
-    return dict(max_f=vals[0], second_f=vals[1] if len(vals) > 1 else None,
-                at=top[0], n_obs=len(rows), src=src)
+    rec = dict(max_f=vals[0], second_f=vals[1] if len(vals) > 1 else None,
+               at=top[0], n_obs=len(rows), peak_cov=round(cov, 4), src=src)
+    # Arithmetic quarantine, not judgement: the same test the settlement
+    # quarantine uses, with gotcha 13's corrected tolerance.
+    rm = (runmax or {}).get(f"{day}|{city}")
+    if isinstance(rm, (int, float)) and rec["max_f"] < rm - RUNMAX_TOL_F:
+        print(f"    max {rec['max_f']:.1f} is {rm - rec['max_f']:.1f}F below our "
+              f"own run_max {rm:.1f} -- REFUSED (gap, not quantisation)")
+        return None
+    return rec
 
 
 def logged_run_max():
@@ -273,8 +326,9 @@ def main():
               f"an intraday 1-minute max is a max-so-far\n")
 
     have = json.loads(io.open(OUT, encoding="utf-8").read()) if os.path.exists(OUT) else {}
+    runmax = logged_run_max()
     print(f"{len(days)} day(s) x {len(cities)} cities; "
-          f"{len(have)} already recorded\n")
+          f"{len(have)} already recorded; {len(runmax)} run_max bounds loaded\n")
 
     added = 0
     for day in days:
@@ -283,7 +337,7 @@ def main():
             if k in have:
                 continue
             print(f"  {k}", flush=True)
-            rec = harvest_day(city, day, use_synoptic=a.synoptic)
+            rec = harvest_day(city, day, use_synoptic=a.synoptic, runmax=runmax)
             if rec:
                 have[k] = rec
                 added += 1
@@ -295,7 +349,6 @@ def main():
     print(f"\nwrote {OUT}: {len(have)} city-days (+{added} this run)\n")
 
     # ------------------------------------------------------------- report ----
-    runmax = logged_run_max()
     per = defaultdict(lambda: dict(n=0, exact=0, within1=0, worse=0,
                                    dcli=[], drun=[], spike=0))
     for k, rec in have.items():

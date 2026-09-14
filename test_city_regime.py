@@ -245,6 +245,56 @@ def test_hf1min_refuses_a_short_stream():
         H._get = orig
 
 
+def test_hf1min_refuses_a_partial_day():
+    """The bug the first harvest shipped with: a day whose AFTERNOON is missing
+    still has hundreds of observations and still reports a 'maximum'. 28 of 704
+    records came back this way, one of them 12.8F below our own running max."""
+    sys.argv = ["hf1min.py"]
+    import hf1min as H
+
+    def gappy_get(url, timeout=120, tries=4):
+        lines = ["station,valid(UTC),tmpf"]
+        base = dt.datetime(2026, 9, 10, 0, 0)
+        for i in range(2 * 1440):
+            t = base + dt.timedelta(minutes=i)
+            loc_h = (t - dt.timedelta(hours=7)).hour     # PDT
+            if 11 <= loc_h < 18:
+                continue                                  # the peak window is the gap
+            lines.append(f"SFO,{t.strftime('%Y-%m-%d %H:%M')},60.0")
+        return chr(10).join(lines)
+
+    orig, H._get = H._get, gappy_get
+    try:
+        check("a day missing its peak window is refused",
+              H.harvest_day("SFO", "2026-09-10") is None)
+    finally:
+        H._get = orig
+
+
+def test_hf1min_quarantines_below_run_max():
+    """Arithmetic, not judgement: our run_max bounds the true max from below to
+    within one full degC step, so anything further below it is a gap."""
+    sys.argv = ["hf1min.py"]
+    import hf1min as H
+
+    def flat_get(url, timeout=120, tries=4):
+        lines = ["station,valid(UTC),tmpf"]
+        base = dt.datetime(2026, 9, 10, 0, 0)
+        for i in range(2 * 1440):
+            t = base + dt.timedelta(minutes=i)
+            lines.append(f"SFO,{t.strftime('%Y-%m-%d %H:%M')},70.0")
+        return chr(10).join(lines)
+
+    orig, H._get = H._get, flat_get
+    try:
+        ok = H.harvest_day("SFO", "2026-09-10", runmax={"2026-09-10|SFO": 71.0})
+        check("within tolerance of run_max is kept", ok is not None and ok["max_f"] == 70.0)
+        bad = H.harvest_day("SFO", "2026-09-10", runmax={"2026-09-10|SFO": 82.4})
+        check("12F below our own run_max is quarantined", bad is None)
+    finally:
+        H._get = orig
+
+
 if __name__ == "__main__":
     for fn in [v for k, v in sorted(globals().items()) if k.startswith("test_")]:
         print(f"\n{fn.__name__}")
