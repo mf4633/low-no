@@ -278,28 +278,36 @@ class TestItIsDecidedByThePlayer(unittest.TestCase):
         """A record, because "early beats never" stopped being enough.
 
         The three tests above are all satisfied by a sortie that works every
-        single time, and that is what supply.py quietly turned it into. Over
-        twenty-four seeds, measured: doing nothing holds 42%, and a sortie
-        on day five or day twenty holds 100%. Before hosts had to eat, those
-        were 54% and 71% -- a besieged player used to be gambling and now is
-        not.
+        single time, and for a while that is what this was: a fixed share of
+        the besieging host turned out whatever the defender did, so any
+        garrison beat a detachment it outnumbered and went back in --
+        twenty-four seeds out of twenty-four. Supply then made it worse, by
+        throttling the relief column that used to arrive with fresh rams.
 
-        What did it is reinforcement. A lord's second host, the one that
-        used to arrive with fresh rams and finish the job, now spends its
-        baggage getting there. That is supply working as intended
-        everywhere else in the game and working against this scenario in
-        particular.
+        Measured again after the rework (24 seeds, share of the garrison
+        sent across, day the gate opened down):
 
-        It is not tuned out here because it cannot honestly be: the obvious
-        dial is `SALLY_GUARD`, and sweeping it over the same twenty-four
-        seeds gives 24/24 at 0.16, 0/24 at 0.30, 13/24 at 0.45 and 17/24 at
-        0.60. A response that swings like that is a knife-edge combat model
-        showing through, and a constant chosen off it would be fitted to
-        these seeds rather than designed.
+                        day 5   day 20   day 60
+            never        41%
+            30% out       75%      66%      41%
+            50% out       58%      58%      41%
+            80% out       75%      66%      41%
+            100% out      70%      33%      29%
 
-        So: this test records the shape instead. It fails if a sortie stops
-        being decisive OR if doing nothing stops being a coin flip, which is
-        the pair of facts the next change to any of this has to look at.
+        What that says is worth being exact about. The sortie is a gamble
+        again: the best line in the table is three wins in four, not four in
+        four. Timing is a real decision -- going early beats the coin flip,
+        going late is the coin flip, and marching everybody out late is
+        worse than staying in bed. What the table does *not* show is the
+        clean stealth-against-strength curve the comments in
+        `military.sortie_odds` describe: 30% and 80% land in the same place
+        and 50% dips below both, which at twenty-four seeds is inside the
+        noise. The size of the party is not yet demonstrably a trade, and
+        this docstring says so rather than the table being read as agreeing
+        with the design.
+
+        The test itself guards the pair of facts that matter: a sortie is
+        still worth making, and doing nothing is still a coin flip.
         """
         idle = self.play()
         early = self.play(sally_on=5)

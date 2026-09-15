@@ -699,9 +699,20 @@ def season_odds(season: str) -> List[Tuple[str, float]]:
 # part that makes it a decision rather than a dice roll -- it is bought and
 # sold with things the player chooses.
 #
-# Above all with how many men he sends, which cuts both ways: a small party
-# slips out and may not be enough to do the work, a large one does the work
-# and is seen forming. That trade is the whole mechanic.
+# Above all with how many men he sends, which is meant to cut both ways: a
+# small party slips out and may not be enough to do the work, a large one
+# does the work and is seen forming.
+#
+# Meant to, and only half demonstrated. Measured over twenty-four seeds
+# (the table is in tests/test_siege.py) the rework did the thing it had to
+# do -- the sortie tops out at three wins in four instead of four in four,
+# going late is no better than doing nothing, and marching everybody out
+# late is worse than either. What it has not shown is the size curve: a
+# third of the garrison and four fifths of it land in the same place, and a
+# half dips below both, which at that sample is inside the noise. So the
+# timing is a decision and the size is not yet provably one. It is written
+# down here rather than tuned toward, because a constant picked to make a
+# table agree with a comment is fitted to the seeds and not designed.
 
 #: What turns out to meet you, as a share of his host that is not at the
 #: works: caught unawares, and roused.
