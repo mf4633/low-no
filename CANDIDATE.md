@@ -2251,3 +2251,111 @@ figure came from a STALE GitHub jobs API response that kept reporting the step
 operator as fact. The split is still correct -- 7 minutes of pointless refetch
 per harvest is worth removing -- but the justification was inflated by a
 measurement error of exactly the kind this file exists to catch.
+
+---
+
+# RESULT -- the 12Z sounding and the spread (2026-09-15)
+
+Registration `docs/SONDE.md`, frozen before any result. Harness `sonde.py`,
+output `sonde_all.txt` / `docs/sonde_result.json`. Metric Q2000, the sensible
+heat (MJ/m^2) to mix to 2000 m AGL by encroachment from the 12Z profile.
+Direction pre-specified POSITIVE. Null permuted WITHIN calendar month, 2,000
+draws. Family: every city inside the frozen 80 km limit, Holm-corrected.
+
+## The table
+
+| city | sonde | km | n | rho | p | Holm |
+|---|---|---|---|---|---|---|
+| MSY | Slidell | 56 | 1419 | +0.3170 | 0.0220 | no |
+| **DAL** | Fort Worth | 25 | 1643 | **+0.2217** | **0.0035** | **YES** |
+| ATL | Peachtree City | 33 | 1157 | +0.2189 | 0.1064 | no |
+| **OKC** | Norman | 28 | 1596 | **+0.2117** | **0.0050** | **YES** |
+| MSP | Chanhassen | 27 | 1280 | +0.1508 | 0.8606 | no |
+| MIA | Miami | 11 | 1305 | +0.1238 | 0.8196 | no |
+| DC | Dulles | 38 | 1669 | +0.0987 | 0.6122 | no |
+| LAS | Las Vegas | 3 | 1241 | -0.0445 | 0.6752 | no |
+| **SFO** | Oakland | 19 | 1638 | **-0.1444** | 1.0000 | no |
+| **SAN** | Miramar | 13 | 1617 | **-0.2696** | 1.0000 | no |
+
+**2 of 10 survive Holm**, both continental plains stations with a sounding
+inside 30 km. PHX was refused by the MIN_LEVELS guard: its nearest site ("WFO
+PHOENIX", 6 km) returned 469 12Z days and ZERO with >= 12 usable levels.
+
+## The marine stations falsify it, with the sign reversed
+
+`docs/SONDE.md` fixed the direction as POSITIVE and said "a negative
+correlation of any size falsifies it; it does not become a two-sided test
+afterwards." SFO and SAN are both negative, and SFO is the station that
+produced **every loss in this ledger**. Its quartile table is monotone in the
+wrong direction:
+
+```
+SFO   Q2000 quartile    n   mean dev   |dev|     sd
+      2.3-11.3        409     +0.49    5.13    7.00
+      11.3-15.6       409     +1.47    4.65    5.94
+      15.6-19.5       409     -0.29    3.97    5.09
+      19.5-33.0       411     -1.67    3.21    3.66
+```
+
+Spread nearly HALVES as the cap strengthens. The physical reading is
+straightforward once seen: at SFO a strong marine inversion is the normal,
+climatologically well-handled summer state, so Q2000 there measures "how marine
+is today" -- which is largely PREDICTABLE. The uncertain days at a marine
+station are the TRANSITIONS, not the capped ones. At DAL and OKC a strong
+morning cap is an anomaly against a usually well-mixed profile, and there it
+does flag an uncertain day.
+
+So the instrument works where the project does not need it and inverts where it
+does. That is the opposite of the prior stated when this was proposed, and the
+third prediction this file has had to record as wrong in two days.
+
+## The seductive table is the confounded one -- read the p-value, not the bars
+
+DAL's quartile table looks overwhelming:
+
+```
+DAL   Q2000 quartile    n   mean dev   |dev|     sd   P(dev<=-5F)
+      1.4-8.2         410     +2.43    5.51    6.74     11.5%
+      15.5-52.0       413     -4.03    9.51   11.67     42.9%
+```
+
+A 3.7x left-tail ratio. **But the quartiles are cut on RAW Q2000 across all
+months, so the top quartile is largely winter**, and winter days have wider
+spread for reasons that have nothing to do with the cap. The permutation, which
+shuffles within calendar month, is what strips that out -- and it is brutal:
+ATL carries rho +0.2189, essentially the same as DAL's +0.2217, and lands at
+p = 0.1064. MSP and MIA carry positive rho and land at p = 0.86 and 0.82.
+
+Same lesson as the H4b meter and the settlement quarantine, now in a third
+place: **a statistic and its illustration must be computed on the same slice.**
+The bars above are not month-controlled and the p-value is; only one of them is
+the result.
+
+The magnitude that WOULD be actionable -- a within-month effect size at DAL and
+OKC -- is not computed here, and quoting the confounded bars in its place would
+be the error this section is about.
+
+## What this does and does not license
+
+It does NOT license a per-day sigma in `prob.py`. Two stations out of ten,
+neither of them one where the strategy loses, is not a basis for changing a
+scored path -- and the marine result argues actively against the mechanism that
+motivated the whole idea. `prob.py`'s `MARINE = {SFO, LAX, SAN}` blacklist
+stands, and this result gives a reason for it that is better than the original:
+not merely "Gaussian unfit", but "cap strength does not measure uncertainty
+here, it measures normality."
+
+`sonde.py` grades nothing, feeds no gate, and writes no file any scorer reads.
+
+## Coverage, measured rather than recalled
+
+Of 23 cities, **11** sit within 80 km of a currently-reporting IGRA site and 12
+do not. Two corrections to what was assumed when this was proposed:
+
+* The marine trio is NOT uninstrumented. SFO is 19 km from Oakland at the same
+  elevation; SAN is 13 km from Miramar. Only LAX (118 km, Edwards AFB) is out.
+* **DEN is refused at 341 km**, and the diagnostic says why: DENVER/STAPLETON
+  (USM00072469) sits 20 km away but its IGRA record runs **1919-2022**. The
+  `last >= 2025` filter was correct, not broken. Whether the site still flies
+  and IGRA merely stopped ingesting it is a question about the ARCHIVE, not
+  about Denver, and it is not answered here.
