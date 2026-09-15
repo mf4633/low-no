@@ -1,13 +1,13 @@
 {
- "at": "2026-09-15T14:34:31.090610Z",
+ "at": "2026-09-15T15:38:24.673602Z",
  "traps": [
   {
    "city": "DEN",
    "ceiling": 69,
-   "price": 78,
-   "p_model": 0.9556,
-   "p_market": 0.78,
-   "edge_pts": 17.6,
+   "price": 85,
+   "p_model": 0.943,
+   "p_market": 0.85,
+   "edge_pts": 9.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,12 +15,23 @@
      "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 18 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "GRAVEYARD",
-     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "85c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "PHX",
+   "ceiling": 96,
+   "price": 92,
+   "p_model": 0.9561,
+   "p_market": 0.92,
+   "edge_pts": 3.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
