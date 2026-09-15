@@ -2,9 +2,11 @@
 # game/. Nothing to do with the trading system in this repo's root; it only
 # ever touches game/ and only runs when something in there changes.
 #
-# Two triggers on purpose. The tag build is the one that produces a release
-# people download; the push build is the one that tells you the packaging is
-# broken on the day it breaks rather than on the day you try to ship.
+# The push build tells you the packaging is broken on the day it breaks
+# rather than on the day you try to ship. A release comes out of the same
+# build two ways: push a tag named marchlands-v*, or simply bump the version
+# in game/marchlands/__init__.py. See "Cutting a release without pushing a
+# tag" further down for why the second way exists.
 name: Marchlands (Windows build)
 
 on:
@@ -40,6 +42,10 @@ jobs:
         working-directory: game
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Two, so the release step can see whether this commit is the
+          # one that changed the version.
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -96,5 +102,62 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/marchlands-v')
         uses: softprops/action-gh-release@v2
         with:
+          files: game/dist/Marchlands.exe
+          generate_release_notes: true
+
+      # Cutting a release without pushing a tag.
+      #
+      # A tag is the natural trigger and it is not always available: pushing
+      # one needs write access to refs/tags, which not every session that can
+      # push a branch has. This job already runs with `contents: write`, so
+      # the build that made the exe can make the release too. The version in
+      # game/marchlands/__init__.py is the one source of truth -- bumping it is
+      # the release, and there is no second file to forget.
+      #
+      # Two guards, because they cover different mistakes. It fires only on
+      # the commit that actually changed the version, so ordinary work on a
+      # branch whose version happens to be unreleased does not ship itself;
+      # and it fires only if that version has no release yet, so a re-run, or
+      # the same bump arriving on a second branch, does not quietly replace
+      # what people already downloaded. A version number that means a
+      # different build each week is worse than no version number.
+      - name: What version is this, and did this commit change it?
+        id: ver
+        shell: bash
+        run: |
+          read_version() {
+            python -c "import re,sys; m=re.search(r'^__version__ = \"([^\"]+)\"', sys.stdin.read(), re.M); print(m.group(1) if m else '')"
+          }
+          v=$(read_version < marchlands/__init__.py)
+          was=$(git show HEAD^:game/marchlands/__init__.py 2>/dev/null | read_version || true)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "bumped=$([ -n "$v" ] && [ "$v" != "$was" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "Marchlands $v (the commit before said '${was:-nothing}')"
+
+      - name: Has that version already been released?
+        id: already
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="marchlands-v${{ steps.ver.outputs.version }}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "out=true" >> "$GITHUB_OUTPUT"
+            echo "$tag is already out; leaving it alone"
+          else
+            echo "out=false" >> "$GITHUB_OUTPUT"
+            echo "$tag has not been cut yet"
+          fi
+
+      - name: Cut it
+        if: >-
+          github.event_name == 'push' &&
+          steps.ver.outputs.bumped == 'true' &&
+          steps.already.outputs.out == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: marchlands-v${{ steps.ver.outputs.version }}
+          name: Marchlands ${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: game/dist/Marchlands.exe
           generate_release_notes: true

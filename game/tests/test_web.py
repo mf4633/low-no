@@ -630,6 +630,33 @@ class TestItShips(unittest.TestCase):
         for line in ("next", "next 7", "next 30", "hint"):
             self.assertIn(f'data-do="{line}"', page, line)
 
+    def test_there_is_only_one_version_number(self):
+        """`__init__` said 0.2.0 while pyproject said 0.3.0.
+
+        Nobody noticed, because nothing reads both -- which is exactly how
+        two hand-written copies of one fact go wrong. The package holds the
+        number now and pyproject asks it for it, so there is nothing left to
+        disagree with. The Windows build reads the same line when it decides
+        whether a push is a release, so a drift here would ship a release
+        named after a version the game does not think it is.
+        """
+        import marchlands
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        toml = open(os.path.join(root, "pyproject.toml"), encoding="utf-8").read()
+        self.assertIn('dynamic = ["version"]', toml)
+        self.assertIn('version = {attr = "marchlands.__version__"}', toml)
+        self.assertNotRegex(toml, r'(?m)^version = "')
+        self.assertRegex(marchlands.__version__, r"^\d+\.\d+\.\d+$")
+
+        # And the build reads that same line, with the same expression.
+        flow = os.path.join(os.path.dirname(root), ".github", "workflows",
+                            "marchlands-windows.yml")
+        if os.path.isfile(flow):
+            yml = open(flow, encoding="utf-8").read()
+            self.assertIn("marchlands/__init__.py", yml,
+                          "the release step reads the version from somewhere else")
+            self.assertIn("__version__", yml)
+
     def test_the_wheel_is_told_to_carry_them(self):
         """The one line whose absence caused this, asserted directly."""
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

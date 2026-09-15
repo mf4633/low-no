@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "marchlands"
-version = "0.3.0"
+dynamic = ["version"]        # from marchlands.__version__; see below
 description = "A medieval town, trade and war game: land, labour, the road, and the wall"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -12,6 +12,10 @@ dependencies = []          # stdlib only, on purpose
 
 [project.scripts]
 marchlands = "marchlands.__main__:main"
+
+# One version number, kept in the package where the game itself can read it.
+[tool.setuptools.dynamic]
+version = {attr = "marchlands.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["marchlands*"]

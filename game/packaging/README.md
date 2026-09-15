@@ -26,6 +26,24 @@ on the platform you want it to run on -- PyInstaller does not cross-compile.
 CI does this on every push that touches `game/`, on a Windows runner, and
 attaches the exe to the release for any `marchlands-v*` tag.
 
+## Cutting a release
+
+Either push a `marchlands-v*` tag, or change one line:
+
+    # game/marchlands/__init__.py
+    __version__ = "0.4.0"
+
+Push that and the same Windows build publishes `marchlands-v0.4.0` with the
+exe attached. The second way exists because pushing a tag needs write access
+to `refs/tags`, which a session that can push a branch does not necessarily
+have -- the build already runs with `contents: write`, so it can do what the
+person asking for the release cannot.
+
+It fires on the commit that changes the version and only if that version has
+no release yet, so neither ordinary work on the branch nor a re-run replaces
+a build somebody has already downloaded. `pyproject.toml` reads the same
+line, so there is one version number in the project and not two.
+
 ## The two things that make a frozen build different
 
 **The page is somewhere else.** A one-file build unpacks itself into a
