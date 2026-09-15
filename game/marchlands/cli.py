@@ -2379,6 +2379,87 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_sortie_odds(self, args: List[str]) -> None:
+        """What a sortie out of a besieged town would risk, before you order it."""
+        from .military import BESIEGING, sortie_odds
+        g = self.game
+        where = " ".join(args).strip().lower().replace(" ", "_") or self.here
+        s = g.world.settlements.get(where)
+        if s is None:
+            return self.err(f"{where} is not one of your towns")
+        if not s.besieged:
+            return self.say("", ink.c(f"  {s.name} is not besieged", ink.DIM))
+        outside = [a for a in g.armies if a.owner != "player"
+                   and a.state == BESIEGING
+                   and g.world.node_name(a.at) == s.name]
+        sat = max((a.siege_days for a in outside), default=0)
+        sky = g.field_at(where).weather
+        self.say(ink.head("THE GATE", "what a sortie would risk"))
+        for share, label in ((0.5, "half the garrison"), (0.8, "most of it"),
+                             (1.0, "everyone")):
+            o = sortie_odds(share, sky, sat, s.sorties)
+            tint = ink.LEAF if o.surprise >= 0.5 else ink.BLOOD
+            self.say(f"  {ink.c(ink.pad(label, 20), ink.PARCH)}"
+                     + ink.c("{:.0%} unseen".format(o.surprise), tint)
+                     + ink.c(f"  {o.words}", ink.DIM))
+        o = sortie_odds(0.8, sky, sat, s.sorties)
+        for good_reason in o.helps:
+            self.say("      " + ink.c("+ " + good_reason, ink.LEAF))
+        for bad in o.hurts:
+            self.say("      " + ink.c("- " + bad, ink.BLOOD))
+        self.say("")
+        self.say("  " + ink.c("caught, you fight the guard over the engines; "
+                              "seen, most of his host", ink.DIM))
+        self.say("  " + ink.c("sally <men> to go", ink.DIM))
+
+    def cmd_victual(self, args: List[str]) -> None:
+        """What your hosts are eating, and load the baggage of one that can."""
+        from . import supply
+        g = self.game
+        mine = [a for a in g.armies if a.owner == "player"]
+        if args:
+            try:
+                uid = int(args[0])
+            except ValueError:
+                match = [a for a in mine if args[0].lower() in a.name.lower()]
+                if not match:
+                    return self.err(f"no host of yours called {args[0]!r}")
+                uid = match[0].uid
+            days = 0.0
+            if len(args) > 1:
+                try:
+                    days = float(args[1])
+                except ValueError:
+                    return self.err("victual <host> [days]")
+            return self.say("  " + g.provision(uid, days))
+        if not mine:
+            return self.say("", ink.c("  you have no host in the field", ink.DIM))
+        self.say(ink.head("THE BAGGAGE", "what they carry and what the country gives"))
+        for a in mine:
+            where = a.at or a.bound_for
+            v = supply.note(a.size, a.stores, g._ground_at(where), g.season,
+                            g.world.grazed.get(where, 0.0))
+            larder, far = g._larder(a)
+            settled = a.state in ("besieging", "garrison", "raiding")
+            share = supply.convoy_share(far, settled) if larder else 0.0
+            tint = ink.LEAF if v["days"] > 7 or v["enough"] else ink.BLOOD
+            self.say(f"  {ink.c(ink.pad(a.name, 14), ink.PARCH)}"
+                     + ink.c("{:.0f} days in the baggage".format(v["days"]), tint))
+            self.say(f"      {ink.c(a.fed or 'not yet fed today', ink.DIM)}")
+            self.say("      " + ink.c(
+                "the country here feeds {:d} of its {:d} men".format(
+                    v["feeds"], a.size), ink.DIM))
+            if v["grazed"] > 0.15:
+                self.say("      " + ink.c(
+                    "eaten out here: {:.0%} of what it had".format(v["grazed"]),
+                    ink.DIM))
+            if larder:
+                self.say("      " + ink.c(
+                    "{:s} is {:d} leagues off and sends {:.0%}".format(
+                        g.world.node_name(larder), int(far), share), ink.DIM))
+        self.say("", ink.c("  victual <host> [days] to load at one of your towns",
+                           ink.DIM))
+
     def cmd_ground(self, args: List[str]) -> None:
         """What a place is like to fight over, and what the sky is doing."""
         from .military import field_note, season_odds
@@ -3084,6 +3165,9 @@ COMMANDS = {
     "missions": Console.cmd_missions, "roll": Console.cmd_missions,
     "order": Console.cmd_order, "orders": Console.cmd_order,
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
+    "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
+    "victual": Console.cmd_victual, "supply": Console.cmd_victual,
+    "baggage": Console.cmd_victual, "provision": Console.cmd_victual,
     "sally": Console.cmd_sally, "sortie": Console.cmd_sally,
     "shore": Console.cmd_shore, "mend": Console.cmd_shore,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,

@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import math
 import random
+import zlib
 from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional, Tuple
 
@@ -286,6 +287,34 @@ def _ground(rng: random.Random, d: Dials, size: float) -> Dict[str, int]:
         "clay": roll(0.35 + 0.5 * d.marsh, 5),
         "coast": roll(d.coast, 5),
         "marsh": roll(d.marsh, 10),
+        "urban": 30,
+        "rampart": 14,
+    }
+
+
+def ground_from_name(key: str) -> Dict[str, int]:
+    """A patch of country for a place the map never drew one for.
+
+    The hand-built scenarios predate towns keeping their ground, and two
+    things now read it: what a battle there is fought over, and what a host
+    standing there can eat. Neither may answer "nothing" merely because the
+    scenario is older than the question -- a map where half the towns have
+    country and half have none is worse than one where none do, because the
+    half with none are free to besiege and impossible to fight in.
+
+    Stable off the name, and stable across processes: `hash` of a str is
+    salted per run, so a town would have had different country every time
+    the game was started.
+    """
+    r = random.Random(zlib.crc32(("ground:" + key).encode()))
+    marshy = r.random() < 0.13
+    return {
+        "fertile": r.randint(2, 10),
+        "forest": r.randint(1, 9),
+        "hills": r.randint(0, 9),
+        "clay": r.randint(0, 4),
+        "coast": r.randint(0, 3),
+        "marsh": r.randint(5, 10) if marshy else r.randint(0, 2),
         "urban": 30,
         "rampart": 14,
     }

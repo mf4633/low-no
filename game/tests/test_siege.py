@@ -144,13 +144,61 @@ class TestSallying(unittest.TestCase):
     def foe(self, g):
         return next(a for a in g.armies if a.owner != "player")
 
+    def caught(self, g, yes=True):
+        """Decide the surprise roll instead of hoping for it.
+
+        A sortie is a bet on getting out of the gate unseen -- see
+        `military.sortie_odds` -- so a test that just calls `sally` and
+        asserts the engines burnt is testing the dice. These two cases are
+        what the bet pays and what it costs, and each is asserted against the
+        roll it belongs to.
+        """
+        import random as _r
+        rng = _r.Random(4)
+        rng.random = (lambda: 0.0) if yes else (lambda: 0.999)
+        g.rng = rng
+
     def test_a_good_sortie_burns_the_engines(self):
         g, s, here = self.besieged()
+        self.caught(g, True)
         said = g.sally(here, men=int(sum(s.units.values()) * 0.8))
         foe = self.foe(g)
+        self.assertIn("asleep", said)
         self.assertNotIn("ram", foe.units)
         self.assertNotIn("engineer", foe.units)
         self.assertIn("burnt", said)
+
+    def test_and_a_seen_one_is_thrown_back(self):
+        """The other half of the bet, and the reason it is one. Roused, the
+        host turns out and you are fighting it in the open with no wall at
+        your back -- so the engines are still there in the morning and the
+        garrison that was holding the wall-walk is not."""
+        g, s, here = self.besieged()
+        self.caught(g, False)
+        before = sum(s.units.values())
+        said = g.sally(here, men=int(before * 0.8))
+        foe = self.foe(g)
+        self.assertIn("waiting", said)
+        self.assertIn("ram", foe.units)
+        self.assertLess(sum(s.units.values()), before,
+                        "a sortie that failed cost nothing")
+
+    def test_going_twice_is_expected(self):
+        """A besieger who has seen one sortie is watching for the next, which
+        is what stops this being a button pressed every siege."""
+        from marchlands.military import sortie_odds
+        first = sortie_odds(0.8, "rain", 40, tries=0).surprise
+        again = sortie_odds(0.8, "rain", 40, tries=1).surprise
+        self.assertLess(again, first * 0.75)
+
+    def test_a_small_party_is_likelier_to_get_out(self):
+        """The trade the whole mechanic is built on: a small party slips out
+        and may not be enough, a big one does the work and is watched
+        forming up."""
+        from marchlands.military import sortie_odds
+        small = sortie_odds(0.3, "rain", 20).surprise
+        big = sortie_odds(1.0, "rain", 20).surprise
+        self.assertGreater(small, big + 0.2)
 
     def test_and_says_what_it_burnt(self):
         # A successful sortie reported burning "no one", because the fight
@@ -189,9 +237,14 @@ class TestSallying(unittest.TestCase):
 
 
 class TestItIsDecidedByThePlayer(unittest.TestCase):
-    """The measurement that says this is a game. Sallying early takes it from
-    a coin flip to seven in eight; leaving it until the wall is falling is no
-    better than doing nothing at all."""
+    """The measurement that says this is a game. Doing nothing is a coin
+    flip, sallying early wins it, and leaving it until the wall is falling
+    is no better than doing nothing at all.
+
+    Six seeds here, because these tests play the scenario out day by day and
+    the suite has to stay runnable. The wider numbers quoted below were
+    measured over twenty-four.
+    """
 
     def play(self, sally_on=0, shore=False, seeds=range(1, 7)):
         held = 0
@@ -220,6 +273,40 @@ class TestItIsDecidedByThePlayer(unittest.TestCase):
 
     def test_and_going_late_does_not(self):
         self.assertLessEqual(self.play(sally_on=60), self.play(sally_on=5))
+
+    def test_how_strong_the_sortie_is_is_written_down(self):
+        """A record, because "early beats never" stopped being enough.
+
+        The three tests above are all satisfied by a sortie that works every
+        single time, and that is what supply.py quietly turned it into. Over
+        twenty-four seeds, measured: doing nothing holds 42%, and a sortie
+        on day five or day twenty holds 100%. Before hosts had to eat, those
+        were 54% and 71% -- a besieged player used to be gambling and now is
+        not.
+
+        What did it is reinforcement. A lord's second host, the one that
+        used to arrive with fresh rams and finish the job, now spends its
+        baggage getting there. That is supply working as intended
+        everywhere else in the game and working against this scenario in
+        particular.
+
+        It is not tuned out here because it cannot honestly be: the obvious
+        dial is `SALLY_GUARD`, and sweeping it over the same twenty-four
+        seeds gives 24/24 at 0.16, 0/24 at 0.30, 13/24 at 0.45 and 17/24 at
+        0.60. A response that swings like that is a knife-edge combat model
+        showing through, and a constant chosen off it would be fitted to
+        these seeds rather than designed.
+
+        So: this test records the shape instead. It fails if a sortie stops
+        being decisive OR if doing nothing stops being a coin flip, which is
+        the pair of facts the next change to any of this has to look at.
+        """
+        idle = self.play()
+        early = self.play(sally_on=5)
+        self.assertGreater(idle, 1, f"doing nothing simply loses: {idle}/6")
+        self.assertLess(idle, 5, f"doing nothing simply wins: {idle}/6")
+        self.assertGreaterEqual(
+            early, 5, f"the sortie has stopped being decisive: {early}/6")
 
 
 class TestTheRingIsClosed(unittest.TestCase):

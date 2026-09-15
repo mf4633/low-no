@@ -2775,7 +2775,8 @@ function paintSiege(v) {
     ['stone in store', num(v.stone), v.stone < 20],
     ['men on the walls', num(v.men), v.men < 30],
     ['engines at the works', num(v.engines), false],
-    ['guard set on them', num(v.guard), false],
+    ['the watch over them', num(v.guard), false],
+    ['his host, if you are seen', num(v.roused), true],
   ];
   $('siege-read').innerHTML = rows.map(([what, value, low]) =>
     `<li class="${low ? 'low' : ''}"><label>${what}</label>` +
@@ -2788,11 +2789,32 @@ function paintSiege(v) {
 
   const sally = $('siege-sally');
   sally.disabled = v.men < 5;
+  // The odds of getting out of the gate unseen, at the size that is
+  // selected. Re-read on every change of the picker, because the size is
+  // the thing that buys and sells the surprise -- a player who cannot see
+  // that is not making the trade, he is pulling a lever.
+  const pick = $('siege-men');
+  const odds = () => (v.odds || []).find(o => Math.abs(o.share - parseFloat(pick.value)) < 0.01);
+  const showOdds = () => {
+    const o = odds();
+    const el = $('siege-odds');
+    if (!o) { el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = `<b>${Math.round(o.surprise * 100)}%</b> unseen — ` +
+      `<em>${esc(o.words)}</em>` +
+      (o.helps.length || o.hurts.length
+        ? '<ul>' + o.helps.map(h => `<li class="up">${esc(h)}</li>`).join('')
+              + o.hurts.map(h => `<li class="down">${esc(h)}</li>`).join('') + '</ul>'
+        : '');
+  };
+  pick.onchange = showOdds;
+  showOdds();
   // What the sortie is actually for. A player who reads "open the gate" as
   // "attack the army" opens it once and never again.
   $('siege-note').textContent = v.engines
-    ? 'A sortie fights the works and their guard, not the host. Win and the '
-      + 'engines burn; lose and the wall is held by whoever is left.'
+    ? 'Get out unseen and you fight the watch over the engines. Be seen '
+      + 'forming up and his host turns out, in the open, with no wall behind '
+      + 'you.'
     : 'There is nothing at the works to burn. Going out now only costs men.';
 }
 
@@ -3421,6 +3443,22 @@ function openHost(h) {
       rows.push([k.replace(/_/g, ' '), String(n)]);
     }
     rows.push(['costing', `${h.upkeep}c a day`]);
+    // The baggage. A host that runs out does not lose a battle, it comes
+    // apart in the night, so this is the number a commander watches.
+    const sp = h.supply;
+    if (sp) {
+      rows.push(['food carried', sp.days >= 60 ? 'more than it needs'
+                                 : `${sp.days} days`]);
+      rows.push(['the country here', sp.feeds >= h.size
+        ? 'feeds the whole host'
+        : `feeds ${sp.feeds} of ${h.size}`]);
+      if (sp.grazed > 0.15) rows.push(['eaten out', `${Math.round(sp.grazed * 100)}%`]);
+      if (sp.larder) {
+        rows.push(['carts from', sp.from_home > 0
+          ? `${sp.larder}, ${Math.round(sp.from_home * 100)}% of its need`
+          : `${sp.larder} — ${sp.leagues} leagues, nothing gets through`]);
+      }
+    }
   }
   if (h.state === 'besieging' && h.siege_days) {
     rows.push(['sat down', `${h.siege_days} days`]);
@@ -3459,6 +3497,11 @@ function openHost(h) {
       `<button type="button" data-host="march">march to…</button>` +
       `<button type="button" data-host="recall">recall</button>` +
       `<button type="button" data-host="siege">lay siege</button>` +
+      // Only where it can actually be done: victualling is loading out of
+      // your own granary, and a button that answers "not standing in a town
+      // of yours" is a button that teaches the player to stop pressing it.
+      (h.supply && !h.moving && h.at && isMine(h.at)
+        ? `<button type="button" data-host="victual">victual</button>` : '') +
       `<button type="button" data-host="disband">disband</button>` +
       '</div><p class="dim">the same orders you can type, and they go through ' +
       'the same commands</p>';
@@ -3477,6 +3520,12 @@ function openHost(h) {
     }
   }
   $('soul').hidden = false;
+}
+
+/* One of your own settlements, off the map the browser already has. */
+function isMine(key) {
+  const n = (world && world.nodes || []).find(n => n.key === key);
+  return !!n && n.kind === 'mine';
 }
 
 function hostDoing(h) {

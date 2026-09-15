@@ -23,7 +23,7 @@ from . import estates as estates_mod
 from . import feats as feats_mod
 from . import missions as missions_mod
 from .events import EventEngine
-from .goods import ALL_KEYS, good
+from .goods import ALL_KEYS, RATION_GOODS, good
 from . import lords as lordly
 from . import lord as manly
 from . import chancery as court
@@ -39,7 +39,10 @@ from .military import (BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_speed,
                        host_strength, raid_day, recruit_cost, siege_day, unit)
-from .military import Field, going_of, sky_on
+from .military import Field, going_of, sky_on, sortie_odds
+from . import cartography as carto
+from . import military
+from . import supply
 from .settlement import Settlement
 from .tech import AGES, TECHS, Progress
 from .trade import (CART, SHIP, Caravan, TradeEngine, caravan_from_dict,
@@ -643,7 +646,40 @@ class GameState:
         self.next_army_uid += 1
         self.armies.append(a)
         self._hosts_raised += 1
+        # It marches out of the granary it was raised in, as full as the
+        # granary allows. A host that had to be told to take food would
+        # starve the first time somebody forgot, which is a memory test
+        # rather than a decision.
+        self.provision(a.uid)
         return a, ""
+
+    def provision(self, uid: int, days: float = 0.0) -> str:
+        """Load a host's baggage out of the granary it is standing in.
+
+        Only at one of your own towns -- a host in the field fills its
+        baggage by foraging, which is the whole of supply.py. The food comes
+        off the town's own stores, so provisioning an army is visibly the
+        bread the town would have eaten.
+        """
+        a = self.army(uid)
+        if not a:
+            return f"no host {uid}"
+        if a.owner != PLAYER:
+            return f"{a.name} is not yours to victual"
+        where = a.at
+        if where not in self.world.settlements:
+            return f"{a.name} is not standing in a town of yours"
+        room = supply.capacity(a.size) - a.stores
+        if room <= 0.5:
+            return f"{a.name} is carrying all it can"
+        want = min(room, a.size * supply.MARCH_RATION * days) if days > 0 else room
+        got = self._draw_rations(where, want)
+        a.stores += got
+        if got <= 0.05:
+            return (f"{self.world.node_name(where)} has nothing to spare -- "
+                    f"{a.name} marches on what it has")
+        return (f"{a.name} victualled at {self.world.node_name(where)}: "
+                f"{supply.days_left(a.size, a.stores):.0f} days in the baggage")
 
     def army(self, uid: int) -> Optional[Army]:
         return next((a for a in self.armies if a.uid == uid), None)
@@ -739,6 +775,7 @@ class GameState:
                             f"is sworn to you now")
                 self.armies.remove(a)
                 continue
+            msgs += self._feed_host(a)
             if a.state == MARCHING:
                 a.siege_days = 0
                 a.days_left -= 1
@@ -753,6 +790,18 @@ class GameState:
             if a.size <= 0 and a in self.armies:
                 msgs.append(f"{a.name} is no more")
                 self.armies.remove(a)
+        # The country comes back where nobody is eating it. Done after every
+        # host has had its morning, so a place a host is standing in is the
+        # one place that does not recover today.
+        standing = {a.at or a.bound_for for a in self.armies if a.size > 0}
+        for key in list(self.world.grazed):
+            if key in standing:
+                continue
+            left = supply.recover(self.world.grazed[key])
+            if left <= 0:
+                del self.world.grazed[key]
+            else:
+                self.world.grazed[key] = left
         self._look_around()
         msgs += self._lord_day()
         msgs += self._shrine_day()
@@ -948,6 +997,7 @@ class GameState:
                  errand="pilgrimage")
         self.next_army_uid += 1
         self.armies.append(a)
+        self._outfit(a, town.key)
         a.bound_for = target
         a.days_left = max(1.0, self.world.distance(town.key, target)
                           / max(host_speed(party), 1.0))
@@ -1489,6 +1539,18 @@ class GameState:
     #: A siege train is guarded by a detachment, not by the army. Set at a
     #: third, a sortie had to beat sixty-three men to reach a ram in a
     #: two-hundred-man host, which meant the gate was never worth opening.
+    #: Of a besieger's baggage, what a successful sortie puts to the torch.
+    #: Men who have got in among the engines are standing in the camp, and
+    #: his stores are the other thing there is to put a match to.
+    #:
+    #: A third, which is a great deal against an ordinary besieger carrying
+    #: a fortnight -- it leaves him nine days -- and next to nothing against
+    #: the one in the siege scenario, who sat down with a year. That is the
+    #: intended shape: burning the baggage is how you lift a siege laid by
+    #: somebody who was passing, and not how you lift one laid by a man who
+    #: came to stay.
+    SALLY_BURN = 0.34
+
     SALLY_GUARD = 0.16
 
     def shore(self, settlement_key: str = "", on: bool = True) -> str:
@@ -1511,6 +1573,163 @@ class GameState:
                 + (f" -- {stone:.0f} of stone in store" if stone >= 1
                    else " -- and no stone to do it with"))
 
+    def _ground_at(self, node: str) -> Dict[str, int]:
+        """The country round a place, wherever the map happens to keep it.
+
+        One reader for both questions -- what a battle here is fought over
+        and what a host here can eat -- so the two can never disagree about
+        what a place is. Somewhere the map never drew country for gets some
+        off its own name, because `fields_of({})` is zero and a map with
+        towns that feed nobody is a map where every host starves.
+        """
+        s = self.world.settlements.get(node)
+        if s is not None and s.terrain:
+            return dict(s.terrain)
+        t = self.world.towns.get(node)
+        if t is not None and t.ground:
+            return dict(t.ground)
+        return carto.ground_from_name(node) if node else {}
+
+    def _larder(self, a: Army) -> Tuple[str, float]:
+        """The nearest granary that would send carts to this host, and how
+        far the carts have to come. A host's own lord's towns only: nobody
+        victuals the man besieging him."""
+        mine = ([k for k in self.world.settlements] if a.owner == PLAYER
+                else [a.owner] if a.owner in self.world.towns else [])
+        mine += [k for k, t in self.world.towns.items()
+                 if t.owner == a.owner and k not in mine]
+        where = a.at or a.bound_for
+        best, far = "", 1e9
+        for key in mine:
+            if key not in self.world.coords or where not in self.world.coords:
+                continue
+            d = 0.0 if key == where else self.world.distance(key, where)
+            if d < far:
+                best, far = key, d
+        return best, far
+
+    #: Days of the town's own eating that an army may not touch. Eight, which
+    #: on the opening town is about a third of the larder -- enough that a
+    #: host marches out with a full baggage train, and not so much that the
+    #: town is left with nothing. A host that emptied the larder on its way
+    #: through the gate would be a tax on raising one at all, and the town
+    #: starving behind you is not a cost anybody chose.
+    LARDER_FLOOR = 8.0
+
+    def _draw_rations(self, key: str, want: float) -> float:
+        """Take rations out of a granary, in whatever it keeps them as.
+
+        Densest food first: cheese and bread travel and a cart of raw wheat
+        is mostly cart. Written the other way round at first, which had a
+        host march out with the town's apples and leave the bread -- the
+        opposite of what a baggage train is for, and it stripped the variety
+        the town's mood is partly made of.
+
+        Counted in the same nourishment the townsfolk are fed in, so
+        victualling an army is visibly the bread the town would have eaten.
+        An army that fed itself out of nowhere would make the whole granary
+        chain decorative.
+        """
+        if want <= 0:
+            return 0.0
+        market = None
+        keep = 0.0
+        s = self.world.settlements.get(key)
+        if s is not None:
+            market = s.market
+            per_head, _mood = C.RATION_LEVELS[s.ration_level]
+            keep = per_head * s.population * self.LARDER_FLOOR
+        else:
+            t = self.world.towns.get(key)
+            market = t.market if t is not None else None
+        if market is None:
+            return 0.0
+        dense = sorted((k for k in RATION_GOODS if good(k).nourish > 0),
+                       key=lambda k: -good(k).nourish)
+        on_hand = sum(market.stock.get(k, 0.0) * good(k).nourish for k in dense)
+        spare = max(0.0, on_hand - keep)
+        want = min(want, spare)
+        got = 0.0
+        for good_key in dense:
+            if got >= want - 1e-9:
+                break
+            per = good(good_key).nourish
+            have = market.stock.get(good_key, 0.0)
+            if have <= 0:
+                continue
+            take = min(have, (want - got) / per)
+            market.take(good_key, take)
+            got += take * per
+        return got
+
+    def _outfit(self, a: Army, from_key: str) -> None:
+        """Fill a host's baggage out of the granary it is leaving.
+
+        Every host, whoever raised it -- theirs as well as yours, and the
+        relic parties too. An AI that starves itself is not an opponent, and
+        a test found exactly that: the war hosts were provisioned here and
+        the pilgrimages were not, because they are made somewhere else. One
+        call, at every place an army comes into the world.
+        """
+        a.stores = min(supply.capacity(a.size),
+                       a.stores + self._draw_rations(from_key,
+                                                     supply.capacity(a.size)))
+
+    def _feed_host(self, a: Army) -> List[str]:
+        """One host's morning.
+
+        A garrison sitting in one of your own towns is not fed here: the
+        town already feeds it, because `Settlement._feed` counts soldiers in
+        the population that eats. Charging it twice would make a garrison
+        the most expensive thing in the game to own.
+        """
+        where = a.at or a.bound_for
+        if a.state == GARRISON and where in self.world.settlements:
+            a.fed = "in quarters"
+            return []
+        men = a.size
+        if men <= 0:
+            return []
+        larder, far = self._larder(a)
+        # A host that has stopped has a road behind it; one on the march
+        # does not, because carts cannot catch a moving army.
+        settled = a.state in (BESIEGING, GARRISON, RAIDING)
+        share = supply.convoy_share(far, settled) if larder else 0.0
+        carts = 0.0
+        if share > 0:
+            asked = share * men * supply.MARCH_RATION
+            carts = self._draw_rations(larder, asked)
+        grazed = self.world.grazed.get(where, 0.0)
+        ration, a.stores, grazed = supply.eat(
+            men, a.stores, ground=self._ground_at(where),
+            season=self.season, grazed=grazed, carts=carts)
+        if where:
+            self.world.grazed[where] = grazed
+        a.fed = ration.words()
+        msgs: List[str] = []
+        if ration.deserted >= 0.5:
+            gone = self._thin(a, ration.deserted)
+            if gone >= 1 and (a.owner == PLAYER or self.day % 3 == 0):
+                msgs.append(f"{a.name} is short of food -- {gone:.0f} men "
+                            f"gone in the night")
+        return msgs
+
+    def _thin(self, a: Army, men: float) -> float:
+        """Take men off a host, spread over what it has. They go home rather
+        than die: a starved host is beaten without a battle, which is most
+        of what starving one is for."""
+        total = a.size
+        if total <= 0 or men <= 0:
+            return 0.0
+        gone = 0.0
+        for key in list(a.units):
+            share = a.units[key] / total
+            off = min(a.units[key], men * share)
+            a.units[key] -= off
+            gone += off
+        a.prune()
+        return gone
+
     def field_at(self, node: str) -> Field:
         """Where and when a battle here would be fought.
 
@@ -1520,14 +1739,7 @@ class GameState:
         commits rather than things he reads about afterwards. A place he has
         never been is still country: `going_of` falls back to the name.
         """
-        ground: Dict[str, int] = {}
-        s = self.world.settlements.get(node)
-        if s is not None:
-            ground = dict(s.terrain)
-        else:
-            t = self.world.towns.get(node)
-            if t is not None:
-                ground = dict(t.ground)
+        ground = self._ground_at(node)
         return Field(going=going_of(ground, node),
                      weather=sky_on(self.season, self.day, self.seed),
                      place=self.world.node_name(node) or node)
@@ -1541,8 +1753,18 @@ class GameState:
         again; lose and you have spent the garrison that was holding the
         wall-walk.
 
-        Deliberately a gamble rather than a trick. A besieged player needed
-        something to *do*, not something that always works.
+        A gamble, and for a long time it was not one: it met a fixed share
+        of the besieging host whatever the defender did, so any garrison
+        walked out, beat a detachment it outnumbered, burnt the rams and
+        went back in -- a hundred wins out of a hundred, measured. What it
+        turns on now is whether the camp is caught, and that is bought and
+        sold with things the player chooses: how many men he sends, what the
+        sky is doing, how long the besieger has been sitting there, and
+        whether he has tried this before. See `military.sortie_odds`.
+
+        The trade at the middle of it is the size of the party. A small one
+        slips out and may not be enough to do the work; a large one does the
+        work and is watched forming up.
         """
         s = self.world.settlements.get(settlement_key or "") or self.home()
         if not s.besieged:
@@ -1566,20 +1788,30 @@ class GameState:
                    attack_mult=self.progress.mult("attack")
                    * self.kin.mult("attack", -1),
                    defense_mult=self.progress.mult("defense"))
-        # And you are not fighting his army. You are fighting whatever is
-        # standing over the works: the engines, their crews, and the guard
-        # set on them. A sortie that had to beat the whole host to reach a
-        # ram would never be worth opening the gate for, which is how this
-        # first went -- forty men against fifty and the engines untouched.
+        # What turns out to meet you. Caught, it is the guard over the
+        # engines; roused, it is most of his host, in the open, with no wall
+        # at your back. The roll is made here rather than read off the odds
+        # so that the odds shown before are the odds actually run.
+        odds = sortie_odds(share, self.field_at(self._key_of(s)).weather,
+                           foe.siege_days, s.sorties)
+        caught = self.rng.random() < odds.surprise
+        s.sorties += 1
+        met_share = odds.quiet if caught else odds.roused
         works, guard = {}, {}
         for key, n in foe.units.items():
             if UNITS[key].siege_power > 0 or key == "engineer":
                 works[key] = n
             else:
-                guard[key] = n * self.SALLY_GUARD
+                guard[key] = n * met_share
         met = {k: v for k, v in list(works.items()) + list(guard.items())
                if v >= 0.5}
         them = Side(dict(met))
+        if caught:
+            # Among them before they have formed. This is what makes a small
+            # party worth sending: without it, stealth bought you nothing you
+            # could fight with, and the only answer was to send everybody.
+            out.attack_mult *= military.SORTIE_CAUGHT_ATTACK
+            them.morale *= military.SORTIE_CAUGHT_MORALE
         # The works are outside the gate, so a sortie is fought on the town's
         # own ground and under the day's own sky -- which is the argument for
         # going out in a hard frost and not in April.
@@ -1587,6 +1819,9 @@ class GameState:
                             place=f"the works before {s.name}")
         res = fight(out, them, rng=self.rng, orders=(getattr(s, "order", "") or STORM,
                                                      foe.order), field=out_field)
+        said = [f"{s.name} opens the gate -- "
+                + ("the camp is asleep" if caught
+                   else "and the camp is up and waiting")]
         # What came back, on both sides. The guard that was not at the works
         # was never in this fight and is still out there.
         for key in list(s.units):
@@ -1598,7 +1833,7 @@ class GameState:
                 foe.units[key] = max(0.0, foe.units[key] - fought
                                      + them.units.get(key, 0.0))
         foe.units = {k: v for k, v in foe.units.items() if v >= 0.5}
-        said = [self._box_score(f"{s.name} sallies", res, PLAYER, foe.owner)]
+        said.append(self._box_score(f"{s.name} sallies", res, PLAYER, foe.owner))
         if res.winner == "attacker":
             # The engines are what you came for, and they do not run. Count
             # what was standing there before rather than what is left to
@@ -1617,6 +1852,17 @@ class GameState:
             foe.siege = type(foe.siege)()
             said.append(f"The works before {s.name} are burnt"
                         + (": " + describe(gone) if gone else ""))
+            # And the baggage behind them. Men who have got in among the
+            # engines are standing in the camp, and a besieger's stores are
+            # the other thing there is to put a torch to -- which is what
+            # actually lifted sieges. It gives the defender a second way to
+            # spend a sortie: burn his month rather than his rams.
+            burnt = foe.stores * self.SALLY_BURN
+            if burnt > 0:
+                foe.stores -= burnt
+                days = supply.days_left(foe.size, foe.stores)
+                said.append(f"His baggage burns with them -- "
+                            f"{days:.0f} days of food left in that camp")
         else:
             said.append(f"The sally is thrown back under the walls of {s.name}")
         self.battles += said
@@ -2417,6 +2663,7 @@ class GameState:
                  units=host, at=town.key, home=town.key)
         self.next_army_uid += 1
         self.armies.append(a)
+        self._outfit(a, town.key)
         a.bound_for = target
         a.days_left = max(1.0, self.world.distance(town.key, target)
                           / max(host_speed(host), 1.0))

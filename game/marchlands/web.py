@@ -45,8 +45,8 @@ from . import roles as roles_mod
 from . import feats as feats_mod
 from . import missions as missions_mod
 from . import military
+from . import supply
 from .buildings import BUILDINGS
-from .engine import GameState
 from .military import BESIEGING, UNITS
 from .layout import plan_for
 
@@ -166,6 +166,21 @@ def _field_view(game, key: str) -> dict:
     }
 
 
+def _supply_view(game, a) -> dict:
+    """A host's baggage, and what the country round it will give."""
+    where = a.at or a.bound_for
+    view = supply.note(a.size, a.stores, game._ground_at(where), game.season,
+                       game.world.grazed.get(where, 0.0))
+    larder, far = game._larder(a)
+    from .military import BESIEGING, GARRISON, RAIDING
+    settled = a.state in (BESIEGING, GARRISON, RAIDING)
+    view["from_home"] = round(supply.convoy_share(far, settled), 2) if larder else 0.0
+    view["larder"] = game.world.node_name(larder) if larder else ""
+    view["leagues"] = round(far) if larder else 0
+    view["fed"] = a.fed
+    return view
+
+
 def _their_host_name(game, a) -> str:
     """What you call a host that is not yours. Their lord's, not its own:
     you would not know what they have named it."""
@@ -281,6 +296,10 @@ def march(game, here: str, good: str = "bread") -> dict:
             # scissors nobody can see is a dice roll.
             "matchup": _matchup_for(game, a) if mine else [],
             "note": _matchup_note(game, a) if mine else "",
+            # What it is eating, and for how much longer. A commander told
+            # after he starves has been given a cutscene; told before, he
+            # has a decision -- march on, sit, or turn for home.
+            "supply": _supply_view(game, a) if mine else {},
             "stale": 0 if fresh else max(0, game.day - a.seen_day),
             "owner": "" if mine else w.node_name(a.owner),
         })
@@ -669,7 +688,7 @@ def _castle(s) -> dict:
     }
 
 
-def _siege_view(game, s) -> Optional[dict]:
+def _siege_view(game, s, key: str = "") -> Optional[dict]:
     """What a defender needs to decide with, and nothing he cannot see.
 
     A besieged player was being told the ring was there and given no numbers
@@ -690,8 +709,22 @@ def _siege_view(game, s) -> Optional[dict]:
                 engines += n
             else:
                 guard += n
+    # What a sortie would risk, at each size the panel offers. Shown before
+    # it is ordered, because the whole of the rework is that the player is
+    # choosing odds rather than pressing a button.
+    fld = game.field_at(key)
+    sat = max((a.siege_days for a in outside), default=0)
+    tries = []
+    for share, label in ((0.5, "half the garrison"), (0.8, "most of it"),
+                         (1.0, "everyone")):
+        o = military.sortie_odds(share, fld.weather, sat, s.sorties)
+        tries.append({"share": share, "label": label,
+                      "surprise": round(o.surprise, 2), "words": o.words,
+                      "helps": o.helps, "hurts": o.hurts})
     return {
         "shoring": s.shoring,
+        "sorties": s.sorties,
+        "odds": tries,
         "stone": round(s.market.stock.get("stone", 0.0)),
         "men": round(sum(s.units.values())),
         "wall": round(s.wall_hp, 1),
@@ -700,7 +733,11 @@ def _siege_view(game, s) -> Optional[dict]:
         # own size is the wrong number to show a man deciding whether to
         # open the gate. These two are the right ones.
         "engines": round(engines),
-        "guard": round(guard * GameState.SALLY_GUARD),
+        # Both halves of the bet, because there is no single number any
+        # more: this is what stands over the works if you are not seen, and
+        # what turns out if you are.
+        "guard": round(guard * military.SORTIE_QUIET),
+        "roused": round(guard * military.SORTIE_ROUSED),
         "host": round(sum(a.size for a in outside)),
     }
 
@@ -843,7 +880,7 @@ def snapshot(game, here: str = "") -> dict:
             "wall_hp": round(s.wall_hp, 1),
             "wall_max": round(s.wall_max(game.progress), 1),
             "besieged": s.besieged,
-            "siege": _siege_view(game, s),
+            "siege": _siege_view(game, s, key),
             "field": _field_view(game, key),
             "raided": s.raided,
             "blockaded": s.blockaded,

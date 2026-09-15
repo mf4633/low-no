@@ -15,6 +15,7 @@ from .engine import Goals, GameState
 from .scenario import (OPENING_STORES, build_shrines, build_sites, build_towns,
                        default_rivals, found_seat, new_game)
 from .tech import HOUSES, Progress
+from . import supply
 from . import roles
 from .world import World
 
@@ -197,6 +198,13 @@ def _freebuild(seed: int, house: str) -> GameState:
     return g
 
 
+#: Days of food the besieger sits down with. Longer than the scenario's own
+#: clock on purpose: starving him out is not meant to be one of the answers,
+#: because a siege you win by waiting is a siege with nothing in it. What the
+#: player can do to his baggage he does with a sortie.
+BESIEGER_DAYS = 300.0
+
+
 def _siege(seed: int, house: str) -> GameState:
     """A host is already outside. Hold until the season turns.
 
@@ -248,15 +256,33 @@ def _siege(seed: int, house: str) -> GameState:
     # Stone to shore with, and bread to outlast him on. Both are the levers.
     for key, many in (("bread", 2600.0), ("wheat", 1820.0), ("stone", 500.0)):
         home.market.stock[key] = home.market.stock.get(key, 0.0) + many
+    # Your nearest neighbour, not the leftmost name on the map. He was picked
+    # by x-coordinate, which put the host at your gate under a lord 175
+    # leagues away -- and once hosts had to eat (supply.py) that quietly
+    # decided the scenario: his relief column spent its baggage on the road
+    # and came apart outside your wall, so one sortie at any hour won, twenty
+    # four seeds out of twenty four. A siege is laid by the man next door.
+    seat_key = next(iter(g.world.settlements))
     foe = min((k for k, t in g.world.towns.items() if not t.mine),
-              key=lambda k: g.world.coords.get(k, (99, 99))[0])
+              key=lambda k: g.world.distance(seat_key, k))
     t = g.world.towns[foe]
     t.hostility = 100.0
-    seat = next(iter(g.world.settlements))
-    g.armies.append(Army(uid=g.next_army_uid, name=f"{t.name}'s host",
-                         owner=foe, at=seat, state=BESIEGING, home=foe,
-                         units={"spearman": 100, "archer": 55,
-                                "man_at_arms": 37, "ram": 3, "engineer": 9}))
+    seat = seat_key
+    host = Army(uid=g.next_army_uid, name=f"{t.name}'s host",
+                owner=foe, at=seat, state=BESIEGING, home=foe,
+                units={"spearman": 100, "archer": 55,
+                       "man_at_arms": 37, "ram": 3, "engineer": 9})
+    # He came to stay. A lord who has sat down in front of a wall brought a
+    # baggage train, and this one brought a long one -- his seat is at the
+    # far end of the map and no carts are reaching him.
+    #
+    # Written without this the first time, and it quietly deleted the
+    # scenario: he lived out of the fields round your town, ate them bare,
+    # and lifted the siege of his own accord on day twenty-five of every
+    # seed. Ten of ten held whatever the player did, which is the exact
+    # failure this scenario was rebuilt to stop being.
+    host.stores = supply.MARCH_RATION * host.size * BESIEGER_DAYS
+    g.armies.append(host)
     g.next_army_uid += 1
     g._look_around()
     g.goals = Goals(net_worth=1e12, population=1, towns=99, relics=99,
@@ -274,7 +300,12 @@ def _siege(seed: int, house: str) -> GameState:
         f"spend on it.\n\n"
         f"`shore` puts masons on the breach while it is being made -- nearly "
         f"twice the stone a yard and a toll in men. It buys time, and time is "
-        f"only worth buying if you can eat through it.")
+        f"only worth buying if you can eat through it.\n\n"
+        f"Do not plan on starving him out. He came with a year in his "
+        f"baggage and a road behind him, and the fields round your wall are "
+        f"his to eat. A sortie burns what it can reach of that camp, but a "
+        f"man who sat down meaning to stay is not going to be hungry before "
+        f"you are.")
     return g
 
 

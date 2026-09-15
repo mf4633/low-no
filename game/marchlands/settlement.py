@@ -90,6 +90,10 @@ class Settlement:
     #: Whether the masons are working the breach while it is being made. Off
     #: by default because it is expensive: see `_mend_walls`.
     shoring: bool = False
+    #: How many times this town has opened its gate and gone at the works.
+    #: A besieger who has seen it once is watching for it after that, which
+    #: is most of what stops a sortie being a button you press every siege.
+    sorties: int = 0
     priority: Dict[str, int] = field(default_factory=dict)
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
@@ -803,6 +807,10 @@ class Settlement:
             "buildings": [b.to_dict() for b in self.buildings],
             "castle": self.castle.to_dict(),
             "culture": self.culture,
+            # Both are siege state and both were being dropped: a player who
+            # saved under the ring came back with his masons off the breach
+            # and his besieger's memory of the last sortie wiped.
+            "shoring": self.shoring, "sorties": self.sorties,
         }
 
     @classmethod
@@ -819,4 +827,6 @@ class Settlement:
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         s.castle = keeps.Castle.from_dict(d.get("castle"))
         s.culture = d.get("culture", "")
+        s.shoring = bool(d.get("shoring", False))
+        s.sorties = int(d.get("sorties", 0))
         return s

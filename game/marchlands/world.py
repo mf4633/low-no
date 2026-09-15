@@ -348,6 +348,12 @@ class World:
     coords: Dict[str, Tuple[float, float]] = field(default_factory=dict)
     sites: Dict[str, "Site"] = field(default_factory=dict)
     shrines: Dict[str, "Shrine"] = field(default_factory=dict)
+    #: How picked over the country round each place is, 0 to 1 -- see
+    #: supply.py. Kept here rather than on the host that did the eating,
+    #: because a country is eaten out by whoever has been in it: two hosts
+    #: in one place are competing for the same fields, and a lord who has
+    #: just marched through is somewhere you should not follow.
+    grazed: Dict[str, float] = field(default_factory=dict)
 
     # ------------------------------------------------------------- geography
     def place(self, key: str, x: float, y: float) -> None:
@@ -514,6 +520,7 @@ class World:
                 "coords": {k: list(v) for k, v in self.coords.items()},
                 "sites": {k: v.to_dict() for k, v in self.sites.items()},
                 "safe_conduct": self.safe_conduct,
+                "grazed": dict(self.grazed),
                 "shrines": {k: v.to_dict() for k, v in self.shrines.items()}}
 
     @classmethod
@@ -525,6 +532,7 @@ class World:
         w.sites = {k: Site(**v) for k, v in d.get("sites", {}).items()}
         w.shrines = {k: Shrine.from_dict(v) for k, v in d.get("shrines", {}).items()}
         w.safe_conduct = bool(d.get("safe_conduct", False))
+        w.grazed = {k: float(v) for k, v in d.get("grazed", {}).items()}
         return w
 
 

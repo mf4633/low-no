@@ -681,6 +681,132 @@ def season_odds(season: str) -> List[Tuple[str, float]]:
     return sorted(SKY.get(season, SKY["spring"]), key=lambda p: -p[1])
 
 
+# ------------------------------------------------------------ the sortie
+#
+# What a sortie is actually risking, which for a long time was nothing.
+#
+# It used to meet a fixed sixteen per cent of the besieging host -- the guard
+# set over the engines -- whatever the defender did, so a garrison of any
+# size walked out, beat a detachment it outnumbered, burnt the rams and went
+# back in. Its own docstring called it "deliberately a gamble rather than a
+# trick", and measured over twenty-four seeds it won a hundred times out of a
+# hundred. That is a button, not a decision.
+#
+# The thing a real sortie turned on is whether the camp was caught. Get out
+# of the gate unseen and you are among the engines with only their guard to
+# beat; be seen forming up and the army turns out and you are fighting it in
+# the open with no wall at your back. So surprise is the gamble, and -- the
+# part that makes it a decision rather than a dice roll -- it is bought and
+# sold with things the player chooses.
+#
+# Above all with how many men he sends, which cuts both ways: a small party
+# slips out and may not be enough to do the work, a large one does the work
+# and is seen forming. That trade is the whole mechanic.
+
+#: What turns out to meet you, as a share of his host that is not at the
+#: works: caught unawares, and roused.
+#: Caught, only the watch itself is on its feet -- which is the whole
+#: meaning of the word, and it has to be small enough that a party small
+#: enough to slip out can actually beat it. At sixteen per cent it was not:
+#: a third of the garrison met more men than it had and lost.
+SORTIE_QUIET = 0.07
+SORTIE_ROUSED = 0.62
+
+#: Where surprise starts, before anything either side has done.
+SORTIE_BASE = 0.58
+
+#: What being among them before they have formed is worth in the fight, and
+#: what it does to men woken up to find the gate open.
+#:
+#: Without this the trade the mechanic is built on did not exist. A small
+#: party got out unseen and was still too weak to beat the guard over the
+#: engines, so sending a third of the garrison won four times in a hundred
+#: and sending most of it won seventy-five -- which is not a choice between
+#: stealth and strength, it is one good answer and several bad ones. The
+#: surprise has to be worth something in the fighting, not only in who
+#: turns out to do it.
+SORTIE_CAUGHT_ATTACK = 1.55
+SORTIE_CAUGHT_MORALE = 0.80
+
+#: The share of the garrison you can send before the forming-up is visible
+#: from the camp, and what each point past it costs.
+SORTIE_SEEN = 0.35
+SORTIE_SEEN_COST = 0.85
+
+#: A camp that has sat a long time keeps a worse watch, up to this much.
+SORTIE_SLACK = 0.16
+SORTIE_SLACK_DAYS = 120.0
+
+#: And a camp that has been sortied against once keeps a much better one.
+SORTIE_WARNED = 0.26
+
+
+@dataclass(frozen=True)
+class Sortie:
+    """The odds of getting out of the gate unseen, and what is behind them."""
+    surprise: float
+    quiet: float          # share of his loose men met if the camp is caught
+    roused: float         # ...and if it is not
+    helps: List[str] = field(default_factory=list)
+    hurts: List[str] = field(default_factory=list)
+
+    @property
+    def words(self) -> str:
+        if self.surprise >= 0.72:
+            return "the camp is drowsy"
+        if self.surprise >= 0.5:
+            return "you might get out unseen"
+        if self.surprise >= 0.28:
+            return "they are watching the gate"
+        return "they are waiting for it"
+
+
+def sortie_odds(share: float, weather: str = FAIR, siege_days: int = 0,
+                tries: int = 0) -> Sortie:
+    """What a sortie would risk, before it is ordered.
+
+    Every term is something the player can see and most are things he
+    chooses, because odds he cannot read are a dice roll with extra steps.
+    """
+    helps: List[str] = []
+    hurts: List[str] = []
+    p = SORTIE_BASE
+
+    # Weather. A sentry in sleet is not looking at the gate, and this is the
+    # second place the sky decides something -- see Field.
+    wet = {RAIN: 0.13, MUD: 0.11, FROST: 0.08, HEAT: 0.04}.get(weather, 0.0)
+    if wet:
+        p += wet
+        helps.append(f"{WEATHER[weather].name} -- their sentries are miserable")
+    elif weather == FAIR:
+        p -= 0.07
+        hurts.append("a clear day, and they can see your gate")
+
+    # How many you send. The trade the whole thing is built on.
+    over = max(0.0, share - SORTIE_SEEN)
+    if over > 0:
+        p -= over * SORTIE_SEEN_COST
+        hurts.append(f"{share:.0%} of the garrison forming up is a thing "
+                     f"they can watch you do")
+    else:
+        helps.append("a small party, and quick through the gate")
+
+    # How long he has been sitting there.
+    slack = min(SORTIE_SLACK, SORTIE_SLACK * siege_days / SORTIE_SLACK_DAYS)
+    if slack > 0.03:
+        p += slack
+        helps.append(f"{siege_days} days in one camp makes a slack watch")
+
+    # Whether he has seen this before. A second sortie is expected.
+    if tries > 0:
+        p -= SORTIE_WARNED * min(2, tries)
+        hurts.append("you have done this to him before")
+
+    return Sortie(surprise=max(0.04, min(0.95, p)),
+                  quiet=SORTIE_QUIET, roused=SORTIE_ROUSED,
+                  helps=helps, hurts=hurts)
+
+
 def field_note(units: Dict[str, float], fld: Field) -> List[dict]:
     """What this field is worth to this host, by kind, for the panel.
 
@@ -889,6 +1015,13 @@ class Army:
     seen_at: str = ""
     seen_size: int = 0
     siege: SiegeState = field(default_factory=SiegeState)
+    #: Rations in the baggage. A host eats every morning -- see supply.py --
+    #: and this is the part of its eating that is its own rather than the
+    #: country's. New hosts march out loaded; what they carry is the reason
+    #: they can cross ground that would not feed them.
+    stores: float = 0.0
+    #: What it ate yesterday, in words, for the panel. Reporting only.
+    fed: str = ""
     log: List[str] = field(default_factory=list)
 
     @property

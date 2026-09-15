@@ -153,6 +153,17 @@ body {
 #siege .acts button:focus-visible, #siege .acts select:focus-visible {
   outline: 2px solid var(--parch); outline-offset: 1px;
 }
+#siege-odds {
+  margin: 9px 0 0; padding-top: 8px; font-size: 12px;
+  border-top: 1px solid var(--edge); color: var(--parch);
+}
+#siege-odds b { color: var(--gold); font-weight: 600; }
+#siege-odds em { font-style: normal; color: var(--dim); }
+#siege-odds ul { margin: 5px 0 0; padding: 0 0 0 11px; list-style: none; }
+#siege-odds li { color: var(--dim); }
+#siege-odds li.up::before { content: "+ "; color: var(--leaf); }
+#siege-odds li.down::before { content: "\2212 "; color: var(--blood); }
+
 #siege .dim { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
 
 [hidden] { display: none !important; }
