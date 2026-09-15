@@ -1,44 +1,5 @@
 {
- "at": "2026-09-15T17:45:31.232561Z",
- "traps": [
-  {
-   "city": "TTN",
-   "ceiling": 72,
-   "price": 85,
-   "p_model": 0.9058,
-   "p_market": 0.85,
-   "edge_pts": 5.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=17.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "85c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 64,
-   "price": 96,
-   "p_model": 0.962,
-   "p_market": 0.96,
-   "edge_pts": 0.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    }
-   ]
-  }
- ],
+ "at": "2026-09-15T18:45:47.693531Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
