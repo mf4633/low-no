@@ -15,6 +15,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from . import config as C
 from . import plague
+from . import rivers as waters
 from .goods import cargo_weight, good
 from .market import Market
 
@@ -90,6 +91,9 @@ class Caravan:
     #: The market this cart picked the sickness up at, if it did. Cleared
     #: when it gets home and hands it over -- see engine._plague_day.
     carrying_it: str = ""
+    #: What the water is doing to this leg, in words, set when it set off.
+    #: Reporting only -- the days are already in `days_left`.
+    wet: List[str] = field(default_factory=list)
     log: List[str] = field(default_factory=list)
 
     # ---------------------------------------------------------------- basics
@@ -199,6 +203,16 @@ class TradeEngine:
         # engine hands it a real seed after construction.
         self.pest = random.Random(20260915)
         self.season = "spring"      # the engine sets this each day
+        # And these, for the water. A cart and a host crossing the same ford
+        # on the same morning are told the same thing -- see world.water_days.
+        self.day = 0
+        self.seed = 0
+        self.start_month = C.START_MONTH
+        # The water's own stream, for the same reason the sickness has one:
+        # a new subsystem drawing out of an existing one shifts every seeded
+        # outcome behind it. Fourth time in this codebase. The engine hands
+        # it a real seed after construction.
+        self.spate = random.Random(20260916)
 
     # ------------------------------------------------------------------ day
     def tick(self, caravans: List[Caravan], treasury: float) -> Tuple[float, List[str]]:
@@ -259,6 +273,34 @@ class TradeEngine:
             c.bound_for = ""
             c.state = TRADING
         return treasury, msgs
+
+    def _spill(self, c: Caravan, a: str, b: str) -> List[str]:
+        """What the drover loses for crossing water he should have waited on.
+
+        A cart does not decide to wait -- the player decides that, by not
+        running the route, or by building the bridge. So the cost of a bad
+        crossing has to be paid by the cart that makes it, or high water is
+        only ever a delay and delay alone is something a standing route
+        absorbs without the player ever looking at it.
+        """
+        msgs: List[str] = []
+        for row in self.world.water_state(a, b, self.day, self.seed,
+                                          self.start_month):
+            odds = waters.SPILL.get(row["state"], 0.0)
+            if odds <= 0.0 or self.spate.random() >= odds:
+                continue
+            take = 0.15 + 0.30 * self.spate.random()
+            lost = 0.0
+            for k in list(c.cargo):
+                gone = c.cargo[k] * take
+                c.cargo[k] -= gone
+                mk = self.world.market_of(b)
+                lost += gone * (mk.bid(k) if mk else good(k).base_price)
+            msg = (f"{c.name} lost {lost:.0f}c in the {row['river']} "
+                   f"getting over it")
+            c.note(msg)
+            msgs.append(msg)
+        return msgs
 
     def _sick_at(self, node: str):
         """The sickness in a place, wherever the world keeps it."""
@@ -333,6 +375,26 @@ class TradeEngine:
                 else self.world.distance(here, nxt.node))
         c.bound_for = nxt.node
         c.days_left = max(1.0, dist / max(c.speed, 1.0))
+        # What the water adds, judged the morning the cart sets off rather
+        # than the morning it reaches the bank. That is a simplification and
+        # it is the right one: departure is when the drover knows anything,
+        # and a ford that changed its mind halfway would be a forecast the
+        # player was shown and then not given.
+        if not c.sails:
+            extra, notes = self.world.water_days(
+                here, nxt.node, self.day, self.seed, self.start_month)
+            c.wet = list(notes)
+            if extra:
+                c.days_left += extra
+                # The state and the price of it in one line. "The Perry is
+                # running high" on its own is scenery; with the day and a
+                # half attached it is a reason to build something.
+                lost = ("a day lost" if extra < 1.5
+                        else f"{extra:.0f} days lost")
+                msgs.append(f"{c.name}: " + "; ".join(notes) +
+                            f" -- {lost} on the road to "
+                            f"{self.world.node_name(nxt.node)}")
+            msgs += self._spill(c, here, nxt.node)
         c.state = MOVING
         return treasury, msgs
 
@@ -433,7 +495,9 @@ class TradeEngine:
 
 
 def caravan_to_dict(c: Caravan) -> dict:
-    d = {k: v for k, v in c.__dict__.items() if k not in ("route", "cargo", "log")}
+    d = {k: v for k, v in c.__dict__.items()
+         if k not in ("route", "cargo", "log", "wet")}
+    d["wet"] = list(c.wet)
     d["route"] = [s.to_dict() for s in c.route]
     d["cargo"] = dict(c.cargo)
     d["log"] = list(c.log[-10:])
@@ -444,6 +508,7 @@ def caravan_from_dict(d: dict) -> Caravan:
     route = [Stop.from_dict(s) for s in d.pop("route", [])]
     cargo = dict(d.pop("cargo", {}))
     log = list(d.pop("log", []))
+    wet = list(d.pop("wet", []))
     c = Caravan(**d)
-    c.route, c.cargo, c.log = route, cargo, log
+    c.route, c.cargo, c.log, c.wet = route, cargo, log, wet
     return c

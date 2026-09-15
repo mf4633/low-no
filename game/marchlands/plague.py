@@ -24,6 +24,28 @@ without one is a button.
 **It burns out.** A sickness that never ends is a permanent tax, and a
 permanent tax is not an event. Each one has a life in it, and when that is
 spent the town is poorer and quieter and gets on with things.
+
+## What it costs, measured
+
+Worth writing down, because the first instinct on seeing a bad seed is to
+turn the mortality down, and the instinct is wrong about twice in three.
+Median net worth of an autoplayed game at nine hundred days, eight seeds:
+
+    before the sickness                 68,100
+    the sickness as first shipped       47,700     -30%
+    with the gate policy fixed          51,600
+    and with the rivers in              57,100     -16% against before
+
+So it takes about a sixth of a median game, and on the seed where it lands
+on a capital sitting at its housing cap it takes half. That is the shape it
+should have: a once-a-run catastrophe with a lever against it, not a tax.
+
+The spread on that measure runs from twenty-seven thousand to ninety-two,
+which is worth knowing before anybody reads a single seed as evidence. It
+was read that way once -- seed 3 went from a hundred and twenty thousand to
+thirty-six and looked like proof the sickness was fatal to the game; across
+eight seeds the same change moved the median by a sixth, and the same seed
+moved twenty thousand in the other direction for reasons nobody had touched.
 """
 
 from __future__ import annotations

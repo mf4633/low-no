@@ -132,6 +132,11 @@ class Settlement:
 
     _exposed: List[int] = field(default_factory=list)
     _exposed_mark: tuple = ()
+    #: Yesterday's comfort and luxury, read by this morning's mood. Declared
+    #: rather than sprung into existence mid-tick, because a field that only
+    #: exists after the first day is a field nobody remembers to save.
+    _comfort_score: float = 0.0
+    _luxury_score: float = 0.0
 
     # ------------------------------------------------------------------ land
     def slots_used(self, terrain: str) -> int:
@@ -882,10 +887,10 @@ class Settlement:
             out.append(("faith", C.FAITH_MOOD * faith))
         if self.fear:
             out.append(("fear", -2.6 * self.fear))
-        comfort = getattr(self, "_comfort_score", 0.0)
+        comfort = self._comfort_score
         if comfort:
             out.append(("comforts", C.COMFORT_BONUS * comfort))
-        luxury = getattr(self, "_luxury_score", 0.0)
+        luxury = self._luxury_score
         if luxury:
             out.append(("luxuries", C.LUXURY_BONUS * luxury))
         roofs = self.housing(mods)
@@ -967,6 +972,17 @@ class Settlement:
             "raid_heat": self.raid_heat,
             "sick": self.sick.to_dict(), "shut": self.shut,
             "last_sick": self.last_sick, "buried": self.buried,
+            # Yesterday's hands, read by this morning's production before
+            # this morning's fire and sickness write them again. Same class
+            # as `raid_heat` above and dropped for the same reason -- they
+            # look derived. They are not: a loaded game put twelve hands
+            # back on the wheel that the game it came from had on a fire
+            # bucket, and every stock in the town was a tenth of a per cent
+            # out by the next evening. It compounds; it is what the
+            # save-and-go-on-matching test catches.
+            "fire_labour": self.fire_labour,
+            "plague_labour": self.plague_labour,
+            "comfort": self._comfort_score, "luxury": self._luxury_score,
         }
 
     @classmethod
@@ -990,4 +1006,8 @@ class Settlement:
         s.shut = bool(d.get("shut", False))
         s.last_sick = int(d.get("last_sick", -9999))
         s.buried = float(d.get("buried", 0.0))
+        s.fire_labour = float(d.get("fire_labour", 0.0))
+        s.plague_labour = float(d.get("plague_labour", 0.0))
+        s._comfort_score = float(d.get("comfort", 0.0))
+        s._luxury_score = float(d.get("luxury", 0.0))
         return s

@@ -171,8 +171,20 @@ class TestTheRewardIsActuallyPaid(unittest.TestCase):
         self.assertTrue(g.estates.granted(m.gives[1]))
 
     def test_it_is_paid_by_playing_rather_than_by_claiming(self):
-        # There is no button to press: a day passing is what pays it.
+        """There is no button to press: a day passing is what pays it.
+
+        The prerequisites are granted here rather than played for. This used
+        to lean on the autoplayer having finished `wall` and `letters` inside
+        six hundred days of seed 3, which is a fact about the bot's build
+        order and about how rich that seed happens to be -- neither of which
+        is what this test is about. When the sickness made the seed poorer
+        the bot had not got there, `neighbour` was still closed, and the test
+        read as though the payment mechanism had broken.
+        """
         g = self.game()
+        mission = next(m for m in tree(g.house) if m.key == "neighbour")
+        for need in mission.after:
+            g.missions.done.setdefault(need, 0)
         key = next(k for k, t in g.world.towns.items() if not t.mine)
         g.world.towns[key].owner = "player"
         self.assertNotIn("neighbour", g.missions.to_dict())

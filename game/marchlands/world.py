@@ -19,9 +19,18 @@ from .goods import ALL_KEYS, good
 from .castle import Works
 from .market import Market
 from .plague import Sickness
+from . import rivers as waters
+from .military import sky_on
 from . import culture as cultures
 from . import lords as lordly
 from .settlement import Settlement
+
+
+#: The river states worth telling somebody about. A ford in low water is not
+#: news, and a line of them every morning is how a log stops being read.
+#: Module level rather than on World, because World has a `waters()` method
+#: and a class body cannot see past it to the module of the same name.
+WORTH_SAYING = (waters.HIGH, waters.SHUT, waters.ICE)
 
 
 @dataclass
@@ -362,6 +371,16 @@ class World:
     #: in one place are competing for the same fields, and a lord who has
     #: just marched through is somewhere you should not follow.
     grazed: Dict[str, float] = field(default_factory=dict)
+    #: The rivers, drawn once from wherever the towns ended up and then kept.
+    #: Empty until something asks -- see `waters()` -- because four different
+    #: places build a World and a geography that only some of them had would
+    #: be a geography the player could not trust.
+    river_lines: List["waters.River"] = field(default_factory=list)
+    bridges: List["waters.Bridge"] = field(default_factory=list)
+    #: Seed for the drawing. Set by whoever builds the world; the map is the
+    #: same every time for a given seed, which is the whole contract.
+    river_seed: int = 0
+    _next_bridge: int = 1
 
     # ------------------------------------------------------------- geography
     def place(self, key: str, x: float, y: float) -> None:
@@ -370,6 +389,78 @@ class World:
     def distance(self, a: str, b: str) -> float:
         (ax, ay), (bx, by) = self.coords[a], self.coords[b]
         return math.hypot(ax - bx, ay - by)
+
+    # ------------------------------------------------------------ the water
+    def waters(self) -> List["waters.River"]:
+        """The rivers. Drawn on first ask, then kept for good."""
+        if not self.river_lines and len(self.coords) >= 3:
+            self.river_lines = waters.draw(self.coords, self.river_seed)
+        return self.river_lines
+
+    def river(self, key: str) -> Optional["waters.River"]:
+        for r in self.waters():
+            if r.key == key:
+                return r
+        return None
+
+    def crossings(self, a: str, b: str
+                  ) -> List[Tuple["waters.River", float, float, Optional["waters.Bridge"]]]:
+        """Every river on the road from a to b, and what carries it there."""
+        if a not in self.coords or b not in self.coords:
+            return []
+        (ax, ay), (bx, by) = self.coords[a], self.coords[b]
+        out = []
+        for r, x, y in waters.crossings(self.waters(), ax, ay, bx, by):
+            out.append((r, x, y, waters.served_by(self.bridges, r.key, x, y)))
+        return out
+
+    def water_state(self, a: str, b: str, day: int, seed: int = 0,
+                    start_month: int = C.START_MONTH) -> List[dict]:
+        """Every crossing on this road today, in a shape a panel can print.
+
+        The one computation. `water_days` is a view of these rows rather
+        than a second pass over the same rivers, because a cart, a host and
+        the panel that warned you about both have to agree to the tenth of
+        a day -- and two readers of one rule that disagree by a little is
+        exactly how the garrison cap went wrong (settlement.max_garrison).
+        """
+        level = waters.stage(day, seed, start_month)
+        sky = sky_on(waters._season_on(day, start_month), day, seed)
+        rows = []
+        for r, x, y, bridge in self.crossings(a, b):
+            st = waters.state_of(r, level, sky, bridged=bridge is not None)
+            rows.append({"river": r.name, "key": r.key, "size": r.size,
+                         "state": st, "words": waters.WORDS[st],
+                         "days": waters.DELAY.get(st, 0.0),
+                         "x": x, "y": y,
+                         "bridge": bridge.name if bridge else "",
+                         "mine": bool(bridge and bridge.owner == "player")})
+        return rows
+
+    def water_days(self, a: str, b: str, day: int, seed: int = 0,
+                   start_month: int = C.START_MONTH
+                   ) -> Tuple[float, List[str]]:
+        """Days the water adds to this road today, and what to say about it."""
+        rows = self.water_state(a, b, day, seed, start_month)
+        days = sum(r["days"] for r in rows)
+        notes = [f"the {r['river']} is {r['words']}" for r in rows
+                 if r["state"] in WORTH_SAYING]
+        return days, notes
+
+    def bridge_at(self, a: str, b: str, river_key: str = ""
+                  ) -> Optional[Tuple["waters.River", float, float]]:
+        """Where a bridge would go if you built one on this road."""
+        found = self.crossings(a, b)
+        if river_key:
+            found = [c for c in found if c[0].key == river_key]
+        else:
+            # The worst one first. A road that crosses a beck and a real
+            # river wants the bridge over the river, and a player who has to
+            # name which is being asked to know the ford limits by heart.
+            found = sorted(found, key=lambda c: c[0].ford_limit)
+        for r, x, y, _ in found:
+            return (r, x, y)
+        return None
 
     # ------------------------------------------------------------- the sea
     def is_port(self, key: str) -> bool:
@@ -529,7 +620,11 @@ class World:
                 "sites": {k: v.to_dict() for k, v in self.sites.items()},
                 "safe_conduct": self.safe_conduct,
                 "grazed": dict(self.grazed),
-                "shrines": {k: v.to_dict() for k, v in self.shrines.items()}}
+                "shrines": {k: v.to_dict() for k, v in self.shrines.items()},
+                "river_lines": [r.to_dict() for r in self.river_lines],
+                "bridges": [b.to_dict() for b in self.bridges],
+                "river_seed": self.river_seed,
+                "next_bridge": self._next_bridge}
 
     @classmethod
     def from_dict(cls, d: dict) -> "World":
@@ -541,6 +636,10 @@ class World:
         w.shrines = {k: Shrine.from_dict(v) for k, v in d.get("shrines", {}).items()}
         w.safe_conduct = bool(d.get("safe_conduct", False))
         w.grazed = {k: float(v) for k, v in d.get("grazed", {}).items()}
+        w.river_lines = [waters.River.from_dict(r) for r in d.get("river_lines", [])]
+        w.bridges = [waters.Bridge.from_dict(b) for b in d.get("bridges", [])]
+        w.river_seed = int(d.get("river_seed", 0))
+        w._next_bridge = int(d.get("next_bridge", 1))
         return w
 
 

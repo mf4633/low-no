@@ -2805,6 +2805,7 @@ function paint(s) {
   alarm.textContent = bad; alarm.hidden = !bad;
   paintPest(sick);
   paintSiege(s.town.siege);
+  paintWater(s.town.water);
   scrollCue();
 }
 
@@ -2842,6 +2843,71 @@ $('pest-gate').addEventListener('click', () => {
   send($('pest-gate').getAttribute('aria-pressed') === 'true'
        ? 'gates open' : 'gates shut');
 });
+
+/* The water.
+ *
+ * Only up when there is something to do about it: a river out of its bed, a
+ * bridge of yours, or a host on the road that one of your bridges carries.
+ * In a dry summer with no masonry anywhere it stays off the rail entirely,
+ * which is the whole reason the rail is readable.
+ */
+function paintWater(v) {
+  const box = $('water');
+  if (!box) return;
+  if (!v) { box.hidden = true; return; }
+  const busy = v.rivers.some(r => r.days > 0);
+  const show = busy || v.bridges.length || v.threat.length;
+  box.hidden = !show;
+  if (!show) return;
+
+  $('water-stage').textContent = `stage ${v.stage.toFixed(2)}`;
+  $('water-rivers').innerHTML = v.rivers.map(r => {
+    const cls = r.state === 'shut' ? 'out' : r.days > 0 ? 'up' : '';
+    const cost = r.days > 0 ? ` +${r.days.toFixed(1)}d` : '';
+    return `<li class="${cls}"><label>the ${esc(r.name)}</label>`
+         + `<span>${esc(r.words)}${cost}</span></li>`;
+  }).join('');
+
+  $('water-bridges').innerHTML = v.bridges.map(b => {
+    const state = b.broken ? 'thrown down'
+      : b.days_left > 0 ? `${b.days_left}d of masonry`
+      : `standing · ${b.toll.toFixed(1)}c a day`;
+    return `<li class="mine"><label>${esc(b.name)}</label>`
+         + `<span>${esc(state)}</span></li>`;
+  }).join('');
+
+  /* One button, and which one depends on what the water has left you to
+     decide. Offering "build" and "throw down" and "mend" at once on a
+     264px rail is three ways to be wrong. */
+  const acts = $('water-acts');
+  acts.innerHTML = '';
+  const broken = v.bridges.find(b => b.broken);
+  const doomed = v.threat[0];
+  if (doomed) {
+    add(acts, `Throw down ${doomed.bridge}`, `water throw ${doomed.uid}`, true);
+  } else if (broken) {
+    add(acts, `Mend ${broken.name} · ${v.mend}c`, `water mend ${broken.uid}`, true);
+  } else if (v.offer) {
+    add(acts, `Bridge the ${v.offer.river} · ${Math.round(v.cost)}c`,
+        `water bridge ${v.offer.from} ${v.offer.to}`, v.offer.afford);
+  }
+
+  $('water-note').textContent = doomed
+    ? `${doomed.host} is ${doomed.days}d out and crosses on it. So do your carts.`
+    : broken ? 'Nothing crosses there -- yours included.'
+    : v.offer ? `${v.build_days} days of masonry near ${v.offer.where}, `
+              + 'and that crossing never floods again.'
+    : v.forecast;
+
+  function add(where, label, cmd, on) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.disabled = !on;
+    b.addEventListener('click', () => send(cmd));
+    where.appendChild(b);
+  }
+}
 
 /* The siege board.
  *

@@ -29,7 +29,8 @@ from . import keep as keeps
 from . import lords as lordkind
 from . import voices
 from . import render as ink
-from .military import UNITS, describe, host_strength, host_upkeep
+from . import rivers as waters
+from .military import UNITS, describe, host_strength, host_upkeep, sky_on
 from .military import resolve as resolve_unit
 from .scenarios import CAMPAIGN, SCENARIOS, start as start_scenario
 from .tech import AGES, HOUSES, TECHS
@@ -531,6 +532,7 @@ class Console:
             what = f"cart of {cap:.0f} units at {spd:.0f} leagues/day"
         self.say(ink.head("THE COUNTING HOUSE", f"{what}, all costs in"))
         rows = scan(g.world, self.here, capacity=cap, speed=spd, daily_cost=cost,
+                    day=g.day, seed=g.seed, start_month=g.start_month,
                     budget=max(0.0, g.treasury), top=top, sails=sails)
         for o in rows:
             self.say("  " + o.describe(self._name))
@@ -565,6 +567,43 @@ class Console:
                 if 0 <= cx + i < w:
                     grid[cy][cx + i] = (ch, colour)
 
+        # The water first, so a town's name is never eaten by a river. A map
+        # with roads and no rivers on it is a map that cannot explain why a
+        # four-day leg took six, and that was the state of this one.
+        level = waters.stage(g.day, g.seed, g.start_month)
+        sky = sky_on(g.season, g.day, g.seed)
+
+        def cell(x: float, y: float) -> Tuple[int, int]:
+            return (min(w - 1, max(0, int((x - lo_x) / max(hi_x - lo_x, 1e-6)
+                                          * (w - 14)) + 1)),
+                    min(h - 1, max(0, int((hi_y - y) / max(hi_y - lo_y, 1e-6)
+                                          * (h - 2)) + 1)))
+
+        for r in g.world.waters():
+            st = waters.state_of(r, level, sky)
+            colour = {waters.SHUT: ink.BLOOD, waters.HIGH: ink.GOLD,
+                      waters.ICE: ink.PARCH}.get(st, ink.SKY)
+            (ax, ay), (bx, by) = cell(r.x1, r.y1), cell(r.x2, r.y2)
+            steps = max(abs(bx - ax), abs(by - ay)) or 1
+            # The glyph follows the run of the river rather than being one
+            # character everywhere: `~~~~` across a map reads as sea.
+            glyph = ("|" if abs(by - ay) > 2 * abs(bx - ax) else
+                     "-" if abs(bx - ax) > 2 * abs(by - ay) else
+                     ("\\" if (bx - ax) * (by - ay) > 0 else "/"))
+            for i in range(steps + 1):
+                cx = ax + round((bx - ax) * i / steps)
+                cy = ay + round((by - ay) * i / steps)
+                if 0 <= cy < h and 0 <= cx < w and grid[cy][cx][0] == " ":
+                    grid[cy][cx] = (glyph, colour)
+
+        for b in g.world.bridges:
+            if not b.standing:
+                continue
+            bxp, byp = cell(b.x, b.y)
+            if 0 <= byp < h and 0 <= bxp < w:
+                grid[byp][bxp] = ("#", ink.GOLD if b.owner == "player"
+                                  else ink.DIM)
+
         labels: List[str] = []
         for key, (x, y) in sorted(g.world.coords.items()):
             if key in g.world.shrines:
@@ -579,7 +618,7 @@ class Console:
         for key, site in g.world.sites.items():
             plot(site.x, site.y, "+" + site.name, ink.LEAF)
         self.say(ink.head("THE MARCHLANDS",
-                          "@ yours   ~ port   o foreign   + land or shrine"))
+                          "@ yours  ~ port  o foreign  + land or shrine  # bridge"))
         for row in grid:
             line, run, colour = [], [], None
             for ch, col in row:
@@ -592,6 +631,20 @@ class Console:
                 line.append(ink.c("".join(run), colour))
             self.say("  " + "".join(line).rstrip())
         self.say(RULE)
+        # Which line is which water, and what it is doing. A river drawn and
+        # not named is decoration; named with today's state beside it, it is
+        # the reason the panel exists.
+        rivers = g.world.waters()
+        if rivers:
+            bits = []
+            for r in rivers:
+                st = waters.state_of(r, level, sky)
+                tint = {waters.SHUT: ink.BLOOD, waters.HIGH: ink.GOLD,
+                        waters.ICE: ink.PARCH}.get(st, ink.SKY)
+                bits.append(ink.c(f"the {r.name}", tint)
+                            + ink.c(f" {waters.WORDS[st]}", ink.DIM))
+            self.say("  " + "   ".join(bits))
+            self.say(RULE)
         for i in range(0, len(labels), 3):
             self.say("  " + "   ".join(labels[i:i + 3]))
         for key, site in g.world.sites.items():
@@ -973,6 +1026,23 @@ class Console:
         if g.lord.captured:
             out.append(f"{g.lord.name} is held at {g.lord.ransom:,.0f}c. "
                        f"`lord ransom` buys him back.")
+
+        # The water is a hint rather than an alarm: it never stops you, it
+        # only costs you days, and a player who has never looked at `water`
+        # will not know why a four-day leg took six.
+        want = g.worst_unbridged()
+        if want is not None and want[2].ford_limit <= waters.WORTH_BRIDGING \
+                and g.treasury > waters.BRIDGE_COST * 1.6:
+            out.append(f"Your carts ford the {want[2].name} on the road to "
+                       f"{g.world.node_name(want[1])}, and in spring that is "
+                       f"days. `water bridge {want[0]} {want[1]}` puts a "
+                       f"bridge on it for {waters.BRIDGE_COST:,.0f}c -- and "
+                       f"everybody else's traffic then pays you to use it.")
+        down = [b for b in g.world.bridges if b.owner == "player" and b.broken]
+        if down:
+            out.append(f"{down[0].name} is still in the river. "
+                       f"`water mend {down[0].uid}` puts it back for "
+                       f"{waters.BRIDGE_COST * waters.REBUILD_SHARE:,.0f}c.")
 
         idle = [c for c in g.caravans if not c.running]
         if idle:
@@ -1366,7 +1436,16 @@ class Console:
         """Send a host somewhere, or bring it home."""
         if len(args) < 2:
             return self.err("march <host> <place>")
-        self.say("  " + self.game.march(int(args[0]),
+        uid = int(args[0])
+        # Yours only. `game.march` is also how the world sends its own hosts
+        # home, so the check belongs here at the player's end rather than in
+        # there -- but it does have to exist: the command took any number in
+        # the army list, and a player who typed a besieger's could order the
+        # host outside his own wall to go somewhere else.
+        a = self.game.army(uid)
+        if a is not None and a.owner != "player":
+            return self.err(f"host {uid} is not yours to command")
+        self.say("  " + self.game.march(uid,
                                         self._node(args[1], shrines=True)))
 
     def cmd_campaign(self, args: List[str]) -> None:
@@ -2379,6 +2458,115 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_water(self, args: List[str]) -> None:
+        """The rivers today, the road you asked about, and the bridges."""
+        g = self.game
+        want = [a.lower() for a in args]
+
+        if want and want[0] in ("bridge", "build"):
+            if len(want) < 3:
+                return self.say("  " + ink.c("water bridge <from> <to>", ink.DIM))
+            return self.say("  " + g.build_bridge(want[1], want[2],
+                                                  want[3] if len(want) > 3 else ""))
+        if want and want[0] in ("throw", "break", "down"):
+            if len(want) < 2 or not want[1].isdigit():
+                return self.say("  " + ink.c("water throw <bridge number>", ink.DIM))
+            return self.say("  " + g.break_bridge(int(want[1])))
+        if want and want[0] in ("mend", "rebuild", "repair"):
+            if len(want) < 2 or not want[1].isdigit():
+                return self.say("  " + ink.c("water mend <bridge number>", ink.DIM))
+            return self.say("  " + g.mend_bridge(int(want[1])))
+
+        level = waters.stage(g.day, g.seed, g.start_month)
+        sky = sky_on(g.season, g.day, g.seed)
+        self.say(ink.head("THE WATER", waters.forecast(g.season)))
+        self.say(f"  {ink.c(ink.pad('stage', 16), ink.DIM)}"
+                 + f"{level:.2f}" + ink.c("   (the melt, the rain, and the "
+                                          "fortnight behind it)", ink.DIM))
+        self.say("")
+        for r in g.world.waters():
+            st = waters.state_of(r, level, sky)
+            tint = {waters.LOW: ink.LEAF, waters.FORD: ink.LEAF,
+                    waters.ICE: ink.SKY, waters.HIGH: ink.GOLD,
+                    waters.SHUT: ink.BLOOD}.get(st, ink.PARCH)
+            cost = waters.DELAY.get(st, 0.0)
+            tail = "" if cost <= 0 else "  +%.1fd to cross" % cost
+            self.say(f"  {ink.c(ink.pad('the ' + r.name, 16), ink.PARCH)}"
+                     + ink.c(ink.pad(waters.WORDS[st], 14), tint)
+                     + ink.c(r.size + tail, ink.DIM))
+
+        mine = g.bridges_of("player")
+        self.say("")
+        if not mine:
+            self.say("  " + ink.c("you hold no bridge. One costs %.0fc and "
+                                  "%d days, and it is a crossing that never "
+                                  "floods" % (waters.BRIDGE_COST,
+                                              waters.BRIDGE_DAYS), ink.DIM))
+        else:
+            self.say("  " + ink.c("YOUR BRIDGES", ink.DIM))
+            for b in mine:
+                river = g.world.river(b.river)
+                if b.broken:
+                    state, tint = "thrown down", ink.BLOOD
+                elif b.days_left > 0:
+                    state, tint = "%d days of masonry" % b.days_left, ink.GOLD
+                else:
+                    state, tint = "standing", ink.LEAF
+                self.say(f"      {ink.c(str(b.uid) + '.', ink.DIM)} "
+                         + ink.c(ink.pad(b.name, 20), ink.PARCH)
+                         + ink.c(ink.pad(state, 20), tint)
+                         + ink.c("over the %s" % (river.name if river else "water"),
+                                 ink.DIM))
+
+        onroad = []
+        for a in g.armies:
+            if a.owner == "player" or a.state != "marching":
+                continue
+            if a.bound_for not in g.world.settlements:
+                continue
+            for r, x, y, bridge in g.world.crossings(a.at or a.home, a.bound_for):
+                if bridge is not None and bridge.owner == "player":
+                    onroad.append((a, bridge, r))
+        if onroad:
+            self.say("")
+            self.say("  " + ink.c("ON SOMEBODY ELSE'S ROAD", ink.BLOOD))
+            for a, bridge, r in onroad:
+                self.say(f"      {ink.c(ink.pad(bridge.name, 20), ink.PARCH)}"
+                         + ink.c("carries %s over the %s, %0.f days out"
+                                 % (a.name, r.name, a.days_left), ink.DIM))
+            self.say("      " + ink.c("`water throw <n>` puts it in the river. "
+                                      "So does your own trade.", ink.DIM))
+
+        road = [a for a in want if not a.isdigit()]
+        if len(road) >= 2:
+            a = g.world.resolve(road[0]) or road[0]
+            b = g.world.resolve(road[1]) or road[1]
+            self.say("")
+            if a not in g.world.coords or b not in g.world.coords:
+                self.say("  " + ink.c("I do not know that road", ink.DIM))
+            else:
+                rows = g.world.water_state(a, b, g.day, g.seed, g.start_month)
+                head = "%s to %s" % (g.world.node_name(a), g.world.node_name(b))
+                self.say("  " + ink.c(head.upper(), ink.DIM))
+                if not rows:
+                    self.say("      " + ink.c("dry all the way", ink.DIM))
+                for row in rows:
+                    tail = ("carried by %s" % row["bridge"] if row["bridge"]
+                            else ("+%.1f days" % row["days"] if row["days"]
+                                  else "no delay"))
+                    self.say(f"      {ink.c(ink.pad('the ' + row['river'], 16), ink.PARCH)}"
+                             + ink.c(ink.pad(row["words"], 14), ink.DIM)
+                             + ink.c(tail, ink.DIM))
+        self.say("")
+        for cmd, what in (
+                ("water <from> <to>", "what a road has to get over"),
+                ("water bridge <from> <to>", "masons on its worst crossing"),
+                ("water throw <n>", "throw one down -- no host crosses, "
+                                    "and no cart of yours either"),
+                ("water mend <n>", "put a broken one back up")):
+            self.say("  " + ink.c(ink.pad(cmd, 26), ink.GOLD)
+                     + ink.c(what, ink.DIM))
+
     def cmd_gates(self, args: List[str]) -> None:
         """Shut your gates against the sickness, or open them again."""
         from . import plague
@@ -3034,6 +3222,12 @@ class Console:
         c = g.caravan(int(args[0]))
         if not c:
             return self.err("no such caravan")
+        # Priced dry, deliberately, where the counting house prices today's
+        # water. A standing route outlives the weather: charging it a spring
+        # flood for ever would push every cart onto the summer ranking and
+        # leave it there, and the player would be given a route he could not
+        # see the reason for. `margin` answers "what is worth doing today";
+        # this answers "what is worth running", which is a different question.
         opts = scan(g.world, self.here if not c.sails else c.at,
                     capacity=c.capacity, speed=c.speed, sails=c.sails,
                     daily_cost=c.daily_cost, budget=max(0.0, g.treasury), top=3)
@@ -3256,6 +3450,9 @@ COMMANDS = {
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
     "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
     "gates": Console.cmd_gates, "quarantine": Console.cmd_gates,
+    "water": Console.cmd_water, "rivers": Console.cmd_water,
+    "ford": Console.cmd_water, "fords": Console.cmd_water,
+    "bridge": Console.cmd_water, "bridges": Console.cmd_water,
     "sickness": Console.cmd_gates, "plague": Console.cmd_gates,
     "torch": Console.cmd_torch, "wagons": Console.cmd_torch,
     "baggage": Console.cmd_torch,
@@ -3390,6 +3587,27 @@ HELP_TOPICS = {
   slots, and no settlement has all four in quantity. What you cannot grow you
   must buy, and what you have too much of is only worth what a cart can carry
   to somebody who wants it.
+""",
+    "water": """
+  Rivers are lines on the map, and a road crosses one where the line crosses
+  it. What that costs depends on how high the water is -- one stage for the
+  whole march, and it is the last fortnight of weather rather than a roll:
+  rain today is still in the river on Thursday, and it drains off from there.
+  Spring is the melt and the worst of it; summer is a formality; a hard frost
+  on low water turns a river into a road, which is why winter campaigns
+  crossed.
+
+  A ford in low water costs nothing, one running high costs a day and a half
+  and risks part of the load, and one in flood costs three -- you ride
+  upstream to somebody else's bridge.
+
+  Which is what a bridge of your own is for. It costs 1,400c and forty-five
+  days of masonry, it never floods, and every host that is not coming for you
+  pays to walk over it. You can also throw it down, and the crossing you deny
+  an army is the crossing you deny your own carts.
+
+  `water` for today, `water <from> <to>` for a road, `water bridge <from>
+  <to>` to build, `water throw <n>` to put one in the river.
 """,
     "war": """
   Soldiers are made, not bought. A barracks turns coin and arms from your own

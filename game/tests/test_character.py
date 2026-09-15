@@ -207,12 +207,26 @@ class TestTheTownTalksBack(unittest.TestCase):
         self.assertNotIn("two pence in every three", said)
 
     def test_the_loudest_thing_in_the_town_is_what_you_hear_about(self):
-        """A town with a host at the gate does not want to talk about beer."""
+        """A town with a host at the gate does not want to talk about beer.
+
+        One crisis at a time, set deliberately. This used to assert `raided`
+        was top of a town three hundred days into a real game, and that held
+        only while nothing else was wrong with it -- the day a bakery
+        happened to be alight the answer was `fire`, which outranks a raid
+        and is quite right to. The claim is that a crisis outranks the
+        chatter, not that a raid outranks a fire.
+        """
+        self.s.fires.blazes.clear()
+        self.s.raided = False
         self.s.besieged = True
         self.assertEqual(voices.loudest(self.s, self.g), "siege")
         self.s.besieged = False
         self.s.raided = True
         self.assertEqual(voices.loudest(self.s, self.g), "raided")
+        # And with nothing wrong, the town goes back to talking about beer.
+        self.s.raided = False
+        self.assertNotIn(voices.loudest(self.s, self.g),
+                         ("siege", "raided", "fire"))
 
     def test_every_line_belongs_to_a_condition_that_can_happen(self):
         for v in voices.VOICES:

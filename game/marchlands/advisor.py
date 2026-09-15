@@ -80,6 +80,9 @@ class Opportunity:
     days: float
     profit: float
     per_day: float
+    #: What the water is doing to this road today, if the scan was told the
+    #: day. Reporting only -- the cost is already in `days`.
+    water: str = ""
 
     def describe(self, name_of) -> str:
         bits = []
@@ -89,9 +92,12 @@ class Opportunity:
         if self.back:
             bits.append(f"{self.back.describe()} -> {name_of(self.frm)} "
                         f"({self.back.profit:+.0f}c)")
-        return (f"{name_of(self.frm)} <-> {name_of(self.to)}  "
+        head = (f"{name_of(self.frm)} <-> {name_of(self.to)}  "
                 f"{self.days:.0f}d round trip  {self.profit:+.0f}c  "
-                f"({self.per_day:+.1f}c/day): " + "; ".join(bits))
+                f"({self.per_day:+.1f}c/day)")
+        if self.water:
+            head += f" [{self.water}]"
+        return head + ": " + "; ".join(bits)
 
 
 #: A merchant who empties his own stores to fill a cart is not a merchant.
@@ -196,8 +202,18 @@ def scan(world, home: str, capacity: float = C.CARAVAN_BASE_CAPACITY,
          speed: float = C.CARAVAN_BASE_SPEED, budget: float = 1e9,
          daily_cost: float = C.CARAVAN_UPKEEP + C.GUARD_COST,
          top: int = 8, include_home: bool = True,
-         sails: bool = False, steps: int = FINE_STEPS) -> List[Opportunity]:
-    """Rank round trips by coin per day, the only number a hull cares about."""
+         sails: bool = False, steps: int = FINE_STEPS,
+         day: Optional[int] = None, seed: int = 0,
+         start_month: int = C.START_MONTH) -> List[Opportunity]:
+    """Rank round trips by coin per day, the only number a hull cares about.
+
+    Given a `day` the scan also charges the water: a route that fords a river
+    in spate every trip is genuinely worse than the same margin over dry
+    road, and a scanner that priced the two the same would be recommending
+    routes the player then watches lose days for reasons it never mentioned.
+    Left out (the default) it prices the road dry, which is what the tests
+    and the sea scan want.
+    """
     nodes = list(world.towns.keys())
     if include_home:
         nodes += list(world.settlements.keys())
@@ -249,11 +265,22 @@ def scan(world, home: str, capacity: float = C.CARAVAN_BASE_CAPACITY,
             continue
         dist = world.sea_distance(a, b) if sails else world.distance(a, b)
         travel = 2.0 * max(1.0, dist / max(speed, 1.0))
+        wet = ""
+        if day is not None and not sails:
+            rows = world.water_state(a, b, day, seed, start_month)
+            travel += 2.0 * sum(r["days"] for r in rows)
+            # Every crossing that cost something, including a plain ford --
+            # wider than the log's rule (world.WORTH_SAYING), and on purpose:
+            # this bracket exists to explain the day count beside it, so a
+            # charge it does not name is a number the reader cannot check.
+            wet = "; ".join(f"the {r['river']} is {r['words']}" for r in rows
+                            if r["days"] > 0)
         profit = (leg_out.profit if leg_out else 0.0) + \
                  (leg_back.profit if leg_back else 0.0)
         per_day = profit / travel - daily_cost
         out.append(Opportunity(frm=a, to=b, out=leg_out, back=leg_back,
-                               days=travel, profit=profit, per_day=per_day))
+                               days=travel, profit=profit, per_day=per_day,
+                               water=wet))
     out.sort(key=lambda o: -o.per_day)
     return out[:top]
 

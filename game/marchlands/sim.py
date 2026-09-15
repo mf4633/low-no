@@ -141,6 +141,7 @@ class Bot:
         self._shut_out()
         self._defend()
         self._house()
+        self._span()
         self._carts()
 
     # ------------------------------------------------------------- the house
@@ -212,6 +213,36 @@ class Bot:
                 if "begun" in g.build(key, b):
                     plan.pop(i)
                     break
+
+    #: What the bot wants in the chest before it lays out for masonry. A
+    #: bridge is the longest payback in the game and the one thing that can
+    #: never be sold, so it comes out of surplus rather than out of working
+    #: capital.
+    BRIDGE_FLOAT = 2400.0
+
+    def _span(self) -> None:
+        """Bridge the water its own carts keep losing days in.
+
+        The bot needs a bridge policy for the same reason it needs a cart
+        policy: a mechanic the autoplayer never touches is a mechanic the
+        balance guard never measures, and this one costs 1400c of a purse
+        the guard watches.
+
+        It is deliberately narrow. Only the crossing its own running routes
+        actually use, only out of surplus, and only one at a time.
+        """
+        from . import rivers as waters
+        g = self.game
+        if g.treasury < self.BRIDGE_FLOAT + waters.BRIDGE_COST:
+            return
+        if any(b.owner == "player" and not b.standing and not b.broken
+               for b in g.world.bridges):
+            return                      # masons are already out
+        found = g.worst_unbridged()
+        # A beck is not worth 1400c. Only the water that actually stops carts.
+        if found is None or found[2].ford_limit > waters.WORTH_BRIDGING:
+            return
+        g.build_bridge(found[0], found[1], found[2].key)
 
     def _settle(self) -> None:
         g = self.game
@@ -415,6 +446,15 @@ class Bot:
                 g.fire_baggage(key, men=max(5, int(men * self.SORTIE_SHARE)))
                 self._torched[key] = True
 
+    #: How old a word of sickness may be before it stops closing a gate.
+    #: A month-old rumour out of a market your carts left long ago is not a
+    #: reason to stop trading; today's is.
+    WORD_FRESH = 18
+    #: And how near. A sick market you do not trade with cannot reach you --
+    #: the sickness travels on traffic, so the traffic is the whole of the
+    #: risk.
+    WORD_NEAR = 80.0
+
     def _shut_out(self) -> None:
         """The gates, against the sickness.
 
@@ -429,9 +469,26 @@ class Bot:
         levers is a scenario measured wrong. Without this the sickness took
         a town from two hundred and forty souls to seven, three games in
         eight, and the balance guard was reading that as the game.
+
+        The first cut of it shut every gate on any word from anywhere, which
+        is a different way to be wrong. On seed 3 that closed a town for a
+        hundred and seventy-three days of nine hundred, caught nothing at
+        all -- nobody there was ever ill -- and cost about a quarter of the
+        bot's net worth, enough that the peaceable-kingdom feat stopped
+        being reachable and the feats test went red. Insurance against a
+        risk you are not carrying is not caution, it is a standing charge.
+        So: fresh word only, and only about a market this town actually
+        trades with or sits near.
+
+        Shutting at all is worth it, which is worth writing down because it
+        is not obvious once the recovery cliff is gone. Measured over eight
+        seeds and nine hundred days, with this policy against no policy:
+        median net worth 57,100 against 48,400, and 206 buried against 788.
+        The gate earns its keep four times over in graves and about a fifth
+        in coin.
         """
         g = self.game
-        word = g.word_of_sickness()
+        word = [r for r in g.word_of_sickness() if r["days"] <= self.WORD_FRESH]
         for key, s in g.world.settlements.items():
             if s.sick.here:
                 # Already here. Shutting now saves nobody and costs the
@@ -439,10 +496,27 @@ class Bot:
                 if s.shut:
                     g.shut_gates(key, False)
                 continue
-            if word and not s.shut:
+            near = self._exposed(key, word)
+            if near and not s.shut:
                 g.shut_gates(key, True)
-            elif not word and s.shut:
+            elif not near and s.shut:
                 g.shut_gates(key, False)
+
+    def _exposed(self, key: str, word) -> bool:
+        """Is this town on the road to anywhere it has heard is ill?"""
+        g = self.game
+        if not word:
+            return False
+        sick = {r["key"] for r in word}
+        for c in g.caravans:
+            if not c.running or c.home != key:
+                continue
+            if any(stop.node in sick for stop in c.route):
+                return True
+        # And a market near enough that somebody else's drovers bring it --
+        # the `VISITORS` half of plague.py, which no route of yours covers.
+        return any(g.world.distance(key, k) <= self.WORD_NEAR for k in sick
+                   if k in g.world.coords)
 
     def _defend(self) -> None:
         """Enough men on the wall to make a siege not worth a lord's time --

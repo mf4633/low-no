@@ -246,40 +246,60 @@
   </div>
   <div id="alarm" hidden></div>
 
-  <!-- Only on screen when there is something to decide: sickness in the
-       town, or word of it from a road your carts are on. -->
-  <aside id="pest" hidden aria-label="the sickness">
-    <h3 id="pest-head">the sickness</h3>
-    <p id="pest-says" class="dim"></p>
-    <ul id="pest-word"></ul>
-    <div class="acts"><button id="pest-gate" type="button"></button></div>
-    <p id="pest-note" class="dim"></p>
-  </aside>
+  <!-- The right-hand rail. One column, most urgent at the top, and each
+       panel on screen only when it has something to decide. It is a flex
+       column rather than three absolutely-placed boxes because that is what
+       three of them need: the old arrangement pushed the sickness down with
+       `#siege:not([hidden]) ~ #pest`, and pest comes FIRST in this document,
+       so the selector matched nothing and the two panels sat on top of each
+       other whenever a besieged town fell ill. -->
+  <div id="rail">
+    <!-- Only ever on screen while there is an army outside. Two levers and the
+         three numbers they turn on, because a defender who can only watch the
+         wall come down is not playing. -->
+    <aside id="siege" hidden aria-label="the siege">
+      <h3>The ring is closed <em id="siege-host"></em></h3>
+      <ul id="siege-read"></ul>
+      <div class="acts">
+        <button id="siege-shore" type="button"></button>
+        <button id="siege-sally" type="button">At the works</button>
+        <button id="siege-torch" type="button">At the wagons</button>
+        <!-- Small sizes first, and one of them selected: the wagons are the
+             small party's target and a picker that opens on "most of it"
+             teaches the opposite. -->
+        <select id="siege-men" aria-label="how many go out">
+          <option value="0.15">a handful</option>
+          <option value="0.3" selected>a quarter of them</option>
+          <option value="0.5">half the garrison</option>
+          <option value="0.8">most of it</option>
+          <option value="1">everyone</option>
+        </select>
+      </div>
+      <div id="siege-odds" hidden></div>
+      <p id="siege-note" class="dim"></p>
+    </aside>
+    <!-- Only on screen when there is something to decide: sickness in the
+         town, or word of it from a road your carts are on. -->
+    <aside id="pest" hidden aria-label="the sickness">
+      <h3 id="pest-head">the sickness</h3>
+      <p id="pest-says" class="dim"></p>
+      <ul id="pest-word"></ul>
+      <div class="acts"><button id="pest-gate" type="button"></button></div>
+      <p id="pest-note" class="dim"></p>
+    </aside>
+    <!-- The water. On screen only when it is doing something a player can act
+         on: a river up, a bridge of yours, or a host about to walk over one. A
+         panel that said "low water" every day of the summer would teach people
+         to stop reading the rail. -->
+    <aside id="water" hidden aria-label="the rivers">
+      <h3>The water <em id="water-stage"></em></h3>
+      <ul id="water-rivers"></ul>
+      <ul id="water-bridges"></ul>
+      <div class="acts" id="water-acts"></div>
+      <p id="water-note" class="dim"></p>
+    </aside>
+  </div>
 
-  <!-- Only ever on screen while there is an army outside. Two levers and the
-       three numbers they turn on, because a defender who can only watch the
-       wall come down is not playing. -->
-  <aside id="siege" hidden aria-label="the siege">
-    <h3>The ring is closed <em id="siege-host"></em></h3>
-    <ul id="siege-read"></ul>
-    <div class="acts">
-      <button id="siege-shore" type="button"></button>
-      <button id="siege-sally" type="button">At the works</button>
-      <button id="siege-torch" type="button">At the wagons</button>
-      <!-- Small sizes first, and one of them selected: the wagons are the
-           small party's target and a picker that opens on "most of it"
-           teaches the opposite. -->
-      <select id="siege-men" aria-label="how many go out">
-        <option value="0.15">a handful</option>
-        <option value="0.3" selected>a quarter of them</option>
-        <option value="0.5">half the garrison</option>
-        <option value="0.8">most of it</option>
-        <option value="1">everyone</option>
-      </select>
-    </div>
-    <div id="siege-odds" hidden></div>
-    <p id="siege-note" class="dim"></p>
-  </aside>
   <ul id="toasts" role="status" aria-live="polite"></ul>
 
   <footer id="console">

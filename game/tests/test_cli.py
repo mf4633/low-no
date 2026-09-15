@@ -8,6 +8,7 @@ import unittest
 from marchlands.chronicle import MOMENTOUS, ROUTINE
 from marchlands.cli import Console, sparkline
 from marchlands.scenario import new_game
+from marchlands.scenarios import start
 
 
 class TestConsole(unittest.TestCase):
@@ -272,6 +273,37 @@ class TestTheChronicleCountsWhatItShows(unittest.TestCase):
         self.assertIn("3 entries", out)
         self.assertNotIn("of 3 entries", out)
         self.assertNotIn("chronicle all` reads", out)
+
+
+class TestYouCanOnlyCommandYourOwn(unittest.TestCase):
+    """`march` is also how the world sends its own hosts home.
+
+    Which meant the command took any uid in the army list, and the number
+    beside "Dunmere's host, besieging Aldworth" is right there on the `army`
+    screen. Found while giving bridges a toll: a player who could order an
+    enemy host about could also walk it over his own bridge for the money.
+    """
+
+    def setUp(self):
+        self.buf = io.StringIO()
+        self.g = start("siege", seed=7)
+        self.con = Console(self.g, out=self.buf)
+
+    def test_an_enemy_host_will_not_take_your_orders(self):
+        foe = next(a for a in self.g.armies if a.owner != "player")
+        where, state = foe.at, foe.state
+        self.con.do(f"march {foe.uid} aldworth")
+        self.assertIn("not yours to command", self.buf.getvalue())
+        self.assertEqual((foe.at, foe.state), (where, state))
+
+    def test_your_own_host_still_marches(self):
+        g = self.g
+        mine = next((a for a in g.armies if a.owner == "player"), None)
+        if mine is None:
+            self.skipTest("this scenario starts you with no host in the field")
+        target = next(k for k in g.world.towns)
+        self.con.do(f"march {mine.uid} {target}")
+        self.assertNotIn("not yours", self.buf.getvalue())
 
 
 if __name__ == "__main__":

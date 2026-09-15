@@ -128,12 +128,23 @@ body {
   font-size: 12px; color: #f3e4c6;
   background: rgba(155,44,44,.88); border-radius: 2px;
 }
-/* The sickness. Sits where the siege board sits -- they are the same kind of
-   thing, a crisis with one lever -- and they cannot both be on screen doing
-   nothing, because each only appears when it has something to say. */
-#pest {
+/* The right-hand rail: the siege, the sickness and the water, stacked, each
+   on screen only when it has something to say. A flex column rather than
+   three absolute boxes -- see the note in index.html for what the old
+   arrangement did when two of them were up at once. */
+#rail {
   position: absolute; top: calc(var(--under-bar, 52px) + 44px); right: 16px;
-  z-index: 5; width: 264px; max-width: calc(100vw - 32px); pointer-events: auto;
+  z-index: 5; width: 264px; max-width: calc(100vw - 32px);
+  /* A definite height, not `100%`: the rail's parent has no height of
+     its own, so a percentage resolved to nothing and the third panel
+     ran off the bottom of the screen under the console. */
+  max-height: calc(100vh - var(--under-bar, 52px) - 150px);
+  display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto; pointer-events: none;
+}
+#rail > aside { position: static; width: auto; pointer-events: auto; }
+/* The sickness. */
+#pest {
   padding: 12px 14px 10px;
   background: var(--panel); border: 1px solid #6b4a7a; border-radius: 2px;
   box-shadow: 0 10px 30px rgba(0,0,0,.55);
@@ -155,16 +166,11 @@ body {
 }
 #pest .acts button[aria-pressed="true"] { background: #6b4a7a; color: #f3e8f7; }
 #pest .acts button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
-/* One at a time on the right-hand rail: a siege pushes the sickness down. */
-#siege:not([hidden]) ~ #pest { top: calc(var(--under-bar, 52px) + 320px); }
 
 /* The siege board. On the right, under the day buttons: the left is the town's
    own column, and a panel that covers the readings you are defending with is
    worse than no panel. */
 #siege {
-  position: absolute; top: calc(var(--under-bar, 52px) + 44px); right: 16px;
-  z-index: 5; width: 264px;
-  max-width: calc(100vw - 32px); pointer-events: auto;
   padding: 12px 14px 10px;
   background: var(--panel); border: 1px solid var(--blood); border-radius: 2px;
   box-shadow: 0 10px 30px rgba(0,0,0,.55);
@@ -853,3 +859,38 @@ li.task-why { font-size: 11px; color: var(--dim); line-height: 1.45;
 li.task-why em { font-style: normal; }
 li.task-why em.pays { color: var(--leaf); }
 li.task-why em.costs { color: #9a7a4a; }
+
+/* The water. Blue where the siege is red and the sickness is purple: three
+   panels in one column need to be told apart at a glance, and colour does it
+   faster than a heading does. */
+#water {
+  padding: 12px 14px 10px;
+  background: var(--panel); border: 1px solid #3f6f86; border-radius: 2px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+#water h3 {
+  margin: 0 0 8px; font-size: 12px; font-weight: normal;
+  letter-spacing: .14em; text-transform: uppercase; color: #7fb5cd;
+}
+#water h3 em {
+  font-style: normal; color: var(--dim); letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+#water ul { margin: 0 0 9px; padding: 0; list-style: none; }
+#water ul:empty { margin: 0; }
+#water li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#water li label { color: var(--parch); }
+#water li span { color: var(--dim); font-variant-numeric: tabular-nums; }
+#water li.up span { color: var(--gold); }
+#water li.out span { color: var(--blood); }
+#water li.mine label { color: var(--gold); }
+#water .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+#water .acts button {
+  font: 12px/1 inherit; letter-spacing: .06em; padding: 7px 10px;
+  color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+#water .acts button:disabled { opacity: .45; cursor: default; }
+#water .acts button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+#water p { margin: 8px 0 0; font-size: 12px; }
+#water p:empty { margin: 0; }

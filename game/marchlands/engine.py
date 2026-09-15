@@ -10,6 +10,7 @@ tomorrow rather than rewriting today.
 from __future__ import annotations
 
 import json
+import math
 import random
 from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional, Tuple
@@ -29,6 +30,7 @@ from . import lord as manly
 from . import chancery as court
 from . import culture as cultures
 from . import keep as keeps
+from . import rivers as waters
 from .kin import POSTS, Kin, found as found_kin
 from . import league as lg
 from .league import League, PLAYER
@@ -188,6 +190,10 @@ class GameState:
     #: figure rather than instrumented into the thing it counts.
     _hosts_raised: int = 0
     _battles_won: int = 0
+    #: The day the knights last had a war to be in. A real field, because
+    #: it is read on a day there has never been one -- and because the
+    #: version of it that sprang into existence on first use was not saved.
+    _last_war_day: int = 0
     _stormed: int = 0
     _towns_lost: int = 0
     _trade_profit: float = 0.0
@@ -242,6 +248,34 @@ class GameState:
         # And the one the carts carry it on, seeded here where the game's
         # own seed is known.
         self.trade_engine.pest = random.Random(self.seed * 5081 + 7)
+        # And the water's, which spills a load at a bad ford.
+        self.trade_engine.spate = random.Random(self.seed * 7717 + 23)
+        self.world.river_seed = self.seed
+
+    def _streams(self) -> Dict[str, random.Random]:
+        """Every dice cup this object owns, by name.
+
+        One list, because a stream that is seeded in `__init__` and not put
+        back in `from_dict` gives you a save whose state matches to the coin
+        and whose future does not -- the exact bug the `rng` note below was
+        written about, repeated three times over by the sickness and the
+        water, each of which quite correctly took a stream of its own and
+        then quite incorrectly forgot to save it. The next subsystem that
+        needs one adds a line here and is done.
+
+        `kin`, `league` and the chancery keep and restore their own.
+        """
+        return {"rng": self.rng, "voice_rng": self.voice,
+                "pest_rng": self.pest, "cart_pest_rng": self.trade_engine.pest,
+                "spate_rng": self.trade_engine.spate}
+
+    @staticmethod
+    def _put_back(rng: random.Random, raw) -> bool:
+        """Set a stream back to where the save left it. False if it cannot."""
+        if not raw:
+            return False
+        rng.setstate((raw[0], tuple(raw[1]), raw[2]))
+        return True
 
     # ------------------------------------------------------------- calendar
     @property
@@ -408,6 +442,9 @@ class GameState:
         # 5. Caravans move and deal.
         before_trade = self.treasury
         self.trade_engine.season = self.season
+        self.trade_engine.day = self.day
+        self.trade_engine.seed = self.seed
+        self.trade_engine.start_month = self.start_month
         caravan_cost = sum(c.daily_cost for c in self.caravans)
         self.treasury, tmsgs = self.trade_engine.tick(self.caravans, self.treasury)
         led.caravans = caravan_cost
@@ -702,12 +739,219 @@ class GameState:
             return f"nowhere called {node!r}"
         if a.at == node:
             return self._arrive(a)
-        dist = self.world.distance(a.at or a.home, node)
-        a.bound_for = node
-        a.days_left = max(1.0, dist / max(host_speed(a.units), 1.0))
-        a.state = MARCHING
+        water = self._set_march(a, a.at or a.home, node, a.units)
         return (f"{a.name} marches on {self.world.node_name(node)} -- "
-                f"{a.days_left:.0f} days")
+                f"{a.days_left:.0f} days" + (f" ({water})" if water else ""))
+
+    # --------------------------------------------------------------- water
+    def _set_march(self, a, origin: str, target: str,
+                   units: Dict[str, float]) -> str:
+        """Put a host on the road, once, in one place.
+
+        Three separate copies of these four lines used to exist -- your own
+        host, an enemy's, and a pilgrimage party -- and when the rivers
+        arrived only one of them would have learnt about them. That is the
+        garrison bug (see settlement.max_garrison) in a different coat, and
+        this time it got written down before it cost anything.
+
+        Returns what the water did, in words, or '' if it did nothing.
+        """
+        dist = self.world.distance(origin, target)
+        days = max(1.0, dist / max(host_speed(units), 1.0))
+        extra, notes = self.world.water_days(
+            origin, target, self.day, self.seed, self.start_month)
+        a.bound_for = target
+        a.days_left = days + extra
+        a.state = MARCHING
+        notes += self._bridge_toll(a, origin, target)
+        return "; ".join(notes)
+
+    #: What a host pays to walk over somebody else's bridge, per hundred men.
+    #: Absurd and entirely real: an army on the march was a customer, and the
+    #: man who held the crossing charged it. A host coming for YOU is not a
+    #: customer, which is the distinction that makes it worth modelling.
+    HOST_TOLL = 34.0
+
+    def _bridge_toll(self, a, origin: str, target: str) -> List[str]:
+        if a.owner == "player":
+            return []
+        hostile = target in self.world.settlements
+        notes = []
+        for r, x, y, bridge in self.world.crossings(origin, target):
+            if bridge is None or bridge.owner != "player" or not bridge.standing:
+                continue
+            if hostile:
+                # He is coming for you. He is not going to pay for the deck.
+                notes.append(f"crosses your {bridge.name}")
+                continue
+            paid = self.HOST_TOLL * max(1.0, a.size / 100.0)
+            self.treasury += paid
+            notes.append(f"pays {paid:.0f}c at {bridge.name}")
+        return notes
+
+    def worst_unbridged(self) -> Optional[Tuple[str, str, "waters.River"]]:
+        """The crossing your own running carts lose the most days at.
+
+        One reader, used by the panel that offers the button and by the
+        autoplayer that presses it. Two copies of "which crossing matters"
+        is how the garrison rule went wrong, and the balance guard only
+        measures what the autoplayer does -- so the two had better agree
+        about what a good bridge is.
+        """
+        best: Optional[Tuple[str, str, waters.River]] = None
+        for c in self.caravans:
+            if not c.running or c.sails or len(c.route) < 2:
+                continue
+            for i, stop in enumerate(c.route):
+                nxt = c.route[(i + 1) % len(c.route)]
+                if nxt.node == stop.node:
+                    continue
+                if not (self.world.is_mine(stop.node)
+                        or self.world.is_mine(nxt.node)):
+                    continue
+                for r, x, y, bridge in self.world.crossings(stop.node, nxt.node):
+                    if bridge is not None:
+                        continue
+                    if best is None or r.ford_limit < best[2].ford_limit:
+                        best = (stop.node, nxt.node, r)
+        return best
+
+    def bridges_of(self, owner: str = "player") -> List[waters.Bridge]:
+        return [b for b in self.world.bridges if b.owner == owner]
+
+    def build_bridge(self, a: str, b: str, river_key: str = "") -> str:
+        """Put masons on a crossing between two named places.
+
+        You do not choose a point on a map; you choose a road. That is the
+        decision the player can actually reason about -- *this* is the leg my
+        carts run and the water is out on it three weeks in four -- and the
+        point falls out of the geometry.
+        """
+        a = self.world.resolve(a) or a
+        b = self.world.resolve(b) or b
+        if a not in self.world.coords or b not in self.world.coords:
+            return "I do not know that road"
+        # A player names a river, not a key. `water bridge aldworth marchand
+        # perry` has to mean the Perry, because "r0" is not a word anybody
+        # in this game has ever been shown.
+        if river_key:
+            named = next((r.key for r in self.world.waters()
+                          if r.key == river_key
+                          or r.name.lower().startswith(river_key.lower())), "")
+            if not named:
+                return f"no water called {river_key!r}"
+            river_key = named
+        found = self.world.bridge_at(a, b, river_key)
+        if found is None:
+            if river_key:
+                return f"no {river_key} on the road from {self.world.node_name(a)}"
+            return (f"the road from {self.world.node_name(a)} to "
+                    f"{self.world.node_name(b)} crosses no water")
+        river, x, y = found
+        if not (self.world.is_mine(a) or self.world.is_mine(b)):
+            return ("a bridge wants a bank you hold -- neither end of that "
+                    "road is yours")
+        standing = waters.served_by(self.world.bridges, river.key, x, y)
+        if standing is not None:
+            who = "yours" if standing.owner == "player" else f"{standing.owner}'s"
+            return f"{standing.name} already carries that reach, and it is {who}"
+        already = [br for br in self.world.bridges
+                   if br.river == river.key and not br.standing
+                   and not br.broken
+                   and math.hypot(br.x - x, br.y - y) <= waters.REACH]
+        if already:
+            return f"the masons are already at work on {already[0].name}"
+        if self.treasury < waters.BRIDGE_COST:
+            return (f"a bridge over the {river.name} is "
+                    f"{waters.BRIDGE_COST:.0f}c and you have "
+                    f"{self.treasury:.0f}c")
+        self.treasury -= waters.BRIDGE_COST
+        near = min((a, b), key=lambda k: math.hypot(
+            self.world.coords[k][0] - x, self.world.coords[k][1] - y))
+        br = waters.Bridge(uid=self.world._next_bridge, river=river.key,
+                           x=x, y=y, owner="player",
+                           name=f"{self.world.node_name(near)} Bridge",
+                           built_day=self.day, days_left=waters.BRIDGE_DAYS)
+        self.world._next_bridge += 1
+        self.world.bridges.append(br)
+        return (f"Masons begin {br.name} over the {river.name}: "
+                f"{waters.BRIDGE_COST:.0f}c, {waters.BRIDGE_DAYS} days")
+
+    def break_bridge(self, uid: int) -> str:
+        """Throw down your own bridge. It is not a free denial.
+
+        You lose the toll, your own carts go round with everybody else, and
+        putting it back is most of a season. That is the point: a crossing
+        you deny an army is a crossing you deny yourself.
+        """
+        for br in self.world.bridges:
+            if br.uid == uid and br.owner == "player":
+                if br.broken:
+                    return f"{br.name} is already down"
+                if not br.standing:
+                    self.world.bridges.remove(br)
+                    return f"the work on {br.name} is abandoned"
+                br.broken = True
+                br.days_left = 0
+                river = self.world.river(br.river)
+                return (f"{br.name} goes into the {river.name if river else 'water'}. "
+                        f"Nothing crosses there now, yours included")
+        return f"no bridge of yours numbered {uid}"
+
+    def mend_bridge(self, uid: int) -> str:
+        for br in self.world.bridges:
+            if br.uid == uid and br.owner == "player":
+                if not br.broken:
+                    return f"{br.name} is standing"
+                cost = waters.BRIDGE_COST * waters.REBUILD_SHARE
+                if self.treasury < cost:
+                    return (f"mending {br.name} is {cost:.0f}c and you have "
+                            f"{self.treasury:.0f}c")
+                self.treasury -= cost
+                br.broken = False
+                br.days_left = waters.REBUILD_DAYS
+                return (f"The piers held. {br.name} back in "
+                        f"{waters.REBUILD_DAYS} days for {cost:.0f}c")
+        return f"no bridge of yours numbered {uid}"
+
+    def _bridge_day(self) -> List[str]:
+        """Masonry, and what other people's traffic leaves on the deck."""
+        msgs: List[str] = []
+        toll = 0.0
+        for br in self.world.bridges:
+            if br.days_left > 0:
+                br.days_left -= 1
+                if br.days_left == 0 and not br.broken:
+                    river = self.world.river(br.river)
+                    msgs.append(f"{br.name} is open over the "
+                                f"{river.name if river else 'water'}")
+                continue
+            if br.broken or br.owner != "player":
+                continue
+            toll += self.toll_on(br)
+        if toll:
+            self.treasury += toll
+        return msgs
+
+    def toll_on(self, br: waters.Bridge) -> float:
+        """What the country's own traffic pays to cross.
+
+        Scaled by the markets either side rather than by a flat rate, because
+        a bridge is worth what crosses it. The world already stands in for
+        everybody-who-is-not-you as a pull toward each town's equilibrium;
+        this is the share of that which has to get over the water.
+        """
+        near = 0.0
+        for key, (x, y) in self.world.coords.items():
+            d = math.hypot(x - br.x, y - br.y)
+            if d > 3.0 * waters.REACH:
+                continue
+            town = self.world.towns.get(key)
+            if town is not None:
+                near += town.wealth * max(0.0, 1.0 - d / (3.0 * waters.REACH))
+            elif key in self.world.settlements:
+                near += 0.4 * max(0.0, 1.0 - d / (3.0 * waters.REACH))
+        return min(waters.TOLL_CAP, waters.TOLL_RATE * near * 100.0)
 
     #: How long a march counts as the same war for the purpose of who takes
     #: offence at it. Sitting down, standing up and sitting down again is one
@@ -813,6 +1057,7 @@ class GameState:
             else:
                 self.world.grazed[key] = left
         msgs += self._plague_day()
+        msgs += self._bridge_day()
         self._look_around()
         msgs += self._lord_day()
         msgs += self._shrine_day()
@@ -1009,10 +1254,7 @@ class GameState:
         self.next_army_uid += 1
         self.armies.append(a)
         self._outfit(a, town.key)
-        a.bound_for = target
-        a.days_left = max(1.0, self.world.distance(town.key, target)
-                          / max(host_speed(party), 1.0))
-        a.state = MARCHING
+        self._set_march(a, town.key, target, party)
         town.last_pilgrimage = self.day
         return [f"{town.lord} of {town.name} sends men to "
                 f"{self.world.shrines[target].name}"]
@@ -2888,10 +3130,7 @@ class GameState:
         self.next_army_uid += 1
         self.armies.append(a)
         self._outfit(a, town.key)
-        a.bound_for = target
-        a.days_left = max(1.0, self.world.distance(town.key, target)
-                          / max(host_speed(host), 1.0))
-        a.state = MARCHING
+        water = self._set_march(a, town.key, target, host)
         town.hostility = 0.0
         for other in self.world.towns.values():
             if other is not town:
@@ -2910,7 +3149,8 @@ class GameState:
                 said = f'\n    {town.lord}: "{line}"'
         return (f"{who}: {town.lord} of {town.name} marches on "
                 f"{self.world.node_name(target)} with {describe(host)} -- "
-                f"{a.days_left:.0f} days out" + said)
+                f"{a.days_left:.0f} days out"
+                + (f", {water}" if water else "") + said)
 
     def war_pressure(self) -> float:
         return min(2.6, 1.0 + self.day / (1.7 * C.DAYS_PER_YEAR))
@@ -2955,7 +3195,7 @@ class GameState:
         # Knights want a war, and grow restless without one. A greater levy
         # granted and then left idle is worse: you armed them for nothing.
         at_war = any(a.owner != "player" for a in self.armies)
-        idle = self.day - getattr(self, "_last_war_day", 0)
+        idle = self.day - self._last_war_day
         if at_war:
             self._last_war_day = self.day
             e.note("knights", "there is a war on, and they are in it", 10.0,
@@ -3623,8 +3863,9 @@ class GameState:
                         "trade": self._trade_profit},
             "chronicle": self.chronicle.to_dict(),
             "chapter": self.chapter,
-            "rng": list(self.rng.getstate()),
-            "voice_rng": list(self.voice.getstate()),
+            "last_war_day": self._last_war_day,
+            **{name: list(rng.getstate())
+               for name, rng in self._streams().items()},
         }
 
     def save(self, path: str) -> str:
@@ -3683,20 +3924,29 @@ class GameState:
         g.chronicle = Chronicle.from_dict(d.get("chronicle", {}))
         g.chapter = d.get("chapter", "")
         g.over = d.get("over", "")
+        # The knights' quiet clock. It used to be set with `self._last_war_day
+        # = ...` the first time there was a war and read with a `getattr`
+        # default, which meant it was not a field, was not saved, and a
+        # reloaded game forgot how long the peace had been. Not an RNG and
+        # not visible in any fingerprint of the day it loaded -- it diverged
+        # a season later, when the estates decided the peace had been long
+        # enough to complain about and the original game did not.
+        g._last_war_day = int(d.get("last_war_day", 0))
         # Put the dice back exactly where they were. Re-seeding here -- which
         # is what this did -- loads a game whose state matches to the coin and
         # whose *future* does not: same save, reloaded, different weather,
         # different prices, different battles. The state was never the hard
         # part of saving a game; the stream position is.
-        raw = d.get("rng")
-        if raw:
-            g.rng.setstate((raw[0], tuple(raw[1]), raw[2]))
-        else:
-            g.rng = random.Random(d["seed"] + d["day"])   # a save from before
+        # The trade engine is rebuilt on the new world before the streams go
+        # back, because two of them live on it and a fresh TradeEngine brings
+        # its own literal-seeded pair with it.
         g.trade_engine = TradeEngine(g.world, g.rng)
-        raw = d.get("voice_rng")
-        if raw:
-            g.voice.setstate((raw[0], tuple(raw[1]), raw[2]))
+        g.trade_engine.pest = random.Random(d["seed"] * 5081 + 7)
+        g.trade_engine.spate = random.Random(d["seed"] * 7717 + 23)
+        for name, rng in g._streams().items():
+            if not cls._put_back(rng, d.get(name)) and name == "rng":
+                g.rng = random.Random(d["seed"] + d["day"])   # a save from before
+                g.trade_engine.rng = g.rng
         return g
 
     @classmethod

@@ -32,6 +32,8 @@ from urllib.parse import parse_qs, urlparse
 from .cli import Console, catalogue
 from . import config as C
 from .economics import marginal_hands
+from .military import MARCHING, sky_on
+from . import rivers as waters
 from .kin import SKILLS
 from .league import PLAYER as LEAGUE_PLAYER
 from . import cartography as carto
@@ -689,6 +691,54 @@ def _castle(s) -> dict:
     }
 
 
+def _water_view(game) -> dict:
+    """The rivers, what they are doing, and what you have put over them.
+
+    Everything here is public: a river is not fogged. What you cannot see
+    from this panel is what it is doing *tomorrow*, and that is the whole
+    design -- see rivers.forecast.
+    """
+    level = waters.stage(game.day, game.seed, game.start_month)
+    sky = sky_on(game.season, game.day, game.seed)
+    lines = []
+    for r in game.world.waters():
+        st = waters.state_of(r, level, sky)
+        lines.append({"key": r.key, "name": r.name, "size": r.size,
+                      "state": st, "words": waters.WORDS[st],
+                      "days": round(waters.DELAY.get(st, 0.0), 1)})
+    spans = []
+    for b in game.world.bridges:
+        if b.owner != "player":
+            continue
+        river = game.world.river(b.river)
+        spans.append({"uid": b.uid, "name": b.name,
+                      "river": river.name if river else "",
+                      "broken": b.broken, "days_left": b.days_left,
+                      "standing": b.standing,
+                      "toll": round(game.toll_on(b), 1) if b.standing else 0.0})
+    threat = []
+    for a in game.armies:
+        if a.owner == "player" or a.state != MARCHING:
+            continue
+        if a.bound_for not in game.world.settlements:
+            continue
+        for r, x, y, bridge in game.world.crossings(a.at or a.home, a.bound_for):
+            if bridge is not None and bridge.owner == "player":
+                threat.append({"uid": bridge.uid, "bridge": bridge.name,
+                               "host": a.name, "river": r.name,
+                               "days": round(a.days_left, 1)})
+    want = game.worst_unbridged()
+    offer = None
+    if want is not None and want[2].ford_limit <= waters.WORTH_BRIDGING:
+        offer = {"from": want[0], "to": want[1], "river": want[2].name,
+                 "where": game.world.node_name(want[0]),
+                 "afford": game.treasury >= waters.BRIDGE_COST}
+    return {"stage": round(level, 2), "forecast": waters.forecast(game.season),
+            "rivers": lines, "bridges": spans, "threat": threat, "offer": offer,
+            "cost": waters.BRIDGE_COST, "build_days": waters.BRIDGE_DAYS,
+            "mend": round(waters.BRIDGE_COST * waters.REBUILD_SHARE)}
+
+
 def _siege_view(game, s, key: str = "") -> Optional[dict]:
     """What a defender needs to decide with, and nothing he cannot see.
 
@@ -898,6 +948,7 @@ def snapshot(game, here: str = "") -> dict:
                 "word": game.word_of_sickness(),
             },
             "siege": _siege_view(game, s, key),
+            "water": _water_view(game),
             "field": _field_view(game, key),
             "raided": s.raided,
             "blockaded": s.blockaded,
