@@ -1,47 +1,13 @@
 {
- "at": "2026-09-15T16:47:03.230942Z",
+ "at": "2026-09-15T17:45:31.232561Z",
  "traps": [
   {
-   "city": "PHX",
-   "ceiling": 96,
-   "price": 95,
-   "p_model": 0.9905,
-   "p_market": 0.95,
-   "edge_pts": 4.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 68,
-   "price": 95,
-   "p_model": 0.982,
-   "p_market": 0.95,
-   "edge_pts": 3.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    }
-   ]
-  },
-  {
-   "city": "BOS",
-   "ceiling": 64,
-   "price": 98,
-   "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
+   "city": "TTN",
+   "ceiling": 72,
+   "price": 85,
+   "p_model": 0.9058,
+   "p_market": 0.85,
+   "edge_pts": 5.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -50,22 +16,26 @@
     },
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=19.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "n_eff=17.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "85c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "DEN",
-   "ceiling": 69,
+   "city": "SEA",
+   "ceiling": 64,
    "price": 96,
-   "p_model": 0.9641,
+   "p_model": 0.962,
    "p_market": 0.96,
-   "edge_pts": 0.4,
+   "edge_pts": 0.2,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
