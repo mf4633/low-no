@@ -10,6 +10,6 @@ attribution codes:
 
 - **DAL** QUALIFIED @ 0.96 ceil 97 guide 101 -> CLI 100 :: **WIN**
 - **SFO** QUALIFIED @ 0.94 ceil 71 guide 75 -> CLI 78 :: **WIN**
-- **CHI** DEAD_SCAVENGE @ 0.86 ceil 71 guide 73 -> CLI None :: **UNGRADED**  _lake cap ONLY on E/NE flow days; W/SW = clean. Boundary maxes common -> tenths decode._
+- **CHI** DEAD_SCAVENGE @ 0.86 ceil 71 guide 73 -> CLI 72 :: **WIN**
 
-**2/2 hit** (100%) vs 98.2% breakeven at 0.98
+**3/3 hit** (100%) vs 98.2% breakeven at 0.98
