@@ -2008,6 +2008,24 @@ function nodeWrit(n, ev) {
     `<p class="why">${st.ground
       ? 'a reason to march: ' + esc(st.ground)
       : 'no reason to march anybody would accept'}</p>`;
+  // The country and the sky. It sits with the castle rather than with the
+  // prices because it answers the same question the castle does -- what
+  // attacking this place would actually be like -- and a man who can read
+  // "heavy going" before he marches is making a decision instead of
+  // discovering one.
+  const field = !n.field ? '' :
+    `<p class="field-head"><b>${esc(n.field.words)}</b>` +
+    (n.field.firm ? ' <em class="firm">frozen hard</em>' : '') + '</p>' +
+    `<p class="why">${esc(n.field.going_note)}` +
+    (n.field.sky_note ? ' ' + esc(n.field.sky_note) : '') + '</p>' +
+    (n.field.dials.length
+      ? '<ul class="why-list">' + n.field.dials.map(d =>
+          `<li><span>${esc(d.kind)}</span><em class="${d.worth < 1 ? 'down' : 'up'}">` +
+          `${d.worth.toFixed(2)}×</em></li>`).join('') + '</ul>'
+      : '<p class="why">nothing here favours anybody</p>') +
+    `<p class="why">${esc((state && state.season) || "")} brings ` +
+    n.field.season.map(o => `${esc(o.sky)} ${Math.round(o.odds * 100)}%`).join(', ') +
+    '</p>';
   const acts = n.kind === 'town' ? `
     <div class="acts">
       ${idle ? `<button data-do="auto ${idle.uid}">put ${idle.name} on the best run</button>` : ''}
@@ -2019,7 +2037,7 @@ function nodeWrit(n, ev) {
     </div>` : n.kind === 'site' ? `
     <div class="acts"><button data-do="found ${n.key}">settle it</button></div>` : '';
   openWrit(n.name, skyline + price + (known ? `<p class="why">${known}</p>` : '')
-           + keep + standing + acts, ev);
+           + keep + field + standing + acts, ev);
   for (const c of writ.querySelectorAll('canvas.skyline')) {
     c.width = Math.round(c.clientWidth * dpr);
     c.height = Math.round(104 * dpr);
@@ -2585,7 +2603,15 @@ function paint(s) {
   // A browser tab full of identical "Marchlands" is no use to anyone playing
   // two chapters at once.
   document.title = `${s.town.name} · Marchlands`;
-  $('date').textContent = `${s.date} · ${s.age}`;
+  // The sky goes on the date rather than in the sidebar. It changes every
+  // day and it decides battles now, so it belongs with the day -- and the
+  // sidebar has been pushed off the bottom of the screen by a new panel
+  // once already.
+  const sky = s.town.field && s.town.field.sky;
+  $('date').textContent = `${s.date} · ${s.age}`
+    + (sky && sky !== 'a fair day' ? ` · ${sky}` : '');
+  $('date').title = s.town.field
+    ? `${s.town.field.words} — ${s.town.field.going_note}` : '';
   show('purse', num(s.treasury) + 'c');
   show('souls', `${num(s.town.population)} of ${num(s.town.housing)} roofs`);
   // What the picture is showing, stated. A figure that stands for fourteen

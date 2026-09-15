@@ -2379,6 +2379,63 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_ground(self, args: List[str]) -> None:
+        """What a place is like to fight over, and what the sky is doing."""
+        from .military import field_note, season_odds
+        g = self.game
+        where = " ".join(args).strip().lower().replace(" ", "_")
+        if not where:
+            where = self.here
+        known = dict(g.world.settlements)
+        known.update(g.world.towns)
+        if where not in known:
+            match = [k for k, v in known.items()
+                     if where in k or where in v.name.lower()]
+            if not match:
+                return self.err(f"no place called {' '.join(args)!r}")
+            where = match[0]
+        fld = g.field_at(where)
+        self.say(ink.head(fld.place.upper(), fld.words()))
+        self.say(f"  {ink.c(ink.pad('the ground', 14), ink.DIM)}{fld.ground.name}")
+        self.say(f"      {ink.c(fld.ground.note, ink.DIM)}")
+        self.say(f"  {ink.c(ink.pad('the sky', 14), ink.DIM)}{fld.sky.name}")
+        if fld.sky.note:
+            self.say(f"      {ink.c(fld.sky.note, ink.DIM)}")
+        if fld.sky.firms and fld.going == "heavy":
+            frozen = ("The fen is frozen. It will carry a horse today and "
+                      "it will not in April.")
+            self.say("      " + ink.c(frozen, ink.LEAF))
+        def dials(rows) -> None:
+            for r in rows:
+                tint = ink.BLOOD if r["worth"] < 1 else ink.LEAF
+                worth = "worth {:.2f} of itself".format(r["worth"])
+                self.say("      " + ink.c(ink.pad(r["kind"], 9), ink.DIM)
+                         + ink.c(worth, tint))
+
+        mine = [a for a in g.armies if a.owner == "player"]
+        said = False
+        for a in mine:
+            rows = field_note(a.units, fld)
+            if not rows:
+                continue
+            said = True
+            self.say("")
+            self.say(f"  {ink.c(a.name, ink.PARCH)} here today:")
+            dials(rows)
+        if not said:
+            # No host of yours to weigh, or none of it cares. Say what the
+            # place does to anybody, because a player deciding what to raise
+            # needs to know a fen before he owns the horse it would ruin.
+            every = [{"kind": k, "worth": round(v, 3)}
+                     for k, v in sorted(fld.mult().items())]
+            if every:
+                self.say("")
+                self.say("  " + ink.c("here, to anybody:", ink.DIM))
+                dials(every)
+        self.say("")
+        self.say(f"  {ink.c(g.season + ' brings', ink.DIM)} "
+                 + ", ".join(f"{k} {v:.0%}" for k, v in season_odds(g.season)))
+
     def cmd_order(self, args: List[str]) -> None:
         """Tell a host how to fight, before it has to."""
         from .military import ORDERS, order_note
@@ -3026,6 +3083,7 @@ COMMANDS = {
     "feats": Console.cmd_feats, "achievements": Console.cmd_feats,
     "missions": Console.cmd_missions, "roll": Console.cmd_missions,
     "order": Console.cmd_order, "orders": Console.cmd_order,
+    "ground": Console.cmd_ground, "weather": Console.cmd_ground,
     "sally": Console.cmd_sally, "sortie": Console.cmd_sally,
     "shore": Console.cmd_shore, "mend": Console.cmd_shore,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,

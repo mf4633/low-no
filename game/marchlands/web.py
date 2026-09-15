@@ -44,6 +44,7 @@ from . import estates as estates_mod
 from . import roles as roles_mod
 from . import feats as feats_mod
 from . import missions as missions_mod
+from . import military
 from .buildings import BUILDINGS
 from .engine import GameState
 from .military import BESIEGING, UNITS
@@ -140,6 +141,31 @@ def _believed_works(game, key: str) -> dict:
     }
 
 
+def _field_view(game, key: str) -> dict:
+    """The country round a place and the sky over it today.
+
+    Not fogged, and deliberately. What a fen is like underfoot is not a
+    secret a lord keeps -- anyone who has driven a cart that way knows, and
+    the map has been drawing the country all along. The fog in this game
+    covers how many men are behind a wall, which is the thing you would
+    actually have to send somebody to find out.
+    """
+    fld = game.field_at(key)
+    mine = [a for a in game.armies if a.owner == "player"]
+    near = next((a for a in mine if a.at == key), None) or (mine[0] if mine else None)
+    return {
+        "words": fld.words(),
+        "going": fld.ground.name, "going_note": fld.ground.note,
+        "sky": fld.sky.name, "sky_note": fld.sky.note,
+        "firm": bool(fld.sky.firms and fld.going == military.HEAVY),
+        "dials": [{"kind": k, "worth": round(v, 3)}
+                  for k, v in sorted(fld.mult().items())],
+        "host": military.field_note(near.units, fld) if near else [],
+        "season": [{"sky": k, "odds": round(v, 2)}
+                   for k, v in military.season_odds(game.season)],
+    }
+
+
 def _their_host_name(game, a) -> str:
     """What you call a host that is not yours. Their lord's, not its own:
     you would not know what they have named it."""
@@ -191,6 +217,8 @@ def march(game, here: str, good: str = "bread") -> dict:
                       # would meet. Every lord used to build the identical
                       # wall, so there was nothing to adapt to.
                       "keep": _believed_works(game, key),
+                      # Where a battle here would be fought, and under what.
+                      "field": _field_view(game, key),
                       "walls": round(seen.get("wall_hp", 0.0)) if seen else None,
                       "here": key == here})
     for key, site in w.sites.items():
@@ -816,6 +844,7 @@ def snapshot(game, here: str = "") -> dict:
             "wall_max": round(s.wall_max(game.progress), 1),
             "besieged": s.besieged,
             "siege": _siege_view(game, s),
+            "field": _field_view(game, key),
             "raided": s.raided,
             "blockaded": s.blockaded,
             "fires": len(s.fires.blazes),

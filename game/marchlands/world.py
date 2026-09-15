@@ -79,6 +79,12 @@ class ForeignTown:
     #: What it is built out of -- see culture.py. A town looks like itself
     #: wherever a scenario puts it, and taking one does not re-roof it.
     culture: str = ""
+    #: The country round it, in slots of each kind -- the same dict the
+    #: cartographer used to choose the roofline. It used to be thrown away
+    #: the moment the culture was picked, which meant the map knew a town
+    #: stood in a fen and the game did not. It decides what the ground is
+    #: like to fight over: see military.field_at.
+    ground: Dict[str, int] = field(default_factory=dict)
     regard: float = 0.0
     signed: bool = False          # has put his name to the letter against you
     sworn_friend: bool = False    # allied to you
@@ -250,7 +256,7 @@ class ForeignTown:
                 "seen": dict(self.seen), "seen_day": self.seen_day,
                 "muster": self.muster, "temper": self.temper,
                 "sort": self.sort, "regard": self.regard,
-                "culture": self.culture,
+                "culture": self.culture, "ground": dict(self.ground),
                 "tariff_base": self.tariff_base,
                 "signed": self.signed,
                 "sworn_friend": self.sworn_friend,
@@ -273,6 +279,7 @@ class ForeignTown:
         t.sort = d.get("sort", "")
         t.regard = float(d.get("regard", 0.0))
         t.culture = d.get("culture", "")
+        t.ground = dict(d.get("ground", {}))
         t.tariff_base = float(d.get("tariff_base", C.BASE_TARIFF))
         t.signed = bool(d.get("signed", False))
         t.sworn_friend = bool(d.get("sworn_friend", False))

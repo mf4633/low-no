@@ -258,6 +258,9 @@ def drawn_game(region: str = carto.DEFAULT_REGION, seed: int = 7,
         # settlement's does -- so a fen town and a hill town on the same map
         # do not have the same roofline.
         town.culture = cultures.for_ground(ground)
+        # And kept, not only consulted. The same patch of country that decided
+        # the roofline decides what it is like to fight over.
+        town.ground = dict(ground)
         world.towns[t["key"]] = town
         world.place(t["key"], t["x"], t["y"])
         t["ground"] = ground

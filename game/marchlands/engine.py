@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional, Tuple
 
 from . import config as C
@@ -39,6 +39,7 @@ from .military import (BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_speed,
                        host_strength, raid_day, recruit_cost, siege_day, unit)
+from .military import Field, going_of, sky_on
 from .settlement import Settlement
 from .tech import AGES, TECHS, Progress
 from .trade import (CART, SHIP, Caravan, TradeEngine, caravan_from_dict,
@@ -861,7 +862,7 @@ class GameState:
                 here.sort(key=lambda x: host_strength(x.units), reverse=True)
                 winner, loser = here[0], here[1]
                 res = fight(Side(winner.units), Side(loser.units), rng=self.rng,
-                            place=sh.name)
+                            place=sh.name, field=self.field_at(key))
                 winner.prune()
                 if res.winner == "attacker":
                     beaten, kept = loser, winner
@@ -1510,6 +1511,27 @@ class GameState:
                 + (f" -- {stone:.0f} of stone in store" if stone >= 1
                    else " -- and no stone to do it with"))
 
+    def field_at(self, node: str) -> Field:
+        """Where and when a battle here would be fought.
+
+        The ground comes off the map -- the same slots the cartographer laid
+        down and the same ones that chose the roofline -- and the weather
+        off the day, so both are things the player can look at before he
+        commits rather than things he reads about afterwards. A place he has
+        never been is still country: `going_of` falls back to the name.
+        """
+        ground: Dict[str, int] = {}
+        s = self.world.settlements.get(node)
+        if s is not None:
+            ground = dict(s.terrain)
+        else:
+            t = self.world.towns.get(node)
+            if t is not None:
+                ground = dict(t.ground)
+        return Field(going=going_of(ground, node),
+                     weather=sky_on(self.season, self.day, self.seed),
+                     place=self.world.node_name(node) or node)
+
     def sally(self, settlement_key: str = "", men: int = 0) -> str:
         """Out of the gate at the siege works.
 
@@ -1558,8 +1580,13 @@ class GameState:
         met = {k: v for k, v in list(works.items()) + list(guard.items())
                if v >= 0.5}
         them = Side(dict(met))
-        res = fight(out, them, rng=self.rng, place=f"the works before {s.name}",
-                    orders=(getattr(s, "order", "") or STORM, foe.order))
+        # The works are outside the gate, so a sortie is fought on the town's
+        # own ground and under the day's own sky -- which is the argument for
+        # going out in a hard frost and not in April.
+        out_field = replace(self.field_at(self._key_of(s)),
+                            place=f"the works before {s.name}")
+        res = fight(out, them, rng=self.rng, orders=(getattr(s, "order", "") or STORM,
+                                                     foe.order), field=out_field)
         # What came back, on both sides. The guard that was not at the works
         # was never in this fight and is still out there.
         for key in list(s.units):
@@ -1745,7 +1772,8 @@ class GameState:
             msgs.append(f"{a.name}: {lines[0]}")
         if storms_now(a.siege.plan, wall, holder.alive()):
             res = fight(besieger, holder, rng=self.rng, place=town.name,
-                        orders=(a.order, lordly.sort_of(town.key).fights))
+                        orders=(a.order, lordly.sort_of(town.key).fights),
+                        field=self.field_at(town.key))
             msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
                         f"the ground after {res.rounds} rounds")
             msgs.append(self._box_score(f"{a.name} storms {town.name}", res,
@@ -1846,7 +1874,8 @@ class GameState:
         if storms_now(a.siege.plan, wall, holder.alive()):
             # Your own wall: whatever you told the garrison to do.
             res = fight(besieger, holder, rng=self.rng, place=s.name,
-                        orders=(a.order, getattr(s, "order", "") or HOLD))
+                        orders=(a.order, getattr(s, "order", "") or HOLD),
+                        field=self.field_at(self._key_of(s)))
             msgs.append(self._box_score(f"{a.name} storms {s.name}", res,
                                         a.owner, PLAYER))
             self.scored(a.owner, won=res.winner == "attacker")

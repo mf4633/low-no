@@ -13,6 +13,7 @@ for.
 from __future__ import annotations
 
 import random
+import zlib
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -176,6 +177,11 @@ class Side:
     defense_mult: float = 1.0
     battlement: float = 0.0        # defence added by towers, defenders only
     morale: float = 1.0
+    #: What each *kind* of soldier is worth here today -- see `Field`. Kept
+    #: apart from `attack_mult` because that is one number for the whole
+    #: host, and the whole point of ground is that it is not the same number
+    #: for a knight and for a spearman.
+    class_mult: Dict[str, float] = field(default_factory=dict)
 
     def alive(self) -> float:
         return sum(self.units.values())
@@ -270,6 +276,7 @@ def _damage(side: Side, foe: Side, *, ranged_only: bool, cover: float) -> float:
         if ranged_only and not u.ranged:
             continue
         mult = sum(share * u.counters.get(cls, 1.0) for cls, share in shares.items()) or 1.0
+        mult *= side.class_mult.get(u.unit_class, 1.0)
         total += n * u.attack * mult
     return total * side.attack_mult * side.morale * (1.0 - cover)
 
@@ -486,6 +493,213 @@ ORDERS: Dict[str, Order] = {o.key: o for o in [
 #: close battle and nothing at all in a rout, which is what an order should
 #: be.
 
+# ------------------------------------------------- the ground and the sky
+#
+# Until this, a battle was arithmetic with a place name stapled on: `fight`
+# took a `place` and used it only to write the log, and the word "season"
+# appeared nowhere in this file. A January battle in a fen came out exactly
+# like a June one on a dry plain, which is a strange thing in a game whose
+# whole map is country and whose whole calendar is seasons.
+#
+# What ground and weather do here is what they did: they change what each
+# *kind* of soldier is worth, not how big the host is. That is why they
+# multiply per unit class rather than the host's one attack dial -- a fen is
+# a catastrophe for a knight and an inconvenience for a spearman, and a
+# single number cannot say that.
+#
+# The sizes are small for the same reason the orders' are: this combat model
+# is a knife edge (see the note above), so anything worth a quarter does not
+# tilt a battle, it decides one. These are worth about what an order is.
+
+OPEN, CLOSE, BROKEN, HEAVY = "open", "close", "broken", "heavy"
+
+
+@dataclass(frozen=True)
+class Going:
+    """What the ground underfoot is like."""
+    key: str
+    name: str
+    note: str
+    mult: Dict[str, float] = field(default_factory=dict)
+
+
+GOING: Dict[str, Going] = {g.key: g for g in [
+    Going(OPEN, "open field",
+          "Room to ride and a clear shot the length of it.",
+          {HORSE: 1.06, RANGED: 1.02}),
+    Going(CLOSE, "close country",
+          "Wood and hedge. Nobody sees far, nobody charges, and a line that "
+          "goes into it comes out of it in pieces.",
+          {HORSE: 0.90, RANGED: 0.95, FOOT: 1.02}),
+    Going(BROKEN, "broken ground",
+          "Slope and scree. Hard ground to hold a line on and harder ground "
+          "to ride one down on.",
+          {HORSE: 0.93, FOOT: 1.03, SIEGE: 0.95}),
+    Going(HEAVY, "heavy going",
+          "Fen. It takes a horse to the hock and a wagon to the axle, and "
+          "everything that happens on it happens slowly.",
+          {HORSE: 0.88, SIEGE: 0.91, FOOT: 1.02}),
+]}
+
+FAIR, RAIN, MUD, FROST, HEAT = "fair", "rain", "mud", "frost", "heat"
+
+
+@dataclass(frozen=True)
+class Weather:
+    key: str
+    name: str
+    note: str
+    mult: Dict[str, float] = field(default_factory=dict)
+    #: A hard frost makes a fen into a road. This is the one piece of weather
+    #: that changes what the ground *is* rather than what it is like, and it
+    #: is the reason the calendar is a weapon: the fen town nobody can take
+    #: in April can be ridden into in January.
+    firms: bool = False
+
+
+WEATHER: Dict[str, Weather] = {w.key: w for w in [
+    Weather(FAIR, "a fair day", "Nothing to blame but each other.", {}),
+    Weather(RAIN, "rain", "Wet strings shoot short and shoot badly.",
+            {RANGED: 0.91}),
+    Weather(MUD, "mud", "A charge that arrives at a walk is not a charge.",
+            {HORSE: 0.93, SIEGE: 0.90}),
+    Weather(FROST, "hard frost", "The ground rings. Everything moves, and "
+            "nobody who stands still all day is much use by evening.",
+            {FOOT: 0.98, RANGED: 0.97}, firms=True),
+    Weather(HEAT, "heat", "Men in armour cook in it.",
+            {FOOT: 0.96, HORSE: 0.97}),
+]}
+
+#: What the sky is likely to be doing, by season. Weighted rather than
+#: uniform, because a game where January is as often fair as February is
+#: sleet is a game where the calendar tells you nothing.
+SKY: Dict[str, List[Tuple[str, float]]] = {
+    "spring": [(FAIR, 0.42), (RAIN, 0.31), (MUD, 0.21), (FROST, 0.06)],
+    "summer": [(FAIR, 0.58), (HEAT, 0.24), (RAIN, 0.18)],
+    "autumn": [(FAIR, 0.34), (RAIN, 0.33), (MUD, 0.28), (FROST, 0.05)],
+    "winter": [(FROST, 0.36), (MUD, 0.30), (RAIN, 0.24), (FAIR, 0.10)],
+}
+
+
+@dataclass(frozen=True)
+class Field:
+    """Where a battle is fought and what the sky is doing while it is.
+
+    Both halves are knowable before you commit -- see `field_note`. A player
+    who can be told "heavy going, and rain" and cannot act on it has been
+    given flavour text; the point is that he can wait for the frost, or
+    fight somewhere else, or bring different men.
+    """
+    going: str = OPEN
+    weather: str = FAIR
+    place: str = "the field"
+
+    @property
+    def ground(self) -> Going:
+        return GOING.get(self.going, GOING[OPEN])
+
+    @property
+    def sky(self) -> Weather:
+        return WEATHER.get(self.weather, WEATHER[FAIR])
+
+    def mult(self) -> Dict[str, float]:
+        """One dial per kind of soldier, ground and sky together."""
+        out: Dict[str, float] = {}
+        sky = self.sky
+        # Frost firms the ground: a frozen fen is not heavy going, it is a
+        # road. Applied by dropping the ground's own dials rather than by
+        # adding a counter-multiplier, so a hard winter does not make a fen
+        # *better* than open country -- only ordinary.
+        if not (sky.firms and self.going == HEAVY):
+            for cls, v in self.ground.mult.items():
+                out[cls] = out.get(cls, 1.0) * v
+        for cls, v in sky.mult.items():
+            out[cls] = out.get(cls, 1.0) * v
+        return out
+
+    def words(self) -> str:
+        if self.sky.firms and self.going == HEAVY:
+            return f"{self.ground.name}, frozen hard"
+        if self.weather == FAIR:
+            return self.ground.name
+        return f"{self.ground.name}, {self.sky.name}"
+
+
+def going_of(ground: Dict[str, int], key: str = "") -> str:
+    """What the country round a place is like to fight over.
+
+    Read off the same slots the cartographer laid down, so the fen town the
+    map drew is the fen you have to fight in. A place with no ground recorded
+    -- the hand-built scenarios predate this -- gets one off its own name, so
+    that every map has country rather than one having it and one not.
+    """
+    if not ground:
+        pick = zlib.crc32(key.encode()) % 100 if key else 0
+        return (HEAVY if pick < 12 else CLOSE if pick < 38
+                else BROKEN if pick < 62 else OPEN)
+    marsh = ground.get("marsh", 0)
+    wood = ground.get("forest", 0)
+    hills = ground.get("hills", 0)
+    open_land = ground.get("fertile", 0)
+    # Marsh first and on a low bar: a fen does not have to be most of the
+    # country to be the part of it a battle gets fought in.
+    if marsh >= 4 and marsh * 2 >= max(wood, hills, open_land):
+        return HEAVY
+    best = max((wood, CLOSE), (hills, BROKEN), (open_land, OPEN),
+               key=lambda p: p[0])
+    return best[1]
+
+
+def sky_on(season: str, day: int, seed: int = 0) -> str:
+    """The weather, drawn once per day and the same for everybody on it.
+
+    Seeded off the day rather than rolled from the world's RNG, because two
+    people asking what the sky is doing must get the same answer -- the
+    panel that tells you before you commit and the battle that happens
+    afterwards are two such askers, and a weather that re-rolled between
+    them would be a lie rather than a forecast.
+    """
+    odds = SKY.get(season, SKY["spring"])
+    r = random.Random(zlib.crc32(f"sky{seed}:{day}".encode())).random()
+    at = 0.0
+    for key, share in odds:
+        at += share
+        if r < at:
+            return key
+    return odds[-1][0]
+
+
+def season_odds(season: str) -> List[Tuple[str, float]]:
+    """What this season tends to bring, commonest first.
+
+    Shown instead of a forecast, and the distinction matters. Nobody in 1247
+    knows what next Tuesday is doing, and a game that told you would turn
+    "wait for the frost" from a judgement into a lookup. What a man does
+    know is his own calendar: that January is frost more often than not, and
+    that waiting for it is a plan rather than a gamble.
+    """
+    return sorted(SKY.get(season, SKY["spring"]), key=lambda p: -p[1])
+
+
+def field_note(units: Dict[str, float], fld: Field) -> List[dict]:
+    """What this field is worth to this host, by kind, for the panel.
+
+    Only kinds you actually have: telling a man with no horse what the mud
+    would do to his horse is noise.
+    """
+    have = Side(dict(units)).class_share()
+    dials = fld.mult()
+    out = []
+    for cls, share in sorted(have.items(), key=lambda p: -p[1]):
+        worth = dials.get(cls, 1.0)
+        if share < 0.02 or abs(worth - 1.0) < 0.005:
+            continue
+        out.append({"kind": cls, "share": round(share, 3),
+                    "worth": round(worth, 3),
+                    "word": "worse" if worth < 1 else "better"})
+    return out
+
+
 DEFAULT_ORDER = LINE
 
 
@@ -526,14 +740,18 @@ def order_note(units: Dict[str, float], key: str) -> str:
 
 def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
           rng: Optional[random.Random] = None, max_rounds: int = 14,
-          place: str = "the field", orders: Tuple[str, str] = ("", "")
-          ) -> BattleResult:
+          place: str = "the field", orders: Tuple[str, str] = ("", ""),
+          field: Optional[Field] = None) -> BattleResult:
     """Resolve a battle round by round. Walls change everything until they fall.
 
     `orders` is (attacker, defender) -- how each side was told to fight. An
     order multiplies dials this function already reads and lengthens or
     shortens the fight, so a decision made before the battle is visible in
     its outcome without a second combat model being written.
+
+    `field` is where and when it is being fought, and it applies to both
+    sides because they are standing in the same fen in the same rain. What
+    differs is what each has brought to stand in it.
     """
     rng = rng or random.Random()
     # Applied to the sides that were handed in, and taken off again at the
@@ -545,6 +763,15 @@ def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
     att_key, def_key = orders
     keep = ((attacker.attack_mult, attacker.defense_mult, attacker.morale),
             (defender.attack_mult, defender.defense_mult, defender.morale))
+    ground = (dict(attacker.class_mult), dict(defender.class_mult))
+    if field is not None:
+        dials = field.mult()
+        for side in (attacker, defender):
+            merged = dict(side.class_mult)
+            for cls, v in dials.items():
+                merged[cls] = merged.get(cls, 1.0) * v
+            side.class_mult = merged
+        place = field.place or place
     if att_key:
         _dress(attacker, att_key)
         max_rounds = order(att_key).rounds
@@ -556,6 +783,7 @@ def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
     finally:
         (attacker.attack_mult, attacker.defense_mult, attacker.morale) = keep[0]
         (defender.attack_mult, defender.defense_mult, defender.morale) = keep[1]
+        attacker.class_mult, defender.class_mult = ground
 
 
 def _dress(side: Side, key: str) -> None:
