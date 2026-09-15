@@ -1,13 +1,28 @@
 {
- "at": "2026-09-15T16:41:53.366160Z",
+ "at": "2026-09-15T16:47:03.230942Z",
  "traps": [
+  {
+   "city": "PHX",
+   "ceiling": 96,
+   "price": 95,
+   "p_model": 0.9905,
+   "p_market": 0.95,
+   "edge_pts": 4.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
   {
    "city": "SFO",
    "ceiling": 68,
-   "price": 92,
-   "p_model": 0.953,
-   "p_market": 0.92,
-   "edge_pts": 3.3,
+   "price": 95,
+   "p_model": 0.982,
+   "p_market": 0.95,
+   "edge_pts": 3.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -21,27 +36,12 @@
    ]
   },
   {
-   "city": "PHX",
-   "ceiling": 96,
-   "price": 96,
-   "p_model": 0.9905,
-   "p_market": 0.96,
-   "edge_pts": 3.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
    "city": "BOS",
    "ceiling": 64,
-   "price": 97,
+   "price": 98,
    "p_model": 1.0,
-   "p_market": 0.97,
-   "edge_pts": 3.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
    "size_lcb": 0.0,
    "signals": [
     {
