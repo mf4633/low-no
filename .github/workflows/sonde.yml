@@ -1,0 +1,49 @@
+name: sounding resistance test
+# Development branch only. Read-only research: grades nothing, feeds no gate.
+on:
+  push:
+    branches: [claude/kalshi-cities-improve-jzh9z4]
+    paths: [sonde.py, .github/workflows/sonde.yml]
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  group: sonde
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: claude/kalshi-cities-improve-jzh9z4 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: coverage -- which cities can even be reached
+        run: python sonde.py --coverage 2>&1 | tee sonde_coverage.txt
+      - name: primary test at DEN
+        continue-on-error: true
+        run: python sonde.py --test DEN 2>&1 | tee sonde_den.txt
+      - name: commit
+        if: always()
+        # `bash -e` kills the step on a short-circuiting `&&`; both guards are
+        # `if` blocks for that reason. See city-regimes.yml.
+        run: |
+          git config user.name lowno-bot && git config user.email bot@lowno
+          for f in sonde_coverage.txt sonde_den.txt docs/sonde_result.json; do
+            if [ -e "$f" ]; then git add -- "$f"; fi
+          done
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "sounding resistance test $(date -u +%FT%H:%MZ)"
+          for i in 1 2 3 4; do
+            if git pull --rebase --autostash origin "$BRANCH" && \
+               git push origin "HEAD:$BRANCH"; then
+              exit 0
+            fi
+            sleep $((2 ** i))
+          done
+          exit 1
+        env:
+          BRANCH: claude/kalshi-cities-improve-jzh9z4
