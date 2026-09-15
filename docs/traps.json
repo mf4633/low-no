@@ -1,5 +1,29 @@
 {
- "at": "2026-09-15T12:27:18.283764Z",
- "traps": [],
+ "at": "2026-09-15T13:31:32.217314Z",
+ "traps": [
+  {
+   "city": "DEN",
+   "ceiling": 69,
+   "price": 79,
+   "p_model": 0.9413,
+   "p_market": 0.79,
+   "edge_pts": 15.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 15 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "79c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
