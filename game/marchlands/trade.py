@@ -101,10 +101,24 @@ class Caravan:
     def sails(self) -> bool:
         return self.kind == SHIP
 
+    #: What a cart costs while it is standing inside a closed ring, as a
+    #: share of what it costs on the road. Its drovers are in the town and
+    #: its oxen are eating, but nobody is paying tolls, road guards or
+    #: wear -- and it is not a cart you can do anything about, because the
+    #: lines are shut.
+    #:
+    #: Written at the full rate to begin with, and that was a trap with no
+    #: signal attached: a besieged town went on paying twenty coin a day for
+    #: two carts that were physically unable to move, which over a long
+    #: siege was four thousand coin and the reason a garrison that held its
+    #: wall went bankrupt behind it.
+    STALLED_COST = 0.2
+
     @property
     def daily_cost(self) -> float:
         base = C.SHIP_UPKEEP if self.sails else C.CARAVAN_UPKEEP
-        return base + C.GUARD_COST * self.guards
+        cost = base + C.GUARD_COST * self.guards
+        return cost * (self.STALLED_COST if self.stalled else 1.0)
 
     def note(self, msg: str) -> None:
         self.log.append(msg)

@@ -18,6 +18,7 @@ from .kin import SKILLS
 from .goods import RATION_GOODS, good, nourishment
 from .military import BESIEGING, UNITS, host_strength
 from .trade import MOVING, SHIP, Order, Stop
+from . import supply
 
 # Feed the town, then work up the chain. Order is a preference, not a queue --
 # the bot takes the first thing it can actually afford and has land for.
@@ -50,6 +51,15 @@ COLONY_PLAN = [
 #: dead route is not paid for all year.
 CART_TRIAL = 40
 
+#: What share of a garrison goes out of the gate. A quarter, because a
+#: sortie is a bet on not being seen forming up -- see military.sortie_odds
+#: and the table in tests/test_siege.py.
+SORTIE_SHARE = 0.3
+
+#: And the most food a besieger can be carrying for burning it to be worth
+#: the men. One raid takes about a third of a camp.
+TORCH_UNDER = 60.0
+
 
 class Bot:
     """A plain policy, used as a balance test rather than an opponent.
@@ -72,6 +82,9 @@ class Bot:
         #: Which of your towns has already sent its garrison out at the
         #: works. Once each: a sortie is a thing you spend, not a tactic.
         self._sallied: Dict[str, bool] = {}
+        #: And which has put a torch in his baggage. Also once: the camp
+        #: watches the gate harder after every sortie of either kind.
+        self._torched: Dict[str, bool] = {}
         #: The day each cart joined the fleet, so the bot can tell a cart
         #: that has not yet paid for itself from one that never will.
         self._bought: Dict[int, int] = {}
@@ -110,6 +123,11 @@ class Bot:
                 self._govern(s)
             self._hold_out()
             self._defend()
+            # A cart that cannot move is still on the books. Skipping the
+            # whole of `_carts` under siege skipped the one part of it that
+            # matters under siege, which is selling the ones that are never
+            # going anywhere again.
+            self._prune()
             return
         self._climb()
         self._build()
@@ -342,18 +360,31 @@ class Bot:
             if "begun" in g.build(self.home, key):
                 return
 
+    SORTIE_SHARE = SORTIE_SHARE
+    TORCH_UNDER = TORCH_UNDER
+
     def _hold_out(self) -> None:
         """What to do when somebody is already at the gate.
 
-        The two levers a besieged defender has, used the way the measurements
-        say they work: shore the breach while there is stone for it, and go
-        out at the works *early* -- on the first day the engines are there,
-        not when the wall is falling. Sallying on day five takes a siege from
-        a coin flip to seven in eight; sallying on day sixty is no better
-        than staying in bed, because by then the men who could have gone are
-        the men who have been holding the wall.
+        Three levers now, used the way the measurements say they work.
 
-        The bot knowing this is also the argument that the scenario is a
+        Shore the breach while there is stone for it. Go out at the works
+        *early* -- on the first day the engines are there, not when the wall
+        is falling -- because by then the men who could have gone are the men
+        who have been holding the wall-walk. And send about a quarter of the
+        garrison rather than most of it: a sortie is a bet on getting out of
+        the gate unseen, and a big party is a thing the camp can watch you
+        form up. This policy sent four fifths of the garrison until the
+        sortie was reworked under it, and went on sending four fifths after,
+        which is how a bot that had been holding the town started starving
+        in it.
+
+        Then, if he is close enough to the end of his baggage for it to
+        matter, put a torch in it. One raid takes about a third, so against a
+        camp carrying a year it is men spent teaching him to watch the gate,
+        and against one carrying a fortnight it is the siege.
+
+        The bot knowing all this is also the argument that the scenario is a
         game: a policy this simple should not be able to change the outcome
         of something that is decided in advance.
         """
@@ -369,8 +400,19 @@ class Bot:
                              for u in a.units)]
             men = sum(s.units.values())
             if works and men >= 30 and not self._sallied.get(key):
-                g.sally(key, men=int(men * 0.8))
+                g.sally(key, men=max(8, int(men * self.SORTIE_SHARE)))
                 self._sallied[key] = True
+                continue
+            # And his wagons, once, where burning them would actually bite.
+            outside = [a for a in g.armies
+                       if a.owner != "player" and a.state == BESIEGING
+                       and g.world.node_name(a.at) == s.name]
+            camp = max((supply.days_left(a.size, a.stores) for a in outside),
+                       default=0.0)
+            if (outside and men >= 20 and not self._torched.get(key)
+                    and 0 < camp <= self.TORCH_UNDER):
+                g.fire_baggage(key, men=max(5, int(men * self.SORTIE_SHARE)))
+                self._torched[key] = True
 
     def _defend(self) -> None:
         """Enough men on the wall to make a siege not worth a lord's time --

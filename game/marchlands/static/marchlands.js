@@ -2820,11 +2820,24 @@ function paintSiege(v) {
   showOdds();
   // What the sortie is actually for. A player who reads "open the gate" as
   // "attack the army" opens it once and never again.
+  // What to say about the wagons depends on how full they are, because the
+  // right answer does: one torch takes about a third off a camp, so against
+  // a fortnight's baggage it is a siege lifted and against a year's it is
+  // men spent teaching him to watch the gate. The panel already prints the
+  // days; this says what the number means.
+  const deep = v.stores_out > 60;
   $('siege-note').textContent =
     'Get out unseen or his host turns out, in the open, with no wall behind '
     + 'you. The works want enough men to beat the watch; the wagons want only '
-    + 'men who are not seen. Going out twice is expected -- he watches the '
-    + 'gate after the first.';
+    + 'men who are not seen. '
+    + (v.stores_out
+        ? (deep
+            ? `He is carrying ${v.stores_out} days. One torch will not empty `
+              + 'that — it is a campaign of raids or it is nothing, and he '
+              + 'watches the gate harder after every one.'
+            : `He is carrying ${v.stores_out} days. A torch in that camp is a `
+              + 'siege lifted.')
+        : '');
 }
 
 $('siege-shore').addEventListener('click', () => {

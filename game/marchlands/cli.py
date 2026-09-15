@@ -2394,6 +2394,7 @@ class Console:
     def cmd_sortie_odds(self, args: List[str]) -> None:
         """What a sortie out of a besieged town would risk, before you order it."""
         from .military import BESIEGING, sortie_odds
+        from . import supply
         g = self.game
         where = " ".join(args).strip().lower().replace(" ", "_") or self.here
         s = g.world.settlements.get(where)
@@ -2431,9 +2432,25 @@ class Console:
         self.say("  " + ink.c("torch <men>", ink.GOLD)
                  + ink.c("  at the wagons -- you have to beat nobody, only", ink.DIM))
         self.say("  " + ink.c("            ", ink.DIM)
-                 + ink.c("  arrive unseen. He watches the gate after the", ink.DIM))
+                 + ink.c("  arrive unseen, so the smallest party that can", ink.DIM))
         self.say("  " + ink.c("            ", ink.DIM)
-                 + ink.c("  first, so going out often is how a garrison ends", ink.DIM))
+                 + ink.c("  carry fire is the right one", ink.DIM))
+        # What is in his wagons decides whether that is worth doing at all.
+        camp = max((supply.days_left(a.size, a.stores) for a in outside),
+                   default=0.0)
+        if camp > 60:
+            self.say("")
+            self.say("  " + ink.c(
+                "He carries {:.0f} days. One torch takes about a third: that "
+                "is a campaign".format(camp), ink.DIM))
+            self.say("  " + ink.c(
+                "of raids or it is nothing, and he watches the gate harder "
+                "after each", ink.DIM))
+        elif camp > 0:
+            self.say("")
+            self.say("  " + ink.c(
+                "He carries only {:.0f} days. A torch in that camp is a siege "
+                "lifted.".format(camp), ink.LEAF))
 
     def cmd_victual(self, args: List[str]) -> None:
         """What your hosts are eating, and load the baggage of one that can."""

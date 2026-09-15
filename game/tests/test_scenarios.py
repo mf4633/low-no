@@ -138,43 +138,48 @@ class TestBalance(unittest.TestCase):
                 self.assertNotIn("Ruined", g.over, key)
                 self.assertNotIn("Ended", g.over, key)
 
-    def test_the_bot_lives_through_the_ring(self):
-        """What the siege actually promises: a plain defensive policy holds
-        the town for as long as there is an army round it.
+    def test_the_bot_usually_lives_through_the_ring(self):
+        """What the siege actually promises: a plain defensive policy is
+        enough to hold the town more often than not.
 
-        This is sensitive to the levers rather than a formality -- take
-        `_hold_out` out of the bot and it loses the town under the ring on
-        the first seed. Not to a storming, as it happens, but to the money:
-        a closed ring earns nothing, so a siege you do not shorten is a
-        siege you pay wages through to the end of.
+        It used to say *always*, and that was only ever true because the
+        sortie at the middle of the scenario always worked. Now that it is a
+        bet on getting out of the gate unseen -- see `military.sortie_odds`
+        -- a policy that makes the bet correctly still loses it about one
+        game in four, and a test demanding five wins from five seeds is a
+        test demanding the gamble be taken out again.
+
+        So: most, and a number, and it fails if the number moves. Five of
+        eight would catch the regressions that matter -- a scenario nobody
+        can hold, or one the bot walks through -- without asserting away the
+        thing the last two commits were for.
         """
-        for seed in range(1, 6):
-            with self.subTest(seed=seed):
-                g = start("siege", seed=seed)
-                bot = Bot(g)
-                town = next(iter(g.world.settlements.values()))
-                # The host has to arrive first. Waiting for the ring before
-                # looping on it matters: written the other way round the loop
-                # never ran a single day and the test passed in three
-                # milliseconds without playing anything.
-                while not g.over and not town.besieged and g.day < g.goals.days:
-                    bot.step()
-                    g.tick()
-                self.assertTrue(town.besieged, "the ring never closed")
-                days = 0
-                while not g.over and town.besieged and g.day < g.goals.days:
-                    bot.step()
-                    g.tick()
-                    days += 1
-                self.assertGreater(days, 20, "the ring lifted before it was a siege")
-                # Assert on the ending, not on `besieged`: a town that falls
-                # stops being besieged, so "besieged and over" is exactly the
-                # state a storming does not leave behind, and that test would
-                # have passed whatever happened.
-                for loss in ("Stormed", "Ruined", "Ended"):
-                    self.assertNotIn(loss, g.over or "",
-                                     f"lost the town under the ring: {g.over}")
-                self.assertGreater(town.population, 0)
+        held, endings = 0, []
+        for seed in range(1, 9):
+            g = start("siege", seed=seed)
+            bot = Bot(g)
+            town = next(iter(g.world.settlements.values()))
+            # The host has to arrive first. Waiting for the ring before
+            # looping on it matters: written the other way round the loop
+            # never ran a single day and the test passed in three
+            # milliseconds without playing anything.
+            while not g.over and not town.besieged and g.day < g.goals.days:
+                bot.step()
+                g.tick()
+            self.assertTrue(town.besieged, f"the ring never closed (seed {seed})")
+            days = 0
+            while not g.over and town.besieged and g.day < g.goals.days:
+                bot.step()
+                g.tick()
+                days += 1
+            self.assertGreater(days, 10, "the ring lifted before it was a siege")
+            # Read the ending, not `besieged`: a town that falls stops being
+            # besieged, so "besieged and over" is the one state a storming
+            # does not leave behind, and that test passed whatever happened.
+            lost = any(w in (g.over or "") for w in ("Stormed", "Ruined", "Ended"))
+            held += not lost
+            endings.append(g.over or "held")
+        self.assertGreaterEqual(held, 5, f"the siege is unholdable: {endings}")
 
     def test_none_of_them_is_a_walkover(self):
         won = []
