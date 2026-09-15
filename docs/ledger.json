@@ -15205,10 +15205,751 @@
   },
   {
    "date": "2026-09-14",
-   "flags": []
+   "flags": [
+    {
+     "date": "2026-09-14",
+     "city": "DAL",
+     "station": "KDFW",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTDAL-26SEP14-T98",
+      "ceiling": 97,
+      "no_ask": 0.96,
+      "quote_src": "native",
+      "yes_bid": 4,
+      "run_max": 89.6,
+      "guide": 101,
+      "pop": 1,
+      "G": 4,
+      "net_cents": 3.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "DAL",
+       "status": "ok",
+       "upwind_bearing": 200,
+       "target_temp_f": 89.6,
+       "target_dew_f": 73.4,
+       "wind_mps": 20.376,
+       "upstream": [
+        {
+         "station": "KGKY",
+         "ts": "2026-09-14T16:15:00+00:00",
+         "temp_f": 89.6,
+         "dew_f": 73.4,
+         "wind_dir": 170,
+         "wind_mps": 12.96,
+         "km": 27.1,
+         "bearing": 191.3,
+         "name": "Arlington Municipal Airport"
+        },
+        {
+         "station": "KCPT",
+         "ts": "2026-09-14T15:55:00+00:00",
+         "temp_f": 88.2,
+         "dew_f": 73.4,
+         "wind_dir": 210,
+         "wind_mps": 18.36,
+         "km": 70.9,
+         "bearing": 211.6,
+         "name": "Cleburne, Cleburne Municipal Airport"
+        },
+        {
+         "station": "KFWS",
+         "ts": "2026-09-14T15:45:00+00:00",
+         "temp_f": 91.4,
+         "dew_f": 73.4,
+         "wind_dir": 200,
+         "wind_mps": 16.56,
+         "km": 44.8,
+         "bearing": 214.5,
+         "name": "Fort Worth Spinks Airport"
+        }
+       ],
+       "max_upstream_temp_f": 91.4,
+       "advection_potential_f": 1.8,
+       "dew_differential_f": 0.0,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "CLR",
+       "base_ft": 12500,
+       "layers": [
+        {
+         "amount": "CLR",
+         "base_ft": 12500
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 89.6,
+       "source": "fivemin",
+       "n_metar": 3,
+       "n_obs": 60
+      },
+      "forecasts": {
+       "nws_grid": 101.0,
+       "om_best": 98.5,
+       "om_ecmwf": 98.2,
+       "om_gfs": 98.5,
+       "om_icon": 99.4,
+       "om_metno": 99.7
+      },
+      "airmass": {
+       "t850_max_f": 72.2,
+       "z500_max_m": 5944,
+       "soil_m3m3": 0.232,
+       "curve": {
+        "0": 87.4,
+        "1": 85.8,
+        "2": 84.3,
+        "3": 82.7,
+        "4": 82.0,
+        "5": 80.6,
+        "6": 80.4,
+        "7": 79.7,
+        "8": 80.3,
+        "9": 82.8,
+        "10": 86.2,
+        "11": 89.6,
+        "12": 92.9,
+        "13": 95.7,
+        "14": 97.5,
+        "15": 97.8,
+        "16": 98.3,
+        "17": 98.5,
+        "18": 97.3,
+        "19": 95.8,
+        "20": 92.3,
+        "21": 90.6,
+        "22": 88.5,
+        "23": 87.3
+       },
+       "curve_max_f": 98.5
+      },
+      "temp_now": 89.6,
+      "curve_pred_now": 89.6,
+      "curve_dev": 0.0,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 96,
+       "depth_at_best": 20,
+       "depth_le_max": 46,
+       "notional_le_max": 44.67,
+       "levels": [
+        [
+         96,
+         20
+        ],
+        [
+         97,
+         1
+        ],
+        [
+         98,
+         25
+        ]
+       ],
+       "yes_best_ask": 6,
+       "yes_ctr_le_10c": 553,
+       "yes_usd_le_10c": 52.74
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-09-14T16:20:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T16:15:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T16:10:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T16:05:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T16:00:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T15:55:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T15:53:00+00:00",
+         "tC": 31.7
+        },
+        {
+         "ts": "2026-09-14T15:50:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T15:45:00+00:00",
+         "tC": 32
+        },
+        {
+         "ts": "2026-09-14T15:40:00+00:00",
+         "tC": 31
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTDAL-26SEP14-T98",
+         "cap": 97,
+         "floor": null,
+         "no_ask": 96,
+         "yes_bid": 4
+        },
+        {
+         "ticker": "KXHIGHTDAL-26SEP14-T105",
+         "cap": null,
+         "floor": 106,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDAL-26SEP14-B98.5",
+         "cap": 99,
+         "floor": 98,
+         "no_ask": 77,
+         "yes_bid": 23
+        },
+        {
+         "ticker": "KXHIGHTDAL-26SEP14-B104.5",
+         "cap": 105,
+         "floor": 104,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDAL-26SEP14-B102.5",
+         "cap": 103,
+         "floor": 102,
+         "no_ask": 96,
+         "yes_bid": 4
+        },
+        {
+         "ticker": "KXHIGHTDAL-26SEP14-B100.5",
+         "cap": 101,
+         "floor": 100,
+         "no_ask": 29,
+         "yes_bid": 71
+        }
+       ],
+       "wx": "Clear"
+      },
+      "model": {
+       "p_exceed_cap": 0.8573,
+       "p_source": "blend(w_emp=0.89)",
+       "p_empirical": 0.8429,
+       "emp_n": 68,
+       "sigma": 1.85,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "CONCUR",
+      "confidence": 0.82,
+      "p_exceed": 0.85,
+      "reasoning": "Current temp 89.6\u00b0F (32\u00b0C) at 16:20Z with CLR sky, curve-dev=0.0, and diurnal model peaks at 98.3-98.5\u00b0F around 17-18Z local. Gap to ceiling is 7.4\u00b0F with ~2-3 peak hours remaining. S/SSW winds 20-26 m/s bring warm advection; KGKY upstream at 89.6\u00b0F, KFWS at 91.4\u00b0F confirms hot airmass. No deck, no outflow signal. Forecasts converge 98.2-101\u00b0F. Market B100.5 YES=71\u00a2 implies high confidence in 100\u00b0F+. Pace is on-track per curve. Position wins if max >97\u00b0F; guidance and airmass strongly support clearing cap.",
+      "watch": "Any outflow boundary or rapid wind-shift to N/NE that would freeze the max below 97\u00b0F before 19Z"
+     },
+     "settle": 100,
+     "attribution": "WIN"
+    },
+    {
+     "date": "2026-09-14",
+     "city": "SFO",
+     "station": "KSFO",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTSFO-26SEP14-T72",
+      "ceiling": 71,
+      "no_ask": 0.94,
+      "quote_src": "native",
+      "yes_bid": 6,
+      "run_max": 66.2,
+      "guide": 75,
+      "pop": 0,
+      "G": 4,
+      "net_cents": 5.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "SFO",
+       "status": "calm_or_unknown",
+       "note": "no defined flow; upstream signal is meaningless"
+      },
+      "stall": null,
+      "sky": {
+       "cover": null,
+       "base_ft": null,
+       "layers": []
+      },
+      "run_max_detail": {
+       "run_max": 66.2,
+       "source": "fivemin",
+       "n_metar": 2,
+       "n_obs": 60
+      },
+      "sst": {
+       "buoy": "46026",
+       "sst_f": 60.1,
+       "obs_utc": "2026-09-14T18:10"
+      },
+      "forecasts": {
+       "nws_grid": 75.0,
+       "om_best": null,
+       "om_ecmwf": 69.6,
+       "om_gfs": 77.6,
+       "om_icon": 79.9,
+       "om_metno": 74.3
+      },
+      "airmass": {
+       "t850_max_f": 63.3,
+       "z500_max_m": 5836,
+       "soil_m3m3": 0.15,
+       "curve": {
+        "0": 57.6,
+        "1": 56.1,
+        "2": 55.0,
+        "3": 54.0,
+        "4": 53.2,
+        "5": 53.4,
+        "6": 53.2,
+        "7": 52.9,
+        "8": 57.2,
+        "9": 62.6,
+        "10": 67.8,
+        "11": 72.2,
+        "12": 77.2,
+        "13": 77.6,
+        "14": 76.9,
+        "15": 74.7,
+        "16": 72.3,
+        "17": 70.2,
+        "18": 67.5,
+        "19": 64.4,
+        "20": 61.9,
+        "21": 61.1,
+        "22": 60.1,
+        "23": 58.6
+       },
+       "curve_max_f": 77.6
+      },
+      "temp_now": 66.2,
+      "curve_pred_now": 72.2,
+      "curve_dev": -6.0,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 94,
+       "depth_at_best": 40,
+       "depth_le_max": 185,
+       "notional_le_max": 177.77,
+       "levels": [
+        [
+         94,
+         40
+        ],
+        [
+         95,
+         32
+        ],
+        [
+         96,
+         22
+        ],
+        [
+         97,
+         53
+        ],
+        [
+         98,
+         38
+        ]
+       ],
+       "yes_best_ask": 7,
+       "yes_ctr_le_10c": 2,
+       "yes_usd_le_10c": 0.15
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-09-14T18:15:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T18:10:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T18:05:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T18:00:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T17:55:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T17:50:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T17:45:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T17:40:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T17:35:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-09-14T17:30:00+00:00",
+         "tC": 19
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTSFO-26SEP14-T79",
+         "cap": null,
+         "floor": 80,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHTSFO-26SEP14-T72",
+         "cap": 71,
+         "floor": null,
+         "no_ask": 94,
+         "yes_bid": 6
+        },
+        {
+         "ticker": "KXHIGHTSFO-26SEP14-B78.5",
+         "cap": 79,
+         "floor": 78,
+         "no_ask": 94,
+         "yes_bid": 6
+        },
+        {
+         "ticker": "KXHIGHTSFO-26SEP14-B76.5",
+         "cap": 77,
+         "floor": 76,
+         "no_ask": 60,
+         "yes_bid": 40
+        },
+        {
+         "ticker": "KXHIGHTSFO-26SEP14-B74.5",
+         "cap": 75,
+         "floor": 74,
+         "no_ask": 75,
+         "yes_bid": 25
+        },
+        {
+         "ticker": "KXHIGHTSFO-26SEP14-B72.5",
+         "cap": 73,
+         "floor": 72,
+         "no_ask": 86,
+         "yes_bid": 14
+        }
+       ],
+       "wx": ""
+      },
+      "model": {
+       "p_exceed_cap": 0.3708,
+       "p_source": "blend(w_emp=0.89)",
+       "p_empirical": 0.2969,
+       "emp_n": 62,
+       "sigma": 2.55,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor error: substring not found"
+     },
+     "settle": 78,
+     "attribution": "WIN"
+    },
+    {
+     "date": "2026-09-14",
+     "city": "CHI",
+     "station": "KMDW",
+     "verdict": "DEAD_SCAVENGE",
+     "detail": {
+      "ticker": "KXHIGHCHI-26SEP14-T72",
+      "ceiling": 71,
+      "no_ask": 0.86,
+      "quote_src": "native",
+      "yes_bid": 14,
+      "run_max": 71.6,
+      "guide": 73,
+      "pop": 14,
+      "upstream": {
+       "city": "CHI",
+       "status": "ok",
+       "upwind_bearing": 150,
+       "target_temp_f": 71.6,
+       "target_dew_f": 42.8,
+       "wind_mps": 16.668,
+       "upstream": [
+        {
+         "station": "KIGQ",
+         "ts": "2026-09-14T21:15:00+00:00",
+         "temp_f": 71.4,
+         "dew_f": 41.5,
+         "wind_dir": 140,
+         "wind_mps": 14.76,
+         "km": 33.0,
+         "bearing": 145.5,
+         "name": "Lansing Municipal Airport"
+        },
+        {
+         "station": "KGYY",
+         "ts": "2026-09-14T20:50:00+00:00",
+         "temp_f": 71.6,
+         "dew_f": 48.2,
+         "wind_dir": 180,
+         "wind_mps": 18.36,
+         "km": 34.4,
+         "bearing": 124.0,
+         "name": "Gary Regional Airport"
+        },
+        {
+         "station": "KVPZ",
+         "ts": "2026-09-14T21:25:00+00:00",
+         "temp_f": 71.6,
+         "dew_f": 44.6,
+         "wind_dir": 180,
+         "wind_mps": 14.832,
+         "km": 72.8,
+         "bearing": 120.3,
+         "name": "Valparaiso Porter County Municipal Airport"
+        }
+       ],
+       "max_upstream_temp_f": 71.6,
+       "advection_potential_f": 0.0,
+       "dew_differential_f": 5.4,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "BKN",
+       "base_ft": 8000,
+       "layers": [
+        {
+         "amount": "BKN",
+         "base_ft": 8000
+        },
+        {
+         "amount": "BKN",
+         "base_ft": 11000
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 71.6,
+       "source": "fivemin",
+       "n_metar": 3,
+       "n_obs": 60
+      },
+      "sst": {
+       "buoy": "45174",
+       "sst_f": 68.4,
+       "obs_utc": "2026-09-14T20:20"
+      },
+      "forecasts": {
+       "nws_grid": 73.0,
+       "om_best": 72.4,
+       "om_ecmwf": 70.6,
+       "om_gfs": 72.4,
+       "om_icon": 72.1,
+       "om_metno": 70.4
+      },
+      "airmass": null,
+      "temp_now": 71.6,
+      "curve_pred_now": null,
+      "curve_dev": null,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 85,
+       "depth_at_best": 20,
+       "depth_le_max": 2496,
+       "notional_le_max": 2373.37,
+       "levels": [
+        [
+         85,
+         20
+        ],
+        [
+         86,
+         74
+        ],
+        [
+         87,
+         25
+        ],
+        [
+         88,
+         63
+        ],
+        [
+         89,
+         25
+        ],
+        [
+         90,
+         381
+        ],
+        [
+         91,
+         135
+        ],
+        [
+         92,
+         26
+        ]
+       ],
+       "yes_best_ask": 18,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-09-14T21:25:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T21:20:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T21:15:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T21:10:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T21:05:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T21:00:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T20:55:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-09-14T20:53:00+00:00",
+         "tC": 21.1
+        },
+        {
+         "ts": "2026-09-14T20:50:00+00:00",
+         "tC": 21
+        },
+        {
+         "ts": "2026-09-14T20:45:00+00:00",
+         "tC": 21
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHCHI-26SEP14-T79",
+         "cap": null,
+         "floor": 80,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHCHI-26SEP14-T72",
+         "cap": 71,
+         "floor": null,
+         "no_ask": 86,
+         "yes_bid": 14
+        },
+        {
+         "ticker": "KXHIGHCHI-26SEP14-B78.5",
+         "cap": 79,
+         "floor": 78,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHCHI-26SEP14-B76.5",
+         "cap": 77,
+         "floor": 76,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHCHI-26SEP14-B74.5",
+         "cap": 75,
+         "floor": 74,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHCHI-26SEP14-B72.5",
+         "cap": 73,
+         "floor": 72,
+         "no_ask": 20,
+         "yes_bid": 80
+        }
+       ],
+       "wx": "Mostly Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 1.0,
+       "p_source": "blend(w_emp=0.0)",
+       "p_empirical": 1.0,
+       "emp_n": null,
+       "sigma": 1.57,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "confidence": 0.82,
+      "p_exceed": 0.85,
+      "reasoning": "Current obs at 21:25Z show 22.0\u00b0C (71.6\u00b0F) already AT the run_max and ceiling edge. The day's high is essentially locked at 71.6\u00b0F, which EXCEEDS the cap of 71\u00b0F. Upstream stations (KIGQ 71.4F, KGYY 71.6F, KVPZ 71.6F) confirm airmass ceiling ~71.6F. The B72.5 bucket (72-73\u00b0F) trading YES at 80\u00a2 implies market sees high most likely 72-73\u00b0F range, well above our 71\u00b0F cap. Cloud bases BKN080-110 (high enough) with S winds 33-37kt \u2014 not a suppression pattern. Advection_potential=0 but run_max already exceeds cap. No outflow, no cooling mechanism active. Settlement > 71\u00b0F is near-certain.",
+      "watch": "Any obs drop below 71.6\u00b0F in next hour suggesting cooling that would put daily max exactly at 71\u00b0F \u2014 check 23:53Z decode carefully",
+      "direction_guard": "Downgraded from CONCUR: reasoning argues the day stays cool/capped, but this position pays only if the high EXCEEDS the cap. Inverted.",
+      "original_verdict": "CONCUR"
+     },
+     "settle": null,
+     "attribution": "UNGRADED"
+    }
+   ]
   }
  ],
- "generated": "2026-09-14T14:04:51.045087Z",
+ "generated": "2026-09-15T03:16:22.120201Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24"
