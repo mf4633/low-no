@@ -18,6 +18,7 @@ from . import config as C
 from .goods import ALL_KEYS, good
 from .castle import Works
 from .market import Market
+from .plague import Sickness
 from . import culture as cultures
 from . import lords as lordly
 from .settlement import Settlement
@@ -91,6 +92,10 @@ class ForeignTown:
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
     last_pilgrimage: int = -999   # day this lord last sent men to a shrine
+    #: The sickness here, if there is one. Foreign towns get it the same
+    #: way yours do -- off a cart -- and it is where yours comes from.
+    sick: "Sickness" = field(default_factory=lambda: Sickness())
+    last_sick: int = -9999
     seen_day: int = -999          # when you last had eyes on this place
     seen: Dict[str, float] = field(default_factory=dict)
 
@@ -260,7 +265,8 @@ class ForeignTown:
                 "tariff_base": self.tariff_base,
                 "signed": self.signed,
                 "sworn_friend": self.sworn_friend,
-                "prosperity": self.prosperity, "harbour": self.harbour}
+                "prosperity": self.prosperity, "harbour": self.harbour,
+                "sick": self.sick.to_dict(), "last_sick": self.last_sick}
 
     @classmethod
     def from_dict(cls, d: dict) -> "ForeignTown":
@@ -280,6 +286,8 @@ class ForeignTown:
         t.regard = float(d.get("regard", 0.0))
         t.culture = d.get("culture", "")
         t.ground = dict(d.get("ground", {}))
+        t.sick = Sickness.from_dict(d.get("sick"))
+        t.last_sick = int(d.get("last_sick", -9999))
         t.tariff_base = float(d.get("tariff_base", C.BASE_TARIFF))
         t.signed = bool(d.get("signed", False))
         t.sworn_friend = bool(d.get("sworn_friend", False))

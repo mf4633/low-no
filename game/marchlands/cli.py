@@ -2379,6 +2379,55 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_gates(self, args: List[str]) -> None:
+        """Shut your gates against the sickness, or open them again."""
+        from . import plague
+        g = self.game
+        want = [a.lower() for a in args]
+        where = next((a for a in want
+                      if a not in ("shut", "close", "open", "up")), "")
+        s = g.world.settlements.get(where) or g.home()
+        if any(w in want for w in ("shut", "close")):
+            return self.say("  " + g.shut_gates(where, True))
+        if "open" in want:
+            return self.say("  " + g.shut_gates(where, False))
+
+        self.say(ink.head(s.name.upper(), "the gates, and what is on the road"))
+        state = "shut" if s.shut else "open"
+        tint = ink.BLOOD if s.shut else ink.LEAF
+        self.say(f"  {ink.c(ink.pad('the gates', 16), ink.DIM)}"
+                 + ink.c(state, tint))
+        if s.sick.here:
+            self.say(f"  {ink.c(ink.pad('here', 16), ink.DIM)}"
+                     + ink.c(plague.words(s.sick, g.day), ink.BLOOD))
+            self.say(f"      {ink.c('%.0f buried so far' % s.sick.dead, ink.DIM)}")
+        elif s.buried:
+            self.say(f"  {ink.c(ink.pad('buried', 16), ink.DIM)}"
+                     + "%.0f, over the years" % s.buried)
+        word = g.word_of_sickness()
+        self.say("")
+        if not word:
+            self.say("  " + ink.c("no word of sickness anywhere your carts have "
+                                  "been lately", ink.DIM))
+        else:
+            self.say("  " + ink.c("WORD FROM THE ROAD", ink.DIM))
+            for r in word:
+                how = ("your carts were there today" if r["days"] <= 0 else
+                       "%d days old" % r["days"])
+                tint = ink.BLOOD if r["sure"] else ink.GOLD
+                self.say(f"      {ink.c(ink.pad(r['name'], 16), ink.PARCH)}"
+                         + ink.c("they are ill there", tint)
+                         + ink.c(f" -- {how}", ink.DIM))
+            self.say("")
+            self.say("  " + ink.c("and a town you have not sent anybody to is a "
+                                  "town you know nothing about", ink.DIM))
+        self.say("")
+        self.say("  " + ink.c("gates shut", ink.GOLD)
+                 + ink.c("   no cart comes or goes: no sickness, and no trade",
+                         ink.DIM))
+        self.say("  " + ink.c("gates open", ink.GOLD)
+                 + ink.c("   the carts run again", ink.DIM))
+
     def cmd_torch(self, args: List[str]) -> None:
         """Send a party over the wall at the besieger's wagons."""
         g = self.game
@@ -3206,6 +3255,8 @@ COMMANDS = {
     "order": Console.cmd_order, "orders": Console.cmd_order,
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
     "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
+    "gates": Console.cmd_gates, "quarantine": Console.cmd_gates,
+    "sickness": Console.cmd_gates, "plague": Console.cmd_gates,
     "torch": Console.cmd_torch, "wagons": Console.cmd_torch,
     "baggage": Console.cmd_torch,
     "victual": Console.cmd_victual, "supply": Console.cmd_victual,

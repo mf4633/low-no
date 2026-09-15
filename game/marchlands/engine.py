@@ -42,6 +42,7 @@ from .military import (BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
 from .military import Field, going_of, sky_on, sortie_odds
 from . import cartography as carto
 from . import military
+from . import plague as plague_mod
 from . import supply
 from .settlement import Settlement
 from .tech import AGES, TECHS, Progress
@@ -232,6 +233,15 @@ class GameState:
         # found in this codebase (kin, league, now this); a subsystem that
         # draws gets its own stream, without exception.
         self.voice = random.Random(self.seed * 7919 + 101)
+        #: The sickness draws from its own stream, like every other
+        #: subsystem here, and for the reason this file keeps relearning:
+        #: a daily roll taken off the world's RNG shifts every seeded
+        #: outcome in the game behind it. Adding one cost the siege guard a
+        #: seed before it had killed a single person.
+        self.pest = random.Random(self.seed * 6079 + 17)
+        # And the one the carts carry it on, seeded here where the game's
+        # own seed is known.
+        self.trade_engine.pest = random.Random(self.seed * 5081 + 7)
 
     # ------------------------------------------------------------- calendar
     @property
@@ -352,7 +362,7 @@ class GameState:
         # 1. Settlements work, eat and are taxed.
         for key, s in self.world.settlements.items():
             before = {b.uid: b.complete for b in s.buildings}
-            rep = s.tick(self.season, self.rng, self.progress)
+            rep = s.tick(self.season, self.rng, self.progress, day=self.day)
             for b in s.buildings:
                 if b.complete and not before.get(b.uid, True):
                     msgs.append(f"{s.name}: {b.spec.name} finished")
@@ -802,6 +812,7 @@ class GameState:
                 del self.world.grazed[key]
             else:
                 self.world.grazed[key] = left
+        msgs += self._plague_day()
         self._look_around()
         msgs += self._lord_day()
         msgs += self._shrine_day()
@@ -1572,6 +1583,120 @@ class GameState:
         return (f"{s.name}: masons to the breach"
                 + (f" -- {stone:.0f} of stone in store" if stone >= 1
                    else " -- and no stone to do it with"))
+
+    #: How often the sickness appears somewhere on the march by itself,
+    #: per day. It has to start somewhere, and it starts abroad: a player
+    #: who can be given it out of nowhere has no lever, and this whole
+    #: thing is about the lever.
+    PLAGUE_ODDS = 0.0016
+
+    def _plague_day(self) -> List[str]:
+        """Where the sickness is, where it is going, and when it goes out.
+
+        Three short jobs. Foreign towns burn out on their own clock, the
+        same as yours. A cart that came home carrying it hands it over --
+        at your gate, which is why shutting the gate is the answer. And
+        once in a long while it begins somewhere, abroad, off the map's
+        own traffic rather than yours.
+        """
+        msgs: List[str] = []
+        for key, t in self.world.towns.items():
+            if t.sick.here and self.day >= t.sick.until:
+                t.sick = plague_mod.Sickness()
+                t.last_sick = self.day
+                if self.known(key)[1] >= 0:
+                    msgs.append(f"The sickness has gone out at {t.name}")
+
+        # The carts, coming home.
+        for c in self.caravans:
+            if not c.carrying_it:
+                continue
+            where = c.at or ""
+            # Wherever it next does business, not only at your own gate.
+            # Written as "carries it home" it almost never arrived: the
+            # trade layer puts carts on the best pair of foreign markets it
+            # can find, so a cart can work a circuit for a year without
+            # standing in one of your towns -- two of them carried the
+            # sickness for two hundred and eighty days and delivered it
+            # nowhere. A cart passes it to the next market it opens its
+            # packs in, which is also how it got round a continent.
+            place = (self.world.settlements.get(where)
+                     or self.world.towns.get(where))
+            if place is None:
+                continue                       # still on the road
+            came_from = c.carrying_it
+            c.carrying_it = ""
+            if place.sick.here or where == came_from:
+                continue
+            if getattr(place, "shut", False):
+                # It got as far as the gate and no further, which is the
+                # whole of what a shut gate buys you.
+                msgs.append(f"{c.name} is turned away at the gate of "
+                            f"{place.name} -- they had been at "
+                            f"{self.world.node_name(came_from)}")
+                continue
+            if self.day - place.last_sick < plague_mod.IMMUNE:
+                continue
+            place.sick = plague_mod.takes_hold(self.day, self.pest, came_from)
+            if where in self.world.settlements:
+                msgs.append(self.note(
+                    f"The sickness is in {place.name}. It came up the road "
+                    f"from {self.world.node_name(came_from)}, on {c.name}.",
+                    MOMENTOUS))
+            elif self.known(where)[1] >= 0:
+                msgs.append(f"They are ill at {place.name} now -- "
+                            f"{c.name} was there")
+
+        # And the traffic that is not yours. A shut gate stops this too --
+        # it is the whole of what a shut gate is for, and without this vector
+        # the gate protected you from a road your own carts were not on.
+        abroad = [t for t in self.world.towns.values() if not t.mine]
+        ill = sum(1 for t in abroad if t.sick.here)
+        if ill and abroad:
+            share = ill / len(abroad)
+            for key, place in self.world.settlements.items():
+                if place.shut or place.sick.here:
+                    continue
+                if self.day - place.last_sick < plague_mod.IMMUNE:
+                    continue
+                if self.pest.random() >= plague_mod.VISITORS * share:
+                    continue
+                came = self.pest.choice([t for t in abroad if t.sick.here])
+                place.sick = plague_mod.takes_hold(self.day, self.pest, came.key)
+                msgs.append(self.note(
+                    f"The sickness is in {place.name}. Somebody brought it "
+                    f"up the road from {came.name}.", MOMENTOUS))
+
+        # And once in a while, somewhere out there.
+        if self.pest.random() < self.PLAGUE_ODDS:
+            free = [t for t in self.world.towns.values()
+                    if not t.sick.here
+                    and self.day - t.last_sick >= plague_mod.IMMUNE]
+            if free:
+                t = self.pest.choice(free)
+                t.sick = plague_mod.takes_hold(self.day, self.pest)
+                if self.known(t.key)[1] >= 0:
+                    msgs.append(self.note(
+                        f"Word from {t.name}: they are ill there.", MOMENTOUS))
+        return msgs
+
+    def shut_gates(self, settlement_key: str = "", on: bool = True) -> str:
+        """Close your own gates to the roads.
+
+        No cart comes in and none goes out, so nothing you earn on the road
+        you earn, and nothing on the road reaches you. It is the only
+        answer to the sickness and it is meant to hurt: a fortnight of no
+        trade against a chance of a season of no people.
+        """
+        s = self.world.settlements.get(settlement_key or "") or self.home()
+        if s.shut == on:
+            return (f"{s.name}'s gates are already shut" if on
+                    else f"{s.name}'s gates are already open")
+        s.shut = on
+        if on:
+            return (f"{s.name} shuts its gates. No cart comes or goes, and "
+                    f"nothing on the road reaches you.")
+        return f"{s.name} opens its gates again. The carts may run."
 
     def _ground_at(self, node: str) -> Dict[str, int]:
         """The country round a place, wherever the map happens to keep it.
@@ -2967,6 +3092,31 @@ class GameState:
         if t.seen_day < 0:
             return {}, -1
         return dict(t.seen), self.day - t.seen_day
+
+    #: How long word of a sickness is worth anything. A market you have not
+    #: had anybody in for six weeks is a market you do not know the state
+    #: of, and this is the whole reason shutting the gates is a decision:
+    #: shut on a rumour and you may have stopped your carts for nothing,
+    #: wait for certainty and the certainty arrives on a cart.
+    WORD_KEEPS = 40
+
+    def word_of_sickness(self) -> List[dict]:
+        """Where you have heard there is sickness, and how old the word is.
+
+        Off the same `seen_day` the rest of the fog runs on: somebody of
+        yours has to have been there. A town you have never traded with
+        could be burying half its people and you would not know.
+        """
+        out = []
+        for key, t in self.world.towns.items():
+            _seen, age = self.known(key)
+            if age < 0 or age > self.WORD_KEEPS:
+                continue
+            if not t.sick.here:
+                continue
+            out.append({"key": key, "name": t.name, "days": age,
+                        "sure": age <= 3})
+        return sorted(out, key=lambda r: r["days"])
 
     def believed_host(self, town_key: str) -> Dict[str, float]:
         """The host you think that town could field, from what you last saw."""

@@ -45,6 +45,7 @@ from . import roles as roles_mod
 from . import feats as feats_mod
 from . import missions as missions_mod
 from . import military
+from . import plague as plague_mod
 from . import supply
 from .buildings import BUILDINGS
 from .military import BESIEGING, UNITS
@@ -885,6 +886,17 @@ def snapshot(game, here: str = "") -> dict:
             "wall_hp": round(s.wall_hp, 1),
             "wall_max": round(s.wall_max(game.progress), 1),
             "besieged": s.besieged,
+            # The sickness, the gates, and what your carts have reported.
+            # Fogged like everything else: a town nobody of yours has been
+            # to lately is a town you know nothing about.
+            "sick": {
+                "here": s.sick.here,
+                "words": plague_mod.words(s.sick, game.day),
+                "dead": round(s.sick.dead),
+                "buried": round(s.buried),
+                "shut": s.shut,
+                "word": game.word_of_sickness(),
+            },
             "siege": _siege_view(game, s, key),
             "field": _field_view(game, key),
             "raided": s.raided,

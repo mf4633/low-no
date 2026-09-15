@@ -138,6 +138,7 @@ class Bot:
             self._shutter(s)
         self._dig()
         self._hold_out()
+        self._shut_out()
         self._defend()
         self._house()
         self._carts()
@@ -414,6 +415,35 @@ class Bot:
                 g.fire_baggage(key, men=max(5, int(men * self.SORTIE_SHARE)))
                 self._torched[key] = True
 
+    def _shut_out(self) -> None:
+        """The gates, against the sickness.
+
+        Shut on the word your own carts bring back and open again when the
+        word goes quiet -- which is all a player can do, because the word is
+        fogged and a market nobody of yours has been to lately is a market
+        you know nothing about.
+
+        It costs what it is worth: nothing comes in, so nothing is earned on
+        the road either. The bot does it anyway for the same reason it
+        sallies: a scenario measured with a policy that ignores one of its
+        levers is a scenario measured wrong. Without this the sickness took
+        a town from two hundred and forty souls to seven, three games in
+        eight, and the balance guard was reading that as the game.
+        """
+        g = self.game
+        word = g.word_of_sickness()
+        for key, s in g.world.settlements.items():
+            if s.sick.here:
+                # Already here. Shutting now saves nobody and costs the
+                # trade that pays for the recovery.
+                if s.shut:
+                    g.shut_gates(key, False)
+                continue
+            if word and not s.shut:
+                g.shut_gates(key, True)
+            elif not word and s.shut:
+                g.shut_gates(key, False)
+
     def _defend(self) -> None:
         """Enough men on the wall to make a siege not worth a lord's time --
         and not one more, because every soldier is a field nobody is working."""
@@ -423,7 +453,14 @@ class Bot:
             return
         coming = [a for a in g.armies if a.owner != "player"]
         urgent = bool(coming)
-        cap = int((0.35 if urgent else 0.22) * home.population)
+        # Never past what the town can actually keep under arms -- see
+        # `Settlement.max_garrison`. Its own threat-based cap could sit above
+        # that rule, and the two then took turns: recruit to the cap, send
+        # the excess back to the fields, recruit again. The bot paid for the
+        # same men every morning and never reached a third age or a second
+        # town.
+        cap = min(int((0.35 if urgent else 0.22) * home.population),
+                  home.max_garrison())
         if home.soldiers >= cap:
             return
         # Judge the wall by the biggest host the march could send at it, not by

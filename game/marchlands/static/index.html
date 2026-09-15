@@ -246,6 +246,16 @@
   </div>
   <div id="alarm" hidden></div>
 
+  <!-- Only on screen when there is something to decide: sickness in the
+       town, or word of it from a road your carts are on. -->
+  <aside id="pest" hidden aria-label="the sickness">
+    <h3 id="pest-head">the sickness</h3>
+    <p id="pest-says" class="dim"></p>
+    <ul id="pest-word"></ul>
+    <div class="acts"><button id="pest-gate" type="button"></button></div>
+    <p id="pest-note" class="dim"></p>
+  </aside>
+
   <!-- Only ever on screen while there is an army outside. Two levers and the
        three numbers they turn on, because a defender who can only watch the
        wall come down is not playing. -->

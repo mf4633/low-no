@@ -23,6 +23,8 @@ from . import culture as cultures
 from . import keep as keeps
 from .goods import ALL_KEYS, COMFORT_GOODS, LUXURY_GOODS, RATION_GOODS, good
 from .market import Market
+from .plague import Sickness
+from . import plague
 from .military import UNITS, describe, host_size, host_strength, host_upkeep
 from .tech import NO_PROGRESS, Progress
 
@@ -97,6 +99,7 @@ class Settlement:
     priority: Dict[str, int] = field(default_factory=dict)
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
+    plague_labour: float = 0.0  # and hands too ill, or busy burying
     blockaded: bool = False   # the roads are cut: no cart comes or goes
     raided: bool = False      # somebody is burning the country outside
     lord_home: bool = False   # your lord keeps his hall here today
@@ -105,6 +108,18 @@ class Settlement:
     assize_mood: float = 0.0   # cheap bread, or the queue for it: set daily
     raid_pressure: float = 0.0   # how much of it they got through today
     raid_heat: float = 0.0       # raiding done here, toward the next roof
+    #: The sickness, if there is one, and the day it will have burnt out.
+    #: See plague.py -- it arrives on a cart that traded somewhere ill.
+    sick: Sickness = field(default_factory=Sickness)
+    #: Your own gates, shut by you. It stops the carts, which stops the
+    #: sickness and stops the income together: that is the decision.
+    shut: bool = False
+    #: The day the last sickness went out, so a hub does not catch it again
+    #: off its own carts the week after burying everybody.
+    last_sick: int = -9999
+    #: Everybody this town has ever buried of the sickness. Kept apart from
+    #: `sick.dead`, which goes when the sickness does.
+    buried: float = 0.0
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
     #: The castle as it was drawn, if anybody drew one. Empty means nobody
@@ -252,6 +267,9 @@ class Settlement:
         if self.fire_labour and self.workforce:
             # The bucket chain is made of the people who were working.
             base *= max(0.25, 1.0 - self.fire_labour / self.workforce)
+        if self.plague_labour and self.workforce:
+            # And so are the ones too ill to stand and the ones digging.
+            base *= max(0.25, 1.0 - self.plague_labour / self.workforce)
         return max(0.0, base)
 
     # ------------------------------------------------------------ build/raze
@@ -309,7 +327,7 @@ class Settlement:
             self.market.target[k] = max(25.0, scale * self.population)
 
     def tick(self, season: str, rng: random.Random,
-             mods: Progress = NO_PROGRESS) -> DayReport:
+             mods: Progress = NO_PROGRESS, day: int = 0) -> DayReport:
         rep = DayReport()
         self.report = rep
         self.update_market_targets()
@@ -321,10 +339,97 @@ class Settlement:
         self._comforts(rep)
         self._spoil(rep, mods)
         self._burn(rep, season, rng)
+        self._sicken(rep, day)
+        self._stand_down(rep)
         self._mend_walls(rep, mods)
         rep.taxes = self._taxes()
         rep.wages, rep.upkeep = self._labour_bill()
         return rep
+
+    def max_garrison(self) -> int:
+        """The most this town can keep under arms.
+
+        One place, because two readers of the same rule that disagree by a
+        percentage point make a treadmill: the bot recruited to its own cap,
+        the town sent the excess back to the fields, and it recruited them
+        again the next morning -- paying for the same men over and over until
+        it could not afford an age or a second settlement.
+        """
+        return int(int(self.population * C.WORKING_FRACTION)
+                   * self.GARRISON_SHARE)
+
+    def _stand_down(self, rep: DayReport) -> None:
+        """Send men back to the fields when there are not the people to
+        keep them under arms.
+
+        A lord does not get to hold a garrison his town cannot feed. They
+        are the same men: past this share there is nobody left to reap, and
+        a town with nobody reaping dies whatever else is true of it.
+
+        Not under siege, though. The argument for sending men back is that
+        the fields need them, and a town with a host camped round it has no
+        fields to go back to -- the country outside the wall is the enemy's.
+        Sending the wall-walk home because the ring has killed people is the
+        exact opposite of what the men are for, and it took the siege
+        scenario from a coin flip to nought in six.
+        """
+        if self.besieged:
+            return
+        over = self.soldiers - self.max_garrison()
+        if over <= 0:
+            return
+        sent = 0.0
+        total = float(self.soldiers)
+        for key in sorted(self.units, key=lambda k: -self.units[k]):
+            if sent >= over:
+                break
+            take = min(self.units[key], over * (self.units[key] / total))
+            self.units[key] -= take
+            sent += take
+        self.units = {k: v for k, v in self.units.items() if v >= 0.5}
+        if sent >= 1:
+            rep.notes.append(
+                f"{self.name}: {sent:.0f} of the garrison go back to the "
+                f"fields -- there are not the people to keep them under arms")
+
+    def _sicken(self, rep: DayReport, day: int) -> None:
+        """A day of the sickness: the dead, and the work nobody did.
+
+        The dead come off the population rather than out of the housing, so
+        a town that loses a third of its people is a town with empty roofs
+        and no hands -- which is what it looked like, and is why the years
+        after were the ones with the wage rises in them.
+        """
+        if not self.sick.here:
+            self.plague_labour = 0.0
+            return
+        if day >= self.sick.until:
+            # Keep the count before the record of it goes. Reading the toll
+            # off `sick.dead` after the sickness had ended reported every
+            # outbreak in the game as having killed nobody.
+            buried = self.sick.dead
+            self.buried += buried
+            self.sick = Sickness()
+            self.last_sick = day
+            self.plague_labour = 0.0
+            rep.notes.append(
+                f"{self.name}: the sickness has gone out. It took "
+                f"{buried:.0f} of them.")
+            return
+        gone = min(self.population, plague.toll(self.population,
+                                                self.housing()))
+        self.population = max(0.0, self.population - gone)
+        # It does not spare the men on the wall. They are drawn from these
+        # same people, so a sickness that took only civilians would leave a
+        # town of nobody defended by a garrison of everybody.
+        if self.soldiers and self.population > 0:
+            share = gone / max(self.population + gone, 1.0)
+            for key in list(self.units):
+                self.units[key] = max(0.0, self.units[key] * (1.0 - share))
+            self.units = {k: v for k, v in self.units.items() if v >= 0.5}
+        self.sick.dead += gone
+        # And the ones still on their feet are burying them.
+        self.plague_labour = plague.IDLE * self.workforce
 
     def _advance_construction(self) -> None:
         for b in self.buildings:
@@ -487,6 +592,22 @@ class Settlement:
 
     #: Odds on a day that something catches by itself. Ovens, kilns and
     #: charcoal heaps are what a town burns down around.
+    #: The most of its working people a town can keep under arms. Soldiers
+    #: are drawn from the same population that works the fields -- the note
+    #: at the top of this file -- so a garrison raised for a big town is a
+    #: garrison a small town cannot feed, and past a point it is a garrison
+    #: that leaves nobody in the fields at all.
+    #:
+    #: That is not a corner case, it is a cliff, and it was here long before
+    #: anything that kills people in bulk. A town of 216 souls with 79 under
+    #: arms has 39 hands left; halve the town and the same 79 leaves it
+    #: *zero*. Nothing is produced, the granary empties, hunger pins at 1.00,
+    #: and the place starves to four souls over the following year -- with
+    #: no message anywhere saying that the reason nobody is farming is the
+    #: garrison. Any plague, famine, siege or bad raid finds this the same
+    #: way.
+    GARRISON_SHARE = 0.6
+
     SPARK_ODDS = 0.00025
 
     #: How much raiding it takes to put a roof up, counted as days-times-
@@ -737,6 +858,12 @@ class Settlement:
             out.append(("variety", C.FOOD_VARIETY_BONUS * (rep.variety - 1)))
         _, tax_mood = C.TAX_LEVELS[self.tax_level]
         out.append(("taxes", tax_mood))
+        if self.sick.here:
+            out.append(("the sickness", plague.MOOD))
+        if self.shut:
+            # Shutting the gates is not free in the town either. Nothing
+            # comes in, and everybody can see that nothing is coming in.
+            out.append(("the gates are shut", -9.0))
         buildings_mood = 0.0
         for b in self.buildings:
             if b.complete:
@@ -838,6 +965,8 @@ class Settlement:
             # out fresh each morning -- so it has to be written down, for
             # the same reason `shoring` did.
             "raid_heat": self.raid_heat,
+            "sick": self.sick.to_dict(), "shut": self.shut,
+            "last_sick": self.last_sick, "buried": self.buried,
         }
 
     @classmethod
@@ -857,4 +986,8 @@ class Settlement:
         s.shoring = bool(d.get("shoring", False))
         s.sorties = int(d.get("sorties", 0))
         s.raid_heat = float(d.get("raid_heat", 0.0))
+        s.sick = Sickness.from_dict(d.get("sick"))
+        s.shut = bool(d.get("shut", False))
+        s.last_sick = int(d.get("last_sick", -9999))
+        s.buried = float(d.get("buried", 0.0))
         return s

@@ -2797,13 +2797,51 @@ function paint(s) {
     ? 'they call him ' + s.reputation.join(', ') : '';
   repute.hidden = !repute.textContent;
   const alarm = $('alarm');
-  const bad = s.town.besieged ? 'under siege' : s.town.raided ? 'the country is burning'
+  const sick = s.town.sick || {};
+  const bad = sick.here ? sick.words
+    : s.town.besieged ? 'under siege' : s.town.raided ? 'the country is burning'
     : s.town.fires ? `${s.town.fires} roofs alight`
     : s.town.blockaded ? 'the roads are cut' : s.over ? s.over : '';
   alarm.textContent = bad; alarm.hidden = !bad;
+  paintPest(sick);
   paintSiege(s.town.siege);
   scrollCue();
 }
+
+/* The sickness, and the one lever against it.
+ *
+ * On screen only when there is something to decide -- it is in the town, or
+ * a cart has come back from somewhere it is. The word is deliberately not a
+ * map of where the sickness is: it is what your own drovers have reported,
+ * with the age of the report on it, because shutting the gate on a rumour
+ * that is three weeks old is a different bet from shutting it on one from
+ * this morning.
+ */
+function paintPest(v) {
+  const box = $('pest');
+  const word = (v && v.word) || [];
+  const show = !!(v && (v.here || word.length || v.shut));
+  box.hidden = !show;
+  if (!show) return;
+  $('pest-head').textContent = v.here ? 'the sickness is here' : 'word of sickness';
+  $('pest-says').textContent = v.here
+    ? `${v.words} — ${v.dead} buried so far`
+    : (v.buried ? `${v.buried} buried here over the years.` : '');
+  $('pest-word').innerHTML = word.map(r =>
+    `<li><span>${esc(r.name)}</span><em class="${r.sure ? 'down' : 'dim'}">` +
+    (r.days <= 0 ? 'today' : `${r.days}d old`) + '</em></li>').join('');
+  const gate = $('pest-gate');
+  gate.textContent = v.shut ? 'Open the gates' : 'Shut the gates';
+  gate.setAttribute('aria-pressed', v.shut ? 'true' : 'false');
+  $('pest-note').textContent = v.shut
+    ? 'Nothing comes in and nothing goes out. No sickness, and no trade.'
+    : 'It travels on the carts. Shutting the gates stops both of them.';
+}
+
+$('pest-gate').addEventListener('click', () => {
+  send($('pest-gate').getAttribute('aria-pressed') === 'true'
+       ? 'gates open' : 'gates shut');
+});
 
 /* The siege board.
  *

@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
 from . import config as C
+from . import plague
 from .goods import cargo_weight, good
 from .market import Market
 
@@ -86,6 +87,9 @@ class Caravan:
     #: each day, so the town saying so is one line when the lines shut and
     #: one line when they open, not one line every morning of the siege.
     stalled: bool = False
+    #: The market this cart picked the sickness up at, if it did. Cleared
+    #: when it gets home and hands it over -- see engine._plague_day.
+    carrying_it: str = ""
     log: List[str] = field(default_factory=list)
 
     # ---------------------------------------------------------------- basics
@@ -184,6 +188,16 @@ class TradeEngine:
     def __init__(self, world, rng: random.Random) -> None:
         self.world = world
         self.rng = rng
+        # Its own stream, for the reason above: the carrying roll happens on
+        # every visit to every market, so taking it off the trade RNG would
+        # move every price in the game.
+        #
+        # Seeded independently rather than off `rng`, because drawing even
+        # one number out of the world's stream to seed this one shifts
+        # every seeded outcome behind it -- which is the same bug one layer
+        # up, and it cost the siege guard a seed twice in an hour. The
+        # engine hands it a real seed after construction.
+        self.pest = random.Random(20260915)
         self.season = "spring"      # the engine sets this each day
 
     # ------------------------------------------------------------------ day
@@ -246,6 +260,25 @@ class TradeEngine:
             c.state = TRADING
         return treasury, msgs
 
+    def _sick_at(self, node: str):
+        """The sickness in a place, wherever the world keeps it."""
+        place = (self.world.settlements.get(node)
+                 or self.world.towns.get(node))
+        return getattr(place, "sick", None)
+
+    def _shut(self, node: str) -> bool:
+        """Gates somebody has closed. Yours, and only yours.
+
+        Foreign towns were made to shut their own when they fell ill, which
+        sounds right and is self-defeating: a market nobody can trade in is
+        a market nobody can catch anything at, so the sickness could never
+        leave the town it started in. News travels slower than carts, and
+        that is exactly why it spread -- your drovers are in that market a
+        fortnight before anybody in it admits what is wrong.
+        """
+        s = self.world.settlements.get(node)
+        return bool(s is not None and getattr(s, "shut", False))
+
     def _ringed(self, node: str) -> bool:
         """Is this one of your towns with an army sitting round it?"""
         s = self.world.settlements.get(node)
@@ -265,11 +298,17 @@ class TradeEngine:
         # it a cart hauls the granary out through the lines (which is what
         # used to happen, and it starved the town the player was defending),
         # or hauls a fresh one in, which makes a siege impossible to lose.
-        if self._ringed(here):
+        # A shut gate stops a cart exactly as a closed ring does, and that
+        # is the point of shutting it: the sickness travels on traffic, so
+        # the only way to stop the sickness is to stop the traffic. It costs
+        # what it is worth.
+        if self._shut(here) or self._ringed(here):
             if not c.stalled:
                 c.stalled = True
+                why = ("the gates are shut" if self._shut(here)
+                       else "the lines are closed")
                 msgs.append(f"{c.name} stands idle at "
-                            f"{self.world.node_name(here)} -- the lines are closed")
+                            f"{self.world.node_name(here)} -- {why}")
             c.state = IDLE
             return treasury, msgs
         if c.stalled:
@@ -366,6 +405,16 @@ class TradeEngine:
 
         # A route wears out: once your own trips have closed the gap, the
         # stops stop being worth the wheels. Trivial business counts as none.
+        # What else the cart is carrying. A visit to a sick market is how
+        # this gets anywhere -- see plague.py -- so it is counted here,
+        # where the business actually happened, rather than anywhere a
+        # cart merely passed by.
+        if moved_qty > 0 and not mine:
+            there = self._sick_at(stop.node)
+            if there is not None and there.here and plague.caught(self.pest):
+                c.carrying_it = stop.node
+                msgs.append(f"{c.name} traded at {market.name}, "
+                            f"and they are ill there")
         c.dry_stops = 0 if moved_qty > 0.12 * c.capacity else c.dry_stops + 1
         if c.dry_stops >= 2 * max(1, len(c.route)):
             c.running = False
