@@ -71,6 +71,8 @@ class Bot:
     """
 
     def __init__(self, game: GameState, verbose: bool = False) -> None:
+        #: The smoothed daily loss the reserve is built on. See `burn`.
+        self._burn = 0.0
         self.game = game
         self.plans: Dict[str, List[str]] = {}
         self.verbose = verbose
@@ -100,9 +102,55 @@ class Bot:
     RESERVE_BASE = 900.0
     RESERVE_PER_CART = 40.0
 
+    #: Days of the current burn the bot wants in hand before it lays out
+    #: coin on anything that is not food or defence.
+    #:
+    #: The flat reserve above is a floor, not a policy. It assumes income,
+    #: and the two ways a run of this game dies are both ways income stops:
+    #: a ring closed round the seat, and a gate shut against the sickness.
+    #: The siege case was special-cased in `step` after it had bankrupted a
+    #: town that held its wall. The sickness case had not been, and it went
+    #: on doing the same thing -- measured over sixteen seeds the two worst
+    #: runs of the game both ended "Ruined. Your debts outran your carts",
+    #: one of them on day 386 with a sickness in the capital and the masons
+    #: still out.
+    #:
+    #: A runway is the rule both cases are instances of, so neither needs
+    #: its own clause: on a day the town is losing three hundred coin, the
+    #: bot wants a month of that in hand before it starts a bakery. When
+    #: the day paid for itself this is zero and the floor applies.
+    #: Chosen on the mechanism, not on a median. Swept over sixteen seeds
+    #: at 0, 7, 14, 22 and 30 days: every non-zero value took ruin from two
+    #: runs in sixteen to none, and the medians bounced between forty-two
+    #: and sixty-eight thousand with no order to them -- which is what a
+    #: five-to-one spread does to sixteen samples, and reading the best of
+    #: them as "the right number" is how this codebase has been burnt
+    #: before. So: a fortnight, because that is half a sickness (plague.LIFE
+    #: is sixty-two days) and most of the twenty-one a besieger will sit at
+    #: a wall, and because over-reserving costs growth while under-reserving
+    #: costs the run.
+    #:
+    #: It does not narrow the spread and was not expected to. Net worth
+    #: tracks trade profit at +0.95 and trade compounds, so nine hundred
+    #: days of it fans out however well the bot plays. That is an economy.
+    #: What the runway removes is the tail where the bot goes bankrupt with
+    #: masons in the yard, which is not spread, it is a mistake.
+    RUNWAY = 14
+    #: How much of the day's net a single day is allowed to move the figure
+    #: the reserve is built on. One bad Tuesday is not a trend, and a policy
+    #: that reads yesterday alone flips between building and hoarding every
+    #: other morning -- which costs more than either.
+    SMOOTH = 0.08
+
+    def burn(self) -> float:
+        """What the last few weeks have cost over what they brought in."""
+        self._burn += self.SMOOTH * (-self.game.ledger.net - self._burn)
+        return max(0.0, self._burn)
+
     @property
     def reserve(self) -> float:
-        return self.RESERVE_BASE + self.RESERVE_PER_CART * len(self.game.caravans)
+        floor = self.RESERVE_BASE + self.RESERVE_PER_CART * len(self.game.caravans)
+        return max(floor, self.RUNWAY * self.burn())
 
     def spendable(self) -> float:
         return self.game.treasury - self.reserve
@@ -450,10 +498,12 @@ class Bot:
     #: A month-old rumour out of a market your carts left long ago is not a
     #: reason to stop trading; today's is.
     WORD_FRESH = 18
-    #: And how near. A sick market you do not trade with cannot reach you --
-    #: the sickness travels on traffic, so the traffic is the whole of the
-    #: risk.
-    WORD_NEAR = 80.0
+    #: And how near. A sick market you do not trade with can still reach you
+    #: on somebody else's drovers, but only in proportion to how near it is
+    #: -- so the bot's radius is the world's own falloff (plague.CARRY)
+    #: rather than a number of its own. One e-folding: past it, a sick
+    #: market is under a third of the risk of one on your doorstep and not
+    #: worth closing a market for.
 
     def _shut_out(self) -> None:
         """The gates, against the sickness.
@@ -515,7 +565,8 @@ class Bot:
                 return True
         # And a market near enough that somebody else's drovers bring it --
         # the `VISITORS` half of plague.py, which no route of yours covers.
-        return any(g.world.distance(key, k) <= self.WORD_NEAR for k in sick
+        from . import plague as pest
+        return any(g.world.distance(key, k) <= pest.CARRY for k in sick
                    if k in g.world.coords)
 
     def _defend(self) -> None:

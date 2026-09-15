@@ -1893,17 +1893,27 @@ class GameState:
         # it is the whole of what a shut gate is for, and without this vector
         # the gate protected you from a road your own carts were not on.
         abroad = [t for t in self.world.towns.values() if not t.mine]
-        ill = sum(1 for t in abroad if t.sick.here)
+        ill = [t for t in abroad if t.sick.here]
         if ill and abroad:
-            share = ill / len(abroad)
             for key, place in self.world.settlements.items():
                 if place.shut or place.sick.here:
                     continue
                 if self.day - place.last_sick < plague_mod.IMMUNE:
                     continue
-                if self.pest.random() >= plague_mod.VISITORS * share:
+                # Weighted by how near each sick market is, not by how many
+                # of them there are. See plague.CARRY: without this a town
+                # on the far corner of the map was as dangerous as one you
+                # can see from the wall, and the only sane answer to any
+                # word at all was to shut and stop trading.
+                near = [plague_mod.nearness(self.world.distance(key, t.key))
+                        for t in ill]
+                whole = sum(plague_mod.nearness(self.world.distance(key, t.key))
+                            for t in abroad)
+                if whole <= 0.0:
                     continue
-                came = self.pest.choice([t for t in abroad if t.sick.here])
+                if self.pest.random() >= plague_mod.VISITORS * sum(near) / whole:
+                    continue
+                came = self.pest.choices(ill, weights=near, k=1)[0]
                 place.sick = plague_mod.takes_hold(self.day, self.pest, came.key)
                 msgs.append(self.note(
                     f"The sickness is in {place.name}. Somebody brought it "

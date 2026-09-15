@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import statistics
 import unittest
 
 from marchlands import feats as fe
@@ -85,16 +86,30 @@ class TestAgainstARealGame(unittest.TestCase):
     """The figures have to come off the game's own books, so this plays one."""
 
     #: Seeds enough to say something about the game rather than about one
-    #: run of it. `peaceable` is a *wealth* threshold, and net worth at nine
-    #: hundred days is the noisiest number this game produces: measured
-    #: across these eight seeds the median is near sixty thousand and the
-    #: spread runs from twenty-seven to ninety-two, so any single seed is a
-    #: coin flip on the bar. This suite asserted seed 3 alone and went red
-    #: the first time the sickness moved the median a little -- on a seed
-    #: that had been reading a hundred and twenty thousand and now reads
-    #: thirty-six, having moved in both directions for reasons that had
-    #: nothing to do with what broke it.
-    SEEDS = (3, 5, 7)
+    #: run of it, and a floor with room under it.
+    #:
+    #: Net worth at nine hundred days is the noisiest figure this game
+    #: produces: measured over twenty-four seeds the median is near fifty
+    #: thousand and the spread runs better than five to one, because wealth
+    #: tracks trade profit at +0.95 and trade compounds. That spread is an
+    #: economy working, not a fault, and no amount of tuning removes it --
+    #: so a test that reads one seed is reading a die.
+    #:
+    #: This suite did read one seed, and went red the first time the
+    #: sickness moved the median by a sixth: seed 3 had been printing a
+    #: hundred and twenty thousand and printed thirty-six, having also moved
+    #: twenty thousand the other way for reasons nobody had touched. What
+    #: follows asserts five things instead, each of them robust to which
+    #: seeds you drew and each of them able to fail on its own.
+    #: 9 and 17 are in here on purpose: they are the two runs of the first
+    #: sixteen that used to end in bankruptcy, so the test below that says a
+    #: trading game reaches the end of itself is a test that can fail. A
+    #: regression suite that does not contain the regression is scenery.
+    SEEDS = (3, 5, 9, 11, 17)
+
+    #: Measured 43,600 across these five. Set well under it: this is here to
+    #: catch a collapse, not to pin a number the game is allowed to move.
+    FLOOR = 25_000
 
     @classmethod
     def setUpClass(cls):
@@ -105,31 +120,63 @@ class TestAgainstARealGame(unittest.TestCase):
             cls.runs.append(g)
         cls.g = cls.runs[0]
 
-    def test_a_trading_game_earns_the_trading_feats(self):
-        """Trade alone pays, and trade alone can win.
+    def earned(self, g):
+        return {f.key for f in g.feats.earned()}
 
-        Stated as "most games of this kind", because that is the claim the
-        feat makes and it is the only claim a threshold on a noisy number
-        can support. `factor` is trade profit, which accumulates and is
-        steady; `peaceable` is net worth on the day, which is not.
+    def test_trade_alone_pays(self):
+        """`factor` is cumulative trade profit, which is the steady figure.
+
+        Every run must clear it. A trading game that cannot make forty
+        thousand coin on the road in nine hundred days is not a trading
+        game, and this is the assertion that says so.
         """
         for g in self.runs:
-            earned = {f.key for f in g.feats.earned()}
-            self.assertIn("factor", earned,
-                          f"seed {g.seed}: a trading game must clear the "
-                          f"trade-profit feat; that one is not a coin flip")
+            self.assertIn("factor", self.earned(g),
+                          f"seed {g.seed}: {sum(c.total_profit for c in g.caravans):,.0f}c "
+                          f"of trade profit in nine hundred days")
+
+    def test_a_trading_game_does_not_go_bankrupt(self):
+        """The one that would have caught what nothing else did.
+
+        Two runs in sixteen used to end "Ruined. Your debts outran your
+        carts" -- one of them on day 386, with a sickness in the capital and
+        the masons still in the yard. The autoplayer had a rule against
+        spending through a siege and none against spending through anything
+        else. Nothing in this suite noticed, because nothing asserted that a
+        game gets to the end of itself.
+        """
+        for g in self.runs:
+            self.assertNotIn(
+                "Ruined", g.over or "",
+                f"seed {g.seed} went bankrupt on day {g.day} "
+                f"holding {g.treasury:,.0f}c")
+
+    def test_a_played_game_ends_up_worth_something(self):
+        median = statistics.median(g.net_worth() for g in self.runs)
+        self.assertGreater(
+            median, self.FLOOR,
+            "the median game is worth "
+            + f"{median:,.0f}c at the bell, under the {self.FLOOR:,}c floor. "
+            + "Each: "
+            + ", ".join(f"{g.seed}={g.net_worth():,.0f}" for g in self.runs))
+
+    def test_the_peaceable_kingdom_is_still_a_way_to_play(self):
+        """Rich, with no host ever raised. The feat's own claim.
+
+        Stated as "some game of this kind", because that is all a threshold
+        on a five-to-one spread can support -- measured, two of these five
+        clear sixty thousand. If it ever becomes none, trade has stopped
+        being a way to win and that is worth a red test.
+        """
+        for g in self.runs:
             self.assertEqual(g._hosts_raised, 0,
-                             f"seed {g.seed}: the bot raised a host, so this "
-                             f"run cannot speak to the peaceable feat")
-        rich = sum(1 for g in self.runs
-                   if "peaceable" in {f.key for f in g.feats.earned()})
-        self.assertGreaterEqual(
-            rich, 1,
-            "not one of "
-            + ", ".join(str(s) for s in self.SEEDS)
-            + " got rich without raising a host in nine hundred days; "
-              "the peaceable kingdom is no longer a way to play. Worth "
-              "at the bell: "
+                             f"seed {g.seed} raised a host, so it cannot "
+                             f"speak to a feat about never raising one")
+        rich = [g for g in self.runs if "peaceable" in self.earned(g)]
+        self.assertTrue(
+            rich,
+            "not one of these games got rich without raising a host. Worth "
+            "at the bell: "
             + ", ".join(f"{g.net_worth():,.0f}" for g in self.runs))
 
     def test_the_standing_is_filled_from_the_games_own_figures(self):

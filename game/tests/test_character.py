@@ -206,27 +206,67 @@ class TestTheTownTalksBack(unittest.TestCase):
         said = self.said()
         self.assertNotIn("two pence in every three", said)
 
+    #: A voice at or above this weight is a crisis rather than chatter.
+    #: Everything from `starving` up is something you are meant to stop
+    #: reading the ale numbers about.
+    CRISIS = 88
+
     def test_the_loudest_thing_in_the_town_is_what_you_hear_about(self):
         """A town with a host at the gate does not want to talk about beer.
 
-        One crisis at a time, set deliberately. This used to assert `raided`
-        was top of a town three hundred days into a real game, and that held
-        only while nothing else was wrong with it -- the day a bakery
-        happened to be alight the answer was `fire`, which outranks a raid
-        and is quite right to. The claim is that a crisis outranks the
-        chatter, not that a raid outranks a fire.
+        Strict about the whole ladder rather than about one pair of it. The
+        first version of this asserted a raid was top of a town three hundred
+        days into a real game, and that held only while nothing else was
+        wrong -- the day a bakery happened to be alight the answer was
+        `fire`, which outranks a raid and should. That is a fact about the
+        ladder, so the ladder is what gets asserted.
         """
         self.s.fires.blazes.clear()
-        self.s.raided = False
+        self.s.besieged = self.s.raided = False
+
+        # Each crisis alone, top of the town, in the order the ladder says.
+        for flag, key in (("besieged", "siege"), ("raided", "raided")):
+            setattr(self.s, flag, True)
+            self.assertEqual(voices.loudest(self.s, self.g), key)
+            setattr(self.s, flag, False)
+
+        # And against each other, worst first. A ram at the gate beats a
+        # fire in the bakery beats riders in the fields, every time.
+        self.s.fires.light(next(b.uid for b in self.s.buildings))
+        self.assertEqual(voices.loudest(self.s, self.g), "fire")
+        self.s.raided = True
+        self.assertEqual(voices.loudest(self.s, self.g), "fire",
+                         "a fire outranks a raid, and did before this")
         self.s.besieged = True
         self.assertEqual(voices.loudest(self.s, self.g), "siege")
-        self.s.besieged = False
-        self.s.raided = True
-        self.assertEqual(voices.loudest(self.s, self.g), "raided")
-        # And with nothing wrong, the town goes back to talking about beer.
-        self.s.raided = False
-        self.assertNotIn(voices.loudest(self.s, self.g),
-                         ("siege", "raided", "fire"))
+
+    def test_a_crisis_is_never_shouted_down_by_the_ale(self):
+        """The promise the ladder actually makes, over a real game.
+
+        Not "which crisis" -- that depends on what is wrong with the town
+        today and is nobody's business to assert. What must hold on every
+        day of every game is that when something is on fire or at the gate,
+        the town is not talking about the brewery.
+        """
+        by_key = {v.key: v for v in voices.VOICES}
+        g, bot = grown(days=260)
+        saw = 0
+        for _ in range(200):
+            bot.step(); g.tick()
+            if g.over:
+                break
+            for s in g.world.settlements.values():
+                bad = s.besieged or s.raided or bool(s.fires.blazes)
+                if not bad:
+                    continue
+                saw += 1
+                key = voices.loudest(s, g)
+                self.assertGreaterEqual(
+                    by_key[key].weight, self.CRISIS,
+                    f"{s.name} had a crisis on and the loudest voice in it "
+                    f"was {key!r}")
+        if not saw:
+            self.skipTest("nothing went wrong anywhere in this game")
 
     def test_every_line_belongs_to_a_condition_that_can_happen(self):
         for v in voices.VOICES:

@@ -205,11 +205,26 @@ class TestTheAssize(unittest.TestCase):
 
     def test_the_town_is_grateful_and_then_it_is_not(self):
         """A control is a transfer out of the granary, so its whole life is
-        however much is in the granary. Cheap bread first, a queue after."""
+        however much is in the granary. Cheap bread first, a queue after.
+
+        The granary is filled here rather than inherited. That is the whole
+        premise of the first half -- gratitude is `relief` scaled by how
+        much bread there is to be cheap -- and leaving it to whatever the
+        autoplayer had in the barn on day 420 made this test a reading of
+        the bot's baking rather than of the assize. It duly went red on an
+        unrelated change to how the bot reserves its coin, with the town
+        already queuing on the morning the proclamation was read.
+        """
+        home = self.g.home()
+        want = max(1.0, home.market.target.get("bread", 0.0) * 0.6)
+        home.market.stock["bread"] = max(home.market.stock.get("bread", 0.0),
+                                         want * 1.5)
         self.g.decree("bread", self.m.fundamental("bread") * 0.3)
         self.g.tick()
         first = dict(self.g.home().mood_factors(self.g.progress))
-        self.assertIn("the assize", first)
+        self.assertIn("the assize", first,
+                      f"a full granary and a binding cap and no gratitude: "
+                      f"{first}")
         self.assertGreater(first["the assize"], 0)
         self.play(200)
         later = dict(self.g.home().mood_factors(self.g.progress))

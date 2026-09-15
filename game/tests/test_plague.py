@@ -51,8 +51,72 @@ class TestTheSicknessItself(unittest.TestCase):
         self.assertLess(lost, 0.45, f"{lost:.0%} -- no town comes back from that")
 
 
+class TestHowFarItCarries(unittest.TestCase):
+    """Other people's drovers, and how thin they are at a distance.
+
+    There was no distance in this at all to begin with: the chance of
+    catching it off traffic that was not yours was the bare *share* of
+    foreign markets that were ill, so a sickness on the far corner of the
+    map was exactly as dangerous as one you could see from the wall. That
+    made shutting the gates on any word from anywhere the only sane policy,
+    and measured over sixteen seeds one run spent a hundred and fifty-three
+    days of nine hundred closed against a sickness that never came near it.
+    """
+
+    def test_nearness_falls_away_and_never_goes_negative(self):
+        last = 2.0
+        for d in (0.0, 45.0, 90.0, 180.0, 400.0, 5000.0):
+            got = plague.nearness(d)
+            self.assertLess(got, last)
+            self.assertGreaterEqual(got, 0.0)
+            last = got
+        self.assertAlmostEqual(plague.nearness(0.0), 1.0)
+
+    def test_one_e_folding_at_the_carry(self):
+        import math
+        self.assertAlmostEqual(plague.nearness(plague.CARRY), 1 / math.e,
+                               places=6)
+
+    def test_a_sickness_next_door_arrives_sooner_than_one_far_off(self):
+        """The whole point, measured rather than asserted from the formula.
+
+        Runs the real daily roll with one foreign market ill -- the nearest
+        to the seat in one arm, the furthest in the other -- and counts how
+        long the town stays well. Carts are left out of it: this is the
+        `VISITORS` vector on its own.
+        """
+        def days_until_ill(pick):
+            caught = []
+            for seed in range(1, 9):
+                g = start("marchlands", seed=seed)
+                home = next(iter(g.world.settlements))
+                for c in list(g.caravans):
+                    c.running = False
+                far = sorted(g.world.towns,
+                             key=lambda k: g.world.distance(home, k))
+                town = g.world.towns[pick(far)]
+                town.sick = plague.takes_hold(g.day, g.pest)
+                town.sick.until = 10_000          # hold it open
+                for day in range(400):
+                    g.advance(1)
+                    town.sick.until = 10_000
+                    if g.world.settlements[home].sick.here:
+                        caught.append(day)
+                        break
+                else:
+                    caught.append(400)
+            return sum(caught) / len(caught)
+
+        near = days_until_ill(lambda far: far[0])
+        away = days_until_ill(lambda far: far[-1])
+        self.assertLess(near, away,
+                        f"a sickness next door ({near:.0f} days to reach you) "
+                        f"must arrive sooner than one across the march "
+                        f"({away:.0f})")
+
+
 class TestItTravelsOnTraffic(unittest.TestCase):
-    """Not by distance. A town nobody trades with is a town it never
+    """Not by distance alone. A town nobody trades with is a town it rarely
     reaches, however close; a hub with six routes into it is the likeliest
     place on the march to be ill."""
 

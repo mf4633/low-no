@@ -173,13 +173,11 @@ class TestTheRewardIsActuallyPaid(unittest.TestCase):
     def test_it_is_paid_by_playing_rather_than_by_claiming(self):
         """There is no button to press: a day passing is what pays it.
 
-        The prerequisites are granted here rather than played for. This used
-        to lean on the autoplayer having finished `wall` and `letters` inside
-        six hundred days of seed 3, which is a fact about the bot's build
-        order and about how rich that seed happens to be -- neither of which
-        is what this test is about. When the sickness made the seed poorer
-        the bot had not got there, `neighbour` was still closed, and the test
-        read as though the payment mechanism had broken.
+        The prerequisites are granted rather than played for, so that this
+        test is about the payment and nothing else. What the old version
+        leaned on instead -- that the autoplayer reaches them at all -- is
+        worth keeping and is asserted on its own below, where a failure
+        says which of the two things broke.
         """
         g = self.game()
         mission = next(m for m in tree(g.house) if m.key == "neighbour")
@@ -191,6 +189,34 @@ class TestTheRewardIsActuallyPaid(unittest.TestCase):
         g.advance(1)
         self.assertIn("neighbour", g.missions.to_dict())
         self.assertTrue(g.court.claims)
+
+    def test_the_tree_opens_as_a_game_is_played(self):
+        """A mission nobody can reach is a mission that is not in the game.
+
+        The trunk has to open by playing, or the branches past it are
+        decoration. Asserted over three seeds and at the scenario's own
+        length rather than on one seed at six hundred days, because how far
+        up the trunk a given run gets by a given morning is the noisiest
+        thing this game measures -- the spread on net worth alone is five to
+        one. What must be true of every run is that the trunk moves.
+        """
+        reached = []
+        for seed in (3, 5, 7):
+            g = start("marchlands", seed=seed)
+            Bot(g).run(900)
+            done = set(g.missions.to_dict())
+            self.assertTrue(
+                done, f"seed {seed}: nine hundred days and not one mission "
+                      f"finished; the tree is unreachable")
+            reached.append(done)
+        # And between them they get past the first rank, so the `after`
+        # chain is something a game actually walks rather than a wall.
+        deep = {k for done in reached for k in done
+                if any(m.key == k and m.after for m in tree("hansa"))}
+        self.assertTrue(
+            deep,
+            "no run finished a mission that had a prerequisite: nothing in "
+            "these games ever got past the first rank of the tree")
 
 
 class TestTwoHousesPlayTwoGames(unittest.TestCase):

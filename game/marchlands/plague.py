@@ -50,6 +50,7 @@ moved twenty thousand in the other direction for reasons nobody had touched.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -101,6 +102,25 @@ LIFE_SPREAD = 26
 #: A sickness will not take hold in a town that has already had it -- not
 #: for this long, anyway. Without this a hub reinfects itself off its own
 #: carts for ever and the sickness is a climate rather than an event.
+#: How far away a sick market still matters, in leagues -- the distance over
+#: which somebody else's drovers thin out by a factor of e.
+#:
+#: There was no distance term at all to begin with, and it showed. The
+#: chance of catching it off other people's traffic was the *share* of
+#: foreign markets that were ill, so an outbreak on the far corner of the
+#: map was exactly as dangerous as one two days' ride away, and the town
+#: it came from was drawn from the sick uniformly. Measured over sixteen
+#: seeds that produced a game where the only sane policy was to shut the
+#: gates on any word from anywhere: one run closed a town for a hundred and
+#: fifty-three days of nine hundred against a sickness that never came near
+#: it, which is a fifth of a game spent paying for nothing.
+#:
+#: With a falloff, where you are is an input. A market you trade with and a
+#: market on the other side of the march are different risks, the gate is a
+#: judgement instead of a reflex, and the player's own geography is part of
+#: the answer.
+CARRY = 90.0
+
 IMMUNE = 200
 
 #: Crowding kills. A town with more people than roofs is the one this runs
@@ -136,6 +156,11 @@ def takes_hold(day: int, rng, from_where: str = "") -> Sickness:
     """A sickness beginning today, with an end already written into it."""
     life = LIFE + rng.randint(-LIFE_SPREAD // 2, LIFE_SPREAD // 2)
     return Sickness(since=day, until=day + max(20, life), from_where=from_where)
+
+
+def nearness(distance: float) -> float:
+    """How much of a sick market's traffic reaches this far, 0 to 1."""
+    return math.exp(-max(0.0, distance) / CARRY)
 
 
 def toll(people: float, housing: float) -> float:
