@@ -107,12 +107,14 @@ def station_list():
             lat, lon = float(ln[12:20]), float(ln[21:30])
             elev = float(ln[31:37])
             name = ln[41:71].strip()
+            first = int(ln[72:76])
             last = int(ln[77:81])
         except Exception:
             continue
         if abs(lat) > 90 or abs(lon) > 180 or lat < -98:
             continue
-        out.append(dict(id=sid, lat=lat, lon=lon, elev=elev, name=name, last=last))
+        out.append(dict(id=sid, lat=lat, lon=lon, elev=elev, name=name,
+                        first=first, last=last))
     return out
 
 
@@ -120,7 +122,8 @@ def coverage(active_since=2025):
     """Nearest CURRENTLY-REPORTING sounding site to each Kalshi city."""
     stns = [s for s in station_list() if s["last"] >= active_since]
     print(f"IGRA sites still reporting since {active_since}: {len(stns)}\n")
-    hdr = f"{'city':<5}{'station':<6}{'nearest sonde':<26}{'IGRA id':<13}{'km':>7}{'dz_m':>8}"
+    hdr = (f"{'city':<5} {'stn':<6} {'nearest sonde':<26} {'IGRA id':<13}"
+           f"{'km':>6}{'site_m':>8}  within 80km")
     print(hdr); print("-" * len(hdr))
     rows = []
     for c in sorted(CITIES):
@@ -128,8 +131,11 @@ def coverage(active_since=2025):
         best = min(stns, key=lambda s: haversine_km(m["lat"], m["lon"], s["lat"], s["lon"]))
         km = haversine_km(m["lat"], m["lon"], best["lat"], best["lon"])
         rows.append((c, best, km))
-        print(f"{c:<5}{m['station']:<6}{best['name'][:25]:<26}{best['id']:<13}"
-              f"{km:>7.0f}{best['elev']:>8.0f}")
+        # IGRA writes -999.9 for a missing elevation; printing it as -1000 m
+        # would read as a real value below sea level.
+        ev = "  --" if best["elev"] < -900 else f"{best['elev']:.0f}"
+        print(f"{c:<5} {m['station']:<6} {best['name'][:25]:<26} {best['id']:<13}"
+              f"{km:>6.0f}{ev:>8}  {'YES' if km <= 80 else ''}")
     print("\n  A sounding is representative of the city's boundary layer only if it")
     print("  samples the same airmass. Coastal gradients run over tens of km, so a")
     print("  distant site is the station-mismatch problem in another costume.")
@@ -272,6 +278,29 @@ def perm_p(x, y, months, n=N_PERM, seed=20260915):
     return obs, (hits + 1) / (n + 1)
 
 
+def nearest_dump(city, n=10):
+    """The n nearest IGRA sites INCLUDING inactive ones, with their record span.
+
+    Exists because the first coverage run gave DEN its nearest site as GRAND
+    JUNCTION at 341 km, across the Continental Divide, when Denver has had an
+    upper-air site for decades. Either that site stopped reporting or the
+    `last >= 2025` filter is reading the wrong column, and guessing which would
+    be exactly the kind of assumption this project keeps having to undo.
+    """
+    m = CITIES[city]
+    stns = station_list()
+    ranked = sorted(stns, key=lambda s: haversine_km(m["lat"], m["lon"], s["lat"], s["lon"]))
+    print(f"\n{city} ({m['station']}) at {m['lat']:.3f},{m['lon']:.3f} -- "
+          f"{n} nearest IGRA sites, ACTIVE OR NOT\n")
+    hdr = f"{'IGRA id':<13}{'name':<30}{'km':>6}{'elev':>7}{'first':>7}{'last':>6}"
+    print(hdr); print("-" * len(hdr))
+    for s_ in ranked[:n]:
+        km = haversine_km(m["lat"], m["lon"], s_["lat"], s_["lon"])
+        ev = "  --" if s_["elev"] < -900 else f"{s_['elev']:.0f}"
+        print(f"{s_['id']:<13}{s_['name'][:29]:<30}{km:>6.0f}{ev:>7}"
+              f"{s_['first']:>7}{s_['last']:>6}")
+
+
 def igra_for_city(city, max_km=80.0):
     """The nearest currently-reporting IGRA site, refused beyond `max_km`."""
     m = CITIES[city]
@@ -355,14 +384,91 @@ def run_test(city, max_km=80.0):
                 spearman=round(rho, 4), p_perm=round(p, 4), powered=powered)
 
 
+def holm(pvals, alpha=0.05):
+    order = sorted(pvals, key=lambda k: pvals[k])
+    m, out, still = len(order), {}, True
+    for i, k in enumerate(order):
+        if still and pvals[k] <= alpha / (m - i):
+            out[k] = True
+        else:
+            still = False
+            out[k] = False
+    return out
+
+
+def test_all(max_km=80.0):
+    """Every city inside the distance limit, corrected as ONE family.
+
+    Run as a family rather than a chosen station. DEN was named in the
+    pre-specification as the first station and the frozen 80 km limit refuses
+    it, so SOMETHING had to change -- and picking the next station by hand,
+    after seeing which ones have instruments, is how a family of tests gets
+    reported as a single one. Selecting on instrument AVAILABILITY is legitimate
+    (no outcome has been seen); selecting on RESULT is not, and running all of
+    them removes the question.
+    """
+    stns = [x for x in station_list() if x["last"] >= 2025]
+    elig = []
+    for c in sorted(CITIES):
+        m = CITIES[c]
+        best = min(stns, key=lambda s: haversine_km(m["lat"], m["lon"], s["lat"], s["lon"]))
+        km = haversine_km(m["lat"], m["lon"], best["lat"], best["lon"])
+        if km <= max_km:
+            elig.append(c)
+    print(f"cities within {max_km:.0f} km of a reporting sounding: "
+          f"{len(elig)} -- {', '.join(elig)}\n")
+    res = {}
+    for c in elig:
+        try:
+            r = run_test(c, max_km=max_km)
+        except Exception as e:
+            print(f"  {c}: FAILED {str(e)[:90]}")
+            continue
+        if r:
+            res[c] = r
+    if not res:
+        print("\nno city produced a testable sample")
+        return res
+    pv = {c: r["p_perm"] for c, r in res.items()}
+    surv = holm(pv)
+    print("\n\nFAMILY RESULT -- Holm-Bonferroni across every tested city, alpha=0.05\n")
+    hdr = f"{'city':<5}{'sonde':<13}{'km':>5}{'n':>6}{'rho':>9}{'p':>8}{'holm':>6}{'powered':>9}"
+    print(hdr); print("-" * len(hdr))
+    for c in sorted(res, key=lambda k: -res[k]["spearman"]):
+        r = res[c]
+        r["holm_survives"] = bool(surv.get(c))
+        print(f"{c:<5}{r['station']:<13}{r['km']:>5.0f}{r['n']:>6}{r['spearman']:>+9.4f}"
+              f"{r['p_perm']:>8.4f}{('YES' if surv.get(c) else 'no'):>6}"
+              f"{('yes' if r['powered'] else 'NO'):>9}")
+    n_sig = sum(1 for c in res if res[c]["holm_survives"])
+    print(f"\n  {n_sig} of {len(res)} survive Holm. Direction was pre-specified "
+          f"POSITIVE;\n  a negative rho is a falsification, not a two-sided result.")
+    return res
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--coverage", action="store_true")
     ap.add_argument("--test", default=None, help="city code, e.g. DEN")
+    ap.add_argument("--test-all", action="store_true",
+                    help="every city inside --max-km, Holm-corrected as a family")
+    ap.add_argument("--nearest", default=None, help="diagnostic: n nearest sites")
+    ap.add_argument("-n", type=int, default=10)
     ap.add_argument("--max-km", type=float, default=80.0)
     a = ap.parse_args()
+    if a.nearest:
+        nearest_dump(a.nearest.upper(), a.n)
     if a.coverage:
         coverage()
+    if a.test_all:
+        rs = test_all(max_km=a.max_km)
+        if rs:
+            os.makedirs("docs", exist_ok=True)
+            io.open("docs/sonde_result.json", "w", encoding="utf-8").write(json.dumps(
+                dict(at=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+                     metric=f"Q{int(MIX_TOP_M)} MJ/m2", years=list(YEARS),
+                     max_km=a.max_km, cities=rs), indent=1))
+            print("\n  wrote docs/sonde_result.json")
     if a.test:
         r = run_test(a.test.upper(), max_km=a.max_km)
         if r:
@@ -374,7 +480,7 @@ def main():
                                   metric=f"Q{int(MIX_TOP_M)} MJ/m2", years=list(YEARS))
             io.open(p, "w", encoding="utf-8").write(json.dumps(cur, indent=1))
             print(f"\n  wrote {p}")
-    if not a.coverage and not a.test:
+    if not (a.coverage or a.test or a.test_all or a.nearest):
         ap.print_help()
 
 

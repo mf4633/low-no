@@ -24,6 +24,9 @@ jobs:
   harvest:
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
     steps:
       - uses: actions/checkout@v4
         with: { ref: claude/kalshi-cities-improve-jzh9z4 }

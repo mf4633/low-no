@@ -12,7 +12,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
     steps:
       - uses: actions/checkout@v4
         with: { ref: claude/kalshi-cities-improve-jzh9z4 }
@@ -20,16 +23,19 @@ jobs:
         with: { python-version: "3.12" }
       - name: coverage -- which cities can even be reached
         run: python sonde.py --coverage 2>&1 | tee sonde_coverage.txt
-      - name: primary test at DEN
+      - name: diagnostic -- why DEN got a site 341 km away
+        run: python sonde.py --nearest DEN -n 12 2>&1 | tee sonde_den_nearest.txt
+      - name: primary test, every covered city as ONE family
         continue-on-error: true
-        run: python sonde.py --test DEN 2>&1 | tee sonde_den.txt
+        run: python sonde.py --test-all 2>&1 | tee sonde_all.txt
       - name: commit
         if: always()
         # `bash -e` kills the step on a short-circuiting `&&`; both guards are
         # `if` blocks for that reason. See city-regimes.yml.
         run: |
           git config user.name lowno-bot && git config user.email bot@lowno
-          for f in sonde_coverage.txt sonde_den.txt docs/sonde_result.json; do
+          for f in sonde_coverage.txt sonde_den_nearest.txt sonde_all.txt \
+                   docs/sonde_result.json; do
             if [ -e "$f" ]; then git add -- "$f"; fi
           done
           if git diff --cached --quiet; then

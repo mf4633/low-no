@@ -108,3 +108,62 @@ A sounding gives theta(z) at launch, not Q. Cloud evolution after launch is the
 other half of the heat budget and is invisible to it, as is advection that
 reshapes the profile. **It tells you the day's RESISTANCE and never its
 FORCING.** A pass would therefore explain part of the spread, never all of it.
+
+---
+
+## CORRECTION 1 (2026-09-15) -- the coverage table refuted the prediction, and
+## the named first station is refused by the frozen limit
+
+The pre-specification above predicted the 80 km limit would exclude "probably
+the marine trio SFO/LAX/SAN, which is where every loss in the ledger lives."
+**That was wrong**, and IGRA's own station list says so:
+
+| city | nearest reporting sonde | km |
+|---|---|---|
+| SFO | Oakland | **19** |
+| SAN | San Diego/Miramar | **13** |
+| LAX | Edwards AFB | 118 (refused) |
+
+Two of the three marine stations are well covered, and **SFO -- the station
+that produced every loss in this ledger -- sits 19 km from a sounding at the
+same elevation.** That is a better instrument position than predicted.
+
+**DEN, the station named as the first test, is REFUSED at 341 km.** Its nearest
+reporting site is Grand Junction, across the Continental Divide and 1,474 m
+higher, which is not the Denver boundary layer by any reading. Denver has had
+an upper-air site for decades, so either it stopped reporting or the
+`last >= 2025` filter reads the wrong column. `sonde.py --nearest DEN` now dumps
+the nearest sites with their record spans so the answer is measured, not
+guessed. **The 80 km limit was NOT relaxed to admit DEN.**
+
+## CORRECTION 2 -- the test runs as a FAMILY, not at a chosen station
+
+Because the frozen limit refuses the named station, something had to change,
+and picking the next station by hand after seeing which ones have instruments
+is how a family of tests gets reported as one. So `--test-all` runs **every**
+city inside the limit and applies Holm-Bonferroni across them.
+
+Selecting on instrument AVAILABILITY is legitimate here -- no outcome has been
+seen, and the pre-specification already anticipated most cities being excluded.
+Selecting on RESULT is not, and running all of them removes the question rather
+than arguing about it.
+
+Everything else -- the metric, the height, the direction, the null, the power
+floor, the 80 km limit -- is unchanged.
+
+## CORRECTION 3 -- a latent `| tee` defect in this session's workflows
+
+Every workflow written this session pipes Python to `tee`, and a pipeline
+reports the exit status of its LAST command. A Python crash would therefore
+have exited 0 and been reported as a successful step. That is gotcha 9 -- "`||
+true` in workflows hides everything" -- in a different costume. Fixed with
+`shell: bash -eo pipefail {0}` on the four workflows written here.
+
+Deliberately NOT `-u`, and deliberately not applied to the pre-existing
+workflows: `.github/push_retry.sh` documents that `set -u` silently changes a
+caller's behaviour, and retrofitting shell options onto scripts written without
+them is how a working pipeline breaks quietly.
+
+(It did not bite on the first run. Both steps genuinely completed in under a
+second -- the station list is 1 MB and DEN was refused before any download --
+and an earlier reading of that as "a crash masked by tee" was itself wrong.)
