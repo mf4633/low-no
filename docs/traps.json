@@ -1,22 +1,18 @@
 {
- "at": "2026-09-15T21:45:34.316989Z",
+ "at": "2026-09-15T22:45:42.519192Z",
  "traps": [
   {
    "city": "DC",
    "ceiling": 78,
-   "price": 11,
+   "price": 7,
    "p_model": 1.0,
-   "p_market": 0.11,
-   "edge_pts": 89.0,
+   "p_market": 0.07,
+   "edge_pts": 93.0,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 89 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 93 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
