@@ -2421,15 +2421,43 @@ document.addEventListener('keydown', e => {
     openPalette(''); e.preventDefault(); return;
   }
   if (e.key === 'Escape') {
-    if (!$('palette').hidden) { closePalette(); return; }
-    if (!$('keys').hidden) { $('keys').hidden = true; $('line').focus(); return; }
+    // Everything Escape closes, innermost first. The keys card promises it
+    // closes "whatever is open", and that was a lie for the draw-a-march
+    // dialog: it is modal, it covers the whole screen, and the only way out
+    // of it was to find the × -- which a player who opened it by pressing
+    // the wrong thing has no reason to look for. Written as a list so the
+    // next dialog somebody adds is one line rather than one more exception,
+    // and there is a test that every dialog on the page is in it.
+    for (const [id, shut] of ESC_CLOSES) {
+      const el = $(id);
+      if (el && !el.hidden) { shut(); return; }
+    }
     closeWrit();
     return;
   }
   if (meta || e.altKey) return;
   if (e.key === '/' && !typing()) { $('line').focus(); e.preventDefault(); return; }
+  // `?` before the typing guard, because the prompt has the cursor by
+  // default and after every command -- so the one key a lost player is
+  // likeliest to try did nothing in the state the game spends all its time
+  // in. It still types a literal ? into a command you have started, which
+  // is the only case where the guard was doing any work.
+  if (e.key === '?' && !$('line').value.trim()) {
+    $('keys').hidden = !$('keys').hidden;
+    if (!$('keys').hidden) $('line').blur();
+    e.preventDefault();
+    return;
+  }
+  // Space is the exception among the shortcuts, and it is the one that
+  // matters: the prompt holds the cursor by default and after every
+  // command, so "space -- a day passes" was dead in the state the game
+  // spends all its time in. A command cannot begin with a space, so there
+  // is nothing to be ambiguous about. The letters stay behind the guard,
+  // because `w` in an empty box is as likely to be the start of `wall`.
+  if (e.key === ' ' && typing() && $('line').value === '') {
+    send('next'); e.preventDefault(); return;
+  }
   if (typing()) return;
-  if (e.key === '?') { $('keys').hidden = !$('keys').hidden; e.preventDefault(); return; }
   if (e.key === 't' || e.key === 'T') { setMode('town'); return; }
   if (e.key === 'r' || e.key === 'R') { setMode('march'); return; }
   if (e.key === 'w' || e.key === 'W') { setMode(drawing() ? 'town' : 'castle'); return; }
@@ -2438,10 +2466,32 @@ document.addEventListener('keydown', e => {
 });
 $('keys').addEventListener('click', () => { $('keys').hidden = true; });
 
+/* In the order Escape works through them: the thing most recently on top
+ * first. `front` closes only when there is a game to go back to -- escaping
+ * out of the front door before one has started would leave the player
+ * looking at an empty field with nothing to press. */
+const ESC_CLOSES = [
+  ['palette', closePalette],
+  ['keys', () => { $('keys').hidden = true; $('line').focus(); }],
+  ['drawmap', closeCountry],
+  ['writ', closeWrit],
+  ['soul', closeSoul],
+  ['front', () => { if (!$('front-close').hidden) closeFront(); }],
+];
+
 /* ------------------------------------------------------------------- shell */
 let wasNarrow = null;
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
+  // How tall the bar actually came out. It wraps when the window is too
+  // narrow for everything on it, and every panel pinned below it has to
+  // know -- otherwise a second row of controls lands on top of the town's
+  // own readings.
+  const bar = $('bar');
+  if (bar) {
+    document.documentElement.style.setProperty(
+      '--under-bar', Math.round(bar.getBoundingClientRect().height + 4) + 'px');
+  }
   canvas.width = canvas.clientWidth * dpr;
   canvas.height = canvas.clientHeight * dpr;
   scrollCue();
@@ -3150,7 +3200,9 @@ function paintCountry(plan) {
   g.fillText(plan.home.name, hx, hy + 21);
 }
 
-$('v-draw').addEventListener('click', openCountry);
+// `country` and `resume` were buttons in the bar as well as on the front
+// door. The door's own "draw the country yourself…" and "continue your last
+// game" do both jobs, so the bar's copies are gone -- see index.html.
 $('drawmap-close').addEventListener('click', closeCountry);
 $('drawmap').addEventListener('click', e => {
   if (e.target === $('drawmap')) closeCountry();
@@ -3349,10 +3401,6 @@ $('v-save').addEventListener('click', async () => {
   const out = await post('/save', {});
   say(out.error || out.said, out.error ? null : 'said');
   if (!out.error) toast('*** the chronicle is written down ***');
-});
-$('v-load').addEventListener('click', async () => {
-  const out = await post('/load', {});
-  if (!out.error) enter(out); else say(out.error);
 });
 
 

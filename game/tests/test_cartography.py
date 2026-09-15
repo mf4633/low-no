@@ -340,7 +340,9 @@ class TestTheDialsAreActuallyDials(unittest.TestCase):
         from marchlands.web import STATIC
         with open(os.path.join(STATIC, "marchlands.css"), encoding="utf-8") as fh:
             css = fh.read()
-        self.assertIn("#ear, #v-draw", css)
+        # `#v-draw` was a button in the bar; the front door opens the
+        # country now, so only the ear is left on that rule.
+        self.assertIn("#ear", css)
 
 
 class TestTheCommandLine(unittest.TestCase):

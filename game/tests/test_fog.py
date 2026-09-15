@@ -186,9 +186,17 @@ class TestATownOnFire(unittest.TestCase):
         Bot(g).run(300)
         s = g.world.settlements["aldworth"]
         s.units = {"spearman": 3}
-        g.armies.append(Army(uid=90, name="Reivers", owner="dunmere",
-                             units={"knight": 80}, at="aldworth", home="dunmere",
-                             state="raiding"))
+        raiders = Army(uid=90, name="Reivers", owner="dunmere",
+                       units={"knight": 80}, at="aldworth", home="dunmere",
+                       state="raiding")
+        # With a baggage train, because hosts eat now and one built by hand
+        # here does not go through the engine's own outfitting. Without it
+        # these eighty knights spent the fortnight starving instead of
+        # burning, and the test read that as "a raid never set light to
+        # anything" -- which was true, and not for the reason it meant.
+        from marchlands import supply
+        raiders.stores = supply.capacity(raiders.size)
+        g.armies.append(raiders)
         lit = 0
         for _ in range(40):
             lit += sum(1 for m in g.tick() if "alight" in m)

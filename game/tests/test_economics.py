@@ -256,6 +256,14 @@ class TestSurplusAndTheWedge(unittest.TestCase):
     def setUp(self):
         self.g = grown(days=400)
         self.m = self.g.home().market
+        # These measure the wedge a toll drives, and three of them do it in
+        # wheat. They were reading whatever four hundred simulated days had
+        # left in the bin, which is a number that belongs to the bot's
+        # trading rather than to the arithmetic under test -- and when a
+        # change to what the bot does with its carts emptied the wheat, the
+        # tests went quiet rather than wrong: a surplus of nothing is zero,
+        # and zero is not greater than zero.
+        self.m.stock["wheat"] = max(self.m.stock.get("wheat", 0.0), 120.0)
 
     def test_buyers_gain_when_a_thing_is_scarce_enough_to_want(self):
         r = surplus(self.m, "bread")
@@ -432,6 +440,7 @@ class TestTheConsoleSaysIt(unittest.TestCase):
         self.assertIn("to the sellers", out)
 
     def test_a_toll_shows_up_as_a_thing_destroyed(self):
+        self.g.home().market.stock["wheat"] = 120.0
         self.g.home().market.tariff_rate = 0.2
         out = self.said("surplus wheat")
         self.assertIn("to nobody", out)

@@ -28,10 +28,15 @@
       <button id="c-2" type="button" aria-pressed="false" title="faster">&#9205;&#9205;</button>
       <button id="c-3" type="button" aria-pressed="false" title="faster still">&#9205;&#9205;&#9205;</button>
     </span>
-    <button id="v-draw" type="button" title="draw a march from dials">country</button>
-    <button id="v-menu" type="button" title="new game, save, resume">menu</button>
+    <!-- `country` and `resume` used to sit here as well, and both were the
+         front door's own buttons a second time: it offers "continue your
+         last game" and "draw the country yourself…". Ten controls did not
+         fit a 1280-wide window without being squeezed, and at 900 the last
+         three walked off the edge -- one of them the purse. Two fewer, and
+         nothing you could do before you cannot do now. -->
+    <button id="v-menu" type="button"
+            title="new game, resume, draw a country">menu</button>
     <button id="v-save" type="button" title="write this game down">save</button>
-    <button id="v-load" type="button" title="pick up the saved game">resume</button>
     <button id="ear" type="button" aria-pressed="false"
             title="the sound of the town, made out of arithmetic">sound</button>
     <label id="goodpick" class="dim" hidden>price of

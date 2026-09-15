@@ -23,7 +23,11 @@ body {
 
 #bar {
   position: absolute; top: 0; left: 0; right: 0; z-index: 3;
-  display: flex; gap: 16px; align-items: center;
+  /* Wraps at every width, not only on a phone. At 900 by 620 -- an ordinary
+     window for anybody who double-clicked the exe -- the last three controls
+     walked off the right-hand edge, and one of them was the purse. A bar
+     that wraps is a bar that cannot lose your treasury. */
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
   padding: 10px 16px 18px;
   /* Deeper and taller than it was. The date used to fade out over a bright
      sky, which is exactly where it needed to be readable. */
@@ -41,8 +45,9 @@ body {
 #date { color: #a8997c; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 
 #panel {
-  position: absolute; top: 52px; left: 14px; z-index: 3;
-  width: 236px; max-height: calc(100% - 190px); overflow: auto;
+  position: absolute; top: var(--under-bar, 52px); left: 14px; z-index: 3;
+  width: 236px; max-height: calc(100% - var(--under-bar, 52px) - 138px);
+  overflow: auto;
   padding: 12px 14px;
   background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
   box-shadow: 0 8px 24px rgba(0,0,0,.32);
@@ -117,7 +122,8 @@ body {
 #tip b { color: var(--gold); font-weight: normal; }
 
 #alarm {
-  position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 4;
+  position: absolute; top: var(--under-bar, 52px); left: 50%;
+  transform: translateX(-50%); z-index: 4;
   padding: 7px 18px; letter-spacing: .14em; text-transform: uppercase;
   font-size: 12px; color: #f3e4c6;
   background: rgba(155,44,44,.88); border-radius: 2px;
@@ -126,7 +132,8 @@ body {
    own column, and a panel that covers the readings you are defending with is
    worse than no panel. */
 #siege {
-  position: absolute; top: 96px; right: 16px; z-index: 5; width: 264px;
+  position: absolute; top: calc(var(--under-bar, 52px) + 44px); right: 16px;
+  z-index: 5; width: 264px;
   max-width: calc(100vw - 32px); pointer-events: auto;
   padding: 12px 14px 10px;
   background: var(--panel); border: 1px solid var(--blood); border-radius: 2px;
@@ -182,7 +189,7 @@ body {
    every control on it has to opt back in. A button that does not is a button
    the canvas swallows -- which is how `country` shipped unclickable for about
    ten minutes. */
-#ear, #v-draw, #v-menu, #v-save, #v-load {
+#ear, #v-menu, #v-save {
   pointer-events: auto; font: 12px/1 inherit; letter-spacing: .09em;
   text-transform: uppercase; padding: 6px 11px; cursor: pointer;
   color: var(--dim); background: rgba(20,17,13,.55);
@@ -197,8 +204,7 @@ body {
   outline: 2px solid var(--parch); outline-offset: 1px;
 }
 #ear:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
-body.march #ear, body.march #v-draw, body.march #v-menu,
-body.march #v-save, body.march #v-load {
+body.march #ear, body.march #v-menu, body.march #v-save {
   color: #6b5c3e; background: rgba(235,224,194,.75);
   border-color: rgba(120,96,58,.35);
 }
@@ -258,7 +264,8 @@ body.march #goodpick select { color: #3c3323; background: rgba(235,224,194,.9);
 /* The console keeps everything; these catch the one line in a month you would
    have been sorry to scroll past. */
 #toasts {
-  position: absolute; top: 52px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: var(--under-bar, 52px); left: 50%;
+  transform: translateX(-50%);
   z-index: 6; margin: 0; padding: 0; list-style: none;
   display: flex; flex-direction: column; gap: 6px; align-items: center;
   width: min(520px, calc(100% - 32px)); pointer-events: none;
@@ -410,7 +417,8 @@ kbd {
 .pick em { font-style: normal; color: var(--dim); font-size: 12px;
            font-variant-numeric: tabular-nums; }
 #advance {
-  position: absolute; right: 14px; top: 52px; z-index: 3; display: flex; gap: 4px;
+  position: absolute; right: 14px; top: var(--under-bar, 52px); z-index: 3;
+  display: flex; gap: 4px;
 }
 body.march #advance button { color: #6b5c3e; background: rgba(235,224,194,.8);
                            border-color: rgba(120,96,58,.35); }
@@ -508,7 +516,11 @@ body.march #advance button:hover { background: #96731a; color: #f2e9d2; }
 /* What a drawn figure stands for. The picture is a readout of the numbers,
    and a readout with no scale on it is a decoration. */
 #scale {
-  position: fixed; left: 50%; transform: translateX(-50%); top: 52px;
+  /* Below the day buttons rather than across them: both were pinned to the
+     same line, so on a window narrow enough to wrap the bar the legend ran
+     straight through "a day, a week, a month". */
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(var(--under-bar, 52px) + 30px);
   margin: 0; z-index: 4; pointer-events: none;
   font-size: 11px; letter-spacing: .04em; color: #a8a08c;
   text-shadow: 0 1px 3px rgba(0,0,0,.55);
@@ -613,8 +625,11 @@ body.march #scale { display: none; }
 #front {
   position: fixed; inset: 0; z-index: 30; display: grid; place-items: center;
   padding: 20px; overflow: auto;
-  background: radial-gradient(120% 90% at 50% 0%, rgba(38,32,22,.96),
-                              rgba(10,9,7,.985));
+  /* Opaque, not nearly-opaque. At .96 the town's own sidebar read straight
+     through it -- souls, mood, hands, the whole ledger -- which makes a
+     screen that is asking you to choose a house look like a sheet laid over
+     a game already in progress. It is a screen; it covers. */
+  background: radial-gradient(120% 90% at 50% 0%, #262016, #0a0907);
 }
 #front-box { width: min(720px, 94vw); text-align: center; }
 #front h1 {

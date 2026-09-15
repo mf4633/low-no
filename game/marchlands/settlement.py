@@ -104,6 +104,7 @@ class Settlement:
     steward_mood: float = 0.0  # what whoever governs here is worth, set daily
     assize_mood: float = 0.0   # cheap bread, or the queue for it: set daily
     raid_pressure: float = 0.0   # how much of it they got through today
+    raid_heat: float = 0.0       # raiding done here, toward the next roof
     next_uid: int = 1
     report: DayReport = field(default_factory=DayReport)
     #: The castle as it was drawn, if anybody drew one. Empty means nobody
@@ -488,6 +489,19 @@ class Settlement:
     #: charcoal heaps are what a town burns down around.
     SPARK_ODDS = 0.00025
 
+    #: How much raiding it takes to put a roof up, counted as days-times-
+    #: pressure. `kindle` has said "used by accident, by raiders, and by
+    #: sieges" since it was written and nothing on the raiding side ever
+    #: called it: a host could work over eighty-eight per cent of your
+    #: country for a fortnight, the game would print "the country is
+    #: burning" every few days, and not one thatch went up. The only way a
+    #: roof ever caught was a hearth spark, which is a coincidence rather
+    #: than a consequence.
+    #:
+    #: Counted rather than rolled, so a fortnight of it burns two or three
+    #: roofs every time instead of none on an unlucky stream.
+    RAID_TORCH = 3.5
+
     def hearths(self) -> int:
         return sum(1 for b in self.buildings if b.complete
                    and b.spec.key in ("bakery", "kiln", "smelter", "brewery",
@@ -545,6 +559,15 @@ class Settlement:
         hearth = self.hearths()
         if hearth and rng.random() < self.SPARK_ODDS * hearth:
             rep.notes.extend(self.kindle(rng))
+        # And raiders carry torches, which is the whole of what a raid is
+        # for beyond the stealing.
+        if self.raided and self.raid_pressure > 0:
+            self.raid_heat += self.raid_pressure
+            while self.raid_heat >= self.RAID_TORCH:
+                self.raid_heat -= self.RAID_TORCH
+                rep.notes.extend(self.kindle(rng))
+        elif self.raid_heat:
+            self.raid_heat = max(0.0, self.raid_heat - 0.5)
         if not self.fires:
             self.fire_labour = 0.0
             return
@@ -811,6 +834,10 @@ class Settlement:
             # saved under the ring came back with his masons off the breach
             # and his besieger's memory of the last sortie wiped.
             "shoring": self.shoring, "sorties": self.sorties,
+            # Carries across days, unlike `raid_pressure` which is worked
+            # out fresh each morning -- so it has to be written down, for
+            # the same reason `shoring` did.
+            "raid_heat": self.raid_heat,
         }
 
     @classmethod
@@ -829,4 +856,5 @@ class Settlement:
         s.culture = d.get("culture", "")
         s.shoring = bool(d.get("shoring", False))
         s.sorties = int(d.get("sorties", 0))
+        s.raid_heat = float(d.get("raid_heat", 0.0))
         return s

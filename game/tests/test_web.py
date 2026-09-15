@@ -961,9 +961,12 @@ class TestTheFrontDoorIsOnScreen(unittest.TestCase):
         cls.css = open(os.path.join(STATIC, "marchlands.css"), encoding="utf-8").read()
 
     def test_every_id_the_front_door_reaches_for_is_in_the_page(self):
+        # `v-load` and `v-draw` were here too, as buttons in the bar that did
+        # what the front door's own "continue your last game" and "draw the
+        # country yourself…" already do. They are gone; the door's are not.
         wired = ("front", "front-go", "front-continue", "front-close",
                  "front-dials", "front-resume", "housepick", "wherepick",
-                 "house-note", "where-note", "v-menu", "v-save", "v-load",
+                 "house-note", "where-note", "v-menu", "v-save",
                  "soul", "soul-close", "soul-name", "soul-count", "soul-doing",
                  "soul-facts", "soul-said", "soul-person", "soul-age",
                  "soul-skills", "soul-posts")
@@ -981,7 +984,7 @@ class TestTheFrontDoorIsOnScreen(unittest.TestCase):
                  if "pointer-events: auto" in line or "#ear," in line]
         rule = self.css.split("pointer-events: auto; font: 12px/1 inherit")[0]
         tail = rule.rsplit("\n", 1)[-1] + rule.rsplit("\n", 2)[-2]
-        for name in ("#v-menu", "#v-save", "#v-load", "#v-draw"):
+        for name in ("#v-menu", "#v-save"):
             self.assertIn(name, tail, name)
         self.assertTrue(opted)
 
