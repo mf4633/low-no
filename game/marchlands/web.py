@@ -715,7 +715,8 @@ def _siege_view(game, s, key: str = "") -> Optional[dict]:
     fld = game.field_at(key)
     sat = max((a.siege_days for a in outside), default=0)
     tries = []
-    for share, label in ((0.5, "half the garrison"), (0.8, "most of it"),
+    for share, label in ((0.15, "a handful"), (0.3, "a quarter of them"),
+                         (0.5, "half the garrison"), (0.8, "most of it"),
                          (1.0, "everyone")):
         o = military.sortie_odds(share, fld.weather, sat, s.sorties)
         tries.append({"share": share, "label": label,
@@ -736,6 +737,10 @@ def _siege_view(game, s, key: str = "") -> Optional[dict]:
         # Both halves of the bet, because there is no single number any
         # more: this is what stands over the works if you are not seen, and
         # what turns out if you are.
+        # What is in his wagons, in days -- the other thing a sortie can be
+        # aimed at, and the only reading that says whether it is worth it.
+        "stores_out": round(max(
+            (supply.days_left(a.size, a.stores) for a in outside), default=0.0)),
         "guard": round(guard * military.SORTIE_QUIET),
         "roused": round(guard * military.SORTIE_ROUSED),
         "host": round(sum(a.size for a in outside)),

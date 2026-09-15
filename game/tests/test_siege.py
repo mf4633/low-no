@@ -236,6 +236,98 @@ class TestSallying(unittest.TestCase):
                            "the whole host was in the fight")
 
 
+class TestTheBaggageRaid(unittest.TestCase):
+    """The small party's answer, and the reason the size of a sortie is a
+    decision at all.
+
+    At the works you have to beat the watch, so too few men is men thrown
+    away -- which measured out as one good answer (send most of them) and
+    several bad ones. At the wagons you have to beat nobody: arrive unseen,
+    put a torch to them, get back. So the two targets want opposite-sized
+    parties, and the player is choosing between them rather than turning a
+    dial.
+
+    It could not have existed before hosts had to eat. Burning a besieger's
+    stores was a line of text until supply.py made his own supply something
+    that runs out.
+    """
+
+    def besieged(self, seed=1, days=20):
+        g = start("siege", seed=seed)
+        g.advance(days)
+        here = next(iter(g.world.settlements))
+        return g, g.world.settlements[here], here
+
+    def foe(self, g):
+        return next(a for a in g.armies if a.owner != "player")
+
+    def caught(self, g, yes=True):
+        import random as _r
+        rng = _r.Random(4)
+        rng.random = (lambda: 0.0) if yes else (lambda: 0.999)
+        g.rng = rng
+
+    def test_a_raid_that_gets_in_burns_his_food(self):
+        g, s, here = self.besieged()
+        self.caught(g, True)
+        before = self.foe(g).stores
+        said = g.fire_baggage(here, men=int(sum(s.units.values()) * 0.25))
+        self.assertIn("nobody sees them go", said)
+        self.assertLess(self.foe(g).stores, before * 0.75)
+
+    def test_and_leaves_his_engines_alone(self):
+        """It is not the other sortie. His rams are still there in the
+        morning; what has changed is his clock."""
+        g, s, here = self.besieged()
+        self.caught(g, True)
+        g.fire_baggage(here, men=int(sum(s.units.values()) * 0.25))
+        self.assertIn("ram", self.foe(g).units)
+
+    def test_a_raid_that_is_seen_is_driven_off_with_nothing(self):
+        g, s, here = self.besieged()
+        self.caught(g, False)
+        before, men = self.foe(g).stores, sum(s.units.values())
+        said = g.fire_baggage(here, men=int(men * 0.25))
+        self.assertIn("nothing fired", said)
+        self.assertEqual(self.foe(g).stores, before)
+        self.assertLess(sum(s.units.values()), men)
+
+    def test_it_costs_something_even_when_it_works(self):
+        g, s, here = self.besieged()
+        self.caught(g, True)
+        men = sum(s.units.values())
+        g.fire_baggage(here, men=int(men * 0.25))
+        self.assertLess(sum(s.units.values()), men, "nobody stayed behind")
+
+    def test_a_small_party_risks_far_less_than_a_large_one(self):
+        """Which is the whole of why the raid is the small party's answer:
+        the fire it can carry barely grows with the men, and what being
+        caught costs grows with every one of them."""
+        lost = {}
+        for share in (0.2, 0.8):
+            g, s, here = self.besieged()
+            self.caught(g, False)
+            men = sum(s.units.values())
+            g.fire_baggage(here, men=int(men * share))
+            lost[share] = men - sum(s.units.values())
+        self.assertGreater(lost[0.8], lost[0.2] * 2)
+
+    def test_and_there_is_nothing_to_burn_twice(self):
+        g, s, here = self.besieged()
+        self.foe(g).stores = 0.0
+        said = g.fire_baggage(here, men=20)
+        self.assertIn("nothing left in that camp", said)
+
+    def test_the_camp_learns_from_a_raid_as_well_as_a_sortie(self):
+        """Both go out of the same gate, so both are the same lesson to the
+        man watching it."""
+        g, s, here = self.besieged()
+        before = s.sorties
+        self.caught(g, True)
+        g.fire_baggage(here, men=15)
+        self.assertGreater(s.sorties, before)
+
+
 class TestItIsDecidedByThePlayer(unittest.TestCase):
     """The measurement that says this is a game. Doing nothing is a coin
     flip, sallying early wins it, and leaving it until the wall is falling

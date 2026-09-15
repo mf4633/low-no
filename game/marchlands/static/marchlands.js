@@ -2777,6 +2777,7 @@ function paintSiege(v) {
     ['engines at the works', num(v.engines), false],
     ['the watch over them', num(v.guard), false],
     ['his host, if you are seen', num(v.roused), true],
+    ['food in that camp', v.stores_out ? `${v.stores_out} days` : 'none', false],
   ];
   $('siege-read').innerHTML = rows.map(([what, value, low]) =>
     `<li class="${low ? 'low' : ''}"><label>${what}</label>` +
@@ -2789,6 +2790,14 @@ function paintSiege(v) {
 
   const sally = $('siege-sally');
   sally.disabled = v.men < 5;
+  // The two things worth going out for, and they want opposite-sized
+  // parties: the works need enough men to beat the watch, the wagons need
+  // only men who are not seen.
+  const torch = $('siege-torch');
+  torch.disabled = v.men < 3 || !v.stores_out;
+  torch.title = v.stores_out
+    ? `${v.stores_out} days of food in that camp`
+    : 'there is nothing in that camp to burn';
   // The odds of getting out of the gate unseen, at the size that is
   // selected. Re-read on every change of the picker, because the size is
   // the thing that buys and sells the surprise -- a player who cannot see
@@ -2811,11 +2820,11 @@ function paintSiege(v) {
   showOdds();
   // What the sortie is actually for. A player who reads "open the gate" as
   // "attack the army" opens it once and never again.
-  $('siege-note').textContent = v.engines
-    ? 'Get out unseen and you fight the watch over the engines. Be seen '
-      + 'forming up and his host turns out, in the open, with no wall behind '
-      + 'you.'
-    : 'There is nothing at the works to burn. Going out now only costs men.';
+  $('siege-note').textContent =
+    'Get out unseen or his host turns out, in the open, with no wall behind '
+    + 'you. The works want enough men to beat the watch; the wagons want only '
+    + 'men who are not seen. Going out twice is expected -- he watches the '
+    + 'gate after the first.';
 }
 
 $('siege-shore').addEventListener('click', () => {
@@ -2825,6 +2834,10 @@ $('siege-shore').addEventListener('click', () => {
 $('siege-sally').addEventListener('click', () => {
   const share = parseFloat($('siege-men').value) || 0.8;
   send(`sally ${Math.max(1, Math.floor(siegeMen * share))}`);
+});
+$('siege-torch').addEventListener('click', () => {
+  const share = parseFloat($('siege-men').value) || 0.8;
+  send(`torch ${Math.max(1, Math.floor(siegeMen * share))}`);
 });
 
 /* A panel that quietly stops mid-list is a lie about what it is showing. When

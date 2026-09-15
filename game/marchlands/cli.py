@@ -2379,6 +2379,18 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_torch(self, args: List[str]) -> None:
+        """Send a party over the wall at the besieger's wagons."""
+        g = self.game
+        men = 0
+        where = ""
+        for a in args:
+            if a.isdigit():
+                men = int(a)
+            else:
+                where = a.lower()
+        self.say("  " + g.fire_baggage(where, men).replace("\n", "\n  "))
+
     def cmd_sortie_odds(self, args: List[str]) -> None:
         """What a sortie out of a besieged town would risk, before you order it."""
         from .military import BESIEGING, sortie_odds
@@ -2395,7 +2407,8 @@ class Console:
         sat = max((a.siege_days for a in outside), default=0)
         sky = g.field_at(where).weather
         self.say(ink.head("THE GATE", "what a sortie would risk"))
-        for share, label in ((0.5, "half the garrison"), (0.8, "most of it"),
+        for share, label in ((0.15, "a handful"), (0.3, "a quarter of them"),
+                             (0.5, "half the garrison"), (0.8, "most of it"),
                              (1.0, "everyone")):
             o = sortie_odds(share, sky, sat, s.sorties)
             tint = ink.LEAF if o.surprise >= 0.5 else ink.BLOOD
@@ -2408,9 +2421,19 @@ class Console:
         for bad in o.hurts:
             self.say("      " + ink.c("- " + bad, ink.BLOOD))
         self.say("")
-        self.say("  " + ink.c("caught, you fight the guard over the engines; "
+        self.say("  " + ink.c("caught, you fight the watch over the engines; "
                               "seen, most of his host", ink.DIM))
-        self.say("  " + ink.c("sally <men> to go", ink.DIM))
+        self.say("")
+        self.say("  " + ink.c("sally <men>", ink.GOLD)
+                 + ink.c("  at the works -- beat the watch and the engines burn,", ink.DIM))
+        self.say("  " + ink.c("            ", ink.DIM)
+                 + ink.c("  so too few men is men thrown away", ink.DIM))
+        self.say("  " + ink.c("torch <men>", ink.GOLD)
+                 + ink.c("  at the wagons -- you have to beat nobody, only", ink.DIM))
+        self.say("  " + ink.c("            ", ink.DIM)
+                 + ink.c("  arrive unseen. He watches the gate after the", ink.DIM))
+        self.say("  " + ink.c("            ", ink.DIM)
+                 + ink.c("  first, so going out often is how a garrison ends", ink.DIM))
 
     def cmd_victual(self, args: List[str]) -> None:
         """What your hosts are eating, and load the baggage of one that can."""
@@ -3166,8 +3189,10 @@ COMMANDS = {
     "order": Console.cmd_order, "orders": Console.cmd_order,
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
     "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
+    "torch": Console.cmd_torch, "wagons": Console.cmd_torch,
+    "baggage": Console.cmd_torch,
     "victual": Console.cmd_victual, "supply": Console.cmd_victual,
-    "baggage": Console.cmd_victual, "provision": Console.cmd_victual,
+    "provision": Console.cmd_victual,
     "sally": Console.cmd_sally, "sortie": Console.cmd_sally,
     "shore": Console.cmd_shore, "mend": Console.cmd_shore,
     "campaign": Console.cmd_campaign, "chapter": Console.cmd_campaign,

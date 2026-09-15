@@ -249,10 +249,16 @@
     <ul id="siege-read"></ul>
     <div class="acts">
       <button id="siege-shore" type="button"></button>
-      <button id="siege-sally" type="button">Open the gate</button>
+      <button id="siege-sally" type="button">At the works</button>
+      <button id="siege-torch" type="button">At the wagons</button>
+      <!-- Small sizes first, and one of them selected: the wagons are the
+           small party's target and a picker that opens on "most of it"
+           teaches the opposite. -->
       <select id="siege-men" aria-label="how many go out">
+        <option value="0.15">a handful</option>
+        <option value="0.3" selected>a quarter of them</option>
         <option value="0.5">half the garrison</option>
-        <option value="0.8" selected>most of it</option>
+        <option value="0.8">most of it</option>
         <option value="1">everyone</option>
       </select>
     </div>

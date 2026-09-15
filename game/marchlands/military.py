@@ -752,6 +752,36 @@ SORTIE_SLACK_DAYS = 120.0
 SORTIE_WARNED = 0.26
 
 
+# There are two things worth going out of a gate for, and they want
+# opposite-sized parties. That is what finally makes the size a decision
+# rather than a dial: the odds of getting out unseen are the same for both
+# (see `sortie_odds`), but what you can do once you are out is not.
+#
+#   At the works, you have to beat the watch standing over the engines, so
+#   a party too small to win is a party thrown away.
+#
+#   At the baggage, you have to beat nobody. You have to arrive, put a
+#   torch to the wagons, and get back -- so the only thing that matters is
+#   not being seen, and the smallest party that can carry enough fire is
+#   the right one.
+#
+# Burning a besieger's stores did nothing at all before hosts had to eat.
+# Now it is the other way to lift a siege: not by breaking his engines but
+# by making his own supply the thing that runs out first, which is what
+# actually happened to most sieges that failed.
+
+#: What a raiding party fires, as a share of the stores in the camp: what
+#: any party gets to, and what more hands add. More men carry more fire --
+#: but more men are seen forming up, and the whole point of the raid is
+#: that it is the small party's answer.
+RAID_BURN_BASE = 0.30
+RAID_BURN_PER = 0.30
+
+#: A raid caught in the open is a running fight back to the gate, not a
+#: battle. Short, and the survivors get home.
+RAID_ROUNDS = 3
+
+
 @dataclass(frozen=True)
 class Sortie:
     """The odds of getting out of the gate unseen, and what is behind them."""

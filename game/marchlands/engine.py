@@ -1744,6 +1744,105 @@ class GameState:
                      weather=sky_on(self.season, self.day, self.seed),
                      place=self.world.node_name(node) or node)
 
+    def fire_baggage(self, settlement_key: str = "", men: int = 0) -> str:
+        """Out of the gate at his wagons rather than at his engines.
+
+        The small party's answer, and the reason the size of a sortie is a
+        decision at all. At the works you have to beat the watch standing
+        over the engines, so too few men is men thrown away. Here you have
+        to beat nobody: you have to arrive, fire the wagons and get back, so
+        the only thing that matters is not being seen -- and the fewer you
+        send the likelier that is and the less it costs you when it is not.
+
+        It does nothing to his rams. What it does is make his own supply the
+        thing that runs out first, which is how most sieges that failed
+        actually failed, and which was not a thing that could be done to
+        anybody until hosts had to eat.
+        """
+        s = self.world.settlements.get(settlement_key or "") or self.home()
+        if not s.besieged:
+            return f"{s.name} is not besieged"
+        foe = self._besieger_of(s)
+        if foe is None:
+            return "there is nobody outside to go at"
+        have = sum(s.units.values())
+        if have < 1:
+            return f"{s.name} has nobody to send out"
+        share = 1.0 if men <= 0 else max(0.05, min(1.0, men / have))
+        going = {k: v * share for k, v in s.units.items() if v * share >= 0.5}
+        if not going:
+            return "too few to be worth opening the gate for"
+        if foe.stores <= 1.0:
+            return (f"there is nothing left in that camp to burn -- "
+                    f"{self.world.node_name(foe.owner)} is living off the country")
+
+        odds = sortie_odds(share, self.field_at(self._key_of(s)).weather,
+                           foe.siege_days, s.sorties)
+        caught = self.rng.random() < odds.surprise
+        s.sorties += 1
+        said = [f"{s.name} sends men over the wall at the wagons -- "
+                + ("nobody sees them go" if caught
+                   else "and the camp is up before they are halfway")]
+        if caught:
+            burnt = min(0.85, military.RAID_BURN_BASE
+                        + military.RAID_BURN_PER * share) * foe.stores
+            foe.stores = max(0.0, foe.stores - burnt)
+            left = supply.days_left(foe.size, foe.stores)
+            said.append(f"The baggage of {self.world.node_name(foe.owner)} "
+                        f"burns: {left:.0f} days of food left in that camp")
+            # Not free. Somebody has to hold the wagon line while the rest
+            # work, and men who go out at night do not all come back.
+            lost = self._thin_garrison(s, going, 0.10)
+            if lost >= 1:
+                said.append(f"{lost:.0f} did not come back")
+        else:
+            # A running fight to the gate rather than a battle, against
+            # whatever turned out -- which for a small party is everybody.
+            out = Side(dict(going),
+                       attack_mult=self.progress.mult("attack")
+                       * self.kin.mult("attack", -1),
+                       defense_mult=self.progress.mult("defense"))
+            guard = {k: n * odds.roused for k, n in foe.units.items()
+                     if UNITS[k].siege_power <= 0 and k != "engineer"}
+            them = Side({k: v for k, v in guard.items() if v >= 0.5})
+            res = fight(out, them, rng=self.rng,
+                        max_rounds=military.RAID_ROUNDS,
+                        place=f"the wagon lines before {s.name}",
+                        field=self.field_at(self._key_of(s)))
+            for key in list(s.units):
+                s.units[key] -= going.get(key, 0.0)
+                s.units[key] = max(0.0, s.units[key] + out.units.get(key, 0.0))
+            for key in list(foe.units):
+                met = guard.get(key, 0.0)
+                if met:
+                    foe.units[key] = max(0.0, foe.units[key] - met
+                                         + them.units.get(key, 0.0))
+            foe.units = {k: v for k, v in foe.units.items() if v >= 0.5}
+            said.append(self._box_score(f"{s.name} raids the wagons", res,
+                                        PLAYER, foe.owner))
+            said.append("They are driven off the wagon lines with nothing fired")
+        self.battles += said
+        return "\n".join(said)
+
+    def _besieger_of(self, s: Settlement) -> Optional[Army]:
+        """The host sitting round this town, or None."""
+        outside = [a for a in self.armies
+                   if a.owner != PLAYER and a.at == self._key_of(s)
+                   or (a.owner != PLAYER and a.state == BESIEGING
+                       and self.world.node_name(a.at) == s.name)]
+        return max(outside, key=lambda a: a.size) if outside else None
+
+    def _thin_garrison(self, s: Settlement, went: Dict[str, float],
+                       rate: float) -> float:
+        """Take a toll off the men who went out, spread over what went."""
+        gone = 0.0
+        for key, n in went.items():
+            off = min(s.units.get(key, 0.0), n * rate)
+            s.units[key] = max(0.0, s.units.get(key, 0.0) - off)
+            gone += off
+        s.units = {k: v for k, v in s.units.items() if v >= 0.5}
+        return gone
+
     def sally(self, settlement_key: str = "", men: int = 0) -> str:
         """Out of the gate at the siege works.
 
