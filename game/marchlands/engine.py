@@ -36,7 +36,7 @@ from . import league as lg
 from .league import League, PLAYER
 from .lord import Lord
 from .market import Market
-from .military import (BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
+from .military import (Battle, open_battle, BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
                        RETURNING, STORM, describe,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_speed,
@@ -134,12 +134,72 @@ def _ordinal(n: int) -> str:
 
 
 @dataclass
+class PendingBattle:
+    """A fight the day has stopped on, waiting for somebody to fight it.
+
+    Everything the aftermath needs to finish the day is here by key rather
+    than by reference, because this has to survive a save: the army by uid,
+    the place by key, the hosts standing inside a sworn town by uid. The
+    sides themselves live in the Battle, casualties and all.
+    """
+    battle: Battle
+    kind: str                     # 'wall' -- your own town; 'storm' -- a foreign one
+    army: int                     # uid of the host going in
+    where: str                    # settlement key, or town key
+    side: str                     # which side is yours: 'attacker' or 'defender'
+    title: str
+    day: int
+    stationed: List[int] = field(default_factory=list)
+    #: The standing wall, for the picture: the fight itself is at the
+    #: breach, with `wall_hp` nought, exactly as `fight` has always had it.
+    wall_standing: float = 0.0
+    wall_full: float = 0.0
+    #: What followed, once it was over -- the sack, the rout, the town
+    #: changing hands. Kept on the fight so the screen can say it, because
+    #: the engine finishing a battle and the player finishing reading it are
+    #: two different moments and the first version conflated them: the day
+    #: cleared the fight the instant it ended and the verdict was never seen.
+    after: List[str] = field(default_factory=list)
+
+    #: Whether the aftermath has run. A fight can be over and unsettled for
+    #: the instant between the last round and `_finish_battle`.
+    settled: bool = False
+
+    def to_dict(self) -> dict:
+        return {"battle": self.battle.to_dict(), "kind": self.kind,
+                "army": self.army, "where": self.where, "side": self.side,
+                "title": self.title, "day": self.day,
+                "stationed": list(self.stationed),
+                "wall_standing": self.wall_standing, "wall_full": self.wall_full,
+                "after": list(self.after), "settled": self.settled}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PendingBattle":
+        return cls(battle=Battle.from_dict(d["battle"]), kind=d["kind"],
+                   army=d["army"], where=d["where"], side=d["side"],
+                   title=d["title"], day=d["day"],
+                   stationed=list(d.get("stationed", [])),
+                   wall_standing=d.get("wall_standing", 0.0),
+                   wall_full=d.get("wall_full", 0.0),
+                   after=list(d.get("after", [])),
+                   settled=bool(d.get("settled", False)))
+
+
+@dataclass
 class GameState:
     world: World
     treasury: float = 1500.0
     day: int = 0
     caravans: List[Caravan] = field(default_factory=list)
     armies: List[Army] = field(default_factory=list)
+    #: Whether a fight your men are in stops the day and waits for you.
+    #: "auto" resolves everything at once, the way it always did, and is the
+    #: default so that the autoplayer, the tests and every headless run are
+    #: untouched; the console and the window turn it to "play". A battle
+    #: nobody is in stays "auto" whatever this says.
+    battles_mode: str = "auto"
+    #: The fight the day is waiting on, if there is one. See `battle_step`.
+    pending: Optional[PendingBattle] = None
     events: EventEngine = field(default_factory=EventEngine)
     progress: Progress = field(default_factory=Progress)
     goals: Goals = field(default_factory=Goals)
@@ -387,6 +447,14 @@ class GameState:
     def tick(self) -> List[str]:
         if self.over:
             return [self.over]
+        if self.pending is not None:
+            if not self.pending.battle.over:
+                # The storm is going in and the day cannot end until it has.
+                # Said once here rather than resolved quietly, because
+                # resolving it quietly is the thing this screen exists to stop.
+                return [f"The day waits on the fight at {self.pending.title}. "
+                        f"`battle` to fight it, `battle auto` to let it run."]
+            self.pending = None            # read, or not; the day moves on
         self.day += 1
         msgs: List[str] = []
         led = Ledger()
@@ -2543,53 +2611,95 @@ class GameState:
         if self.day % 5 == 0 and lines and (player or town.mine):
             msgs.append(f"{a.name}: {lines[0]}")
         if storms_now(a.siege.plan, wall, holder.alive()):
-            res = fight(besieger, holder, rng=self.rng, place=town.name,
-                        orders=(a.order, lordly.sort_of(town.key).fights),
-                        field=self.field_at(town.key))
-            msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
-                        f"the ground after {res.rounds} rounds")
-            msgs.append(self._box_score(f"{a.name} storms {town.name}", res,
-                                        a.owner, town.key))
-            self.scored(a.owner, won=res.winner == "attacker")
-            self.scored(town.key, won=res.winner != "attacker")
-            a.siege_days = 0
-            if res.winner == "attacker":
-                self.took_town(a.owner, town.key)
-                if player:
-                    self.kin.did("merciful", -0.35)
-                    self.kin.teach("engineering", 14.0, self.day, post="master")
-                    self.kin.teach("tactics", 10.0, self.day, post="captain",
-                                   target=str(a.uid))
-                msgs.append(self._take_town(town, a))
-                if not player:
-                    line = lordly.says(a.owner, "takes", self.voice)
-                    if line:
-                        msgs.append(f'    {self.world.node_name(a.owner)}: '
-                                    f'"{line}"')
-                a.prune()
-                return msgs        # the garrison is the victor's now, not the survivors'
-            elif player:
-                a.state = RETURNING
-                msgs.append(f"{a.name} is thrown back from {town.name}")
-                # He was standing where the arrows were. Sometimes that tells.
-                if self.lord.riding == a.uid:
-                    msgs += self._lord_fell()
-                self.march(a.uid, a.home)
-            else:
-                a.state = RETURNING
-                if a.owner in self.world.towns:
-                    # A letter is easier to sign than to keep. Every host of
-                    # theirs you break takes a bite out of the reason it was
-                    # written, which is the one way out that is not money.
-                    self.court.write(a.owner, "beaten", 22.0, self.day)
-                    line = lordly.says(a.owner, "beaten", self.voice)
-                    if line:
-                        msgs.append(f'    {self.world.towns[a.owner].lord}: '
-                                    f'"{line}"')
-                self.march(a.uid, a.home)
-            town.wall_hp = max(town.wall_hp, town.wall_max * 0.15)
+            battle = open_battle(besieger, holder, rng=self.rng, place=town.name,
+                                 orders=(a.order, lordly.sort_of(town.key).fights),
+                                 field=self.field_at(town.key), works=works,
+                                 state=a.siege, wall_max=town.wall_max)
+            # Yours to fight if you are going in or it is yours to hold.
+            # Two lords at each other's walls is nobody's business but
+            # theirs, and resolves at once as it always has.
+            if (player or town.mine) and self.battles_mode == "play":
+                self.pending = PendingBattle(
+                    battle=battle, kind="storm", army=a.uid, where=town.key,
+                    side="attacker" if player else "defender",
+                    title=town.name, day=self.day,
+                    stationed=[x.uid for x in stationed],
+                    wall_standing=wall, wall_full=town.wall_max)
+                msgs.append(self.note(
+                    f"*** THE STORM GOES IN AT {town.name.upper()}. "
+                    f"The day waits on it. ***", MOMENTOUS))
+                return msgs
+            battle.run()
+            battle.close()
+            return msgs + self._after_storm(battle.res, a, town, holder,
+                                            besieger, stationed)
+        self._settle_survivors(a, town, holder, stationed)
+        return msgs
+
+    def _after_storm(self, res, a: Army, town, holder: Side, besieger: Side,
+                     stationed: List[Army]) -> List[str]:
+        """What follows an assault on a foreign wall, whoever fought it.
+
+        One function for the fight resolved at once and the fight resolved
+        a round at a time, because two copies of "what happens when a town
+        falls" is one of them forgetting the relics.
+        """
+        msgs: List[str] = []
+        player = a.owner == "player"
+        msgs.append(f"ASSAULT ON {town.name.upper()}: the {res.winner} holds "
+                    f"the ground after {res.rounds} rounds")
+        msgs.append(self._box_score(f"{a.name} storms {town.name}", res,
+                                    a.owner, town.key))
+        self.scored(a.owner, won=res.winner == "attacker")
+        self.scored(town.key, won=res.winner != "attacker")
+        a.siege_days = 0
+        if res.winner == "attacker":
+            self.took_town(a.owner, town.key)
+            if player:
+                self.kin.did("merciful", -0.35)
+                self.kin.teach("engineering", 14.0, self.day, post="master")
+                self.kin.teach("tactics", 10.0, self.day, post="captain",
+                               target=str(a.uid))
+            msgs.append(self._take_town(town, a))
+            if not player:
+                line = lordly.says(a.owner, "takes", self.voice)
+                if line:
+                    msgs.append(f'    {self.world.node_name(a.owner)}: '
+                                f'"{line}"')
+            a.prune()
+            return msgs        # the garrison is the victor's now, not the survivors'
+        elif res.broken_off == "attacker":
+            # A storm called off is not a storm thrown back. He is still at
+            # the wall, and he has kept most of his men to try again with.
+            msgs.append(f"{a.name} calls off the storm and draws back to the "
+                        f"lines before {town.name}")
+        elif player:
+            a.state = RETURNING
+            msgs.append(f"{a.name} is thrown back from {town.name}")
+            # He was standing where the arrows were. Sometimes that tells.
+            if self.lord.riding == a.uid:
+                msgs += self._lord_fell()
+            self.march(a.uid, a.home)
+        else:
+            a.state = RETURNING
+            if a.owner in self.world.towns:
+                # A letter is easier to sign than to keep. Every host of
+                # theirs you break takes a bite out of the reason it was
+                # written, which is the one way out that is not money.
+                self.court.write(a.owner, "beaten", 22.0, self.day)
+                line = lordly.says(a.owner, "beaten", self.voice)
+                if line:
+                    msgs.append(f'    {self.world.towns[a.owner].lord}: '
+                                f'"{line}"')
+            self.march(a.uid, a.home)
+        town.wall_hp = max(town.wall_hp, town.wall_max * 0.15)
+        self._settle_survivors(a, town, holder, stationed)
+        return msgs
+
+    def _settle_survivors(self, a: Army, town, holder: Side,
+                          stationed: List[Army]) -> None:
+        """Casualties fall on the stationed hosts first, then on the town levy."""
         a.prune()
-        # Casualties fall on the stationed hosts first, then on the town levy.
         survivors = dict(holder.units)
         for x in stationed:
             for k in list(x.units):
@@ -2598,7 +2708,6 @@ class GameState:
                 x.units[k] = share
             x.prune()
         town.garrison = {k: v for k, v in survivors.items() if v >= 0.5}
-        return msgs
 
     def _siege_settlement(self, a: Army, s: Settlement) -> List[str]:
         msgs: List[str] = []
@@ -2645,32 +2754,208 @@ class GameState:
         a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
         if storms_now(a.siege.plan, wall, holder.alive()):
             # Your own wall: whatever you told the garrison to do.
-            res = fight(besieger, holder, rng=self.rng, place=s.name,
-                        orders=(a.order, getattr(s, "order", "") or HOLD),
-                        field=self.field_at(self._key_of(s)))
-            msgs.append(self._box_score(f"{a.name} storms {s.name}", res,
-                                        a.owner, PLAYER))
-            self.scored(a.owner, won=res.winner == "attacker")
-            self.scored(PLAYER, won=res.winner != "attacker")
-            if res.winner == "attacker":
-                self.took_town(a.owner, PLAYER)
-            msgs.append(f"ASSAULT ON {s.name.upper()}: the {res.winner} holds the "
-                        f"ground after {res.rounds} rounds")
-            # Men who get over a wall set light to what is behind it, whether
-            # or not they end up holding the ground.
-            msgs.extend(s.kindle(self.rng, self.rng.randrange(2, 6)))
-            s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
-            a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
-            if res.winner == "attacker":
-                msgs.append(self._sack(s, a))
-            else:
-                msgs.append(f"The host is broken beneath the walls of {s.name}")
-                if a in self.armies:
-                    self.armies.remove(a)
-                if a.home in self.world.towns:
-                    self.world.towns[a.home].hostility = 25.0
-            s.wall_hp = max(s.wall_hp, s.wall_max(self.progress) * 0.10)
+            battle = open_battle(besieger, holder, rng=self.rng, place=s.name,
+                                 orders=(a.order, getattr(s, "order", "") or HOLD),
+                                 field=self.field_at(self._key_of(s)),
+                                 works=works, state=a.siege,
+                                 have_pitch=s.market.stock.get("charcoal", 0) >= 5,
+                                 wall_max=s.wall_max(self.progress))
+            if self.battles_mode == "play":
+                self.pending = PendingBattle(
+                    battle=battle, kind="wall", army=a.uid,
+                    where=self._key_of(s), side="defender", title=s.name,
+                    day=self.day, wall_standing=wall,
+                    wall_full=s.wall_max(self.progress))
+                msgs.append(self.note(
+                    f"*** THE STORM GOES IN AT {s.name.upper()}. "
+                    f"The day waits on it. ***", MOMENTOUS))
+                return msgs
+            battle.run()
+            battle.close()
+            msgs += self._after_wall(battle.res, a, s, holder, besieger)
         return msgs
+
+    def _after_wall(self, res, a: Army, s: Settlement, holder: Side,
+                    besieger: Side) -> List[str]:
+        """What follows an assault on your own wall, however it was fought."""
+        msgs: List[str] = []
+        msgs.append(self._box_score(f"{a.name} storms {s.name}", res,
+                                    a.owner, PLAYER))
+        self.scored(a.owner, won=res.winner == "attacker")
+        self.scored(PLAYER, won=res.winner != "attacker")
+        if res.winner == "attacker":
+            self.took_town(a.owner, PLAYER)
+        msgs.append(f"ASSAULT ON {s.name.upper()}: the {res.winner} holds the "
+                    f"ground after {res.rounds} rounds")
+        # Men who get over a wall set light to what is behind it, whether
+        # or not they end up holding the ground.
+        msgs.extend(s.kindle(self.rng, self.rng.randrange(2, 6)))
+        s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
+        a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
+        if res.winner == "attacker":
+            msgs.append(self._sack(s, a))
+        elif res.broken_off == "attacker":
+            msgs.append(f"The storm is called off before {s.name}; the host "
+                        f"draws back to its lines")
+            a.siege_days = 0
+        else:
+            msgs.append(f"The host is broken beneath the walls of {s.name}")
+            if a in self.armies:
+                self.armies.remove(a)
+            if a.home in self.world.towns:
+                self.world.towns[a.home].hostility = 25.0
+        s.wall_hp = max(s.wall_hp, s.wall_max(self.progress) * 0.10)
+        return msgs
+
+    # --------------------------------------------------------- the battle
+    def battle_step(self, action: str = "fight", arg: str = "") -> str:
+        """Do one thing in the fight the day is waiting on.
+
+        `fight` is a round. `auto` is the rest of it. The others are the
+        levers -- an order, the reserve, the oil, the pitch, breaking off --
+        each of which the Battle itself decides whether you may pull, so
+        the console and the picture cannot disagree about that.
+        """
+        pb = self.pending
+        if pb is None:
+            return "there is no fight waiting on you"
+        b, me = pb.battle, pb.side
+        if action == "close":
+            if not b.over:
+                return "the fight is not over"
+            self.pending = None
+            return "back to the day"
+        if b.over:
+            return "\n".join(pb.after) or "the fight is over"
+        if action == "fight":
+            said = "\n".join(b.step()) or "a quiet round"
+        elif action == "auto":
+            b.run()
+            said = "\n".join(b.res.log[-3:])
+        elif action == "order":
+            said = b.reorder(me, arg)
+        elif action == "commit":
+            said = b.commit(me)
+        elif action in ("oil", "pitch"):
+            if me != "defender":
+                said = "you are not the one on the wall"
+            else:
+                said = b.pour_oil() if action == "oil" else b.fire_pitch()
+        elif action == "break":
+            said = b.break_off(me)
+        else:
+            return f"battle: nothing called {action!r}; fight, auto, order, commit, oil, pitch, break, close"
+        if b.over:
+            said += "\n" + "\n".join(self._finish_battle())
+        return said
+
+    def _finish_battle(self) -> List[str]:
+        """The fight is over: take the dressing off and let the day have it.
+
+        The aftermath runs once, here, and is kept on the fight rather than
+        the fight being thrown away -- see PendingBattle.after. The next day
+        puts it away; so does `battle close`.
+        """
+        pb = self.pending
+        if pb is None:
+            return []
+        if pb.settled:
+            return list(pb.after)
+        b = pb.battle
+        b.close()
+        a = self.army(pb.army)
+        msgs: List[str] = []
+        if a is None:
+            msgs.append("the host that was going in is gone")
+        elif pb.kind == "wall":
+            s = self.world.settlements.get(pb.where)
+            if s is not None:
+                msgs = self._after_wall(b.res, a, s, b.defender, b.attacker)
+        else:
+            town = self.world.towns.get(pb.where)
+            stationed = [x for x in (self.army(u) for u in pb.stationed) if x]
+            if town is not None:
+                msgs = self._after_storm(b.res, a, town, b.defender, b.attacker,
+                                         stationed)
+        pb.after = list(msgs)
+        pb.settled = True
+        for line in msgs:
+            if line.strip().startswith("box"):
+                self.battles.append(line.strip())
+        return msgs
+
+    def battle_view(self) -> Optional[dict]:
+        """The fight, as a screen needs it -- or None when the day is not
+        waiting on one."""
+        pb = self.pending
+        if pb is None:
+            return None
+        b = pb.battle
+        v = b.snapshot()
+        mine = b.side(pb.side)
+        v.update({"kind": pb.kind, "side": pb.side, "title": pb.title,
+                  "day": pb.day, "after": list(pb.after),
+                  "wall_standing": round(pb.wall_standing, 1),
+                  "wall_full": round(pb.wall_full, 1),
+                  "field": b.field_words,
+                  "can": b.can(pb.side),
+                  "orders": [{"key": o.key, "name": o.name, "blurb": o.blurb,
+                              "rounds": o.rounds}
+                             for o in military.ORDERS.values()],
+                  "modifiers": self._battle_modifiers(pb),
+                  "kinds": {k: {"name": u.name, "kind": u.unit_class,
+                                "counters": dict(u.counters)}
+                            for k in set(b.attacker.units) | set(b.defender.units)
+                            for u in [UNITS[k]]},
+                  "costs": {"reorder": military.REFORM_COST,
+                            "commit": military.COMMIT_PUNCH,
+                            "break": military.ROUT_TOLL}})
+        return v
+
+    def _battle_modifiers(self, pb: PendingBattle) -> List[dict]:
+        """Every dial your side is fighting under, as rows a screen can show.
+
+        Shown rather than hidden, which is the one thing worth taking from
+        the Paradox battle screen: the numbers are small and they are the
+        whole difference in a close fight, so the player is owed them.
+        """
+        b = pb.battle
+        mine = b.side(pb.side)
+        o = military.order(b.orders[0] if pb.side == "attacker" else b.orders[1])
+        rows: List[dict] = []
+        if b.field_words:
+            rows.append({"what": "the field", "value": b.field_words, "good": None})
+        # Only the kinds you actually have: telling a garrison with no horse
+        # what the mud would do to its horse is noise (see field_note).
+        have = mine.class_share()
+        for cls, v in sorted(mine.class_mult.items()):
+            if abs(v - 1.0) > 0.004 and have.get(cls, 0.0) >= 0.02:
+                rows.append({"what": f"your {cls} on this ground",
+                             "value": f"{v:.2f}", "good": v > 1.0})
+        rows.append({"what": f"order: {o.name}",
+                     "value": f"attack {o.attack:.2f} · defence {o.defense:.2f} "
+                              f"· steadiness {o.morale:.2f}",
+                     "good": None})
+        if mine.battlement:
+            rows.append({"what": "the battlement", "value": f"+{mine.battlement:.1f}",
+                         "good": True})
+        w = b.works
+        if w is not None and pb.side == "defender":
+            if w.towers:
+                rows.append({"what": "towers", "value": str(w.towers), "good": True})
+            if w.oil:
+                rows.append({"what": "oil over the gate",
+                             "value": "spent" if b.oil_spent else "ready", "good": not b.oil_spent})
+            if w.pitch:
+                spent = b.pitch_spent or (b.state is not None and b.state.pitch_spent)
+                rows.append({"what": "the pitch ditch",
+                             "value": "burned" if spent else ("ready" if b.have_pitch else "no charcoal"),
+                             "good": (not spent) and b.have_pitch})
+        # Read off the snapshot, not the side: once the fight is closed the
+        # side wears its pre-battle dial again and would say 1.00.
+        now = b.snapshot()[pb.side]["morale"]
+        rows.append({"what": "steadiness now", "value": f"{now:.2f}", "good": now >= 0.6})
+        return rows
 
     def _sack(self, s: Settlement, a: Army) -> str:
         """A storming is a catastrophe, not a trapdoor.
@@ -3905,6 +4190,8 @@ class GameState:
             "over": self.over, "world": self.world.to_dict(),
             "caravans": [caravan_to_dict(c) for c in self.caravans],
             "armies": [a.to_dict() for a in self.armies],
+            "pending": self.pending.to_dict() if self.pending else None,
+            "battles_mode": self.battles_mode,
             "events": self.events.to_dict(), "progress": self.progress.to_dict(),
             "history": self.history[-400:], "battles": self.battles[-40:],
             "cathedral_days": self.cathedral_days,
@@ -3943,6 +4230,12 @@ class GameState:
                 start_month=d.get("start_month", C.START_MONTH))
         g.caravans = [caravan_from_dict(c) for c in d["caravans"]]
         g.armies = [Army.from_dict(a) for a in d.get("armies", [])]
+        # A fight the save was taken in the middle of picks up where it was.
+        # The mode is not restored: it belongs to the surface running the
+        # game, not to the game, and a save from the window loaded headless
+        # must not stop a test dead on a wall.
+        raw = d.get("pending")
+        g.pending = PendingBattle.from_dict(raw) if raw else None
         g.events = EventEngine.from_dict(d["events"])
         g.progress = Progress.from_dict(d["progress"])
         g.next_caravan_uid = d["next_caravan_uid"]

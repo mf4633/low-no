@@ -3058,6 +3058,7 @@ function paint(s) {
   paintPest(sick);
   paintSiege(s.town.siege);
   paintWater(s.town.water);
+  paintBattle(s.battle);
   scrollCue();
 }
 
@@ -3160,6 +3161,278 @@ function paintWater(v) {
     where.appendChild(b);
   }
 }
+
+/* The battle.
+ *
+ * A fight your men are in stops the day and opens this. It is the same
+ * arithmetic every unwatched battle runs -- the engine steps the same
+ * machine a round at a time -- but you are between the rounds now, and the
+ * things a commander could do on the day are buttons: reform under another
+ * order, throw the reserve in, pour the oil, fire the ditch, break off. Each
+ * costs something and the note under the buttons says what.
+ *
+ * Three screens are in this one. The columns and the modifier list are the
+ * Paradox battle screen -- strength, steadiness, the dials shown rather than
+ * hidden. The field between them is drawn the way a real-time game draws
+ * it, figures by kind, so you can see who is eating whom. And the wall in
+ * the middle of the field is Stronghold's: the breach, the ladders, the men
+ * on the walk thinning.
+ */
+let battleNow = null, battleWas = null, battleAnim = null, battleDrops = [];
+
+function paintBattle(v) {
+  const box = $('battle');
+  if (!v) {
+    // No fight waiting. A verdict already on screen stays until it is
+    // closed -- the engine has finished with the battle, but the player
+    // has not finished reading it.
+    if (!(battleNow && battleNow.over)) { battleNow = null; box.hidden = true; }
+    return;
+  }
+  const opening = box.hidden;
+  battleWas = battleNow; battleNow = v;
+  box.hidden = false;
+  if (opening) { setSpeed(0); Sound.mark && Sound.mark('alarm'); }
+
+  const mine = v[v.side], theirs = v[v.side === 'attacker' ? 'defender' : 'attacker'];
+  $('battle-title').textContent = `The storm at ${v.title}`;
+  $('battle-sub').textContent =
+    `round ${v.round} of ${v.max_rounds} · ${v.field}` +
+    (v.side === 'attacker' ? ' · you are going in' : ' · you hold the wall');
+
+  paintSideCol('battle-mine', mine, v.losses[v.side], v.kinds, theirs);
+  paintSideCol('battle-theirs', theirs, v.losses[v.side === 'attacker' ? 'defender' : 'attacker'],
+               v.kinds, mine);
+  $('battle-mine-order').textContent = mine.order_name;
+  $('battle-theirs-order').textContent = theirs.order_name;
+
+  $('battle-mods').innerHTML = v.modifiers.map(r =>
+    `<li class="${r.good === null ? '' : r.good ? 'good' : 'bad'}">` +
+    `<span>${esc(r.what)}</span><b>${esc(r.value)}</b></li>`).join('');
+  const yours = new Set(v.said || []);
+  $('battle-log').innerHTML = (v.log || []).slice(-8).map(l =>
+    `<li class="${yours.has(l) ? 'you' : ''}">${esc(l)}</li>`).join('')
+    || '<li>the lines are drawn up. Nothing has happened yet.</li>';
+
+  // The levers, and why not when not. Decided by the engine, not here.
+  const can = v.can || {};
+  const on = (id, key) => { const b = $(id); b.disabled = !!can[key] || v.over;
+                            b.title = can[key] || ''; };
+  on('battle-fight', 'fight'); on('battle-commit', 'commit'); on('battle-break', 'break');
+  on('battle-auto', 'fight');
+  for (const [id, key] of [['battle-oil', 'oil'], ['battle-pitch', 'pitch']]) {
+    const b = $(id);
+    b.hidden = !(key in can);            // not on the wall: not offered at all
+    b.disabled = !!can[key] || v.over; b.title = can[key] || '';
+  }
+  // The menu is only rebuilt when its choices change: rewriting it on every
+  // poll shut the dropdown under a player who had it open to read it.
+  const sel = $('battle-order');
+  const sig = v.orders.map(o => o.key).join() + '|' + mine.order;
+  if (sel.dataset.sig !== sig) {
+    sel.innerHTML = '<option value="">reform under…</option>' + v.orders.map(o =>
+      `<option value="${o.key}" ${o.key === mine.order ? 'disabled' : ''}>` +
+      `${esc(o.name)} · ${o.rounds} rounds</option>`).join('');
+    sel.value = ''; sel.dataset.sig = sig;
+  }
+  sel.disabled = !!can.reorder || v.over;
+
+  $('battle-note').textContent = v.over ? '' : battleNote(v, mine);
+
+  // Over: the verdict, and the way back to the day.
+  const done = $('battle-done');
+  done.hidden = !v.over;
+  $('battle-acts').hidden = v.over;
+  if (v.over) {
+    const won = v.winner === v.side;
+    $('battle-verdict').textContent = won ? 'The ground is yours' : 'The ground is theirs';
+    $('battle-after').textContent = (v.after && v.after.length ? v.after : (v.log || []).slice(-3))
+      .filter(l => !l.trim().startsWith('box')).join('\n');
+  }
+  // Somebody fell: drop figures on the field where the losses landed.
+  if (battleWas && battleWas.round < v.round) {
+    const drop = (side, was, now) => {
+      for (const k in was.units) {
+        const gone = (was.units[k] || 0) - (now.units[k] || 0);
+        for (let i = 0; i < Math.min(6, Math.round(gone / 3)); i++)
+          battleDrops.push({ side, k, born: performance.now(), r: Math.random() });
+      }
+    };
+    drop('attacker', battleWas.attacker, v.attacker);
+    drop('defender', battleWas.defender, v.defender);
+  }
+  if (!battleAnim) battleAnim = requestAnimationFrame(drawBattleFrame);
+}
+
+function paintSideCol(id, side, lost, kinds, foe) {
+  const col = $(id);
+  const bars = col.querySelectorAll('.bar');
+  const men = side.alive / Math.max(side.start, 1e-9);
+  bars[0].querySelector('.fill').style.width = `${Math.round(men * 100)}%`;
+  bars[0].querySelector('.num').textContent = `${Math.round(side.alive)}/${Math.round(side.start)}`;
+  bars[1].querySelector('.fill').style.width = `${Math.round(Math.min(1, side.morale / 1.15) * 100)}%`;
+  bars[1].querySelector('.num').textContent = side.morale.toFixed(2);
+  // Who eats whom: the triangle, written on the row. A spearman's row says
+  // "eats horse" when there is horse across the field to eat.
+  const foeKinds = new Set(Object.keys(foe.units).map(k => kinds[k].kind));
+  col.querySelector('.units').innerHTML = Object.entries(side.units)
+    .sort((a, b) => b[1] - a[1]).map(([k, n]) => {
+      const u = kinds[k];
+      const eats = Object.entries(u.counters || {}).filter(([c, m]) => m > 1 && foeKinds.has(c))
+        .map(([c]) => c);
+      return `<li><i class="kind ${u.kind}"></i><span>${esc(u.name)}</span>` +
+        `<span class="n">${Math.round(n)}</span>` +
+        `<span class="lost">${lost[k] ? '−' + Math.round(lost[k]) : ''}</span>` +
+        (eats.length ? `<span class="eats" style="grid-column: 2 / -1">eats ${eats.join(', ')}</span>` : '') +
+        `</li>`;
+    }).join('');
+}
+
+function battleNote(v, mine) {
+  const c = v.costs || {};
+  if (v.round === 0) {
+    return v.side === 'attacker'
+      ? 'Your men are in the breach. Fight a round, or reform before you do.'
+      : 'They are in the breach. The wall is what your battlement is worth now, and the levers on it are yours.';
+  }
+  if (mine.morale < 0.45) return 'They are wavering. Breaking off now keeps most of what is left; another round may not.';
+  return `Reforming costs a soft round (×${c.reorder}). The reserve is one hard round (×${c.commit}) and nothing behind it after. Breaking off loses ${Math.round(c.break * 100)}% to the pursuit and keeps the rest.`;
+}
+
+/* The field. Two masses of figures by kind, a wall between them when there
+ * is one, and the breach where the storm goes in. Drawn from the counts, so
+ * a column that has lost a third has lost a third of its figures. */
+function drawBattleFrame(now) {
+  battleAnim = null;
+  const v = battleNow, c = $('battle-field');
+  if (!v || $('battle').hidden) return;
+  const g = c.getContext('2d');
+  const W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  // ground
+  const grad = g.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#2a2418'); grad.addColorStop(1, '#3b3322');
+  g.fillStyle = grad; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,.03)';
+  for (let i = 0; i < 40; i++) g.fillRect((i * 97) % W, (i * 53) % H, 14, 2);
+
+  // the wall, if this is a wall: a band across the middle with a breach
+  const wallX = W * 0.56;
+  if (v.wall_full > 0) {
+    const stand = Math.max(0, Math.min(1, v.wall_standing / v.wall_full));
+    g.fillStyle = '#5c5a56';
+    g.fillRect(wallX - 10, 20, 20, H - 40);
+    // crenellations
+    g.fillStyle = '#7a7873';
+    for (let y = 22; y < H - 40; y += 14) g.fillRect(wallX - 12, y, 24, 7);
+    // the breach: a gap sized by how much is down
+    const gap = Math.max(26, (1 - stand) * (H - 40) * 0.9);
+    const gy = (H - gap) / 2;
+    g.fillStyle = '#3b3322'; g.fillRect(wallX - 12, gy, 24, gap);
+    g.fillStyle = '#6b665c';
+    for (let i = 0; i < 9; i++) {
+      g.beginPath(); g.arc(wallX - 14 + (i * 37) % 30, gy + (i * 23) % gap, 3 + (i % 3), 0, 7); g.fill();
+    }
+    if (stand > 0.02) {
+      // ladders against what still stands
+      g.strokeStyle = '#8a6a3a'; g.lineWidth = 2;
+      for (let y = 30; y < gy - 10; y += 40) { g.beginPath(); g.moveTo(wallX - 30, y + 30); g.lineTo(wallX - 8, y); g.stroke(); }
+    }
+  }
+
+  // figures: attackers left, defenders right, in kind bands
+  const drawMass = (side, x0, x1, tint) => {
+    const kinds = Object.entries(side.units).sort((a, b) => b[1] - a[1]);
+    let row = 0;
+    for (const [k, n] of kinds) {
+      const u = v.kinds[k]; const count = Math.min(22, Math.max(1, Math.round(n / 4)));
+      const y0 = 46 + row * 50;
+      for (let i = 0; i < count; i++) {
+        const fx = x0 + ((i * 37) % (x1 - x0)), fy = y0 + 8 + Math.floor(i / 8) * 14 + (i % 3) * 3;
+        drawSoldier(g, fx, fy, u.kind, tint, now / 1000 + i * 0.7);
+      }
+      // The kind and the count, on their own line above the rank rather than
+      // written across the heads of the men in it.
+      g.font = '10px Georgia, serif';
+      const label = `${u.name} ${Math.round(n)}`;
+      g.fillStyle = 'rgba(0,0,0,.45)';
+      g.fillRect(x0 - 2, y0 - 19, g.measureText(label).width + 6, 12);
+      g.fillStyle = 'rgba(232,220,196,.75)';
+      g.fillText(label, x0 + 1, y0 - 10);
+      row++;
+      if (row > 4) break;
+    }
+  };
+  drawMass(v.attacker, 24, wallX - 40, '#a55a48');
+  drawMass(v.defender, wallX + 30, W - 24, '#7fa06a');
+
+  // arrows in flight between the masses
+  const t = now / 1000;
+  g.strokeStyle = 'rgba(232,220,196,.55)'; g.lineWidth = 1;
+  for (let i = 0; i < 7; i++) {
+    const ph = (t * 0.9 + i * 0.37) % 1;
+    const fromL = i % 2 === 0;
+    const x = fromL ? 120 + ph * (W - 240) : W - 120 - ph * (W - 240);
+    const y = 60 + (i * 31) % (H - 120) - Math.sin(ph * Math.PI) * 40;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (fromL ? 8 : -8), y + 1.5); g.stroke();
+  }
+
+  // the fallen, fading
+  battleDrops = battleDrops.filter(d => now - d.born < 2600);
+  for (const d of battleDrops) {
+    const age = (now - d.born) / 2600;
+    const x = d.side === 'attacker' ? 60 + d.r * (wallX - 120) : wallX + 40 + d.r * (W - wallX - 80);
+    const y = 60 + ((d.r * 977) % (H - 100));
+    g.globalAlpha = 1 - age;
+    g.fillStyle = d.side === 'attacker' ? '#a55a48' : '#7fa06a';
+    g.fillRect(x - 6, y + 4, 12, 3);
+    g.globalAlpha = 1;
+  }
+  g.fillStyle = 'rgba(232,220,196,.35)'; g.font = '11px Georgia, serif';
+  g.fillText(v.side === 'attacker' ? 'yours' : 'theirs', 24, H - 12);
+  g.fillText(v.side === 'attacker' ? 'theirs' : 'yours', W - 60, H - 12);
+
+  if (!v.over || battleDrops.length) battleAnim = requestAnimationFrame(drawBattleFrame);
+}
+
+function drawSoldier(g, x, y, kind, tint, t) {
+  const sway = Math.sin(t * 2.3) * 0.6;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x, y + 1, 4, 1.6, 0, 0, 7); g.fill();
+  g.strokeStyle = tint; g.lineWidth = 2.6;
+  g.beginPath(); g.moveTo(x + sway, y); g.lineTo(x + sway, y - 8); g.stroke();
+  g.fillStyle = '#e6d8b6'; g.beginPath(); g.arc(x + sway, y - 10, 2.2, 0, 7); g.fill();
+  g.strokeStyle = kind === 'horse' ? '#c0a04a' : kind === 'ranged' ? '#a8834e' : kind === 'siege' ? '#8a8a90' : '#b9bcc2';
+  g.lineWidth = 1.2;
+  if (kind === 'ranged') { g.beginPath(); g.arc(x + sway + 3, y - 5, 4, -1.4, 1.4); g.stroke(); }
+  else if (kind === 'horse') { g.fillStyle = tint; g.beginPath(); g.ellipse(x + sway, y - 3, 6, 3, 0, 0, 7); g.fill(); }
+  else if (kind === 'siege') { g.fillStyle = '#6a5a48'; g.fillRect(x + sway - 5, y - 6, 10, 5); }
+  else { g.beginPath(); g.moveTo(x + sway + 3, y); g.lineTo(x + sway + 3, y - 15); g.stroke(); }
+}
+
+/* The buttons are the console commands, so the picture can never do a thing
+ * the console cannot -- and the answer comes back through the same state
+ * the frame paints from. */
+for (const [id, cmd] of [['battle-fight', 'battle fight'], ['battle-commit', 'battle commit'],
+                         ['battle-oil', 'battle oil'], ['battle-pitch', 'battle pitch'],
+                         ['battle-break', 'battle break'], ['battle-auto', 'battle auto']]) {
+  $(id).addEventListener('click', () => send(cmd));
+}
+$('battle-order').addEventListener('change', e => {
+  if (e.target.value) send(`battle order ${e.target.value}`);
+});
+$('battle-close').addEventListener('click', () => {
+  battleNow = null; battleDrops = []; $('battle').hidden = true;
+  send('battle close');
+});
+/* Space fights a round while the screen is up -- the clock's pause key,
+ * repurposed, because time is already stopped. */
+document.addEventListener('keydown', e => {
+  if ($('battle').hidden || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (battleNow && !battleNow.over) send('battle fight');
+  }
+}, true);
 
 /* The siege board.
  *

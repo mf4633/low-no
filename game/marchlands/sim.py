@@ -161,6 +161,12 @@ class Bot:
         # before it has anything worth defending never grows one -- and the
         # carts last, so they trade with whatever the day left in the chest.
         g = self.game
+        # A fight the day is waiting on is fought at once. The bot runs in
+        # "auto" and this never fires for it; it is here for the case of a
+        # bot handed a game a person had been playing, where a storm left
+        # waiting would stop every day after it.
+        if g.pending is not None:
+            g.battle_step("auto")
         # A siege is not a morning for laying out a bakery. Under one, the
         # bot governs, holds and defends and does nothing else -- it used to
         # go on buying carts and buildings with a besieged town's last coin

@@ -154,6 +154,8 @@ def main(argv=None) -> int:
                      or args.role != "lord")
         return web_main(game, port=args.port, open_browser=not args.no_browser,
                         front=not chose)
+    # Somebody is at this keyboard: a fight their men are in waits for them.
+    game.battles_mode = "play"
     play(game, autosave=args.autosave)
     return 0
 

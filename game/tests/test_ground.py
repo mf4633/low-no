@@ -196,13 +196,20 @@ class TestABattleInPlay(unittest.TestCase):
     def test_a_real_assault_is_fought_somewhere(self):
         from marchlands import engine as E
         seen = []
-        real = E.fight
+        # Two doors into a battle: `fight` settles a field or a sally in one
+        # call, `open_battle` is the storm the player may sit in on. Either
+        # way the ground it is fought on has to be named.
+        real_fight, real_open = E.fight, E.open_battle
 
-        def spy(a, d, **kw):
+        def spy_fight(a, d, **kw):
             seen.append(kw.get("field"))
-            return real(a, d, **kw)
+            return real_fight(a, d, **kw)
 
-        E.fight = spy
+        def spy_open(a, d, **kw):
+            seen.append(kw.get("field"))
+            return real_open(a, d, **kw)
+
+        E.fight, E.open_battle = spy_fight, spy_open
         try:
             g = start("siege", seed=3)
             for _ in range(120):
@@ -210,7 +217,7 @@ class TestABattleInPlay(unittest.TestCase):
                 if g.over:
                     break
         finally:
-            E.fight = real
+            E.fight, E.open_battle = real_fight, real_open
         self.assertTrue(seen, "no battle happened to check")
         self.assertTrue(all(f is not None for f in seen),
                         "a battle was fought nowhere in particular")

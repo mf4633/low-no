@@ -204,6 +204,9 @@ class BattleResult:
     wall_damage: float = 0.0
     rounds: int = 0
     log: List[str] = field(default_factory=list)
+    #: Which side chose to stop, if either did. A storm called off is not
+    #: a storm thrown back: the host is still at the wall.
+    broken_off: str = ""
 
 
 def matchup(mine: Dict[str, float], theirs: Dict[str, float]) -> List[dict]:
@@ -905,28 +908,23 @@ def order_note(units: Dict[str, float], key: str) -> str:
     return f"{o.blurb} With your {o.wants}: worth {got:.2f} of itself."
 
 
-def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
-          rng: Optional[random.Random] = None, max_rounds: int = 14,
-          place: str = "the field", orders: Tuple[str, str] = ("", ""),
-          field: Optional[Field] = None) -> BattleResult:
-    """Resolve a battle round by round. Walls change everything until they fall.
+def open_battle(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
+                rng: Optional[random.Random] = None, max_rounds: int = 14,
+                place: str = "the field", orders: Tuple[str, str] = ("", ""),
+                field: Optional[Field] = None, works: Optional["Works"] = None,
+                state: Optional["SiegeState"] = None, have_pitch: bool = False,
+                wall_max: float = 0.0) -> "Battle":
+    """Dress both sides for the fight and hand back the fight, un-fought.
 
-    `orders` is (attacker, defender) -- how each side was told to fight. An
-    order multiplies dials this function already reads and lengthens or
-    shortens the fight, so a decision made before the battle is visible in
-    its outcome without a second combat model being written.
-
-    `field` is where and when it is being fought, and it applies to both
-    sides because they are standing in the same fen in the same rain. What
-    differs is what each has brought to stand in it.
+    Everything `fight` did before its first round happens here: the field's
+    dials go onto each side's kinds, the orders go onto the dials, and the
+    attacker's order sets how long this can go on. What it does not do is
+    fight. `Battle.close` takes the dressing off again, which `fight` used
+    to do in a `finally` -- and has to, because the sides handed in are the
+    caller's own and an order that stayed on them would leave the survivors
+    permanently braver.
     """
     rng = rng or random.Random()
-    # Applied to the sides that were handed in, and taken off again at the
-    # end. Swapping in the copies `ordered` makes was the obvious way to
-    # write this and quietly broke every battle in the game: the casualties
-    # landed on the copy, the caller read its own untouched Side, and from
-    # the day orders shipped nobody died in a siege assault. A sortie became
-    # a free button that burnt the engines and cost nothing.
     att_key, def_key = orders
     keep = ((attacker.attack_mult, attacker.defense_mult, attacker.morale),
             (defender.attack_mult, defender.defense_mult, defender.morale))
@@ -944,13 +942,39 @@ def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
         max_rounds = order(att_key).rounds
     if def_key:
         _dress(defender, def_key)
+    b = Battle(attacker, defender, wall_hp=wall_hp, rng=rng, max_rounds=max_rounds,
+               place=place, orders=orders, works=works, state=state,
+               have_pitch=have_pitch, wall_max=wall_max)
+    b._keep, b._ground = keep, ground
+    b.field_words = field.words() if field is not None else ""
+    return b
+
+
+def fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
+          rng: Optional[random.Random] = None, max_rounds: int = 14,
+          place: str = "the field", orders: Tuple[str, str] = ("", ""),
+          field: Optional[Field] = None) -> BattleResult:
+    """Resolve a battle round by round. Walls change everything until they fall.
+
+    `orders` is (attacker, defender) -- how each side was told to fight. An
+    order multiplies dials this function already reads and lengthens or
+    shortens the fight, so a decision made before the battle is visible in
+    its outcome without a second combat model being written.
+
+    `field` is where and when it is being fought, and it applies to both
+    sides because they are standing in the same fen in the same rain. What
+    differs is what each has brought to stand in it.
+
+    This is `open_battle` run to the end and closed: the whole fight at
+    once, for every battle nobody is watching. A watched one is the same
+    object stepped a round at a time -- see `Battle`.
+    """
+    b = open_battle(attacker, defender, wall_hp=wall_hp, rng=rng,
+                    max_rounds=max_rounds, place=place, orders=orders, field=field)
     try:
-        return _fight(attacker, defender, wall_hp=wall_hp, rng=rng,
-                      max_rounds=max_rounds, place=place)
+        return b.run()
     finally:
-        (attacker.attack_mult, attacker.defense_mult, attacker.morale) = keep[0]
-        (defender.attack_mult, defender.defense_mult, defender.morale) = keep[1]
-        attacker.class_mult, defender.class_mult = ground
+        b.close()
 
 
 def _dress(side: Side, key: str) -> None:
@@ -966,30 +990,157 @@ def _dress(side: Side, key: str) -> None:
 def _fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
            rng: Optional[random.Random] = None, max_rounds: int = 14,
            place: str = "the field") -> BattleResult:
-    rng = rng or random.Random()
-    res = BattleResult(winner="stalemate")
-    start_att, start_def = attacker.alive(), defender.alive()
-    if start_att <= 0:
-        res.winner = "defender"
-        return res
-    if start_def <= 0 and wall_hp <= 0:
-        res.winner = "attacker"
-        return res
-    wall = wall_hp
+    """The whole fight at once. One implementation: see `Battle`."""
+    return Battle(attacker, defender, wall_hp=wall_hp, rng=rng,
+                  max_rounds=max_rounds, place=place).run()
 
-    for rnd in range(1, max_rounds + 1):
+
+# ------------------------------------------------------------ the battle
+#
+# A battle used to be a function: two sides in, a result out, fourteen
+# rounds happening inside a single call that the player read about
+# afterwards. That is the honest consequence of a day-ticked game and it
+# is also the thing a player from any real-time game notices in the first
+# hour -- you arrived having decided something, and then you were told.
+#
+# So the loop is a machine now. It steps one round at a time, it can be
+# asked between rounds to do the handful of things a commander on the day
+# could actually do, and it can be run to the end in one call -- which is
+# what every fight nobody is watching does, through exactly the arithmetic
+# the old function had. `run()` on a fresh Battle with the same seed gives
+# the same numbers as `fight` always gave; the tests that pinned those
+# numbers are the proof.
+#
+# What the levers are worth is small, on purpose. The combat model is a
+# knife edge (see the note under ORDERS): at even strength the attacker
+# wins one time in sixty and at ten per cent over he wins every time, so
+# a lever worth a quarter would not tilt a battle, it would decide one.
+# Each of these is worth about what an order is, and each costs something
+# -- a lever with no downside is not a decision, it is a button.
+
+#: Changing the order mid-fight: the line reforms, and for one round it
+#: fights soft while it does.
+REFORM_COST = 0.92
+#: Committing the reserve: one hard round, and then the steadiness that
+#: keeping a third back bought is gone for the rest of the fight.
+COMMIT_PUNCH = 1.25
+#: What a side that breaks off loses to the pursuit, as a share of what it
+#: had left. The price of keeping the rest.
+ROUT_TOLL = 0.06
+
+
+@dataclass
+class Battle:
+    """One battle, a round at a time.
+
+    Holds both sides *as handed in* -- the casualties land on them, which
+    is the property the whole siege system depends on (see the note in
+    `fight`). Dressing a side in an order is done by the caller, as it
+    always was; the Battle only ever reads the dials.
+    """
+    attacker: Side
+    defender: Side
+    wall_hp: float = 0.0
+    rng: Optional[random.Random] = None
+    max_rounds: int = 14
+    place: str = "the field"
+    #: Who is fighting under what, for the panel and for `reorder`.
+    orders: Tuple[str, str] = ("", "")
+    #: The things a defender can do to a storming party that are not
+    #: arrows: what stands on the wall, what has been used already, and
+    #: whether there is pitch in the store to fire. Optional, because a
+    #: fight in the open has none of them.
+    works: Optional["Works"] = None
+    state: Optional["SiegeState"] = None
+    have_pitch: bool = False
+
+    res: BattleResult = field(default_factory=lambda: BattleResult(winner="stalemate"))
+    round: int = 0
+    over: bool = False
+    #: Where the wall started, so the panel can draw how much is left.
+    wall_max: float = 0.0
+    start_att: float = 0.0
+    start_def: float = 0.0
+    #: The reserve, once thrown in, is spent; oil and pitch go once.
+    committed: Tuple[bool, bool] = (False, False)
+    oil_spent: bool = False
+    pitch_spent: bool = False
+    #: A one-round dial the levers set and the next round consumes.
+    _punch: Tuple[float, float] = (1.0, 1.0)
+    #: What the player did, in words, for the log and the chronicle.
+    said: List[str] = field(default_factory=list)
+    #: The dials as they were before the dressing, for `close`.
+    _keep: Optional[tuple] = None
+    _ground: Optional[tuple] = None
+    #: Where this is being fought, in words, for the panel.
+    field_words: str = ""
+
+    #: What each side's steadiness was when the last blow landed. `close`
+    #: puts the pre-battle dials back on the sides, which is right for the
+    #: game and wrong for the screen: a fight that ended with the garrison
+    #: at a quarter of its nerve was showing 1.00 on the verdict.
+    final_morale: Optional[Tuple[float, float]] = None
+
+    def close(self) -> None:
+        """Take the dressing off both sides. Idempotent."""
+        if self.final_morale is None:
+            self.final_morale = (self.attacker.morale, self.defender.morale)
+        if self._keep is not None:
+            (self.attacker.attack_mult, self.attacker.defense_mult,
+             self.attacker.morale) = self._keep[0]
+            (self.defender.attack_mult, self.defender.defense_mult,
+             self.defender.morale) = self._keep[1]
+            self._keep = None
+        if self._ground is not None:
+            self.attacker.class_mult, self.defender.class_mult = self._ground
+            self._ground = None
+
+    def __post_init__(self) -> None:
+        self.rng = self.rng or random.Random()
+        self.start_att = self.attacker.alive()
+        self.start_def = self.defender.alive()
+        if self.wall_max <= 0:
+            self.wall_max = self.wall_hp
+        if self.start_att <= 0:
+            self._end("defender")
+        elif self.start_def <= 0 and self.wall_hp <= 0:
+            self._end("attacker")
+
+    # ---------------------------------------------------------------- flow
+    def _end(self, winner: str) -> None:
+        self.res.winner = winner
+        self.over = True
+
+    def run(self) -> BattleResult:
+        """The whole fight, the way every unwatched battle has it."""
+        while not self.over:
+            self.step()
+        return self.res
+
+    def step(self) -> List[str]:
+        """One round. Returns what happened in it, in words."""
+        if self.over:
+            return []
+        rnd = self.round + 1
+        self.round = rnd
+        res = self.res
         res.rounds = rnd
-        breached = wall <= 0
+        attacker, defender, rng = self.attacker, self.defender, self.rng
+        before = len(res.log)
+        punch_a, punch_d = self._punch
+        self._punch = (1.0, 1.0)
+
+        breached = self.wall_hp <= 0
         if not breached:
             # Siege work first: engines chew the wall while the towers reply.
             siege = sum(UNITS[k].siege_power * n for k, n in attacker.units.items())
             siege *= attacker.attack_mult
             if siege > 0:
-                hit = min(wall, siege * (0.8 + 0.4 * rng.random()))
-                wall -= hit
+                hit = min(self.wall_hp, siege * (0.8 + 0.4 * rng.random()))
+                self.wall_hp -= hit
                 res.wall_damage += hit
-                res.log.append(f"round {rnd}: engines batter {place} "
-                               f"({wall:.0f} of wall left)")
+                res.log.append(f"round {rnd}: engines batter {self.place} "
+                               f"({self.wall_hp:.0f} of wall left)")
             else:
                 res.log.append(f"round {rnd}: the host has nothing to break stone with")
             dmg_a = _damage(attacker, defender, ranged_only=True, cover=0.55)
@@ -997,6 +1148,8 @@ def _fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
         else:
             dmg_a = _damage(attacker, defender, ranged_only=False, cover=0.0)
             dmg_d = _damage(defender, attacker, ranged_only=False, cover=0.0)
+        dmg_a *= punch_a
+        dmg_d *= punch_d
 
         lost_d = _apply(defender, dmg_a, rng)
         lost_a = _apply(attacker, dmg_d, rng)
@@ -1009,23 +1162,246 @@ def _fight(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
                 f" lost storming, {describe({k: round(v) for k, v in lost_d.items() if v >= 1})}"
                 f" lost holding")
 
-        attacker.morale = max(0.25, attacker.alive() / max(start_att, 1e-9))
-        defender.morale = max(0.25, defender.alive() / max(start_def, 1e-9))
+        attacker.morale = max(0.25, attacker.alive() / max(self.start_att, 1e-9))
+        defender.morale = max(0.25, defender.alive() / max(self.start_def, 1e-9))
 
-        if defender.alive() <= start_def * 0.25 and wall <= 0:
-            res.winner = "attacker"
-            break
-        if attacker.alive() <= start_att * 0.30:
-            res.winner = "defender"
-            break
-        if wall > 0 and rnd >= max_rounds:
-            res.winner = "defender"          # the walls held; the siege is off
-            break
-    else:
-        res.winner = "attacker" if defender.alive() < attacker.alive() else "defender"
+        if defender.alive() <= self.start_def * 0.25 and self.wall_hp <= 0:
+            self._end("attacker")
+        elif attacker.alive() <= self.start_att * 0.30:
+            self._end("defender")
+        elif self.wall_hp > 0 and rnd >= self.max_rounds:
+            self._end("defender")          # the walls held; the siege is off
+        elif rnd >= self.max_rounds:
+            self._end("attacker" if defender.alive() < attacker.alive() else "defender")
+        if self.over:
+            res.log.append(f"the {res.winner} holds the ground at {self.place}")
+        return res.log[before:]
 
-    res.log.append(f"the {res.winner} holds the ground at {place}")
-    return res
+    # -------------------------------------------------------------- levers
+    def side(self, who: str) -> Side:
+        return self.attacker if who == "attacker" else self.defender
+
+    def can(self, who: str) -> Dict[str, str]:
+        """What this side may do before the next round, and why not if not.
+
+        Empty string means allowed. Worked out here rather than in the
+        panel, so the console and the picture cannot disagree about it.
+        """
+        if self.over:
+            return {}
+        i = 0 if who == "attacker" else 1
+        out = {"fight": "", "reorder": "", "break": ""}
+        o = order(self.orders[i])
+        out["commit"] = ("" if o.key == RESERVE and not self.committed[i]
+                         else ("the reserve is already in" if o.key == RESERVE
+                               else "nothing is being held back"))
+        if who == "defender":
+            w = self.works
+            if not w or not w.oil:
+                out["oil"] = "there is no oil over the gate"
+            elif self.oil_spent:
+                out["oil"] = "the oil has been poured"
+            elif self.wall_hp > 0:
+                out["oil"] = "nobody is at the gate to pour it on"
+            else:
+                out["oil"] = ""
+            if not w or not w.pitch:
+                out["pitch"] = "no pitch ditch was dug"
+            elif self.pitch_spent or (self.state is not None and self.state.pitch_spent):
+                out["pitch"] = "the ditch has already burned"
+            elif not self.have_pitch:
+                out["pitch"] = "no charcoal in the store to fire it with"
+            else:
+                out["pitch"] = ""
+        return out
+
+    def reorder(self, who: str, key: str) -> str:
+        """Change how a side is fighting, mid-fight, at the price of a round.
+
+        The old order is taken off and the new one put on, so the dials are
+        exactly what `fight` would have set for the new order -- and the
+        line fights soft for one round while it reforms.
+        """
+        if self.over:
+            return "the fight is over"
+        if key not in ORDERS:
+            return f"there is no order called {key!r}"
+        i = 0 if who == "attacker" else 1
+        was = self.orders[i]
+        if key == (was or DEFAULT_ORDER):
+            return f"they are already fighting {order(key).name}"
+        s = self.side(who)
+        _undress(s, was)
+        _dress(s, key)
+        self.orders = (key, self.orders[1]) if i == 0 else (self.orders[0], key)
+        if i == 0:
+            # A storm is short and a stand is long, and switching between
+            # them changes how long this can go on.
+            self.max_rounds = max(self.round + 1, order(key).rounds)
+        self._punch = ((REFORM_COST, self._punch[1]) if i == 0
+                       else (self._punch[0], REFORM_COST))
+        self.said.append(f"round {self.round + 1}: the {who}s reform -- {order(key).name}")
+        return f"{order(key).name}. The line reforms, and fights soft while it does."
+
+    def commit(self, who: str) -> str:
+        why = self.can(who).get("commit", "the fight is over")
+        if why:
+            return why
+        i = 0 if who == "attacker" else 1
+        s = self.side(who)
+        # The third that was waiting goes in: one hard round, and the
+        # steadiness of having them behind you is gone.
+        s.morale /= order(RESERVE).morale
+        self.committed = (True, self.committed[1]) if i == 0 else (self.committed[0], True)
+        self._punch = ((COMMIT_PUNCH, self._punch[1]) if i == 0
+                       else (self._punch[0], COMMIT_PUNCH))
+        self.said.append(f"round {self.round + 1}: the {who}s commit the reserve")
+        return "The reserve goes in. Everything you have, this round -- and nothing behind it after."
+
+    def pour_oil(self) -> str:
+        why = self.can("defender").get("oil", "the fight is over")
+        if why:
+            return why
+        self.oil_spent = True
+        burst = 0.05 + 0.03 * self.rng.random()
+        gone = self._burn(self.attacker, burst)
+        self.said.append(f"round {self.round + 1}: oil comes over the gatehouse")
+        return f"Oil over the gatehouse: {gone:.0f} of them will not climb again."
+
+    def fire_pitch(self) -> str:
+        why = self.can("defender").get("pitch", "the fight is over")
+        if why:
+            return why
+        self.pitch_spent = True
+        if self.state is not None:
+            self.state.pitch_spent = True
+        burst = 0.11 + 0.05 * self.rng.random()
+        gone = self._burn(self.attacker, burst)
+        self.said.append(f"round {self.round + 1}: the ditch is fired")
+        return f"The ditch goes up. {gone:.0f} of them are in it."
+
+    def _burn(self, s: Side, share: float) -> float:
+        gone = 0.0
+        for k in list(s.units):
+            lost = s.units[k] * share
+            s.units[k] -= lost
+            gone += lost
+            store = self.res.attacker_losses if s is self.attacker else self.res.defender_losses
+            store[k] = store.get(k, 0.0) + lost
+        return gone
+
+    def break_off(self, who: str) -> str:
+        """Stop fighting. The other side holds the ground; you keep most of
+        what you have left, less what the pursuit takes."""
+        if self.over:
+            return "the fight is over"
+        s = self.side(who)
+        gone = self._burn(s, ROUT_TOLL)
+        self.res.broken_off = who
+        self._end("defender" if who == "attacker" else "attacker")
+        self.res.log.append(
+            f"round {self.round}: the {who}s break off; {gone:.0f} lost to the pursuit")
+        self.res.log.append(f"the {self.res.winner} holds the ground at {self.place}")
+        self.said.append(f"round {self.round}: the {who}s break off")
+        return (f"You break off. {gone:.0f} lost in the pursuit, and the rest live to "
+                f"be somewhere else.")
+
+    # --------------------------------------------------------------- panel
+    def snapshot(self) -> dict:
+        """Everything a screen needs to show this fight, and nothing that
+        would let it flatter the arithmetic."""
+        def side(s: Side, start: float, key: str) -> dict:
+            morale = s.morale
+            if self.final_morale is not None:
+                morale = self.final_morale[0 if s is self.attacker else 1]
+            return {"units": {k: round(v, 1) for k, v in s.units.items() if v >= 0.5},
+                    "alive": round(s.alive(), 1), "start": round(start, 1),
+                    "morale": round(morale, 3),
+                    "attack": round(s.attack_mult, 3),
+                    "defense": round(s.defense_mult, 3),
+                    "battlement": round(s.battlement, 2),
+                    "ground": {k: round(v, 3) for k, v in s.class_mult.items()
+                               if abs(v - 1.0) > 0.004},
+                    "order": key or DEFAULT_ORDER,
+                    "order_name": order(key).name}
+        return {"place": self.place, "round": self.round,
+                "max_rounds": self.max_rounds, "over": self.over,
+                "winner": self.res.winner if self.over else "",
+                "wall": round(self.wall_hp, 1), "wall_max": round(self.wall_max, 1),
+                "attacker": side(self.attacker, self.start_att, self.orders[0]),
+                "defender": side(self.defender, self.start_def, self.orders[1]),
+                "losses": {"attacker": {k: round(v, 1) for k, v in self.res.attacker_losses.items()},
+                           "defender": {k: round(v, 1) for k, v in self.res.defender_losses.items()}},
+                "log": list(self.res.log[-12:]),
+                "said": list(self.said[-8:])}
+
+    # ---------------------------------------------------------- save/load
+    def to_dict(self) -> dict:
+        def side(s: Side) -> dict:
+            return {"units": dict(s.units), "attack_mult": s.attack_mult,
+                    "defense_mult": s.defense_mult, "battlement": s.battlement,
+                    "morale": s.morale, "class_mult": dict(s.class_mult)}
+        return {"attacker": side(self.attacker), "defender": side(self.defender),
+                "wall_hp": self.wall_hp, "wall_max": self.wall_max,
+                "max_rounds": self.max_rounds, "place": self.place,
+                "orders": list(self.orders), "round": self.round, "over": self.over,
+                "start_att": self.start_att, "start_def": self.start_def,
+                "committed": list(self.committed), "oil_spent": self.oil_spent,
+                "pitch_spent": self.pitch_spent, "punch": list(self._punch),
+                "said": list(self.said), "have_pitch": self.have_pitch,
+                "field_words": self.field_words,
+                "final_morale": list(self.final_morale) if self.final_morale else None,
+                "keep": [list(k) for k in self._keep] if self._keep else None,
+                "ground": [dict(g) for g in self._ground] if self._ground else None,
+                "works": self.works.__dict__.copy() if self.works is not None else None,
+                "res": {"winner": self.res.winner,
+                        "attacker_losses": dict(self.res.attacker_losses),
+                        "defender_losses": dict(self.res.defender_losses),
+                        "wall_damage": self.res.wall_damage, "rounds": self.res.rounds,
+                        "log": list(self.res.log), "broken_off": self.res.broken_off},
+                "rng": list(self.rng.getstate())}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Battle":
+        def side(x: dict) -> Side:
+            return Side(units=dict(x["units"]), attack_mult=x["attack_mult"],
+                        defense_mult=x["defense_mult"], battlement=x["battlement"],
+                        morale=x["morale"], class_mult=dict(x.get("class_mult", {})))
+        works = Works(**d["works"]) if d.get("works") else None
+        b = cls(side(d["attacker"]), side(d["defender"]), wall_hp=d["wall_hp"],
+                max_rounds=d["max_rounds"], place=d["place"],
+                orders=tuple(d["orders"]), works=works, have_pitch=d.get("have_pitch", False))
+        b.wall_max = d["wall_max"]
+        b.round, b.over = d["round"], d["over"]
+        b.start_att, b.start_def = d["start_att"], d["start_def"]
+        b.committed = tuple(d["committed"])
+        b.oil_spent, b.pitch_spent = d["oil_spent"], d["pitch_spent"]
+        b._punch = tuple(d["punch"])
+        b.said = list(d.get("said", []))
+        b.field_words = d.get("field_words", "")
+        b.final_morale = tuple(d["final_morale"]) if d.get("final_morale") else None
+        b._keep = tuple(tuple(k) for k in d["keep"]) if d.get("keep") else None
+        b._ground = tuple(dict(g) for g in d["ground"]) if d.get("ground") else None
+        r = d["res"]
+        b.res = BattleResult(winner=r["winner"], attacker_losses=dict(r["attacker_losses"]),
+                             defender_losses=dict(r["defender_losses"]),
+                             wall_damage=r["wall_damage"], rounds=r["rounds"],
+                             log=list(r["log"]))
+        b.res.broken_off = r.get("broken_off", "")
+        raw = d.get("rng")
+        if raw:
+            b.rng.setstate((raw[0], tuple(raw[1]), raw[2]))
+        return b
+
+
+def _undress(side: Side, key: str) -> None:
+    """Take an order off a side, in place -- the inverse of `_dress`."""
+    o = order(key)
+    share = side.class_share().get(o.wants, 0.0) if o.wants else 0.0
+    got = 1.0 + (o.bonus - 1.0) * min(1.0, share * 2.0)
+    side.attack_mult /= (o.attack * got)
+    side.defense_mult /= o.defense
+    side.morale /= o.morale
 
 
 # ------------------------------------------------------------------- armies

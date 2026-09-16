@@ -85,6 +85,13 @@ def watch(game) -> Dict[str, str]:
     exception is not an error message, it is time silently stopping.
     """
     out: Dict[str, str] = {}
+    # A fight the day is waiting on comes first, because it is the one thing
+    # here that time cannot simply run past: `advance` will not move the day
+    # until it is fought, so a clock left running would print the same line
+    # every beat for ever.
+    pending = getattr(game, "pending", None)
+    if pending is not None and not getattr(pending.battle, "over", True):
+        out["battle"] = f"the storm is going in at {pending.title}"
     world = getattr(game, "world", None)
     if world is None:
         # Not every caller has a world -- the clock's own tests drive it with

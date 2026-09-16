@@ -624,6 +624,7 @@ def _front_door(console, route: str, body: dict) -> dict:
         try:
             from .engine import GameState
             console.game = GameState.load(path)
+            console.game.battles_mode = "play"
         except (OSError, ValueError, KeyError) as exc:
             return {"error": f"could not open it: {exc}"}
         console.here = next(iter(console.game.world.settlements))
@@ -638,11 +639,13 @@ def _front_door(console, route: str, body: dict) -> dict:
         if region:
             from .scenario import drawn_game
             console.game = drawn_game(region, seed=seed, house=house)
+            console.game.battles_mode = "play"
             if role != "lord":
                 roles_mod.apply(console.game, role)
         else:
             console.game = start(body.get("scenario", "marchlands"),
                                  seed=seed, house=house, role=role)
+            console.game.battles_mode = "play"
     except KeyError as exc:
         return {"error": str(exc)}
     console.here = next(iter(console.game.world.settlements))
@@ -1033,6 +1036,9 @@ def snapshot(game, here: str = "") -> dict:
         # folder, and the first bug report against the wrong one costs more
         # than this line.
         "version": __version__,
+        # The fight the day is waiting on, if there is one. Top level, not
+        # under the town: the day has stopped on it wherever you are looking.
+        "battle": game.battle_view(),
     }
 
 
@@ -1199,6 +1205,7 @@ class Handler(BaseHTTPRequestHandler):
                     body.get("region", carto.DEFAULT_REGION),
                     seed=int(body.get("seed", 7)),
                     house=body.get("house", "plough"), dials=dials)
+                self.console.game.battles_mode = "play"
                 self.console.here = next(iter(self.console.game.world.settlements))
                 return self._json({
                     "said": self.console.game.briefing,
@@ -1266,6 +1273,10 @@ def serve(console: Console, host: str = "127.0.0.1", port: int = 8731,
           open_browser: bool = True) -> Tuple[ThreadingHTTPServer, str]:
     global CLOCK
     Handler.console = console
+    # A fight your men are in stops the day here and waits for you. Set on
+    # the surface rather than on the game, because a save taken in the
+    # window and loaded headless must not stop a test on a wall.
+    console.game.battles_mode = "play"
     # Same lock the request handler takes, not a second one: the clock is
     # another writer of the same game, and two writers with two locks is not
     # locking.

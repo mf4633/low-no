@@ -2458,6 +2458,79 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_battle(self, args: List[str]) -> None:
+        """The fight the day is waiting on: see it, fight a round, or decide."""
+        from .military import DEFAULT_ORDER
+        g = self.game
+        v = g.battle_view()
+        if v is None:
+            return self.say("  " + ink.c("no fight is waiting on you. A storm on "
+                                         "your wall, or your host going in, stops "
+                                         "the day here until you have fought it.",
+                                         ink.DIM))
+        want = [a.lower() for a in args]
+        if want and want[0] in ("fight", "round", "on", "go"):
+            return self.say("  " + g.battle_step("fight").replace("\n", "\n  "))
+        if want and want[0] in ("auto", "run", "let"):
+            return self.say("  " + g.battle_step("auto").replace("\n", "\n  "))
+        if want and want[0] == "order":
+            key = want[1] if len(want) > 1 else DEFAULT_ORDER
+            return self.say("  " + g.battle_step("order", key).replace("\n", "\n  "))
+        if want and want[0] in ("commit", "reserve"):
+            return self.say("  " + g.battle_step("commit").replace("\n", "\n  "))
+        if want and want[0] == "oil":
+            return self.say("  " + g.battle_step("oil").replace("\n", "\n  "))
+        if want and want[0] == "pitch":
+            return self.say("  " + g.battle_step("pitch").replace("\n", "\n  "))
+        if want and want[0] in ("break", "retreat", "withdraw", "fall"):
+            return self.say("  " + g.battle_step("break").replace("\n", "\n  "))
+
+        yours = v["side"]
+        me, them = v[yours], v["defender" if yours == "attacker" else "attacker"]
+        self.say(ink.head(f"THE STORM AT {v['title'].upper()}",
+                          f"round {v['round']} of {v['max_rounds']} · {v['field']}"))
+
+        def column(label, side, tint):
+            bar = int(round(14 * side["alive"] / max(side["start"], 1e-9)))
+            self.say(f"  {ink.c(ink.pad(label, 12), tint)}"
+                     + ink.c("█" * bar + "░" * (14 - bar), tint)
+                     + ink.c(f"  {side['alive']:.0f} of {side['start']:.0f}", ink.DIM)
+                     + ink.c(f"   steadiness {side['morale']:.2f}", ink.DIM))
+            self.say(f"      {ink.c(side['order_name'], ink.DIM)}")
+            for k, n in sorted(side["units"].items(), key=lambda p: -p[1]):
+                self.say(f"      {ink.c(ink.pad(v['kinds'][k]['name'], 18), ink.PARCH)}"
+                         + ink.c(f"{n:.0f}", ink.PARCH))
+        column("yours", me, ink.LEAF)
+        column("theirs", them, ink.BLOOD)
+        if v["wall_full"]:
+            self.say(f"  {ink.c(ink.pad('the wall', 12), ink.DIM)}"
+                     + ink.c(f"{v['wall_standing']:.0f} of {v['wall_full']:.0f} standing"
+                             + ("" if v["wall_standing"] > 0 else " -- they are in the breach"),
+                             ink.DIM))
+        self.say("")
+        for row in v["modifiers"]:
+            tint = (ink.LEAF if row["good"] else ink.BLOOD) if row["good"] is not None else ink.DIM
+            self.say(f"  {ink.c(ink.pad(row['what'], 28), ink.DIM)}{ink.c(row['value'], tint)}")
+        if v["log"]:
+            self.say("")
+            for line in v["log"][-4:]:
+                self.say("  " + ink.c(line, ink.DIM))
+        self.say("")
+        can = v["can"]
+        for cmd, what, key in (("battle fight", "fight one round", "fight"),
+                               ("battle order <what>", "reform under another order -- a soft round while you do", "reorder"),
+                               ("battle commit", "throw the reserve in -- one hard round, nothing behind it after", "commit"),
+                               ("battle oil", "oil over the gatehouse, once", "oil"),
+                               ("battle pitch", "fire the ditch, once", "pitch"),
+                               ("battle break", "break off -- keep the rest, less the pursuit", "break"),
+                               ("battle auto", "let it run to the end", "fight")):
+            why = can.get(key)
+            if why is None and key in ("oil", "pitch"):
+                continue                       # not on the wall
+            tint = ink.GOLD if not why else ink.DIM
+            self.say("  " + ink.c(ink.pad(cmd, 22), tint)
+                     + ink.c(what if not why else f"({why})", ink.DIM))
+
     def cmd_herds(self, args: List[str]) -> None:
         """The beasts in your yards, and what it costs to put them back."""
         g = self.game
@@ -3482,6 +3555,8 @@ COMMANDS = {
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
     "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
     "gates": Console.cmd_gates, "quarantine": Console.cmd_gates,
+    "battle": Console.cmd_battle, "fight": Console.cmd_battle,
+    "storm": Console.cmd_battle,
     "herds": Console.cmd_herds, "flock": Console.cmd_herds,
     "beasts": Console.cmd_herds, "livestock": Console.cmd_herds,
     "restock": Console.cmd_herds,

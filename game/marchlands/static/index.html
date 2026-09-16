@@ -305,6 +305,58 @@
     </aside>
   </div>
 
+  <!-- The battle. A screen rather than a panel, because the day has stopped
+       and nothing else on the page can be acted on until this is fought: it
+       covers. Two columns the way a Paradox battle screen has them, the field
+       drawn between them the way a real-time game has it, and the wall in
+       the middle of the field the way Stronghold has it. -->
+  <div id="battle" hidden role="dialog" aria-modal="true" aria-labelledby="battle-title">
+    <div id="battle-box">
+      <header id="battle-head">
+        <h1 id="battle-title">The storm at —</h1>
+        <p id="battle-sub" class="dim">—</p>
+      </header>
+      <div id="battle-cols">
+        <section class="battle-side" id="battle-mine">
+          <h3>yours <em id="battle-mine-order"></em></h3>
+          <div class="bars">
+            <div class="bar"><label>men</label><div class="track"><div class="fill men"></div></div><span class="num"></span></div>
+            <div class="bar"><label>steadiness</label><div class="track"><div class="fill morale"></div></div><span class="num"></span></div>
+          </div>
+          <ul class="units"></ul>
+        </section>
+        <canvas id="battle-field" width="620" height="300"
+                aria-label="the field, drawn"></canvas>
+        <section class="battle-side" id="battle-theirs">
+          <h3>theirs <em id="battle-theirs-order"></em></h3>
+          <div class="bars">
+            <div class="bar"><label>men</label><div class="track"><div class="fill men"></div></div><span class="num"></span></div>
+            <div class="bar"><label>steadiness</label><div class="track"><div class="fill morale"></div></div><span class="num"></span></div>
+          </div>
+          <ul class="units"></ul>
+        </section>
+      </div>
+      <div id="battle-under">
+        <ul id="battle-mods" aria-label="what you are fighting under"></ul>
+        <ul id="battle-log" aria-label="the fight so far"></ul>
+      </div>
+      <div id="battle-acts" class="acts">
+        <button id="battle-fight" type="button" class="go">Fight a round <kbd>space</kbd></button>
+        <select id="battle-order" aria-label="reform under another order"></select>
+        <button id="battle-commit" type="button">Commit the reserve</button>
+        <button id="battle-oil" type="button">Pour the oil</button>
+        <button id="battle-pitch" type="button">Fire the ditch</button>
+        <button id="battle-break" type="button" class="grim">Break off</button>
+        <button id="battle-auto" type="button">Let it run</button>
+      </div>
+      <p id="battle-note" class="dim"></p>
+      <div id="battle-done" hidden>
+        <h2 id="battle-verdict">—</h2>
+        <p id="battle-after"></p>
+        <button id="battle-close" type="button" class="go">Back to the day</button>
+      </div>
+    </div>
+  </div>
   <ul id="toasts" role="status" aria-live="polite"></ul>
 
   <footer id="console">
