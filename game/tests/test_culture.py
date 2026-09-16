@@ -158,10 +158,14 @@ class TestOneFigureStandsForFourteen(unittest.TestCase):
         self.assertGreater(many, few)
 
     def test_but_never_a_crowd_nobody_can_read(self):
+        from marchlands.layout import MOST_FIGURES
         _g, s = grown()
         s.population = 100000.0
+        # The cap is read, not written out here: it has moved once already
+        # and a test that hard-codes it fails for the wrong reason.
         self.assertLessEqual(
-            len([f for f in plan_for(s).folk if f.kind != "watch"]), 20)
+            len([f for f in plan_for(s).folk if f.kind != "watch"]),
+            MOST_FIGURES)
 
     def test_everybody_drawn_is_doing_something_the_town_is_doing(self):
         _g, s = grown()
@@ -169,12 +173,27 @@ class TestOneFigureStandsForFourteen(unittest.TestCase):
             self.assertIn(f.kind, ("worker", "idle", "watch"))
             self.assertTrue(f.at, f.kind)
 
-    def test_a_worker_walks_to_a_shed_that_is_actually_running(self):
+    def test_a_worker_is_at_a_shed_that_is_actually_running(self):
+        """Through the shed it is posted to, not through the words on it.
+
+        This used to compare `at` against the set of running shed names,
+        which worked only while `at` *was* a shed name. It is what the
+        figure is doing now -- "at the millstones" rather than "Windmill" --
+        because that is what the picture draws and what the card says, and
+        the two must not be able to disagree. The claim itself is unchanged:
+        nobody is drawn working a shed that is not working.
+        """
         _g, s = grown()
-        running = {b.name for b in plan_for(s).buildings if b.running}
-        for f in plan_for(s).folk:
-            if f.kind == "worker":
-                self.assertIn(f.at, running)
+        plan = plan_for(s)
+        sheds = {b.uid: b for b in plan.buildings}
+        for f in plan.folk:
+            if f.kind != "worker":
+                continue
+            self.assertIn(f.work, sheds)
+            self.assertTrue(sheds[f.work].running,
+                            f"somebody is drawn at {sheds[f.work].name}, "
+                            f"which is not running")
+            self.assertTrue(f.at)
 
     def test_a_thinly_held_wall_looks_thinly_held(self):
         """No warning, no icon, no number. The garrison is drawn along the

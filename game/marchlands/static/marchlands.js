@@ -1105,68 +1105,275 @@ function walkAlong(path, f) {
  * time from the clock would be a second answer to the same question. */
 const folkSpots = new Map();
 
+/* And where each beast was, on the same bargain: a thing that wanders is
+ * only clickable where it was actually drawn. */
+const beastSpots = new Map();
+
 /* Where each host was drawn, so one can be clicked. Same bargain as the
  * figures in the town: the thing that moved is only clickable where it was
  * actually painted. */
 const hostSpots = new Map();
 
+/* One villager, at the size the carriers are drawn at and with the same
+ * parts: legs that take a step, a torso, arms that do the work, a head.
+ *
+ * They used to be a three-pixel stroke and a dot, in cream, on sand -- which
+ * at any honest zoom reads as a fence post. The carriers hauling sacks past
+ * them were twice the size and had limbs, so the game already knew how to
+ * draw a person; the townspeople just were not getting one.
+ *
+ * What makes a smith read as a smith is not detail on his hammer. It is that
+ * he is standing at the smithy swinging his arms down while the woman in the
+ * next yard is bent over a furrow: the posture and the place, at a scale you
+ * can see. So there are seven postures and no more, each with a silhouette
+ * that survives being twelve pixels tall.
+ */
+const COATS = {
+  worker: ['#8a5a34', '#7d6a44', '#96683c', '#6f5f3e', '#8f6d4e', '#7a5a3c'],
+  idle:   ['#6a6450', '#5c5442', '#6f6152', '#585044'],
+};
+const SKIN = ['#e8d3ae', '#d9bc92', '#c79f76', '#ab7f57'];
+
+/* Where the arms are this instant, as a pair of angles off the shoulder.
+ * Returned rather than drawn so the body can be painted under them. */
+function armsFor(trade, t, i) {
+  const beat = t * 3.4 + i * 1.9;          // the working rhythm
+  switch (trade) {
+    case 'swing': {                        // axe or pick, up over the head
+      const a = Math.sin(beat) * 0.5 + 0.5;     // 0 raised, 1 struck
+      return { l: -2.5 + a * 3.4, r: -2.3 + a * 3.4, tool: 'haft', lean: a * 2.2 };
+    }
+    case 'strike': {                       // short blows at an anvil
+      const a = Math.max(0, Math.sin(beat * 1.7));
+      return { l: 0.7, r: -1.5 + a * 2.6, tool: 'hammer', lean: 1.4, spark: a > 0.93 };
+    }
+    case 'reap': {                         // a low sweep, bent at the waist
+      const a = Math.sin(beat * 0.8);
+      return { l: 1.9 + a * 0.5, r: 1.2 + a * 1.1, tool: 'blade', lean: 4.2 };
+    }
+    case 'herd': {                         // leaning on a crook, barely moving
+      return { l: 0.5, r: 1.5, tool: 'crook', lean: 0.6 };
+    }
+    case 'tend': {                         // both hands over a vessel
+      const a = Math.sin(beat * 0.7) * 0.35;
+      return { l: 1.5 + a, r: 1.5 - a, tool: '', lean: 2.6 };
+    }
+    case 'talk': {                         // one hand up, making a point
+      const a = Math.sin(beat * 0.55);
+      return { l: 0.2, r: -0.6 + a * 0.5, tool: '', lean: 0 };
+    }
+    case 'pray':
+      return { l: 1.6, r: 1.6, tool: '', lean: 1.2 };
+    default: {                             // walking, or standing about
+      const a = Math.sin(beat * 0.5);
+      return { l: 0.5 + a * 0.5, r: 0.5 - a * 0.5, tool: '', lean: 0 };
+    }
+  }
+}
+
 function drawFolk(f, i, t) {
-  let wx = f.x, wy = f.y, bob = 0;
-  if (f.kind === 'worker' && f.path && f.path.length > 1) {
+  let wx = f.x, wy = f.y, bob = 0, stride = 0;
+  const trade = f.trade || (f.kind === 'watch' ? 'guard' : 'idle');
+  if (f.path && f.path.length > 1) {
     // Up the street and back again, each at their own pace.
     const cycle = (t * 0.06 + i * 0.17) % 2;
     const at = walkAlong(f.path, cycle < 1 ? cycle : 2 - cycle);
     if (at) { wx = at[0]; wy = at[1]; }
     bob = Math.abs(Math.sin(t * 3.1 + i)) * 1.6;
+    stride = Math.sin(t * 5.4 + i * 2.1) * 3.2;
   } else if (f.kind === 'idle') {
     wx += Math.sin(t * 0.3 + i * 1.7) * 0.18;
     bob = Math.abs(Math.sin(t * 0.9 + i)) * 0.5;
   }
-  const [sx, sy] = iso(wx, wy);
+  const [sx0, sy0] = iso(wx, wy);
   const lift = f.kind === 'watch' ? 16 : 0;      // up on the wall-walk
-  folkSpots.set(i, [sx, sy - lift]);
-  ctx.fillStyle = 'rgba(0,0,0,.2)';
-  ctx.beginPath(); ctx.ellipse(sx, sy + 1 - lift * 0.5, 3.4, 1.6, 0, 0, 7);
-  ctx.fill();
+  const sx = sx0, sy = sy0 - lift;
+  folkSpots.set(i, [sx, sy]);
+
+  ctx.fillStyle = 'rgba(0,0,0,.26)';
+  ctx.beginPath(); ctx.ellipse(sx, sy + 1, 5, 2.3, 0, 0, 7); ctx.fill();
+
   if (f.kind === 'watch') {
     // A spearman, facing out, shifting his weight the way a man does when
     // he has been standing on a wall since dawn.
     const sway = Math.sin(t * 0.5 + i * 2.3) * 0.6;
-    ctx.strokeStyle = '#5c5e63'; ctx.lineWidth = 3.2;
-    ctx.beginPath(); ctx.moveTo(sx + sway, sy - lift);
-    ctx.lineTo(sx + sway, sy - 9 - lift); ctx.stroke();
-    ctx.strokeStyle = '#8a7a58'; ctx.lineWidth = 1.1;
-    ctx.beginPath(); ctx.moveTo(sx + sway + 3, sy - 2 - lift);
-    ctx.lineTo(sx + sway + 3, sy - 17 - lift); ctx.stroke();
-    ctx.fillStyle = '#b9b2a0';
-    ctx.beginPath(); ctx.arc(sx + sway, sy - 11.6 - lift, 2.6, 0, 7); ctx.fill();
+    body(sx + sway, sy, '#5c5e63', SKIN[i % SKIN.length], 0, 0, 0.9);
+    ctx.strokeStyle = '#8a7a58'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(sx + sway + 4, sy - 1);
+    ctx.lineTo(sx + sway + 4, sy - 21); ctx.stroke();
+    ctx.fillStyle = '#c9ccd2';
+    poly([[sx + sway + 4, sy - 25], [sx + sway + 2.4, sy - 20],
+          [sx + sway + 5.6, sy - 20]], '#c9ccd2');
     return;
   }
+
+  const arm = armsFor(trade, t, i);
   if (f.kind === 'kin') {
     // One of yours, and the only figure on the board that is one person
-    // rather than fourteen. Marked so you can find them to click: a ring on
-    // the ground, a taller stance, and the house's gold instead of a coat
-    // the colour of mud.
+    // rather than eight. Marked so you can find them to click.
     const pulse = 0.8 + Math.sin(t * 1.6 + i) * 0.14;
-    ctx.strokeStyle = `rgba(201,162,39,${0.3 * pulse})`;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.ellipse(sx, sy + 1, 6.4, 3.1, 0, 0, 7); ctx.stroke();
-    ctx.strokeStyle = '#8a6a2e'; ctx.lineWidth = 3.6;
-    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - 11); ctx.stroke();
-    ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(sx - 2.6, sy - 8); ctx.lineTo(sx + 2.6, sy - 8);
-    ctx.stroke();
-    ctx.fillStyle = '#e8dcc0';
-    ctx.beginPath(); ctx.arc(sx, sy - 13.8, 2.9, 0, 7); ctx.fill();
+    ctx.strokeStyle = `rgba(201,162,39,${0.34 * pulse})`;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.ellipse(sx, sy + 1, 7.2, 3.5, 0, 0, 7); ctx.stroke();
+    body(sx, sy, '#c9a227', SKIN[i % SKIN.length], arm.l, arm.r, 1.12, 0, arm.lean);
     return;
   }
-  const coat = f.kind === 'idle'
-    ? ['#6a6450', '#5c5442', '#6f6152', '#585044'][i % 4]
-    : ['#7a5a3c', '#8a6a4a', '#7d6a44', '#8f6d4e'][i % 4];
-  ctx.strokeStyle = coat; ctx.lineWidth = 3.2;
-  ctx.beginPath(); ctx.moveTo(sx, sy - bob); ctx.lineTo(sx, sy - 9 - bob); ctx.stroke();
-  ctx.fillStyle = '#d8c9a8';
-  ctx.beginPath(); ctx.arc(sx, sy - 11.6 - bob, 2.7, 0, 7); ctx.fill();
+
+  const set = COATS[f.kind === 'idle' ? 'idle' : 'worker'];
+  body(sx, sy - bob, set[i % set.length], SKIN[(i * 3) % SKIN.length],
+       arm.l, arm.r, 1, stride, arm.lean, arm.tool);
+  if (arm.spark) {
+    // The one thing worth a flourish: you can find the smithy by the sparks.
+    for (let k = 0; k < 3; k++) {
+      ctx.fillStyle = `rgba(255,${180 + k * 20},90,${0.8 - k * 0.2})`;
+      ctx.fillRect(sx + 4 + k * 1.6, sy - 8 - k * 1.3 - Math.random() * 2, 1.3, 1.3);
+    }
+  }
+}
+
+/* The figure itself: legs, coat, arms, head. One function, because a smith
+ * and a shepherd differ in what their arms are doing and in nothing else. */
+function body(x, y, coat, skin, la, ra, scale, stride, lean, tool) {
+  scale = scale || 1;
+  stride = stride || 0;
+  lean = lean || 0;
+  const h = 15 * scale;                    // shoulder height
+  const hip = y - h * 0.52;
+  const sh = y - h;                        // shoulders
+  const tilt = lean * 0.5;                 // bent at the waist, over the work
+
+  // Legs. A stride when walking, apart when not -- a figure with its feet
+  // together reads as a post, which is exactly what these used to be.
+  ctx.strokeStyle = '#4a3a26'; ctx.lineWidth = 2.4 * scale;
+  ctx.beginPath();
+  ctx.moveTo(x, hip); ctx.lineTo(x - (stride || 2.2), y);
+  ctx.moveTo(x, hip); ctx.lineTo(x + (stride || 2.2), y);
+  ctx.stroke();
+
+  // The coat, leaning into the work.
+  poly([[x - 3.6 * scale, hip + 1], [x + 3.6 * scale, hip + 1],
+        [x + 2.8 * scale + tilt, sh], [x - 2.8 * scale + tilt, sh]], coat);
+
+  // Arms, as angles off the shoulder: 0 is straight up, PI/2 is straight out.
+  const ax = x + tilt, ay = sh + 1;
+  const reach = 7 * scale;
+  ctx.strokeStyle = coat; ctx.lineWidth = 2.2 * scale;
+  const hands = [];
+  for (const a of [la, ra]) {
+    const hx = ax + Math.sin(a) * reach * (a < 0 ? 0.8 : 1);
+    const hy = ay - Math.cos(a) * reach;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(hx, hy); ctx.stroke();
+    hands.push([hx, hy]);
+  }
+
+  // Whatever is in them.
+  if (tool) {
+    const [hx, hy] = hands[1];
+    ctx.lineCap = 'round';
+    if (tool === 'haft' || tool === 'crook') {
+      ctx.strokeStyle = '#6b5334'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(hx, hy);
+      ctx.lineTo(hx + (tool === 'crook' ? 0 : 6), hy + (tool === 'crook' ? 9 : -5));
+      ctx.stroke();
+      if (tool === 'haft') {
+        ctx.fillStyle = '#b9bcc2';
+        poly([[hx + 6, hy - 5], [hx + 9, hy - 7], [hx + 8, hy - 2]], '#b9bcc2');
+      }
+    } else if (tool === 'hammer') {
+      ctx.strokeStyle = '#6b5334'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 3, hy - 4); ctx.stroke();
+      ctx.fillStyle = '#5d5a58'; ctx.fillRect(hx + 2, hy - 6.5, 3.6, 2.6);
+    } else if (tool === 'blade') {
+      ctx.strokeStyle = '#b9bcc2'; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(hx, hy, 6, 0.2, 1.9); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  }
+
+  // Head, seated into the shoulders rather than floating over them, and
+  // about a sixth of the figure: at nearly a third it read as a pin.
+  const hx0 = ax + tilt * 0.4, r = 2.3 * scale;
+  ctx.strokeStyle = skin; ctx.lineWidth = 1.5 * scale;
+  ctx.beginPath(); ctx.moveTo(ax, sh + 0.5); ctx.lineTo(hx0, sh - 1); ctx.stroke();
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.arc(hx0, sh - r * 0.85, r, 0, 7); ctx.fill();
+  // A coif over the top of it, so a crowd is not a row of identical beads.
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath();
+  ctx.arc(hx0, sh - r * 1.15, r, Math.PI, 2 * Math.PI);
+  ctx.fill();
+}
+
+/* Livestock.
+ *
+ * A sheep pasture with no sheep in it is a shed with a label on. They graze
+ * -- head down, up, a step, head down again, each on its own clock so a fold
+ * does not nod in unison -- and they stand where the layout put them, which
+ * is round their herder when the yard is worked and scattered when it is
+ * not. That difference is the whole reason they are worth drawing: you can
+ * tell a kept flock from an abandoned one across the precinct.
+ */
+const STOCK = {
+  sheep: { w: 5.0, h: 3.6, leg: 3.4, coat: '#e7e1d2', face: '#3f3a33',
+           graze: 0.72, wool: true },
+  cow:   { w: 7.2, h: 4.6, leg: 5.0, coat: '#6b4a33', face: '#efe8dc',
+           graze: 0.5,  wool: false },
+  horse: { w: 7.8, h: 4.2, leg: 6.6, coat: '#5a4432', face: '#2e2620',
+           graze: 0.3,  wool: false },
+};
+
+function drawBeast(b, t) {
+  const spec = STOCK[b.kind] || STOCK.sheep;
+  // Its own clock, off the seed the layout gave it.
+  const own = t * 0.55 + b.seed * 0.41;
+  const wander = Math.sin(own * 0.31) * 0.09;
+  const [x, y] = iso(b.x + wander, b.y + Math.cos(own * 0.27) * 0.05);
+  // Head down most of the time for a grazing beast, less for a horse.
+  const down = (Math.sin(own) + 1) / 2 < spec.graze ? 1 : 0;
+  const nod = down ? 1.6 + Math.sin(own * 4.1) * 0.7 : 0;
+  const face = Math.sin(own * 0.19) < 0 ? -1 : 1;     // which way it stands
+
+  beastSpots.set(b.i, [x, y - spec.leg]);
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 1, spec.w * 0.82, spec.h * 0.4, 0, 0, 7); ctx.fill();
+
+  const bodyY = y - spec.leg;
+  ctx.strokeStyle = '#4a3a2c'; ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  for (const dx of [-spec.w * 0.52, -spec.w * 0.2, spec.w * 0.2, spec.w * 0.52]) {
+    ctx.moveTo(x + dx, bodyY + spec.h * 0.3); ctx.lineTo(x + dx * 0.92, y);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = spec.coat;
+  ctx.beginPath();
+  ctx.ellipse(x, bodyY, spec.w, spec.h, 0, 0, 7); ctx.fill();
+  if (spec.wool) {
+    // A fleece reads as lumps on the back, and it is the one thing that
+    // makes a sheep a sheep at nine pixels.
+    ctx.fillStyle = '#f3efe4';
+    for (let k = -1; k <= 1; k++) {
+      ctx.beginPath();
+      ctx.arc(x + k * spec.w * 0.42, bodyY - spec.h * 0.55, spec.h * 0.52, 0, 7);
+      ctx.fill();
+    }
+  }
+  // Head, dipped to the grass or up and looking about.
+  const hx = x + face * (spec.w + 1.4);
+  const hy = bodyY - (down ? -nod : spec.h * 0.75);
+  ctx.strokeStyle = spec.coat; ctx.lineWidth = spec.h * 0.55;
+  ctx.beginPath();
+  ctx.moveTo(x + face * spec.w * 0.55, bodyY - spec.h * 0.2);
+  ctx.lineTo(hx, hy); ctx.stroke();
+  ctx.fillStyle = spec.face;
+  ctx.beginPath(); ctx.arc(hx, hy, spec.h * 0.42, 0, 7); ctx.fill();
+  if (b.kind === 'horse') {
+    ctx.strokeStyle = '#2e2620'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(x - face * spec.w, bodyY - spec.h * 0.5);
+    ctx.lineTo(x - face * (spec.w + 2), bodyY + spec.h * 0.6); ctx.stroke();
+  }
 }
 
 /* A sack has a colour. Grain is pale, iron is dark, cloth is dyed -- so you
@@ -1831,6 +2038,23 @@ function folkAt(ev) {
   return best;
 }
 
+/* Which beast was clicked. Looser than the villager test: an animal is a
+ * wider thing than a person and there is nothing behind it to hit by
+ * mistake, so the ring can afford to be generous. */
+function beastAt(ev) {
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
+           + (plan.w - plan.h) * TW / 4;
+  const py = (ev.clientY - r.top - r.height / 2 - camera.y) / camera.zoom
+           + (plan.w + plan.h) * TH / 4;
+  let best = null, bestD = 11;
+  for (const [i, at] of beastSpots) {
+    const d = Math.hypot(at[0] - px, (at[1] - py) * 0.85);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
 function hostAt(ev) {
   if (!world) return null;
   const r = canvas.getBoundingClientRect();
@@ -2081,12 +2305,15 @@ function frame() {
     // Everything that stands up, painted back to front.
     const things = [];
     folkSpots.clear();
+    beastSpots.clear();
     for (let y = 0; y < plan.h; y++)
       for (let x = 0; x < plan.w; x++)
         if (plan.tiles[y][x] === 'forest') things.push({ d: x + y, x, y, kind: 'wood' });
     for (const b of plan.buildings) things.push({ d: b.x + b.y, kind: 'b', b });
     for (const w2 of plan.walls) things.push({ d: w2.x + w2.y, kind: 'w', w: w2 });
     plan.folk.forEach((f, i) => things.push({ d: f.x + f.y, kind: 'f', f, i }));
+    (plan.beasts || []).forEach((bs, i) =>
+      things.push({ d: bs.x + bs.y, kind: 'a', bs, i }));
     const at = {};
     for (const b of plan.buildings) at[b.uid] = b;
     (plan.hauls || []).forEach((h, i) => {
@@ -2097,14 +2324,17 @@ function frame() {
     setClip(w, h);
     for (const it of things) {
       const [ix, iy] = iso(it.x !== undefined ? it.x : it.b ? it.b.x
-                           : it.w ? it.w.x : it.pos ? it.pos.x : it.f.x,
+                           : it.w ? it.w.x : it.pos ? it.pos.x
+                           : it.bs ? it.bs.x : it.f.x,
                            it.y !== undefined ? it.y : it.b ? it.b.y
-                           : it.w ? it.w.y : it.pos ? it.pos.y : it.f.y);
+                           : it.w ? it.w.y : it.pos ? it.pos.y
+                           : it.bs ? it.bs.y : it.f.y);
       if (!onScreen(ix, iy, 120)) continue;
       if (it.kind === 'wood') drawTrees(it.x, it.y);
       else if (it.kind === 'b') drawBuilding(it.b, t);
       else if (it.kind === 'w') drawWall(it.w, t);
       else if (it.kind === 'h') drawHaul(it.h, it.i, t, it.at, it.pos);
+      else if (it.kind === 'a') drawBeast({ ...it.bs, i: it.i }, t);
       else drawFolk(it.f, it.i, t);
     }
     drawEffects(t);
@@ -2575,6 +2805,8 @@ window.addEventListener('pointerup', e => {
   // pointing at, and the roof is a bigger target that would always win.
   const who = folkAt(e);
   if (who !== null) return openSoul(who);
+  const beast = beastAt(e);
+  if (beast !== null) return openSoul(beast, true);
   const b = buildingAt(e);
   if (b) return buildingWrit(b, e);
   const [tx, ty] = screenToTile(e);
@@ -3519,9 +3751,9 @@ $('v-save').addEventListener('click', async () => {
  * few who are one person are your own, and those you can give a job to. */
 let soulNow = null;
 
-async function openSoul(i) {
+async function openSoul(i, isBeast) {
   closeWrit();
-  const d = await (await fetch(`/folk?i=${i}`)).json();
+  const d = await (await fetch(`/${isBeast ? 'beast' : 'folk'}?i=${i}`)).json();
   if (d.error) return say(d.error);
   soulNow = d;
   paintSoul(d);
@@ -3533,12 +3765,15 @@ function paintSoul(d) {
   const mine = d.kind === 'kin';
   $('soul-name').textContent = d.title || 'somebody';
   $('soul-doing').textContent = d.doing || '';
-  $('soul-count').textContent = mine ? 'one of yours'
+  $('soul-count').textContent =
+    mine ? 'one of yours'
+    : d.kind === 'beast' ? 'beasts, counted as they stand'
     : `one figure · ${d.souls} ${d.kind === 'watch' ? 'men' : 'souls'}`;
   $('soul-count').classList.toggle('mine', mine);
 
   const rows = [];
-  if (d.home) rows.push(['sleeps at', d.home]);
+  if (d.home && d.kind === 'beast') rows.push(['in the yard of', d.home]);
+  else if (d.home) rows.push(['sleeps at', d.home]);
   if (d.work && !mine) rows.push(['works at', d.work]);
   if (d.work && mine) rows.push(['stands at', d.work]);
   for (const f of d.facts || []) rows.push([f.k, f.v]);

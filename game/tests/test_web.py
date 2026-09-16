@@ -124,17 +124,93 @@ class TestLayout(unittest.TestCase):
         """The honest answer to drawing a two-hundred-soul town: a figure is a
         sample at a ratio the interface states, doing something the aggregate
         is really doing."""
-        from marchlands.layout import MEN_PER_FIGURE, SOULS_PER_FIGURE
+        from marchlands.layout import (MEN_PER_FIGURE, SOULS_PER_FIGURE,
+                                       MOST_FIGURES)
         _g, s = grown()
         plan = plan_for(s)
         town = [f for f in plan.folk if f.kind != "watch"]
-        self.assertAlmostEqual(len(town),
-                               min(20, int(s.population / SOULS_PER_FIGURE)),
-                               delta=1)
+        # The cap is read rather than written out. It has moved once already
+        # -- fourteen souls to a figure drew a two-hundred-soul town as
+        # fourteen people over fifty buildings, and the first thing anybody
+        # said about the picture was that there was nobody in it -- and a
+        # test that hard-codes it fails for the wrong reason next time.
+        self.assertAlmostEqual(
+            len(town),
+            min(MOST_FIGURES, int(s.population / SOULS_PER_FIGURE)), delta=1)
         watch = [f for f in plan.folk if f.kind == "watch"]
         self.assertAlmostEqual(len(watch),
                                int(sum(s.units.values()) / MEN_PER_FIGURE),
                                delta=1)
+
+    def test_a_yard_with_animals_in_it_has_animals_in_it(self):
+        """A sheep pasture with no sheep is a shed with a label on."""
+        from marchlands.layout import HERDS
+        _g, s = grown()
+        plan = plan_for(s)
+        yards = [b for b in plan.buildings if b.key in HERDS and b.complete]
+        if not yards:
+            self.skipTest("this town never built a pasture, dairy or stable")
+        for yard in yards:
+            herd = [a for a in plan.beasts if a.at == yard.uid]
+            self.assertTrue(herd, f"{yard.name} keeps no beasts")
+            self.assertEqual({a.kind for a in herd}, {HERDS[yard.key][0]})
+
+    def test_the_beasts_keep_off_everybody_elses_roof(self):
+        _g, s = grown()
+        plan = plan_for(s)
+        roof = {(b.x, b.y): b.uid for b in plan.buildings}
+        for a in plan.beasts:
+            owner = roof.get((int(round(a.x)), int(round(a.y))))
+            self.assertIn(owner, (None, a.at),
+                          f"a {a.kind} is standing on somebody else's roof")
+
+    def test_an_idle_yard_keeps_a_thinner_head(self):
+        """Honest rather than decorative: the flock is the yard's state.
+
+        A pasture nobody is working is a pasture that has been sold down, so
+        you can read the state of a yard off the ground in front of it
+        without a number or an icon.
+        """
+        from marchlands.layout import HERDS
+        _g, s = grown()
+        yards = [b for b in s.buildings if b.key in HERDS and b.complete]
+        if not yards:
+            self.skipTest("this town never built a pasture, dairy or stable")
+        uid = yards[0].uid
+        working = len([a for a in plan_for(s).beasts if a.at == uid])
+        for b in s.buildings:
+            b.enabled = False
+        s.tick("spring", random.Random(1))
+        idle = len([a for a in plan_for(s).beasts if a.at == uid])
+        self.assertGreater(working, idle,
+                           "an idle yard keeps as many beasts as a working one")
+        self.assertGreater(idle, 0, "an idle yard kept nothing at all")
+
+    def test_a_raid_drives_them_off(self):
+        """The first thing a raid takes and the last thing it leaves."""
+        _g, s = grown()
+        if not plan_for(s).beasts:
+            self.skipTest("nothing to drive off")
+        s.raided = True
+        self.assertEqual(plan_for(s).beasts, [],
+                         "the country is being raided and the beasts are "
+                         "still standing in the field")
+
+    def test_clicking_a_beast_answers_off_the_town(self):
+        from marchlands.web import beast
+        g, s = grown()
+        here = next(k for k, v in g.world.settlements.items() if v is s)
+        plan = plan_for(s)
+        if not plan.beasts:
+            self.skipTest("nothing to click")
+        d = beast(g, here, 0)
+        self.assertNotIn("error", d)
+        self.assertTrue(d["title"])
+        facts = {f["k"]: f["v"] for f in d["facts"]}
+        self.assertIn("head", facts)
+        self.assertIn(str(len([a for a in plan.beasts if a.at == plan.beasts[0].at])),
+                      facts["head"])
+        self.assertEqual(beast(g, here, 9999).get("error"), "nothing there")
 
     def test_the_watch_stands_on_the_wall_it_is_holding(self):
         """Which is what makes a thinly-held wall *look* thinly held, with no
@@ -146,13 +222,39 @@ class TestLayout(unittest.TestCase):
             if f.kind == "watch":
                 self.assertIn((int(f.x), int(f.y)), wall)
 
-    def test_a_worker_walks_between_a_roof_and_a_shed_that_is_running(self):
+    def test_a_worker_is_at_a_shed_that_is_running_or_walking_to_one(self):
+        """Either at the work or on the way to it, and it must be real work.
+
+        They all used to be on the way: given a route from a roof to a shed
+        and left to walk it for ever, which means that at any moment almost
+        nobody is *at* the thing they do. A town reads as worked when the
+        yards have somebody in them.
+        """
+        from marchlands.layout import TRADES, DEFAULT_TRADE
         _g, s = grown()
-        workers = [f for f in plan_for(s).folk if f.kind == "worker"]
+        plan = plan_for(s)
+        workers = [f for f in plan.folk if f.kind == "worker"]
         self.assertTrue(workers)
+        sheds = {b.uid: b for b in plan.buildings}
+        standing = 0
         for f in workers:
-            self.assertGreaterEqual(len(f.path), 2)
-            self.assertTrue(f.at)
+            self.assertTrue(f.at, "a worker with nothing to say he is doing")
+            self.assertTrue(f.trade, "a worker with no posture to draw")
+            self.assertIn(f.work, sheds, "a worker at a shed that is not there")
+            shed = sheds[f.work]
+            self.assertTrue(shed.running,
+                            f"{shed.name} is not running and has a man at it")
+            posture = TRADES.get(shed.key, DEFAULT_TRADE)[0]
+            if f.path:
+                self.assertGreaterEqual(len(f.path), 2)
+                self.assertEqual(f.trade, "walk")
+            else:
+                standing += 1
+                self.assertEqual(f.trade, posture,
+                                 f"a man at the {shed.key} drawn as {f.trade}")
+        self.assertTrue(standing,
+                        "every worker in the town is on a road and none of "
+                        "them is at the work")
 
     def test_and_stands_in_the_street_when_there_is_no_work(self):
         _g, s = grown()

@@ -497,7 +497,13 @@ def folk(game, here: str, index: int) -> dict:
     out["title"] = (_household(game, s, f.home) if f.home >= 0
                     else "folk of the town")
     if f.kind == "worker":
-        out["doing"] = f"walking between their roof and {trade}"
+        # What this figure is actually doing, off the figure itself, which is
+        # where the picture gets it too -- so the card and the man on screen
+        # cannot say different things. It used to read "walking between their
+        # roof and the smithy" for everybody, which was true when every
+        # worker shuttled a road and stopped being true the day they started
+        # standing at the work.
+        out["doing"] = f"{f.at} at {trade}" if trade else f.at
         spec = BUILDINGS.get(named[f.work].key) if f.work in named else None
         if spec and spec.outputs:
             out["facts"].append(
@@ -514,6 +520,51 @@ def folk(game, here: str, index: int) -> dict:
         out["facts"].append({"k": "owed", "v": "they have not been paid"})
     if s.housing(game.progress) < s.population:
         out["facts"].append({"k": "roof", "v": "more people than beds"})
+    return out
+
+
+def beast(game, here: str, index: int) -> dict:
+    """What one animal in a yard is, and what it is worth to you.
+
+    Answers in the same shape as `folk` so the same panel can show it. A
+    beast is not a sample of anything -- a sheep is a sheep -- so the count
+    here is the real head in that yard, which is also what a raid takes.
+    """
+    key = here or next(iter(game.world.settlements))
+    s = game.world.settlements[key]
+    plan = plan_for(s, officers=_officers(game, key))
+    if not 0 <= index < len(plan.beasts):
+        return {"error": "nothing there"}
+    a = plan.beasts[index]
+    named = {b.uid: b for b in plan.buildings}
+    yard = named.get(a.at)
+    herd = [x for x in plan.beasts if x.at == a.at]
+    keeper = next((f for f in plan.folk
+                   if f.trade == "herd" and f.work == a.at), None)
+    spec = BUILDINGS.get(yard.key) if yard else None
+
+    out = {"i": index, "kind": "beast", "souls": 1,
+           "title": {"sheep": "the flock", "cow": "the herd",
+                     "horse": "the horses"}.get(a.kind, a.kind),
+           "doing": ("grazing, and somebody is watching them" if keeper
+                     else "grazing, with nobody set to watch them"),
+           "facts": [], "said": "",
+           "home": yard.name if yard else "", "work": ""}
+    out["facts"].append({"k": "head", "v": f"{len(herd)} {a.kind}"})
+    if yard is not None:
+        if not yard.running:
+            out["facts"].append(
+                {"k": "but", "v": "that yard is not working, so the head is "
+                                  "down to what it can keep"})
+    if spec and spec.outputs:
+        out["facts"].append({"k": "yields", "v": ", ".join(sorted(spec.outputs))})
+    if keeper is not None:
+        out["facts"].append(
+            {"k": "kept by", "v": _household(game, s, keeper.home)
+             if keeper.home >= 0 else "somebody of the town"})
+    out["facts"].append(
+        {"k": "if raided", "v": "driven off -- beasts are the first thing a "
+                                "raid takes and the last thing it leaves"})
     return out
 
 
@@ -1044,6 +1095,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "nobody there"})
             with self.lock:
                 return self._json(folk(self.console.game, self.console.here, i))
+        if route == "/beast":
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                i = int(q.get("i", ["-1"])[0])
+            except ValueError:
+                return self._json({"error": "nothing there"})
+            with self.lock:
+                return self._json(beast(self.console.game,
+                                        self.console.here, i))
         if route == "/front":
             # What the front door needs: who you can be, what you can play,
             # and whether there is a game waiting to be picked back up. A

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import random
 import zlib
+import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
@@ -86,8 +87,114 @@ class Haul:
 #: on a yard of wall that is really being held. Thin the garrison and the wall
 #: visibly empties. The picture is then a readout rather than an illustration,
 #: which is the same rule the rest of this codebase follows.
-SOULS_PER_FIGURE = 14
+#: The beasts, and which yard they belong to.
+#:
+#: A sheep pasture with no sheep in it is a shed with a label on, and the
+#: same is true of a dairy and a stable. They are drawn for the same reason
+#: the people are: you should be able to tell what a yard is for by looking
+#: at it, and a flock is the most legible thing in a medieval landscape.
+#:
+#: Tied to real state rather than sprinkled about. A yard that is running
+#: has its full head; one that is standing idle has a thin scatter, because
+#: a pasture nobody is working is a pasture that has been sold down. And a
+#: town whose country is being raided has none at all -- driving off the
+#: beasts is the first thing a raid does and the last thing it leaves, and
+#: it means a raid is something you can see on the ground rather than a
+#: line in the log.
+HERDS = {
+    "sheep_farm": ("sheep", 7),
+    "dairy": ("cow", 4),
+    "stable": ("horse", 3),
+}
+
+#: What a raided country leaves in the fold.
+RAIDED_HERD = 0
+
+
+#: What a figure at each kind of shed is actually doing, as a posture the
+#: renderer can draw and a phrase the tooltip can say.
+#:
+#: The postures are deliberately few. Seven silhouettes that read at this
+#: scale beat thirty that all look like a smudge with an arm: an overhead
+#: swing, a low sweep, a strike on an anvil, a lean over a vessel, a walk
+#: with a load, a man talking with his hands, and a man standing with a
+#: spear. What makes a blacksmith read as a blacksmith is that he is at the
+#: blacksmith's, hammering, while the man in the next yard is bent over a
+#: furrow -- not that his hammer has a detailed head.
+TRADES = {
+    "woodcutter": ("swing", "felling timber"),
+    "charcoal_burner": ("tend", "watching the burn"),
+    "farm": ("reap", "in the wheat"),
+    "hop_farm": ("reap", "on the hop poles"),
+    "orchard": ("reap", "among the trees"),
+    "sheep_farm": ("herd", "with the sheep"),
+    "dairy": ("herd", "at the milking"),
+    "quarry": ("swing", "at the stone face"),
+    "iron_mine": ("swing", "down the adit"),
+    "clay_pit": ("swing", "cutting clay"),
+    "blacksmith": ("strike", "at the anvil"),
+    "armourer": ("strike", "beating plate"),
+    "armoury": ("strike", "at the bench"),
+    "fletcher": ("strike", "fitting arrows"),
+    "poleturner": ("strike", "at the lathe"),
+    "siege_yard": ("strike", "framing an engine"),
+    "sawmill": ("strike", "on the saw"),
+    "bakery": ("tend", "at the oven"),
+    "brewery": ("tend", "over the mash"),
+    "kiln": ("tend", "at the kiln"),
+    "smelter": ("tend", "at the furnace"),
+    "saltworks": ("tend", "at the pans"),
+    "mill": ("tend", "at the millstones"),
+    "weaver": ("tend", "at the loom"),
+    "granary": ("carry", "shifting sacks"),
+    "warehouse": ("carry", "shifting bales"),
+    "harbour": ("carry", "on the quay"),
+    "market": ("talk", "keeping the stall"),
+    "trading_post": ("talk", "at the counter"),
+    "guildhall": ("talk", "in the hall"),
+    "inn": ("talk", "serving"),
+    "cathedral": ("pray", "at the altar"),
+    "barracks": ("guard", "at drill"),
+    "stable": ("herd", "with the horses"),
+}
+
+#: The posture for a shed nobody wrote a line for. A new building should look
+#: like somebody is at it rather than like nobody is.
+DEFAULT_TRADE = ("tend", "at work")
+
+#: How many souls one figure in the picture stands for.
+#:
+#: Was fourteen, which is honest and was too coarse to look at: a town of two
+#: hundred showed fourteen figures over fifty buildings, most of them on a
+#: road rather than at a shed, and the first thing anybody said about the
+#: picture was that there were no people in it. At eight a town of two
+#: hundred has two dozen, which is enough that the yards look worked.
+#:
+#: The number is stated on screen, so it can move without the picture
+#: becoming a lie -- that is the whole reason it is stated.
+SOULS_PER_FIGURE = 8
+
+#: And the most that are ever drawn, however big the town gets. Past this the
+#: precinct is a crowd rather than a place and the frame rate is paying for
+#: people nobody can pick out.
+MOST_FIGURES = 30
 MEN_PER_FIGURE = 6
+
+
+@dataclass
+class Beast:
+    """One animal in a yard. Not a sample of anything -- a sheep is a sheep."""
+    x: float
+    y: float
+    kind: str                       # 'sheep', 'cow', 'horse'
+    at: int = -1                    # uid of the yard it belongs to
+    #: A number of its own, so the renderer can give it its own grazing
+    #: rhythm without every beast in the fold nodding in time.
+    seed: int = 0
+
+    def to_dict(self) -> dict:
+        return {"x": self.x, "y": self.y, "kind": self.kind,
+                "at": self.at, "seed": self.seed}
 
 
 @dataclass
@@ -109,11 +216,15 @@ class Walker:
     souls: int = 0                  # how many of them this one figure is
     who: str = ""                   # a name, for the few who have one
     post: str = ""                  # and the job they hold, if any
+    #: The posture this figure is drawn in -- see TRADES. A worker standing
+    #: at a shed doing that shed's own work is the whole of what makes a
+    #: town look worked rather than populated.
+    trade: str = ""
 
     def to_dict(self) -> dict:
         return {"x": self.x, "y": self.y, "kind": self.kind, "at": self.at,
                 "home": self.home, "work": self.work, "souls": self.souls,
-                "who": self.who, "post": self.post,
+                "who": self.who, "post": self.post, "trade": self.trade,
                 "path": [{"x": x, "y": y} for x, y in self.path]}
 
 
@@ -125,6 +236,7 @@ class Plan:
     buildings: List[Placed] = field(default_factory=list)
     walls: List[Tuple[int, int, str]] = field(default_factory=list)
     folk: List[Walker] = field(default_factory=list)
+    beasts: List[Beast] = field(default_factory=list)
     hauls: List[Haul] = field(default_factory=list)
     precinct: Tuple[int, int, int, int] = (0, 0, 0, 0)
     #: Every tile the wall actually shuts in, which for anything but a square
@@ -143,6 +255,7 @@ class Plan:
                 "buildings": [b.to_dict() for b in self.buildings],
                 "walls": [{"x": x, "y": y, "kind": k} for x, y, k in self.walls],
                 "folk": [f.to_dict() for f in self.folk],
+                "beasts": [b.to_dict() for b in self.beasts],
                 "per_figure": SOULS_PER_FIGURE,
                 "per_watch": MEN_PER_FIGURE,
                 "hauls": [h.to_dict() for h in self.hauls],
@@ -438,31 +551,119 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
                and BUILDINGS.get(b.key) and BUILDINGS[b.key].jobs]
     roads = [(x, y) for y in range(side) for x in range(side)
              if plan.tiles[y][x] == ROAD]
-    want = int(min(20, max(0.0, settlement.population) / SOULS_PER_FIGURE))
+    want = int(min(MOST_FIGURES,
+                   max(0.0, settlement.population) / SOULS_PER_FIGURE))
     # What share of the figures are going somewhere is the share of the
     # *workforce* that has a job, not the share of the population -- most of
     # a town is children and the old, and dividing by the whole of it put two
     # people on the road in a town with every shed running.
     busy = settlement.employed / max(1.0, float(settlement.workforce))
     at_work = int(round(want * max(0.0, min(1.0, busy))))
-    for i in range(want):
-        if i < at_work and roofs and working:
-            home_roof = roofs[(i * 5 + 1) % len(roofs)]
-            shed = working[(i * 3) % len(working)]
-            route = _walk(plan, home_roof, shed)
-            plan.folk.append(Walker(x=route[0][0], y=route[0][1], kind="worker",
-                                    path=route, at=shed.name,
-                                    home=home_roof.uid, work=shed.uid,
-                                    souls=SOULS_PER_FIGURE))
-        elif roads:
-            x, y = roads[(i * 7 + 3) % len(roads)]
-            # Idle folk sleep somewhere too, and being able to say where is
-            # half of what makes them people rather than filler.
-            roof = roofs[(i * 5 + 1) % len(roofs)] if roofs else None
-            plan.folk.append(Walker(
-                x=x + rng.random() * 0.6 - 0.3, y=y + rng.random() * 0.6 - 0.3,
-                kind="idle", at="nothing to do", souls=SOULS_PER_FIGURE,
-                home=roof.uid if roof else -1))
+
+    # One figure to a working shed, standing at it, doing its work.
+    #
+    # They used to be given a route from a roof to a shed and left to walk it
+    # back and forth for ever, which is a dot sliding along a road: at any
+    # moment almost nobody was *at* the thing they worked. A town reads as
+    # worked when the yards have somebody in them -- the man is at the anvil
+    # and the woman is in the wheat, and you can tell which is which from
+    # across the precinct by what their arms are doing.
+    #
+    # Sheds first, in the order they were laid out, so the same shed keeps
+    # the same figure from frame to frame and clicking one twice asks about
+    # the same person.
+    for i in range(min(at_work, len(working))):
+        shed = working[i]
+        posture, doing = TRADES.get(shed.key, DEFAULT_TRADE)
+        roof = roofs[(i * 5 + 1) % len(roofs)] if roofs else None
+        # Beside the door rather than on the roof, and on a side that
+        # depends on the shed, so a row of them is not a row of clones.
+        off = ((i % 3) - 1) * 0.42, 0.62 + (i % 2) * 0.18
+        plan.folk.append(Walker(
+            x=shed.x + off[0], y=shed.y + off[1], kind="worker",
+            at=doing, trade=posture, work=shed.uid,
+            home=roof.uid if roof else -1, souls=SOULS_PER_FIGURE))
+
+    # And the rest on the road between a roof and a shed, because a town
+    # where nobody is ever going anywhere is a diorama.
+    walking = max(0, at_work - len(working))
+    for i in range(walking):
+        if not (roofs and working):
+            break
+        home_roof = roofs[(i * 5 + 1) % len(roofs)]
+        shed = working[(i * 3) % len(working)]
+        route = _walk(plan, home_roof, shed)
+        posture, doing = TRADES.get(shed.key, DEFAULT_TRADE)
+        plan.folk.append(Walker(x=route[0][0], y=route[0][1], kind="worker",
+                                path=route, at=f"on the way -- {doing}",
+                                trade="walk", home=home_roof.uid,
+                                work=shed.uid, souls=SOULS_PER_FIGURE))
+
+    for i in range(max(0, want - at_work)):
+        if not roads:
+            break
+        x, y = roads[(i * 7 + 3) % len(roads)]
+        # Idle folk sleep somewhere too, and being able to say where is
+        # half of what makes them people rather than filler.
+        roof = roofs[(i * 5 + 1) % len(roofs)] if roofs else None
+        plan.folk.append(Walker(
+            x=x + rng.random() * 0.6 - 0.3, y=y + rng.random() * 0.6 - 0.3,
+            kind="idle", at="nothing to do", trade="idle",
+            souls=SOULS_PER_FIGURE, home=roof.uid if roof else -1))
+
+    # --- the beasts in the yards -------------------------------------------
+    #
+    # Put down after the people, so a herder already exists to put them near:
+    # a flock scattered over its field reads as a flock, but a flock drawn
+    # round the shepherd reads as a flock being *kept*, which is the thing
+    # worth seeing. An idle pasture gets neither -- no herder and a thin
+    # scatter -- and a raided one gets nothing at all.
+    herders = {f.work: f for f in plan.folk if f.trade == "herd"}
+    # Every tile a roof is standing on. A beast may stand in its own yard
+    # but not in anybody else's, which is checked per yard below.
+    taken = {(b.x, b.y) for b in plan.buildings}
+    for shed in plan.buildings:
+        herd = HERDS.get(shed.key)
+        if herd is None or not shed.complete:
+            continue
+        kind, head = herd
+        if settlement.raided:
+            head = RAIDED_HERD
+        elif not shed.running:
+            head = max(1, head // 3)
+        keeper = herders.get(shed.uid)
+        # The ground a beast may stand on: near its own yard, and not under
+        # anybody's roof. A pasture is one tile in a town this dense, so the
+        # flock lives in the gardens and alleys round it -- which is what a
+        # town flock did. Nearest first, so a small herd is tight to the
+        # fold and a big one spills down the lane.
+        near = []
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                gx, gy = shed.x + dx, shed.y + dy
+                if not (0 <= gx < side and 0 <= gy < side):
+                    continue
+                if (gx, gy) in taken and (gx, gy) != (shed.x, shed.y):
+                    continue
+                if plan.tiles[gy][gx] in (WATER, ROAD):
+                    continue            # they are not standing in the beck
+                near.append((abs(dx) + abs(dy), gx, gy))
+        near.sort()
+        if not near:
+            near = [(0, shed.x, shed.y)]
+        # Round the herder where there is one: a flock drawn round its
+        # shepherd reads as a flock being *kept*, and one scattered over the
+        # same ground reads as one nobody is watching. That difference is
+        # the whole reason they are worth drawing.
+        if keeper is not None:
+            near.sort(key=lambda t: abs(t[1] - keeper.x) + abs(t[2] - keeper.y))
+        for n in range(head):
+            _d, gx, gy = near[n % len(near)]
+            wobble = 0.30 if keeper else 0.44
+            plan.beasts.append(Beast(
+                x=gx + (rng.random() - 0.5) * 2 * wobble,
+                y=gy + (rng.random() - 0.5) * 2 * wobble,
+                kind=kind, at=shed.uid, seed=(shed.uid * 31 + n * 7) % 97))
 
     # --- and the watch, standing on the wall they are actually holding -----
     #
@@ -479,7 +680,8 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
         for i in range(watch):
             wx, wy = line[(i * step) % len(line)]
             plan.folk.append(Walker(x=float(wx), y=float(wy), kind="watch",
-                                    at="on the wall", souls=MEN_PER_FIGURE))
+                                    at="on the wall", trade="guard",
+                                    souls=MEN_PER_FIGURE))
 
     # --- and the handful who are somebody ---------------------------------
     #
@@ -505,5 +707,5 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
         plan.folk.append(Walker(x=float(where.x), y=float(where.y) + 0.62,
                                 kind="kin", at=where.name, work=where.uid,
                                 souls=1, who=off.get("name", ""),
-                                post=off.get("post", "")))
+                                trade="talk", post=off.get("post", "")))
     return plan
