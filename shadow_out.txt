@@ -1,59 +1,59 @@
-settlements: 786 cached, 9 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 796 cached, 10 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
-om_gfs        7245    25  -0.60  1.72  2.23    68%
-om_best       5918    25  -0.64  1.75  2.27    67%
-nws_grid      7604    25  -0.14  1.82  2.53    76%
-nbm_guide     7647    25  -0.42  1.84  2.57    76%
-om_icon       7130    25  -1.19  2.10  2.68    57%
-om_metno      7088    25  -1.46  2.28  2.92    53%
-om_ecmwf      7226    25  -1.07  3.09  4.03    43%
+om_gfs        7399    25  -0.59  1.72  2.23    68%
+om_best       6052    25  -0.63  1.74  2.25    68%
+nws_grid      7764    25  -0.14  1.82  2.53    76%
+nbm_guide     7807    25  -0.40  1.84  2.58    76%
+om_icon       7275    25  -1.17  2.08  2.65    58%
+om_metno      7233    25  -1.48  2.28  2.91    53%
+om_ecmwf      7380    25  -1.09  3.07  4.00    43%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
 spend: 161 calls, est $2.2943 spent, $2.71 left (~189 calls)
-rung-obs 54692 -> 875 independent units over 40 days
+rung-obs 55652 -> 891 independent units over 40 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
-  1-10  50   0     0%   5.8%     0%     7%    -5.7      open
- 11-20  38   1     3%  16.2%     0%    14%   -13.4   RETIRED
+  1-10  51   0     0%   5.8%     0%     7%    -5.8      open
+ 11-20  39   1     3%  16.2%     0%    13%   -13.5   RETIRED
  21-30  38   4    11%  25.6%     4%    30%   -14.7      open
- 31-40  47   9    19%  37.2%    10%    40%   -17.7      open
+ 31-40  48   9    19%  37.2%    10%    39%   -18.1      open
  41-50  38  11    29%  46.9%    17%    50%   -17.6      open
- 51-60  42  17    40%  56.9%    27%    64%   -16.1      open
+ 51-60  43  17    40%  56.8%    26%    63%   -16.9      open
  61-70  54  32    59%  67.0%    46%    76%    -7.6      open
- 71-80  58  37    64%  77.9%    51%    81%   -13.9      open
- 81-90 107  83    78%  87.6%    69%    87%   -10.1   RETIRED
- 91-95 157 139    89%  94.4%    83%    94%    -5.8   RETIRED
- 96-98 246 233    95%  98.2%    91%    97%    -3.4   RETIRED
+ 71-80  59  37    63%  77.9%    50%    80%   -14.9      open
+ 81-90 110  85    77%  87.6%    69%    86%   -10.3   RETIRED
+ 91-95 160 142    89%  94.4%    83%    94%    -5.6   RETIRED
+ 96-98 251 238    95%  98.2%    91%    97%    -3.3   RETIRED
   RETIRED at 95% (4 of 11 bands): 11-20, 81-90, 91-95, 96-98
   Retirement applies to the band traded UNCONDITIONALLY. Conditional rules inside a retired band are NOT retired by it.
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 634  14     2%   3.0%     1%    -0.8      620   False
- 11-20 127  19    15%  14.6%    10%     0.3      124   False
- 21-30  76  19    25%  25.1%    17%    -0.1       75   False
+  1-10 643  14     2%   3.0%     1%    -0.8      629   False
+ 11-20 129  19    15%  14.6%    10%     0.1      126   False
+ 21-30  77  20    26%  25.1%    17%     0.8       76   False
  31-40  57  18    32%  36.0%    21%    -4.3       55   False
- 41-50  41  15    37%  46.0%    24%    -9.3       39   False
+ 41-50  43  16    37%  46.2%    24%    -8.8       41   False
  51-60  48  24    50%  56.0%    36%    -5.9       47   False
- 61-70  51  29    57%  66.2%    43%    -9.2       47   False
- 71-80  52  27    52%  77.4%    39%   -25.0       51   False
- 81-90  62  44    71%  85.9%    59%   -15.0       59   False
+ 61-70  52  30    58%  66.3%    44%    -8.4       48   False
+ 71-80  53  28    53%  77.4%    40%   -24.1       52   False
+ 81-90  63  45    71%  86.0%    59%   -14.6       60   False
  91-95  47  35    74%  94.1%    60%   -19.4       44   False
- 96-98  40  30    75%  98.1%    60%   -22.9       38   False
-yes_spread over 54402 real-ask obs: mean 5.63c, max 100c
+ 96-98  41  31    76%  98.1%    61%   -22.2       39   False
+yes_spread over 55362 real-ask obs: mean 5.59c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.75, 'NYC': 1.53, 'OKC': -1.12, 'AUS': -1.05, 'BOS': -0.96, 'TTN': 0.65, 'EWR': 0.6, 'MIA': -0.57, 'ATL': 0.56, 'CHI': -0.51, 'PHX': -0.47, 'MSP': -0.4, 'MSY': 0.38, 'LAS': -0.32, 'DAL': -0.24, 'SFO': -0.21, 'PHL': -0.18, 'HOU': -0.17, 'DEN': 0.15, 'DC': 0.12, 'SAN': 0.12, 'SAT': 0.08, 'SEA': -0.03}
+station guide bias (guide - CLI): {'LAX': -2.75, 'NYC': 1.49, 'OKC': -1.12, 'AUS': -1.05, 'BOS': -0.92, 'TTN': 0.62, 'CHI': -0.57, 'MIA': -0.57, 'ATL': 0.56, 'EWR': 0.52, 'PHX': -0.47, 'MSP': -0.4, 'LAS': -0.32, 'MSY': 0.32, 'DAL': -0.24, 'PHL': -0.23, 'SFO': -0.21, 'DC': 0.2, 'HOU': -0.2, 'DEN': 0.15, 'SAN': 0.12, 'SAT': 0.08, 'SEA': -0.03}
 
                   rule   n   w    hit   LCB  meanP&L
-             frozen_G4 180 152    84%   78%    -3.06
-        exclude_marine 160 137    86%   79%    -1.73
-     floor96_ex_marine 220 210    95%   92%    -2.66
-     conv_window_96_98   9   8    89%   56%     -9.0
-       floor96_depth25 137 132    96%   92%    -1.59
-          corrected_G4 140 118    84%   77%    -1.56
+             frozen_G4 181 152    84%   78%    -3.08
+        exclude_marine 161 137    85%   79%    -1.76
+     floor96_ex_marine 225 215    96%   92%    -2.56
+     conv_window_96_98  10   9    90%   60%     -7.8
+       floor96_depth25 142 137    96%   92%    -1.46
+          corrected_G4 141 118    84%   77%     -1.6
   corrected_G4_floor90 117 111    95%   89%    -2.15
-          floor96_only 246 233    95%   91%    -3.41
-      floor96_twosided 195 189    97%   94%    -1.16
-    frozen_G4_twosided 162 135    83%   77%    -3.07
+          floor96_only 251 238    95%   91%    -3.31
+      floor96_twosided 199 193    97%   94%     -1.1
+    frozen_G4_twosided 163 135    83%   76%     -3.1
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
@@ -71,7 +71,7 @@ HYPOTHESIS PROGRESS (data bars, not results)
   H5    contested band 81-95c (blocked on H4a) [....................] 28/60 city-day units  +supply only; scoring waits on H4a (15 days since 2026-09-01)
   H6    market prices off the stale print [#########...........] 98/200 print transitions  +14/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
-  H8    run_max/temp_now gap (H4a x H7) [######..............] 50/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
+  H8    run_max/temp_now gap (H4a x H7) [######..............] 51/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
   H15   LAX marine-layer regime not in the price [....................] 0/20 distinct LAX marine-stratum days with a book  +registered 2026-09-12, full text docs/H15.md, classifier lax_regime.py FROZEN the same day on free weather data with no price data in the loop. NO HARNESS YET -- have=0 is a placeholder, not a measured zero. Marine strata are 29% of Sep-Dec days, so 20 of them needs ~70 calendar days from 2026-09-12: bar reached ~2026-11-20, 41 days before the stop. Reads logs/poll_lax/, NOT logs/poll/
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
