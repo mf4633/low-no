@@ -28,6 +28,11 @@ jobs:
       - name: primary test, every covered city as ONE family
         continue-on-error: true
         run: python sonde.py --test-all 2>&1 | tee sonde_all.txt
+      - name: within-month effect size, all tested cities
+        # SAME JOB as --test-all on purpose: cache/ persists across steps, so
+        # the ~850 MB of IGRA archives is downloaded once, not twice.
+        continue-on-error: true
+        run: python sonde.py --effect tested 2>&1 | tee sonde_effect.txt
       - name: commit
         if: always()
         # `bash -e` kills the step on a short-circuiting `&&`; both guards are
@@ -35,7 +40,8 @@ jobs:
         run: |
           git config user.name lowno-bot && git config user.email bot@lowno
           for f in sonde_coverage.txt sonde_den_nearest.txt sonde_all.txt \
-                   docs/sonde_result.json; do
+                   sonde_effect.txt docs/sonde_result.json \
+                   docs/sonde_effect.json; do
             if [ -e "$f" ]; then git add -- "$f"; fi
           done
           if git diff --cached --quiet; then

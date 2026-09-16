@@ -310,6 +310,122 @@ def igra_for_city(city, max_km=80.0):
     return best, km
 
 
+def dev_rows(city, max_km=80.0, quiet=False):
+    """[(day, Q2000, CLI high - that month's mean)] or None.
+
+    THE SINGLE SOURCE for both the primary test and the effect size. They must
+    read the same slice: a statistic and its illustration computed on different
+    data is the H4b-meter error, and the first sonde run shipped a quartile
+    table cut on RAW Q2000 while the p-value was computed within month.
+    """
+    blob = json.loads(io.open("city_regimes.json", encoding="utf-8").read())
+    if city not in blob:
+        raise SystemExit(f"{city} not in city_regimes.json -- run city_regime.py")
+    cli = {d: h for d, g, h in blob[city]["rows"]}
+    stn, km = igra_for_city(city)
+    if not quiet:
+        print(f"\n{city} ({CITIES[city]['station']}) -> {stn['name']} [{stn['id']}], "
+              f"{km:.0f} km away\n")
+    if km > max_km:
+        if not quiet:
+            print(f"  REFUSED: {km:.0f} km exceeds the {max_km:.0f} km limit. A sounding")
+            print("  that far off samples a different boundary layer.")
+        return None, stn, km
+    snd = fetch_soundings(stn["id"]) if not quiet else fetch_soundings(stn["id"])
+    rows = []
+    for d, lv in sorted(snd.items()):
+        if d not in cli:
+            continue
+        q = q_to_mix(lv, MIX_TOP_M)
+        if q is None:
+            continue
+        rows.append((d, q, cli[d]))
+    if not quiet:
+        print(f"  matched {len(rows)} days with BOTH a usable 12Z profile and a CLI high")
+    if len(rows) < 30:
+        if not quiet:
+            print("  too few to test.")
+        return None, stn, km
+    bym = defaultdict(list)
+    for d, q, h in rows:
+        bym[d[5:7]].append(h)
+    mu = {m: sum(v) / len(v) for m, v in bym.items()}
+    return [(d, q, h - mu[d[5:7]]) for d, q, h in rows], stn, km
+
+
+def within_month_quartiles(dev):
+    """Assign each day a Q2000 quartile computed WITHIN its own calendar month.
+
+    Cutting quartiles on raw Q2000 across all months puts winter in the top
+    quartile, and winter is wider for reasons that have nothing to do with the
+    cap. That confound is the whole reason this function exists.
+    """
+    bym = defaultdict(list)
+    for r in dev:
+        bym[r[0][5:7]].append(r)
+    out = []
+    for m, rows in bym.items():
+        rows = sorted(rows, key=lambda r: r[1])
+        n = len(rows)
+        if n < 8:
+            continue
+        for i, r in enumerate(rows):
+            out.append((min(3, (4 * i) // n), r))
+    return out
+
+
+def _quartile_stats(tagged):
+    st_ = {}
+    for qi in range(4):
+        v = [r[2] for t, r in tagged if t == qi]
+        if len(v) < 5:
+            continue
+        st_[qi] = dict(n=len(v), mean=st.mean(v), absmean=st.mean([abs(z) for z in v]),
+                       sd=st.pstdev(v), tail=sum(1 for z in v if z <= -5) / len(v))
+    return st_
+
+
+def effect_size(city, max_km=80.0, n_boot=2000, seed=20260916):
+    """Within-month Q2000 quartiles, and the sd ratio Q4/Q1 with a bootstrap CI."""
+    dev, stn, km = dev_rows(city, max_km=max_km)
+    if not dev:
+        return None
+    tagged = within_month_quartiles(dev)
+    stats = _quartile_stats(tagged)
+    if 0 not in stats or 3 not in stats:
+        print("  quartiles too thin"); return None
+    print(f"\n  WITHIN-MONTH Q2000 quartile (season removed from the CUT, not just "
+          f"the outcome)")
+    hdr = (f"  {'quartile':<10}{'n':>6}{'mean dev':>10}{'|dev|':>8}{'sd':>8}"
+           f"{'P(dev<=-5F)':>13}")
+    print(hdr); print("  " + "-" * (len(hdr) - 2))
+    for qi in range(4):
+        if qi not in stats:
+            continue
+        v = stats[qi]
+        print(f"  Q{qi+1:<9}{v['n']:>6}{v['mean']:>+10.2f}{v['absmean']:>8.2f}"
+              f"{v['sd']:>8.2f}{v['tail']:>12.1%}")
+    ratio = stats[3]["sd"] / stats[0]["sd"]
+    rng = random.Random(seed)
+    boots = []
+    for _ in range(n_boot):
+        samp = [dev[rng.randrange(len(dev))] for _ in range(len(dev))]
+        t = _quartile_stats(within_month_quartiles(samp))
+        if 0 in t and 3 in t and t[0]["sd"] > 0:
+            boots.append(t[3]["sd"] / t[0]["sd"])
+    boots.sort()
+    lo = boots[int(0.025 * len(boots))] if boots else float("nan")
+    hi = boots[int(0.975 * len(boots))] if boots else float("nan")
+    print(f"\n  sd ratio Q4/Q1 = {ratio:.3f}   bootstrap 95% CI [{lo:.3f}, {hi:.3f}]"
+          f"   ({len(boots)} draws)")
+    print(f"  tail ratio  Q4/Q1 = {stats[3]['tail']/max(stats[0]['tail'],1e-9):.2f}"
+          f"  ({stats[3]['tail']:.1%} vs {stats[0]['tail']:.1%})")
+    return dict(city=city, station=stn["id"], km=round(km, 1), n=len(dev),
+                sd_q1=round(stats[0]["sd"], 3), sd_q4=round(stats[3]["sd"], 3),
+                sd_ratio=round(ratio, 3), ci_lo=round(lo, 3), ci_hi=round(hi, 3),
+                tail_q1=round(stats[0]["tail"], 4), tail_q4=round(stats[3]["tail"], 4))
+
+
 def run_test(city, max_km=80.0):
     blob = json.loads(io.open("city_regimes.json", encoding="utf-8").read())
     if city not in blob:
@@ -446,6 +562,43 @@ def test_all(max_km=80.0):
     return res
 
 
+def effect_all(cities, max_km=80.0):
+    """Effect size at EVERY tested city, not only the survivors.
+
+    An effect size measured only where the test passed is upward-biased by
+    selection -- the winner's curse. Printing the non-survivors alongside is how
+    a reader sees how much of DAL's and OKC's magnitude is selection and how
+    much is signal. This is DESCRIPTION computed after the primary test, not a
+    second test, and it carries no p-value of its own.
+    """
+    out = {}
+    for c in cities:
+        try:
+            r = effect_size(c, max_km=max_km)
+        except Exception as e:
+            print(f"  {c}: FAILED {str(e)[:90]}")
+            continue
+        if r:
+            out[c] = r
+    if not out:
+        return out
+    surv = {"DAL", "OKC"}
+    print("\n\nWITHIN-MONTH EFFECT SIZE -- every tested city, survivors marked\n")
+    hdr = (f"{'city':<5}{'n':>6}{'sd Q1':>8}{'sd Q4':>8}{'ratio':>8}"
+           f"{'95% CI':>16}{'tail Q1':>9}{'tail Q4':>9}  Holm")
+    print(hdr); print("-" * len(hdr))
+    for c in sorted(out, key=lambda k: -out[k]["sd_ratio"]):
+        r = out[c]
+        ci = f"[{r['ci_lo']:.2f}, {r['ci_hi']:.2f}]"
+        tag = "SURVIVOR" if c in surv else ""
+        print(f"{c:<5}{r['n']:>6}{r['sd_q1']:>8.2f}{r['sd_q4']:>8.2f}"
+              f"{r['sd_ratio']:>8.3f}{ci:>16}"
+              f"{r['tail_q1']:>8.1%}{r['tail_q4']:>9.1%}  {tag}")
+    print("\n  ratio > 1 means high-cap days are WIDER within the same month.")
+    print("  A CI containing 1.00 is a magnitude consistent with no effect.")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--coverage", action="store_true")
@@ -453,6 +606,8 @@ def main():
     ap.add_argument("--test-all", action="store_true",
                     help="every city inside --max-km, Holm-corrected as a family")
     ap.add_argument("--nearest", default=None, help="diagnostic: n nearest sites")
+    ap.add_argument("--effect", default=None,
+                    help="within-month effect size; comma list or 'tested'")
     ap.add_argument("-n", type=int, default=10)
     ap.add_argument("--max-km", type=float, default=80.0)
     a = ap.parse_args()
@@ -460,6 +615,20 @@ def main():
         nearest_dump(a.nearest.upper(), a.n)
     if a.coverage:
         coverage()
+    if a.effect:
+        if a.effect.strip().lower() == "tested":
+            prev = json.loads(io.open("docs/sonde_result.json", encoding="utf-8").read())
+            cl = sorted(prev.get("cities", {}))
+        else:
+            cl = [x.strip().upper() for x in a.effect.split(",")]
+        rs = effect_all(cl, max_km=a.max_km)
+        if rs:
+            p_ = "docs/sonde_effect.json"
+            io.open(p_, "w", encoding="utf-8").write(json.dumps(
+                dict(at=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+                     note="within-month Q2000 quartiles; description, not a test",
+                     cities=rs), indent=1))
+            print(f"\n  wrote {p_}")
     if a.test_all:
         rs = test_all(max_km=a.max_km)
         if rs:
@@ -480,7 +649,7 @@ def main():
                                   metric=f"Q{int(MIX_TOP_M)} MJ/m2", years=list(YEARS))
             io.open(p, "w", encoding="utf-8").write(json.dumps(cur, indent=1))
             print(f"\n  wrote {p}")
-    if not (a.coverage or a.test or a.test_all or a.nearest):
+    if not (a.coverage or a.test or a.test_all or a.nearest or a.effect):
         ap.print_help()
 
 
