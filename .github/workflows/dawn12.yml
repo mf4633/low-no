@@ -41,14 +41,29 @@ jobs:
         # cannot leak into a prediction issued this morning. It is re-run every
         # cycle because the per-forecaster bias drifts and a stale bias is a
         # silent error of exactly the kind this project keeps finding.
-        run: python dawn12.py --calibrate 2>&1 | tee dawn12_calib_out.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python dawn12.py --calibrate 2>&1 | tee dawn12_calib_out.txt.new
+          mv dawn12_calib_out.txt.new dawn12_calib_out.txt
 
       - name: lock predictions for cities now at ~04:00 local
-        run: python dawn12.py 2>&1 | tee dawn12_out.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python dawn12.py 2>&1 | tee dawn12_out.txt.new
+          mv dawn12_out.txt.new dawn12_out.txt
 
       - name: score every locked prediction that has settled
         continue-on-error: true
-        run: python dawn12.py --score 2>&1 | tee dawn12_score_out.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python dawn12.py --score 2>&1 | tee dawn12_score_out.txt.new
+          mv dawn12_score_out.txt.new dawn12_score_out.txt
 
       - name: commit
         if: always()

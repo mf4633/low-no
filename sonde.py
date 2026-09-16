@@ -54,6 +54,8 @@ import math
 import os
 import random
 import statistics as st
+import time
+import urllib.error
 import urllib.request
 import zipfile
 from collections import defaultdict
@@ -77,11 +79,30 @@ CACHE = "cache"
 UA = {"User-Agent": "lowno (contact: github.com/mf4633)"}
 
 
-def _get(url, timeout=600, binary=False):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        d = r.read()
-    return d if binary else d.decode("utf-8", "replace")
+def _get(url, timeout=600, binary=False, tries=6):
+    """Fetch with backoff. NCEI returns 503 routinely under load, and the first
+    run of this file died outright on a single one -- every downstream step with
+    it -- because there was no retry at all. city_regime.cached() already had
+    this and sonde.py shipped without it."""
+    last = None
+    for a in range(tries):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                d = r.read()
+            return d if binary else d.decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            last = f"HTTP {e.code}"
+            if e.code not in (429, 500, 502, 503, 504):
+                raise
+        except Exception as e:
+            last = str(e)[:80]
+        if a < tries - 1:
+            w = min(90, 5 * (2 ** a))
+            print(f"    {url.rsplit('/', 1)[-1]}: {last} -- backoff {w}s "
+                  f"(attempt {a + 1}/{tries})", flush=True)
+            time.sleep(w)
+    raise RuntimeError(f"{url}: {last} after {tries} attempts")
 
 
 def haversine_km(a, b, c, d):

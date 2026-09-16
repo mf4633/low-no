@@ -35,10 +35,20 @@ jobs:
         with: { python-version: "3.12" }
 
       - name: build regimes for every city
-        run: python city_regime.py 2>&1 | tee city_regimes_out.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python city_regime.py 2>&1 | tee city_regimes_out.txt.new
+          mv city_regimes_out.txt.new city_regimes_out.txt
 
       - name: regime-conditioned cells
-        run: python city_forecast.py 2>&1 | tee city_forecast_out.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python city_forecast.py 2>&1 | tee city_forecast_out.txt.new
+          mv city_forecast_out.txt.new city_forecast_out.txt
 
       - name: commit results
         if: always()

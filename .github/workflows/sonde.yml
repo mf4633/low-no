@@ -22,17 +22,37 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: coverage -- which cities can even be reached
-        run: python sonde.py --coverage 2>&1 | tee sonde_coverage.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python sonde.py --coverage 2>&1 | tee sonde_coverage.txt.new
+          mv sonde_coverage.txt.new sonde_coverage.txt
       - name: diagnostic -- why DEN got a site 341 km away
-        run: python sonde.py --nearest DEN -n 12 2>&1 | tee sonde_den_nearest.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python sonde.py --nearest DEN -n 12 2>&1 | tee sonde_den_nearest.txt.new
+          mv sonde_den_nearest.txt.new sonde_den_nearest.txt
       - name: primary test, every covered city as ONE family
         continue-on-error: true
-        run: python sonde.py --test-all 2>&1 | tee sonde_all.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python sonde.py --test-all 2>&1 | tee sonde_all.txt.new
+          mv sonde_all.txt.new sonde_all.txt
       - name: within-month effect size, all tested cities
         # SAME JOB as --test-all on purpose: cache/ persists across steps, so
         # the ~850 MB of IGRA archives is downloaded once, not twice.
         continue-on-error: true
-        run: python sonde.py --effect tested 2>&1 | tee sonde_effect.txt
+        run: |
+          # tee TRUNCATES its target before the command runs, so a
+          # failure would replace good committed output with a
+          # traceback. Promote only on success (pipefail aborts first).
+          python sonde.py --effect tested 2>&1 | tee sonde_effect.txt.new
+          mv sonde_effect.txt.new sonde_effect.txt
       - name: commit
         if: always()
         # `bash -e` kills the step on a short-circuiting `&&`; both guards are
