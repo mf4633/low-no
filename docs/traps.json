@@ -1,13 +1,13 @@
 {
- "at": "2026-09-16T12:26:42.540993Z",
+ "at": "2026-09-16T13:29:13.369732Z",
  "traps": [
   {
    "city": "SAN",
    "ceiling": 73,
-   "price": 90,
+   "price": 94,
    "p_model": 0.9404,
-   "p_market": 0.9,
-   "edge_pts": 4.0,
+   "p_market": 0.94,
+   "edge_pts": 0.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -21,10 +21,6 @@
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
