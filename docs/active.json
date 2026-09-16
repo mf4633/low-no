@@ -1,5 +1,78 @@
 {
- "at": "2026-09-16T14:32:09.367938Z",
- "tracked": [],
+ "at": "2026-09-16T15:35:48.717993Z",
+ "tracked": [
+  {
+   "city": "MSP",
+   "station": "KMSP",
+   "ticker": "KXHIGHTMIN-26SEP16-T72",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 71,
+   "run_max": 66.2,
+   "gap_to_clear": 4.8,
+   "already_cleared": false,
+   "guide": 76,
+   "pop": 1,
+   "no_ask": 0.97,
+   "local_hour": 10,
+   "obs_trace": [
+    {
+     "ts": "2026-09-16T15:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T15:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T15:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-16T14:30:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 5.8,
+    "q50": 9.8,
+    "q90": 13.4
+   },
+   "projected_max": {
+    "q10": 72.0,
+    "q50": 76.0,
+    "q90": 79.6
+   },
+   "p_exceed_empirical": 0.8958,
+   "emp_n": 46,
+   "convergence_hour": 15,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
