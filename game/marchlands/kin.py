@@ -41,7 +41,7 @@ from . import config as C
 #: What a person can get good at. One per post, deliberately: a skill nobody
 #: can hold a job in is a skill that only grows by fiat.
 SKILLS: Tuple[str, ...] = ("stewardship", "trade", "tactics", "engineering",
-                           "charm")
+                           "charm", "valour")
 
 SKILL_BLURB = {
     "stewardship": "the town: mood and the tax roll",
@@ -49,6 +49,7 @@ SKILL_BLURB = {
     "tactics": "the field: how hard a host hits",
     "engineering": "the works: walls up and down",
     "charm": "the lords: what peace costs",
+    "valour": "the line: his own hand in it",
 }
 
 MAX_SKILL = 10

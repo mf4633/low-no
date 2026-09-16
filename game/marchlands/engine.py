@@ -167,12 +167,20 @@ class PendingBattle:
     #: Whether the aftermath has run. A fight can be over and unsettled for
     #: the instant between the last round and `_finish_battle`.
     settled: bool = False
+    #: The lord's own part, when he rode at their head: rounds ridden, men
+    #: cut down by his hand, steadiness given, and what became of him.
+    lord_rode: int = 0
+    lord_kills: int = 0
+    lord_rally: float = 0.0
+    lord_lines: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {"battle": self.battle.to_dict(), "kind": self.kind,
                 "army": self.army, "where": self.where, "side": self.side,
                 "title": self.title, "day": self.day,
                 "stationed": list(self.stationed), "foes": list(self.foes),
+                "lord_rode": self.lord_rode, "lord_kills": self.lord_kills,
+                "lord_rally": self.lord_rally, "lord_lines": list(self.lord_lines),
                 "wall_standing": self.wall_standing, "wall_full": self.wall_full,
                 "after": list(self.after), "settled": self.settled}
 
@@ -183,6 +191,10 @@ class PendingBattle:
                    title=d["title"], day=d["day"],
                    stationed=list(d.get("stationed", [])),
                    foes=list(d.get("foes", [])),
+                   lord_rode=int(d.get("lord_rode", 0)),
+                   lord_kills=int(d.get("lord_kills", 0)),
+                   lord_rally=float(d.get("lord_rally", 0.0)),
+                   lord_lines=list(d.get("lord_lines", [])),
                    wall_standing=d.get("wall_standing", 0.0),
                    wall_full=d.get("wall_full", 0.0),
                    after=list(d.get("after", [])),
@@ -1644,6 +1656,8 @@ class GameState:
         a = self.army(uid)
         if not a or a.owner != "player":
             return f"no host of yours numbered {uid}"
+        if self.lord.wounded > 0:
+            return self.lord.cannot_ride()
         self.lord.riding = uid
         return (f"{self.lord.name} rides with {a.name}. The men will fight "
                 f"harder and stand longer, and he is where the arrows are.")
@@ -3100,11 +3114,119 @@ class GameState:
                 said = b.pour_oil() if action == "oil" else b.fire_pitch()
         elif action == "break":
             said = b.break_off(me)
+        elif action == "ride":
+            said = self._ride(pb, arg)
         else:
-            return f"battle: nothing called {action!r}; fight, auto, order, commit, oil, pitch, break, close"
+            return (f"battle: nothing called {action!r}; fight, ride, auto, order, "
+                    f"commit, oil, pitch, break, close")
         if b.over:
             said += "\n" + "\n".join(self._finish_battle())
         return said
+
+    # ------------------------------------------------------ at their head
+    def _lord_in(self, pb: PendingBattle) -> str:
+        """Why the lord is not in this fight to ride at their head, or ''."""
+        why = self.lord.cannot_ride()
+        if why:
+            return why
+        if pb.kind == "wall":
+            if not (self.lord.at_home and self.lord.seat in ("", pb.where, pb.title)):
+                return f"{self.lord.name} is not at {pb.title}"
+            return ""
+        mine = [pb.army] if pb.kind == "storm" else (
+            pb.stationed if pb.side == "attacker" else pb.foes)
+        if self.lord.riding not in mine:
+            return f"{self.lord.name} is not with this host"
+        return ""
+
+    def _ride_view(self, pb: PendingBattle) -> dict:
+        """What riding at their head would meet this round, for the screen
+        that fights it and the console that rolls it."""
+        b = pb.battle
+        them = b.side("defender" if pb.side == "attacker" else "attacker")
+        why = self._lord_in(pb)
+        who = self.kin.lord
+        valour = who.level("valour") if who is not None else 0
+        horse = them.class_share().get(military.HORSE, 0.0)
+        press = int(min(9, 3 + them.alive() / 25.0 + 3 * horse))
+        return {"can": not why and not b.over, "why": why, "name": self.lord.name,
+                "valour": valour, "hits": self.lord.hits,
+                "down": manly.RIDE_HITS_DOWN, "press": press,
+                "cap": self._ride_cap(them), "rode": pb.lord_rode,
+                "kills": pb.lord_kills}
+
+    @staticmethod
+    def _ride_cap(them: Side) -> int:
+        return max(1, min(manly.RIDE_KILL_CAP, int(them.alive() * manly.RIDE_KILL_SHARE)))
+
+    def _roll_ride(self, pb: PendingBattle) -> Tuple[int, int]:
+        """The dice ride for him where there is no screen: the console."""
+        v = self._ride_view(pb)
+        rng = pb.battle.rng
+        p_kill = min(0.8, 0.35 + 0.05 * v["valour"])
+        p_hit = max(0.08, 0.30 - 0.03 * v["valour"])
+        kills = sum(1 for _ in range(v["cap"]) if rng.random() < p_kill)
+        hits = sum(1 for _ in range(v["press"]) if rng.random() < p_hit)
+        return kills, min(hits, manly.RIDE_HITS_DOWN)
+
+    def _ride(self, pb: PendingBattle, arg: str) -> str:
+        """Fight this round at the head of your own men.
+
+        `arg` is what the screen saw -- "kills hits" -- or nothing, in
+        which case the dice ride. Either way the engine believes only so
+        much: kills are capped at an order's worth of the men facing him,
+        blows count against the three that bear him down, and the round
+        then runs as any round does. His men, seeing him in front, are a
+        little steadier; he learns valour by doing it; and if he is borne
+        down he is abed for weeks or dead where he stood.
+        """
+        b = pb.battle
+        why = self._lord_in(pb)
+        if why:
+            return why
+        parts = arg.split()
+        if len(parts) >= 2 and all(x.lstrip("-").isdigit() for x in parts[:2]):
+            kills, hits = int(parts[0]), int(parts[1])
+        else:
+            kills, hits = self._roll_ride(pb)
+        them = b.side("defender" if pb.side == "attacker" else "attacker")
+        mine = b.side(pb.side)
+        kills = max(0, min(kills, self._ride_cap(them)))
+        hits = max(0, min(hits, manly.RIDE_HITS_DOWN))
+        # The men he cut down come off the line facing him, foot first.
+        left = float(kills)
+        for key in sorted(them.units, key=lambda k: (UNITS[k].unit_class != military.FOOT, k)):
+            take = min(them.units[key], left)
+            them.units[key] -= take
+            left -= take
+            if left <= 0:
+                break
+        them.units = {k: v for k, v in them.units.items() if v >= 0.5}
+        gain = min(manly.RIDE_RALLY, manly.RIDE_RALLY_CAP - pb.lord_rally)
+        if gain > 0:
+            mine.morale += gain
+            pb.lord_rally += gain
+        pb.lord_rode += 1
+        pb.lord_kills += kills
+        self.lord.hits += hits
+        self.kin.teach("valour", manly.VALOUR_PER_RIDE + 2.0 * kills, self.day)
+        blow = ("no blow taken" if hits == 0 else "one blow taken" if hits == 1
+                else f"{hits} blows taken")
+        said = [f"{self.lord.name} rides at their head: "
+                f"{kills} {'man' if kills == 1 else 'men'} cut down, {blow}"]
+        if self.lord.hits >= manly.RIDE_HITS_DOWN:
+            heir = self.kin.heir(self.day)
+            fell = self.lord.borne_down(self.rng, heir.name if heir else self.lord.name)
+            pb.lord_lines += fell
+            said += [self.note(ln, MOMENTOUS) for ln in fell]
+            if not self.lord.alive:
+                who = self.kin.lord
+                if who is not None:
+                    pb.lord_lines += self.kin.bury(who, self.day)
+                for st in self.world.settlements.values():
+                    st.popularity = max(0.0, st.popularity - manly.MOURNING)
+        said += b.step() or ["a quiet round"]
+        return "\n".join(said)
 
     def _finish_battle(self) -> List[str]:
         """The fight is over: take the dressing off and let the day have it.
@@ -3140,6 +3262,13 @@ class GameState:
             if town is not None:
                 msgs = self._after_storm(b.res, a, town, b.defender, b.attacker,
                                          stationed)
+        if pb.lord_rode:
+            msgs.append(f"{self.lord.name if self.lord.alive else 'The lord'} rode "
+                        f"{pb.lord_rode} {'round' if pb.lord_rode == 1 else 'rounds'} at "
+                        f"their head and cut down {pb.lord_kills} "
+                        f"{'man' if pb.lord_kills == 1 else 'men'} by his own hand")
+            msgs += [ln for ln in pb.lord_lines if ln not in msgs]
+        self.lord.hits = 0
         pb.after = list(msgs)
         pb.settled = True
         for line in msgs:
@@ -3166,6 +3295,7 @@ class GameState:
                               "rounds": o.rounds}
                              for o in military.ORDERS.values()],
                   "modifiers": self._battle_modifiers(pb),
+                  "ride": self._ride_view(pb),
                   "kinds": {k: {"name": u.name, "kind": u.unit_class,
                                 "counters": dict(u.counters)}
                             for k in set(b.attacker.units) | set(b.defender.units)

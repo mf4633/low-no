@@ -1958,6 +1958,36 @@ lines and you fight at dawn -- so a siege is a thing that can be lifted
 from outside, which is most of what medieval field battles were for. If you
 are on either side and playing your battles, the day waits on it.
 
+### Riding at their head
+
+The thing people love in Bannerlord is not the polygons, it is being one
+man in the line and having it cost you. So when the lord is in a fight you
+are playing -- riding with the host going in, standing on his own wall, or
+with the relief -- there is a button beside *Fight a round*: **Ride at
+their head**. For six seconds the field is the yard round him: arrows or
+WASD move, space or a click strikes, and the men pressing him strike back.
+Then the round runs.
+
+What the engine believes of those six seconds is bounded on purpose. Men he
+cut down are capped at an order's worth -- two per cent of the men facing
+him, never more than six -- and come off the line in front of him, foot
+first. His own men, seeing him in front, are a little steadier, two
+hundredths a round and eight over the fight. Every blow he takes counts,
+and three in one fight bear him down: weeks abed on the baggage, no bonus
+to the host and not to be sent anywhere, or -- one chance in eight per blow
+past the third -- dead where he stood, the hall empty and the heir raised.
+He learns *valour* by doing it, and valour is what makes him harder to
+hurt and quicker to kill in the yard. The knife-edge the rest of the battle
+sits on is the reason for every cap: at even strength the attacker wins one
+fight in fifty, so a free sword would be a lever that decided battles.
+
+The screen fights it and the console rolls it (`battle ride` with no
+numbers lets the dice ride), and both go up as the same command, `battle
+ride <cut down> <blows>`, which the engine caps again regardless of who is
+asking. That is the whole compromise: a browser is the input device, the
+engine is the judge, and a single-player game can afford to trust its own
+player exactly that far.
+
 ### You can see why somebody hates you
 
 ```

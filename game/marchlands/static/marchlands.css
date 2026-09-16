@@ -1041,3 +1041,18 @@ body.march #sel { border-color: rgba(201,162,39,.6); border-left-color: rgba(201
   border: 1px solid rgba(201,162,39,.35); border-radius: 2px; padding: 2px 5px;
   font: 12px Georgia, serif; text-align: right;
 }
+
+/* ------------------------------------------------------ riding at their head */
+#battle-acts .ride { border-color: rgba(201,162,39,.75); color: #e8cf7a; }
+#battle-acts .ride:disabled { opacity: .45; }
+#melee-hud {
+  display: flex; align-items: center; gap: 14px; justify-content: center;
+  margin: 6px auto 0; max-width: 880px; font: 13px Georgia, serif; color: var(--parch);
+}
+#melee-hud #melee-count { min-width: 190px; text-align: right; }
+#melee-hud #melee-time { width: 220px; height: 6px; background: rgba(0,0,0,.45);
+  border: 1px solid rgba(201,162,39,.4); border-radius: 3px; overflow: hidden; }
+#melee-hud #melee-time i { display: block; height: 100%; width: 100%;
+  background: linear-gradient(90deg, #c9a227, #e8cf7a); }
+#melee-hud .dim { font-size: 11.5px; }
+#battle-field.melee { cursor: crosshair; outline: 1px solid rgba(201,162,39,.55); }

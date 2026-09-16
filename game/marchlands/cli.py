@@ -2513,6 +2513,10 @@ class Console:
             return self.say("  " + g.battle_step("pitch").replace("\n", "\n  "))
         if want and want[0] in ("break", "retreat", "withdraw", "fall"):
             return self.say("  " + g.battle_step("break").replace("\n", "\n  "))
+        if want and want[0] in ("ride", "lead", "charge"):
+            # No screen here to swing the sword on, so the dice ride for him.
+            return self.say("  " + g.battle_step("ride", " ".join(want[1:]))
+                            .replace("\n", "\n  "))
 
         yours = v["side"]
         me, them = v[yours], v["defender" if yours == "attacker" else "attacker"]

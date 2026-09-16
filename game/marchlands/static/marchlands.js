@@ -3321,6 +3321,16 @@ function paintBattle(v) {
     b.hidden = !(key in can);            // not on the wall: not offered at all
     b.disabled = !!can[key] || v.over; b.title = can[key] || '';
   }
+  // The lord's own sword. Offered when he is in this fight, greyed with
+  // the reason when he is not, and never while a melee is already running.
+  const ride = v.ride || {}, rb = $('battle-ride');
+  // Hidden only when he is simply elsewhere; abed or captive it stays,
+  // greyed, with the reason, because that is news the player should have.
+  rb.hidden = !ride.name || (!!ride.why && /not with this host|is not at/.test(ride.why) && !ride.rode);
+  rb.disabled = !ride.can || v.over || !!melee;
+  rb.title = ride.can ? `${ride.name} · valour ${ride.valour} · ${ride.hits} of ${ride.down} blows taken`
+                      : (ride.why || '');
+  rb.textContent = ride.rode ? `Ride again (${ride.kills} cut down)` : 'Ride at their head';
   // The menu is only rebuilt when its choices change: rewriting it on every
   // poll shut the dropdown under a player who had it open to read it.
   const sel = $('battle-order');
@@ -3338,7 +3348,9 @@ function paintBattle(v) {
   // Over: the verdict, and the way back to the day.
   const done = $('battle-done');
   done.hidden = !v.over;
-  $('battle-acts').hidden = v.over;
+  // The levers give way to the verdict when it is over, and to the yard
+  // while the lord is in it: the poll must not put them back mid-melee.
+  $('battle-acts').hidden = v.over || !!melee;
   if (v.over) {
     const won = v.winner === v.side;
     $('battle-verdict').textContent = won ? 'The ground is yours' : 'The ground is theirs';
@@ -3478,6 +3490,8 @@ function drawBattleFrame(now) {
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + (fromL ? 8 : -8), y + 1.5); g.stroke();
   }
 
+  if (melee) drawMelee(g, W, H, now);
+
   // the fallen, fading
   battleDrops = battleDrops.filter(d => now - d.born < 2600);
   for (const d of battleDrops) {
@@ -3493,7 +3507,7 @@ function drawBattleFrame(now) {
   g.fillText(v.side === 'attacker' ? 'yours' : 'theirs', 24, H - 12);
   g.fillText(v.side === 'attacker' ? 'theirs' : 'yours', W - 60, H - 12);
 
-  if (!v.over || battleDrops.length) battleAnim = requestAnimationFrame(drawBattleFrame);
+  if (!v.over || battleDrops.length || melee) battleAnim = requestAnimationFrame(drawBattleFrame);
 }
 
 function drawSoldier(g, x, y, kind, tint, t) {
@@ -3529,10 +3543,19 @@ $('battle-close').addEventListener('click', () => {
  * repurposed, because time is already stopped. */
 document.addEventListener('keydown', e => {
   if ($('battle').hidden || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (melee) {
+    // While the lord is in the line the keys are his: move, and strike.
+    if (e.code === 'Space') { e.preventDefault(); meleeStrike(); return; }
+    if (MELEE_KEYS[e.code]) { e.preventDefault(); melee.keys[MELEE_KEYS[e.code]] = true; return; }
+    return;
+  }
   if (e.code === 'Space') {
     e.preventDefault();
     if (battleNow && !battleNow.over) send('battle fight');
   }
+}, true);
+document.addEventListener('keyup', e => {
+  if (melee && MELEE_KEYS[e.code]) melee.keys[MELEE_KEYS[e.code]] = false;
 }, true);
 
 /* The siege board.
@@ -4724,3 +4747,150 @@ function drawSelBox() {
   ctx.restore();
 }
 $('sel-clear').addEventListener('click', clearSel);
+
+
+/* ------------------------------------------------------- at their head */
+/* The lord is one man in the line, and for six seconds you are him. Arrows
+ * move, space strikes, and the men pressing round you strike back. What
+ * the engine believes of it is bounded -- kills capped at an order's worth
+ * of the men facing him, blows counted against the three that bear him
+ * down -- so this is the feeling of Bannerlord's battlefield and not its
+ * arithmetic: you are in it, it can cost you, and it cannot win the day
+ * on its own. The result goes up as `battle ride K H`, the same command
+ * the console rolls dice for. */
+let melee = null;
+const MELEE_KEYS = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd',
+                     KeyA: 'l', KeyD: 'r', KeyW: 'u', KeyS: 'd' };
+const MELEE_MS = 6000;
+
+function startMelee(v) {
+  const c = $('battle-field'), W = c.width, H = c.height;
+  const r = v.ride || {};
+  const left = v.side === 'attacker';           // your masses are on the left
+  const lx = left ? W * 0.30 : W * 0.70;
+  const foes = [];
+  for (let i = 0; i < (r.press || 4); i++) {
+    const ang = (i / (r.press || 4)) * Math.PI - Math.PI / 2;
+    foes.push({ x: lx + (left ? 1 : -1) * (150 + i * 22), y: H / 2 + Math.sin(ang) * 90 + (i % 2) * 14,
+                hp: r.valour >= 4 ? 1 : 2, next: 1300 + i * 260, dead: false });
+  }
+  melee = { t0: performance.now(), last: performance.now(), W, H, left,
+            lord: { x: lx, y: H / 2, face: left ? 1 : -1 }, foes,
+            kills: 0, hits: 0, cap: r.cap || 1, down: r.down || 3, taken: r.hits || 0,
+            valour: r.valour || 0, keys: {}, swing: 0, flash: 0, done: false };
+  $('melee-hud').hidden = false; $('battle-acts').hidden = true;
+  c.classList.add('melee');
+  paintMeleeHud();
+  if (!battleAnim) battleAnim = requestAnimationFrame(drawBattleFrame);
+}
+
+function meleeStrike() {
+  const m = melee; if (!m || m.done) return;
+  m.swing = performance.now();
+  for (const f of m.foes) {
+    if (f.dead) continue;
+    const dx = f.x - m.lord.x, dy = f.y - m.lord.y;
+    const ahead = dx * m.lord.face > -6;            // in front of him, roughly
+    if (ahead && Math.hypot(dx, dy) < 30) {
+      f.hp -= 1;
+      if (f.hp <= 0) {
+        f.dead = true;
+        if (m.kills < m.cap) m.kills++;
+        battleDrops.push({ born: performance.now(), r: Math.random(),
+                           side: m.left ? 'defender' : 'attacker' });
+      }
+    }
+  }
+  paintMeleeHud();
+}
+
+function stepMelee(now) {
+  const m = melee; if (!m || m.done) return;
+  const dt = Math.min(0.05, (now - m.last) / 1000); m.last = now;
+  const L = m.lord, sp = 95;
+  if (m.keys.l) { L.x -= sp * dt; L.face = -1; }
+  if (m.keys.r) { L.x += sp * dt; L.face = 1; }
+  if (m.keys.u) L.y -= sp * dt;
+  if (m.keys.d) L.y += sp * dt;
+  L.x = Math.max(24, Math.min(m.W - 24, L.x)); L.y = Math.max(40, Math.min(m.H - 30, L.y));
+  // A man in mail with a shield is hard to hurt, and the more he has done
+  // this the harder: three blows in six seconds should take pressing your
+  // luck, not standing still.
+  const pHit = Math.max(0.08, 0.22 - 0.025 * m.valour);
+  for (const f of m.foes) {
+    if (f.dead) continue;
+    const dx = L.x - f.x, dy = L.y - f.y, d = Math.hypot(dx, dy) || 1;
+    if (d > 16) { f.x += (dx / d) * 48 * dt + Math.sin(now / 300 + f.y) * 6 * dt; f.y += (dy / d) * 48 * dt; }
+    else {
+      f.next -= dt * 1000;
+      if (f.next <= 0) {
+        f.next = 1400 + Math.random() * 600;
+        if (Math.random() < pHit) { m.hits++; m.flash = now; paintMeleeHud(); }
+      }
+    }
+  }
+  const over = now - m.t0 >= MELEE_MS || m.taken + m.hits >= m.down || m.foes.every(f => f.dead);
+  if (over) endMelee();
+}
+
+function endMelee() {
+  const m = melee; if (!m || m.done) return;
+  m.done = true;
+  const k = m.kills, h = m.hits;
+  melee = null;
+  $('melee-hud').hidden = true; $('battle-acts').hidden = false;
+  $('battle-field').classList.remove('melee');
+  send(`battle ride ${k} ${h}`);
+}
+
+function paintMeleeHud() {
+  const m = melee; if (!m) return;
+  const blows = m.hits === 0 ? 'no blow taken' : m.hits === 1 ? 'one blow taken' : `${m.hits} blows taken`;
+  $('melee-count').textContent = `${m.kills} cut down${m.kills >= m.cap ? ' (all the line will let you)' : ''} · ${blows}`;
+}
+
+function drawMelee(g, W, H, now) {
+  const m = melee; if (!m) return;
+  stepMelee(now);
+  if (!melee) return;
+  // dim the field: for these seconds the fight is the yard round him
+  g.fillStyle = 'rgba(10,8,5,.45)'; g.fillRect(0, 0, W, H);
+  const L = m.lord;
+  // the ring of ground he holds
+  g.strokeStyle = 'rgba(201,162,39,.35)'; g.lineWidth = 1;
+  g.beginPath(); g.ellipse(L.x, L.y + 6, 30, 12, 0, 0, 7); g.stroke();
+  for (const f of m.foes) {
+    if (f.dead) continue;
+    drawSoldier(g, f.x, f.y, 'foot', m.left ? '#7fa06a' : '#a55a48', now / 1000 + f.x);
+    if (f.hp === 1) { g.fillStyle = 'rgba(200,60,40,.8)'; g.fillRect(f.x - 4, f.y - 20, 8, 2); }
+  }
+  // the lord: taller, in gold, a pennon over him, the blade where he faces
+  const sway = Math.sin(now / 380) * 0.6, x = L.x + sway, y = L.y;
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(x, y + 1, 6, 2.4, 0, 0, 7); g.fill();
+  g.strokeStyle = '#e8cf7a'; g.lineWidth = 3.4;
+  g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 13); g.stroke();
+  g.fillStyle = '#e6d8b6'; g.beginPath(); g.arc(x, y - 16, 3, 0, 7); g.fill();
+  g.strokeStyle = '#4a3a22'; g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(x - 2, y - 13); g.lineTo(x - 2, y - 34); g.stroke();
+  poly([[x - 2, y - 34], [x + 9, y - 31], [x - 2, y - 27]], '#c9a227');
+  const swing = Math.max(0, 1 - (now - m.swing) / 220);
+  const bl = 14 + swing * 10;
+  g.strokeStyle = swing > 0 ? '#fff4d6' : '#b9bcc2'; g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x + L.face * bl, y - 8 - swing * 6); g.stroke();
+  // a blow taken flashes the yard red
+  if (now - m.flash < 260) { g.fillStyle = `rgba(150,34,28,${(0.35 * (1 - (now - m.flash) / 260)).toFixed(3)})`; g.fillRect(0, 0, W, H); }
+  // the time left, on the strip
+  const left = Math.max(0, 1 - (now - m.t0) / MELEE_MS);
+  const bar = $('melee-time').firstElementChild; if (bar) bar.style.width = `${(left * 100).toFixed(1)}%`;
+}
+
+$('battle-ride').addEventListener('click', () => { if (battleNow && !melee) startMelee(battleNow); });
+$('battle-field').addEventListener('pointerdown', e => {
+  if (!melee) return;
+  e.preventDefault();
+  // face the click, then strike
+  const r = $('battle-field').getBoundingClientRect();
+  const cx = (e.clientX - r.left) * ($('battle-field').width / r.width);
+  melee.lord.face = cx >= melee.lord.x ? 1 : -1;
+  meleeStrike();
+});

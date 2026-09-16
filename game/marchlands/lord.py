@@ -28,6 +28,21 @@ CAPTURE_ODDS = 0.45         # given he did not fall, that he is taken instead
 SUCCESSION_DAYS = 21        # how long the hall is empty before an heir is raised
 MOURNING = 22.0             # mood the whole holding loses when he dies
 
+#: Riding at their head. The lord is one man in the line and the line is
+#: hundreds, so what he can do with his own hand is bounded on purpose: an
+#: order's worth, never a battle's. The knife-edge is that fine -- at even
+#: strength the attacker wins one fight in fifty and at ten per cent up
+#: nearly every one -- and a free sword would be a lever that decided
+#: battles. What he does cost is himself.
+RIDE_KILL_CAP = 6           # men he can cut down in one round, at most
+RIDE_KILL_SHARE = 0.02      # and never more than this share of those facing him
+RIDE_RALLY = 0.02           # steadiness his own line gains, seeing him in front
+RIDE_RALLY_CAP = 0.08       # over the whole fight
+RIDE_HITS_DOWN = 3          # blows in one fight that bear him down
+RIDE_DEATH = 0.12           # each blow past that: the chance it is the last
+WOUND_DAYS = (18, 40)       # abed, no bonuses, not to be sent anywhere
+VALOUR_PER_RIDE = 6.0       # what a round at their head teaches
+
 FIRST = ("Aldred", "Osric", "Godwin", "Hereward", "Edric", "Wulfstan",
          "Leofric", "Cuthbert", "Morcar", "Siward")
 STYLE = ("the Younger", "the Elder", "the Lame", "the Red", "One-Hand",
@@ -49,6 +64,8 @@ class Lord:
     ransom: float = 0.0         # what they want for him back
     heir_days: int = 0          # days until an heir is raised
     heirs: int = 2              # how many are left after this one
+    wounded: int = 0            # days abed still to go, 0 if whole
+    hits: int = 0               # blows taken in the fight going on now
 
     @property
     def at_home(self) -> bool:
@@ -77,7 +94,11 @@ class Lord:
 
     # ------------------------------------------------------------- the day
     def day(self) -> List[str]:
-        """Succession, if there is anyone left to succeed."""
+        """Succession, if there is anyone left to succeed; and a wound healing."""
+        if self.wounded > 0 and self.alive:
+            self.wounded -= 1
+            if self.wounded == 0:
+                return [f"{self.name} is on his feet again"]
         if self.alive or self.heirs <= 0:
             return []
         self.heir_days -= 1
@@ -88,6 +109,35 @@ class Lord:
         self.captured = False
         self.riding = 0
         return [f"*** {self.name} is raised in his father's place. ***"]
+
+    def cannot_ride(self) -> str:
+        """Why he is not to be sent at anybody's head today, or ''."""
+        if not self.alive:
+            return "there is no lord to ride"
+        if self.captured:
+            return f"{self.name} is held for ransom"
+        if self.wounded > 0:
+            return f"{self.name} is abed with his wound, {self.wounded} days yet"
+        return ""
+
+    def borne_down(self, rng: random.Random, heir_name: str) -> List[str]:
+        """Too many blows at their head. Wounded, or dead where he stood."""
+        past = max(0, self.hits - RIDE_HITS_DOWN)
+        if any(rng.random() < RIDE_DEATH for _ in range(past + 1)):
+            self.alive = False
+            self.riding = 0
+            self.hits = 0
+            if self.heirs > 0:
+                self.heir_days = SUCCESSION_DAYS
+                dead, self.name = self.name, heir_name
+                return [f"*** {dead} is cut down at the head of his men. The hall "
+                        f"is empty for {SUCCESSION_DAYS} days. ***"]
+            return [f"*** {self.name} is cut down at the head of his men, and "
+                    f"there is no one left to raise. ***"]
+        self.wounded = rng.randint(*WOUND_DAYS)
+        self.hits = 0
+        return [f"*** {self.name} is borne back wounded -- abed for "
+                f"{self.wounded} days. ***"]
 
     def falls(self, rng: random.Random, heir_name: str) -> List[str]:
         """His host has broken around him. Work out what became of him."""
@@ -119,4 +169,7 @@ class Lord:
 
 
 def attack_bonus(lord: Optional[Lord], uid: int) -> float:
-    return 1.0 + FIELD_ATTACK if lord and lord.riding == uid else 1.0
+    """A lord abed in the baggage is no lord at the head of the line."""
+    if lord and lord.riding == uid and lord.wounded <= 0:
+        return 1.0 + FIELD_ATTACK
+    return 1.0

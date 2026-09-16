@@ -359,6 +359,7 @@
       </div>
       <div id="battle-acts" class="acts">
         <button id="battle-fight" type="button" class="go">Fight a round <kbd>space</kbd></button>
+        <button id="battle-ride" type="button" class="go ride">Ride at their head</button>
         <select id="battle-order" aria-label="reform under another order"></select>
         <button id="battle-commit" type="button">Commit the reserve</button>
         <button id="battle-oil" type="button">Pour the oil</button>
@@ -367,6 +368,13 @@
         <button id="battle-auto" type="button">Let it run</button>
       </div>
       <p id="battle-note" class="dim"></p>
+      <!-- The melee: the lord is one man in the line for six seconds, and
+           this is the strip that counts what his hand did. -->
+      <div id="melee-hud" hidden>
+        <span id="melee-count">0 cut down · no blow taken</span>
+        <div id="melee-time"><i></i></div>
+        <span class="dim">arrows / WASD move · space or click strikes · blows past three bear you down</span>
+      </div>
       <div id="battle-done" hidden>
         <h2 id="battle-verdict">—</h2>
         <p id="battle-after"></p>
