@@ -1,25 +1,5 @@
 {
- "at": "2026-09-15T23:20:54.562941Z",
- "traps": [
-  {
-   "city": "DC",
-   "ceiling": 78,
-   "price": 2,
-   "p_model": 1.0,
-   "p_market": 0.02,
-   "edge_pts": 98.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 98 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.7 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  }
- ],
+ "at": "2026-09-16T11:24:06.302433Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
