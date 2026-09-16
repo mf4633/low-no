@@ -10,13 +10,15 @@
  },
  "H4b": {
   "id": "H4b",
-  "ready": false,
+  "ready": true,
   "passed": false,
-  "events": 498,
-  "need_events": 200,
-  "days": 19,
-  "need_days": 20,
-  "reason": "data bar not met"
+  "events": 521,
+  "days": 20,
+  "lag_corr": 0.018,
+  "lag_ci": [
+   -0.068,
+   0.103
+  ]
  },
  "H5": {
   "id": "H5",
@@ -29,9 +31,9 @@
   "id": "H6",
   "ready": false,
   "passed": false,
-  "events": 95,
+  "events": 98,
   "need_events": 200,
-  "days": 13,
+  "days": 14,
   "need_days": 20,
   "reason": "data bar not met"
  },
@@ -88,5 +90,5 @@
    ]
   }
  },
- "generated": "2026-09-15T12:46:42.594177Z"
+ "generated": "2026-09-16T03:19:34.003137Z"
 }

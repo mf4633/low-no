@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-09-15T12:46:28.786590Z",
+ "generated": "2026-09-16T03:19:14.918536Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -60,7 +60,7 @@
    "2026-09-12": 13,
    "2026-09-13": 13,
    "2026-09-14": 13,
-   "2026-09-15": 2
+   "2026-09-15": 13
   }
  },
  "integrity": {
@@ -104,24 +104,24 @@
    "name": "market lag on curve_dev",
    "status": "open",
    "bar": {
-    "have": 498,
+    "have": 521,
     "need": 200,
     "unit": "events",
-    "ready": false,
+    "ready": true,
     "also": {
-     "have": 19,
+     "have": 20,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "19/20 distinct days"
+   "note": "20/20 distinct days"
   },
   {
    "id": "H5",
    "name": "contested band 81-95c (blocked on H4a)",
    "status": "open",
    "bar": {
-    "have": 26,
+    "have": 28,
     "need": 60,
     "unit": "city-day units",
     "ready": false,
@@ -138,17 +138,17 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 95,
+    "have": 98,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 13,
+     "have": 14,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "13/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "14/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
@@ -240,28 +240,11 @@
  },
  "blocking": [
   {
-   "id": "H4b",
-   "name": "market lag on curve_dev",
-   "status": "open",
-   "bar": {
-    "have": 498,
-    "need": 200,
-    "unit": "events",
-    "ready": false,
-    "also": {
-     "have": 19,
-     "need": 20,
-     "unit": "distinct days"
-    }
-   },
-   "note": "19/20 distinct days"
-  },
-  {
    "id": "H5",
    "name": "contested band 81-95c (blocked on H4a)",
    "status": "open",
    "bar": {
-    "have": 26,
+    "have": 28,
     "need": 60,
     "unit": "city-day units",
     "ready": false,
@@ -278,17 +261,17 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 95,
+    "have": 98,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 13,
+     "have": 14,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "13/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "14/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
