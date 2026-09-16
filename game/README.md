@@ -1133,8 +1133,8 @@ that this game installs with nothing was worth more than a texture atlas.
 
 The server is `http.server` from the standard library, and the browser is a
 view with a command line in it: every command the console takes works there,
-because it is the same `Console` underneath. Drag to move, scroll to zoom,
-hover a roof to ask what it is.
+because it is the same `Console` underneath. Right-drag or the arrow keys
+move the view, the wheel zooms, hover a roof to ask what it is.
 
 Where a building actually stands is decided in Python (`layout.py`), not in
 the drawing code, for one reason: layout is a decision and decisions should be
@@ -1184,7 +1184,55 @@ The parts nobody names when they work:
 space W M        a day, a week, a month
 T / R            the town / the march
 H                what now?      /  type a command      ?  the keys
+⌃1..⌃9 / 1..9    remember a group / call it up (twice to look at it)
+.                the next pair of idle hands
 ```
+
+### Pointing at things
+
+The mouse is held the way every player of this kind of game already holds
+it. A left drag boxes a group -- figures in the town, your pennons on the
+march. A click picks one and shift-click adds one; a double-click picks
+everybody of that kind, every figure of the trade or every host standing
+there. A right-click is the order: figures go to the shed you point at,
+hosts go to the place, one of yours goes to the post (a host makes them
+captain, a town of yours makes them steward). The view moves on the right
+button, the middle one, alt-drag or the arrows, because the left drag means
+a box everywhere else and a player's hands do not relearn that for one game.
+
+What makes this honest rather than decorative is that a selection is only a
+list of things to say a command about, and every right-click *is* a command
+you could have typed -- `staff`, `march`, `post` -- so the picture and the
+prompt cannot disagree about what was ordered.
+
+A figure is eight hands at a shed, and the only thing "send him over there"
+can mean is moving eight hands. `staff <building> <hands>` does that: a pin,
+a floor under the queue that `work` orders, seated first (newest pin first,
+because the last order you gave is the one you meant), capped at what the
+shed can use -- a mill with six places is a mill with six places however
+many people you point at it -- and let go with `staff <building> free`. The
+pinned shed's figure is drawn first, so the man you sent is the man you see.
+
+A host is a count of men and not a crowd of sprites, so "select the knights
+and send them" can only mean detaching them. `split <host> knight 20` stands
+part of a host apart as a host of its own, where it is, with the same order
+and its share of the baggage -- the horse to burn the country while the foot
+sit before the wall -- and `join <host> <other>` folds one back into the
+other when they stand in the same place; a captain posted to the host that
+is gone rides with the one that is left. The host panel has both as
+buttons: a number against each class of soldier, and a *take in* button for
+every other host of yours standing there.
+
+Control groups remember *what* was chosen rather than which sprite: a shed
+and a trade for figures, uids for hosts, so a group survives the morning
+re-laying the town, and `1` finds the same people in it. Idle figures are
+themselves for the day only -- idle has no shed to be known by.
+
+Inside a battle the orders are per side, not per rank. That is deliberate:
+at even strength the attacker wins about one fight in fifty and at ten per
+cent up nearly every one, so a lever that let you stand the archers alone
+would be a lever that decided battles for free. The way to fight with part
+of a host is to detach it before the fight.
 
 A command line is the fastest interface there is for somebody who knows the
 commands and the worst for somebody who does not. The palette is the bridge:

@@ -1249,12 +1249,22 @@ class TestClickingSomebody(unittest.TestCase):
         self.assertIn("error", self.w.folk(self.g, self.here, -1))
 
     def test_a_worker_is_told_what_he_makes_and_what_he_eats(self):
-        i, _ = self.first("worker")
-        d = self.w.folk(self.g, self.here, i)
-        keys = {f["k"] for f in d["facts"]}
-        self.assertIn("makes", keys)
-        self.assertIn("eating", keys)
-        self.assertTrue(d["home"], "he sleeps somewhere and it should say where")
+        # Every worker eats and sleeps somewhere; the ones at a shed that
+        # turns something out are told what. Not every worked shed does --
+        # the man at drill in the barracks makes nothing, and he is a worker
+        # too, drawn since a seated hand counts as work (see
+        # BuildingInstance.worked) rather than only yesterday's output.
+        told = []
+        for i, f in enumerate(self.plan().folk):
+            if f.kind != "worker":
+                continue
+            d = self.w.folk(self.g, self.here, i)
+            keys = {f["k"] for f in d["facts"]}
+            self.assertIn("eating", keys)
+            self.assertTrue(d["home"], "he sleeps somewhere and it should say where")
+            told.append("makes" in keys)
+        self.assertTrue(told, "no worker to ask")
+        self.assertTrue(any(told), "nobody is told what he makes")
 
     def test_one_of_yours_is_a_person_rather_than_a_sample(self):
         i, _ = self.first("kin")

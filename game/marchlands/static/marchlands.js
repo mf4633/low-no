@@ -1193,6 +1193,12 @@ function drawFolk(f, i, t) {
 
   ctx.fillStyle = 'rgba(0,0,0,.26)';
   ctx.beginPath(); ctx.ellipse(sx, sy + 1, 5, 2.3, 0, 0, 7); ctx.fill();
+  if (isSelected('folk', i)) {
+    // The ring under a chosen figure. Green, because every player who has
+    // ever boxed a group of villagers already knows what green means.
+    ctx.strokeStyle = 'rgba(126,209,126,.95)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(sx, sy + 1.5, 7.5, 3.4, 0, 0, 7); ctx.stroke();
+  }
 
   if (f.kind === 'watch') {
     // A spearman, facing out, shifting his weight the way a man does when
@@ -1857,6 +1863,10 @@ function drawMarch(w, h, t) {
     ctx.globalAlpha = ghost ? 0.55 : 1;
     ctx.fillStyle = 'rgba(40,30,18,.25)';
     ctx.beginPath(); ctx.ellipse(x, y + 12, 9, 3.2, 0, 0, 7); ctx.fill();
+    if (h.mine && isSelected('host', h.uid)) {
+      ctx.strokeStyle = 'rgba(126,209,126,.95)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(x, y + 12, 12, 4.6, 0, 0, 7); ctx.stroke();
+    }
     // A pennon on a staff. Its length is the size of the host, so a thin
     // one looks thin without a number being read.
     const flag = 6 + Math.min(11, h.size / 14);
@@ -2134,8 +2144,13 @@ function buildingWrit(b, ev) {
     worth = `<p class="why ${good ? 'up' : 'down'}">a hand here makes ` +
       `<b>${m.net.toFixed(2)}c</b> a day against a wage of ` +
       `${m.wage.toFixed(2)}c — ${good ? 'worth working' : 'it loses money open'}` +
-      `${m.jobs ? ` · ${m.staffed} of ${m.jobs} hands` : ''}</p>`;
+      `${m.jobs ? ` · ${m.staffed} of ${m.jobs} hands` : ''}` +
+      `${m.pinned ? ` · <b>${m.pinned} pinned here</b>` : ''}</p>`;
   }
+  // Hands you put here by name stay ahead of the queue until you let go.
+  const pinned = m && m.pinned
+    ? `<div class="acts"><button data-do="staff ${b.uid} free">let the ${m.pinned} pinned hands go</button></div>`
+    : '';
   // And what somebody who lives here thinks of it. The mood breakdown is
   // honest and inhuman; a number cannot be indignant.
   const street = (state && state.street) || [];
@@ -2150,6 +2165,7 @@ function buildingWrit(b, ev) {
       <button data-do="close ${b.uid}">${b.running || b.idle ? 'close / open' : 'close'}</button>
       <button data-do="raze ${b.uid}">pull down</button>
     </div>
+    ${pinned}
     <p class="why">who gets hands first when there are not enough</p>
     <div class="acts">
       <button data-do="work ${b.key} first" data-keep="1">first</button>
@@ -2292,6 +2308,7 @@ function frame() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (mode === 'march') {
     drawMarch(w, h, t);
+    drawSelBox();
     nextFrame();
     return;
   }
@@ -2353,6 +2370,7 @@ function frame() {
     ctx.restore();
   }
   drawWeather(w, h, t);
+  drawSelBox();
   if (plan && drawing()) {
     ctx.save();
     ctx.translate(w / 2 + camera.x, h / 2 + camera.y);
@@ -2666,7 +2684,23 @@ document.addEventListener('keydown', e => {
     closeWrit();
     return;
   }
+  // Control groups, before the meta guard: ⌃1..⌃9 remembers whoever is
+  // boxed, 1..9 calls them up, and a second press inside half a second
+  // looks at them.
+  if (meta && /^[1-9]$/.test(e.key) && !typing()) {
+    rememberGroup(e.key); e.preventDefault(); return;
+  }
   if (meta || e.altKey) return;
+  if (/^[1-9]$/.test(e.key) && !typing()) { recallGroup(e.key); e.preventDefault(); return; }
+  if (e.key === '.' && !typing()) { nextIdle(); e.preventDefault(); return; }
+  if (e.key.startsWith('Arrow') && !typing() && mode !== 'march') {
+    const step = 48;
+    if (e.key === 'ArrowLeft') camera.x += step;
+    if (e.key === 'ArrowRight') camera.x -= step;
+    if (e.key === 'ArrowUp') camera.y += step;
+    if (e.key === 'ArrowDown') camera.y -= step;
+    e.preventDefault(); return;
+  }
   if (e.key === '/' && !typing()) { $('line').focus(); e.preventDefault(); return; }
   // `?` before the typing guard, because the prompt has the cursor by
   // default and after every command -- so the one key a lost player is
@@ -2707,6 +2741,7 @@ const ESC_CLOSES = [
   ['drawmap', closeCountry],
   ['writ', closeWrit],
   ['soul', closeSoul],
+  ['sel', clearSel],
   ['front', () => { if (!$('front-close').hidden) closeFront(); }],
 ];
 
@@ -2756,15 +2791,28 @@ for (const btn of document.querySelectorAll('#drawbar [data-lay]')) {
   });
 }
 
-let drag = null, pressed = null;
+/* The mouse, the way every player of this kind of game already holds it:
+ * left-drag boxes a group, a click picks one (shift adds), a double-click
+ * picks everybody of that kind, a right-click tells the group where to go,
+ * and the view moves on the right button, the middle one, alt-drag or the
+ * arrow keys. What a click on the picture *does* is unchanged -- the writs,
+ * the soul panel and the host panel open as they did -- it just also
+ * remembers whom you meant, so the next click can be about them. */
+let drag = null, pressed = null, box = null;
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', e => {
-  if (drawing() && plan) {
+  if (drawing() && plan && e.button === 0) {
     stroke = { from: screenToTile(e), to: screenToTile(e) };
     pressed = null;
     return;
   }
+  pressed = { x: e.clientX, y: e.clientY, t: performance.now(),
+              button: e.button, shift: e.shiftKey };
+  if (e.button === 0 && !e.altKey) {
+    box = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY, shift: e.shiftKey };
+    return;
+  }
   drag = { x: e.clientX, y: e.clientY };
-  pressed = { x: e.clientX, y: e.clientY, t: performance.now() };
 });
 window.addEventListener('pointerup', e => {
   if (stroke) {
@@ -2776,14 +2824,31 @@ window.addEventListener('pointerup', e => {
     return;
   }
   drag = null;
+  const b = box; box = null;
+  if (!pressed) return;
+  const was = pressed; pressed = null;
+  const moved = Math.hypot(e.clientX - was.x, e.clientY - was.y);
+  // A left drag is a box. It used to be the camera, which is now on the
+  // other buttons, because a box is what a left drag means everywhere else.
+  if (b && moved > 5) return boxSelect(b);
   // A click is a press that did not turn into a drag. Without this the writ
   // opens every time you finish moving the camera.
-  if (!pressed) return;
-  const moved = Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y);
-  const quick = performance.now() - pressed.t < 600;
-  pressed = null;
+  const quick = performance.now() - was.t < 600;
   if (moved > 5 || !quick) return;
   if (e.target !== canvas) return;
+  if (was.button === 2) return rightClick(e);
+  if (was.button !== 0) return;
+  leftClick(e, was.shift);
+});
+window.addEventListener('pointermove', e => {
+  if (stroke) { stroke.to = screenToTile(e); return; }
+  if (box) { box.x1 = e.clientX; box.y1 = e.clientY; return; }
+  if (!drag) return;
+  camera.x += e.clientX - drag.x; camera.y += e.clientY - drag.y;
+  drag = { x: e.clientX, y: e.clientY };
+});
+
+function leftClick(e, shift) {
   if (mode === 'march') {
     // Sending a host somewhere is two clicks: the host, then the place. While
     // the second is pending every node is a destination, so the node writ
@@ -2798,14 +2863,22 @@ window.addEventListener('pointerup', e => {
       return send(`march ${uid} ${to}`);
     }
     const h = hostAt(e);
-    if (h) return openHost(h);
+    if (h) {
+      if (h.mine) select('host', h.uid, shift); else if (!shift) clearSel();
+      return openHost(h);
+    }
+    if (!shift) clearSel();
     return n ? nodeWrit(n, e) : closeWrit();
   }
   if (!plan) return;
   // People first. A figure standing in front of a roof is the thing you were
   // pointing at, and the roof is a bigger target that would always win.
   const who = folkAt(e);
-  if (who !== null) return openSoul(who);
+  if (who !== null) {
+    if (plan.folk[who].kind !== 'watch') select('folk', who, shift);
+    return openSoul(who);
+  }
+  if (!shift) clearSel();
   const beast = beastAt(e);
   if (beast !== null) return openSoul(beast, true);
   const b = buildingAt(e);
@@ -2814,13 +2887,31 @@ window.addEventListener('pointerup', e => {
   const p = plan.precinct;
   if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) return plotWrit(tx, ty, e);
   closeWrit();
+}
+
+/* Double-click: everybody of that kind. Every figure of the trade you
+ * pointed at, or every host of yours standing where that one stands. */
+canvas.addEventListener('dblclick', e => {
+  if (drawing()) return;
+  if (mode === 'march') {
+    const h = hostAt(e);
+    if (!h || !h.mine) return;
+    const ids = (world.hosts || []).filter(o => o.mine && o.at === h.at && !o.moving)
+      .map(o => o.uid);
+    setSel('host', ids.length ? ids : [h.uid]);
+    return;
+  }
+  if (!plan) return;
+  const who = folkAt(e);
+  if (who === null) return;
+  const f = plan.folk[who];
+  if (f.kind === 'watch' || f.kind === 'kin') return;
+  const ids = [];
+  plan.folk.forEach((g, i) => { if (g.trade === f.trade && g.kind === f.kind) ids.push(i); });
+  setSel('folk', ids);
+  closeSoul();
 });
-window.addEventListener('pointermove', e => {
-  if (stroke) { stroke.to = screenToTile(e); return; }
-  if (!drag) return;
-  camera.x += e.clientX - drag.x; camera.y += e.clientY - drag.y;
-  drag = { x: e.clientX, y: e.clientY };
-});
+
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   camera.zoom = Math.max(0.45, Math.min(2.4, camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
@@ -2875,6 +2966,7 @@ function meter(el, frac, warnAt, badAt) {
 function paint(s) {
   const wasAge = state && state.age;
   state = s; plan = s.plan;
+  paintSel();   // a new plan: find the same people in it
   if (window.Sound) {
     Sound.feed(s);
     // A bell for the things worth stopping to hear.
@@ -3657,8 +3749,9 @@ $('good').innerHTML = GOODS.map(g =>
   frameTown();
   loadOptions();
   loadCommands();
-  say('Marchlands. Drag to move, scroll to zoom. Click a roof to do something '
-      + 'with it, or an empty plot to raise something on it.');
+  say('Marchlands. Click a roof to do something with it, or an empty plot to raise '
+      + 'something on it. Box some figures and right-click a shed to send them there; '
+      + 'right-drag or the arrows move the view, the wheel zooms it.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   nextFrame();
   // The server decides whether anybody has chosen yet. A packaged build or a
@@ -4210,10 +4303,43 @@ function openHost(h) {
         ? `<button type="button" data-host="victual">victual</button>` : '') +
       `<button type="button" data-host="disband">disband</button>` +
       '</div><p class="dim">the same orders you can type, and they go through ' +
-      'the same commands</p>';
-    for (const b of $('soul-posts').querySelectorAll('button')) {
+      'the same commands</p>' +
+      // Part of the host, as a host of its own: the horse to burn the
+      // country while the foot sit before the wall. Every row is a class
+      // of soldier and how many of them to send.
+      (h.moving ? '' :
+        '<h4>detach</h4><div class="detach">' +
+        Object.entries(h.units || {}).map(([k, n]) =>
+          `<label for="det-${k}">${esc(k.replace(/_/g, ' '))} · ${n}</label>` +
+          `<input id="det-${k}" type="number" min="0" max="${n}" value="0" data-unit="${k}">`
+        ).join('') +
+        '</div><div class="pickrow"><button type="button" data-host="split">detach them</button></div>') +
+      // And the other way: fold another host standing here into this one.
+      (() => {
+        const here = (world && world.hosts || []).filter(o =>
+          o.mine && o.uid !== h.uid && o.at === h.at && !o.moving && !h.moving);
+        return here.length
+          ? '<h4>join</h4><div class="pickrow">' + here.map(o =>
+              `<button type="button" data-join="${o.uid}">take in ${esc(o.name)} (${o.size})</button>`
+            ).join('') + '</div>'
+          : '';
+      })();
+    for (const b of $('soul-posts').querySelectorAll('button[data-join]')) {
+      b.addEventListener('click', () => { closeSoul(); send(`join ${h.uid} ${b.dataset.join}`); });
+    }
+    for (const b of $('soul-posts').querySelectorAll('button[data-host]')) {
       b.addEventListener('click', () => {
         const what = b.dataset.host;
+        if (what === 'split') {
+          const pairs = [];
+          for (const inp of $('soul-posts').querySelectorAll('.detach input')) {
+            const n = parseInt(inp.value, 10) || 0;
+            if (n > 0) pairs.push(`${inp.dataset.unit} ${n}`);
+          }
+          if (!pairs.length) return say('say how many of whom to detach.');
+          closeSoul();
+          return send(`split ${h.uid} ${pairs.join(' ')}`);
+        }
         closeSoul();
         if (what === 'march') {
           // Pick the place next. A destination cannot be guessed from here.
@@ -4332,3 +4458,260 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   setSpeed(speedNow ? 0 : 1);
 });
+
+
+/* -------------------------------------------------------- the selection */
+/* Whom you mean. A figure in the town is eight hands at a shed and a pennon
+ * on the march is a host, and the only orders either can take are the ones
+ * the engine already has -- `staff` moves hands, `march` moves a host,
+ * `post` gives one of yours a job. So a selection is a list of things to
+ * say those commands about, and a right-click says them. Nothing here
+ * decides anything; it only saves typing the numbers.
+ *
+ * Figures are picked by their place in today's plan, which is stable for
+ * the day and not across it: a control group remembers *what* was chosen
+ * (the shed and the trade) and finds those figures again in the morning. */
+let sel = { kind: '', ids: [] }, selPlan = null;
+const groups = {};
+let groupPressed = { key: '', at: 0 };
+let idleCursor = -1;
+
+function isSelected(kind, id) { return sel.kind === kind && sel.ids.includes(id); }
+function setSel(kind, ids) {
+  const uniq = [...new Set(ids)];
+  sel = uniq.length ? { kind, ids: uniq } : { kind: '', ids: [] };
+  if (kind === 'folk') sel.desc = uniq.map(i => folkDesc(plan.folk[i], i)).filter(Boolean);
+  selPlan = plan;
+  paintSel();
+}
+function select(kind, id, add) {
+  if (add && sel.kind === kind) {
+    setSel(kind, sel.ids.includes(id) ? sel.ids.filter(x => x !== id) : [...sel.ids, id]);
+  } else setSel(kind, [id]);
+}
+function clearSel() { setSel('', []); }
+
+/* What a figure *is*, independent of its place in the list. */
+function folkDesc(f, i) {
+  if (!f || f.kind === 'watch') return null;
+  // Somebody idle has no shed to be known by: they are the figure they are
+  // today, and tomorrow's idle figures are whoever is idle tomorrow.
+  if (f.kind === 'idle') return { kind: 'idle', i };
+  return { kind: f.kind, trade: f.trade, work: f.work, home: f.home, who: f.who || '' };
+}
+function findFolk(descs) {
+  if (!plan) return [];
+  const ids = [];
+  plan.folk.forEach((f, i) => {
+    if (descs.some(d => d.kind === 'idle'
+      ? (d.i === i && f.kind === 'idle')
+      : (d.kind === f.kind && d.trade === f.trade && d.work === f.work
+         && (d.kind !== 'kin' || d.who === f.who)))) ids.push(i);
+  });
+  return ids;
+}
+function selHosts() {
+  const by = new Map((world && world.hosts || []).map(h => [h.uid, h]));
+  return sel.ids.map(uid => by.get(uid)).filter(h => h && h.mine);
+}
+
+function boxSelect(b) {
+  const r = canvas.getBoundingClientRect();
+  const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1);
+  const y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1);
+  const keep = (kind) => (b.shift && sel.kind === kind) ? sel.ids : [];
+  if (mode === 'march') {
+    const ids = [];
+    for (const [uid, at] of hostSpots) {
+      const h = at[2];
+      if (!h.mine) continue;
+      const sx = at[0] + r.left, sy = at[1] + r.top;
+      if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) ids.push(uid);
+    }
+    setSel('host', [...keep('host'), ...ids]);
+    if (!ids.length) say('no host of yours in that box.');
+    return;
+  }
+  if (!plan) return;
+  // folkSpots are in the plan's own pixels; bring the box to them.
+  const toPlan = (cx, cy) => [
+    (cx - r.left - r.width / 2 - camera.x) / camera.zoom + (plan.w - plan.h) * TW / 4,
+    (cy - r.top - r.height / 2 - camera.y) / camera.zoom + (plan.w + plan.h) * TH / 4];
+  const [px0, py0] = toPlan(x0, y0), [px1, py1] = toPlan(x1, y1);
+  const ids = [];
+  for (const [i, at] of folkSpots) {
+    const f = plan.folk[i];
+    if (!f || f.kind === 'watch') continue;
+    const fx = at[0], fy = at[1] - 7;
+    if (fx >= px0 && fx <= px1 && fy >= py0 && fy <= py1) ids.push(i);
+  }
+  setSel('folk', [...keep('folk'), ...ids]);
+  if (!ids.length) say('nobody in that box.');
+  closeWrit(); closeSoul();
+}
+
+/* Right-click: the order. Figures go to a shed; hosts go to a place; one
+ * of yours goes to a post. Each is the command you could have typed. */
+function rightClick(e) {
+  if (!sel.ids.length) return;
+  if (sel.kind === 'host') {
+    if (mode !== 'march') return say('hosts are sent on the march (R), not in the town.');
+    const n = townNodeAt(e);
+    if (!n) return say('nowhere there to march to.');
+    const hosts = selHosts();
+    let sent = 0;
+    for (const h of hosts) {
+      if (h.at === n.key && !h.moving) continue;
+      send(`march ${h.uid} ${n.key}`); sent++;
+    }
+    if (!sent) say(`${hosts.length > 1 ? 'they are' : 'it is'} already at ${n.name}.`);
+    return;
+  }
+  if (!plan) return;
+  const folk = sel.ids.map(i => plan.folk[i]).filter(Boolean);
+  const kin = folk.find(f => f.kind === 'kin');
+  if (kin && folk.length === 1) {
+    const first = (kin.who || '').split(' ')[0];
+    if (mode === 'march') {
+      const h = hostAt(e);
+      if (h && h.mine) return send(`post ${first} captain ${h.uid}`);
+      const n = townNodeAt(e);
+      if (n && n.kind === 'mine') return send(`post ${first} steward ${n.key}`);
+      return say(`${first} can be posted to a host of yours (captain) or a town of yours (steward).`);
+    }
+    return say(`${first} takes a post, not a shed -- click them for the posts, or right-click a host or town on the march.`);
+  }
+  if (mode === 'march') return say('hands are sent to a shed in the town (T).');
+  const b = buildingAt(e);
+  if (!b) return say('point at a shed to put them there.');
+  const hands = folk.filter(f => f.kind !== 'kin').reduce((n, f) => n + (f.souls || 0), 0);
+  if (!hands) return say('nobody there with hands to send.');
+  send(`staff ${b.uid} ${hands}`);
+}
+
+/* Control groups. ⌃N remembers what is boxed; N calls it back; N again
+ * inside half a second looks at it. */
+function rememberGroup(key) {
+  if (!sel.ids.length) return say(`nothing boxed to remember as ${key}.`);
+  groups[key] = sel.kind === 'host'
+    ? { kind: 'host', uids: [...sel.ids] }
+    : { kind: 'folk', descs: sel.desc || [] };
+  paintSel();
+  say(`group ${key}: ${selWords()}.`);
+}
+function recallGroup(key) {
+  const g = groups[key];
+  if (!g) return say(`no group ${key} yet -- box some figures or hosts and press ⌃${key}.`);
+  const again = groupPressed.key === key && performance.now() - groupPressed.at < 500;
+  groupPressed = { key, at: performance.now() };
+  if (g.kind === 'host') {
+    const alive = new Set((world && world.hosts || []).filter(h => h.mine).map(h => h.uid));
+    const ids = g.uids.filter(uid => alive.has(uid));
+    if (mode !== 'march') setMode('march');
+    setSel('host', ids);
+    if (!ids.length) return say(`group ${key} is gone -- those hosts are no more.`);
+    if (again) { const h = selHosts()[0]; if (h) openHost(h); }
+    return;
+  }
+  if (mode === 'march') setMode('town');
+  const ids = findFolk(g.descs);
+  setSel('folk', ids);
+  if (!ids.length) return say(`group ${key} has nobody in it this morning.`);
+  if (again) lookAtFolk(ids[0]);
+}
+function groupOf() {
+  for (const [k, g] of Object.entries(groups)) {
+    if (g.kind !== sel.kind || !sel.ids.length) continue;
+    if (g.kind === 'host' && g.uids.length === sel.ids.length && g.uids.every(u => sel.ids.includes(u))) return k;
+    if (g.kind === 'folk') {
+      const ids = findFolk(g.descs);
+      if (ids.length === sel.ids.length && ids.every(i => sel.ids.includes(i))) return k;
+    }
+  }
+  return '';
+}
+
+/* `.` -- the next pair of idle hands, the way it is in every game that
+ * has villagers. Here idle is honest: a figure in the square is eight
+ * hands with no shed to go to, and sending them to a full shed will say so. */
+function nextIdle() {
+  if (mode === 'march') setMode('town');
+  if (!plan) return;
+  const idle = [];
+  plan.folk.forEach((f, i) => { if (f.kind === 'idle') idle.push(i); });
+  if (!idle.length) return say('nobody idle -- every pair of hands has a shed.');
+  idleCursor = (idleCursor + 1) % idle.length;
+  const i = idle[idleCursor];
+  setSel('folk', [i]);
+  lookAtFolk(i);
+  const per = plan.per_figure || 8;
+  say(`${idle.length} idle ${idle.length === 1 ? 'figure' : 'figures'} · ${idle.length * per} hands with nothing to do. Right-click a shed to put these there.`);
+}
+function lookAtFolk(i) {
+  const at = folkSpots.get(i);
+  if (!at) return;
+  camera.x = -(at[0] - (plan.w - plan.h) * TW / 4) * camera.zoom;
+  camera.y = -(at[1] - (plan.w + plan.h) * TH / 4) * camera.zoom;
+}
+
+function selWords() {
+  if (sel.kind === 'host') {
+    const hosts = selHosts();
+    const men = hosts.reduce((n, h) => n + h.size, 0);
+    return hosts.length === 1 ? `${hosts[0].name} · ${men} men` : `${hosts.length} hosts · ${men} men`;
+  }
+  const folk = sel.ids.map(i => plan && plan.folk[i]).filter(Boolean);
+  const kin = folk.filter(f => f.kind === 'kin');
+  if (kin.length === folk.length && kin.length === 1) return kin[0].who || 'one of yours';
+  const hands = folk.filter(f => f.kind !== 'kin').reduce((n, f) => n + (f.souls || 0), 0);
+  const doing = [...new Set(folk.map(f => f.kind === 'idle' ? 'idle' : (f.at || f.trade)))]
+    .slice(0, 3).join(', ');
+  return `${folk.length} ${folk.length === 1 ? 'figure' : 'figures'} · ${hands} hands · ${doing}`;
+}
+
+function paintSel() {
+  const el = $('sel');
+  if (!el) return;
+  // A new day is a new plan: find the same people in it.
+  if (sel.kind === 'folk' && plan && plan !== selPlan) {
+    sel.ids = findFolk(sel.desc || []);
+    selPlan = plan;
+    if (!sel.ids.length) sel = { kind: '', ids: [] };
+  }
+  if (sel.kind === 'host' && world) {
+    const alive = new Set((world.hosts || []).filter(h => h.mine).map(h => h.uid));
+    sel.ids = sel.ids.filter(uid => alive.has(uid));
+    if (!sel.ids.length) sel = { kind: '', ids: [] };
+  }
+  el.hidden = !sel.ids.length;
+  if (el.hidden) return;
+  // Just above the console, however tall the log has grown; a strip that
+  // sits on the log hides the very line that answers the order.
+  const con = $('console');
+  if (con) el.style.bottom = `${con.offsetHeight + 20}px`;
+  $('sel-text').textContent = selWords();
+  const folk = sel.kind === 'folk' ? sel.ids.map(i => plan && plan.folk[i]).filter(Boolean) : [];
+  const kin = folk.length === 1 && folk[0].kind === 'kin';
+  $('sel-hint').textContent =
+    sel.kind === 'host'
+      ? (mode === 'march' ? 'right-click a place to march there' : 'R for the march, then right-click a place')
+      : kin ? 'right-click a host (captain) or a town of yours (steward) on the march'
+      : (mode === 'town' ? 'right-click a shed to put them there' : 'T for the town, then right-click a shed');
+  const g = groupOf();
+  $('sel-group').hidden = !g;
+  if (g) $('sel-group').textContent = `⌃${g}`;
+}
+function drawSelBox() {
+  if (!box) return;
+  const r = canvas.getBoundingClientRect();
+  const x = Math.min(box.x0, box.x1) - r.left, y = Math.min(box.y0, box.y1) - r.top;
+  const w = Math.abs(box.x1 - box.x0), h = Math.abs(box.y1 - box.y0);
+  if (w < 4 && h < 4) return;
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = 'rgba(126,209,126,.10)'; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(126,209,126,.85)'; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  ctx.restore();
+}
+$('sel-clear').addEventListener('click', clearSel);

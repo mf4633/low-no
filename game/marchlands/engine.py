@@ -39,7 +39,7 @@ from .market import Market
 from .military import (Battle, open_battle, BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
                        RETURNING, STORM, describe,
                        UNITS, Army,
-                       Side, can_recruit, describe, fight, host_speed,
+                       Side, can_recruit, describe, fight, host_size, host_speed,
                        host_strength, raid_day, recruit_cost, siege_day, unit)
 from .military import Field, going_of, sky_on, sortie_odds
 from . import cartography as carto
@@ -1119,6 +1119,80 @@ class GameState:
         return (f"\n    You have no grounds anybody will accept. "
                 f"{len(others)} lord(s) take note, and your own towns lose "
                 f"{cost:.0f} of mood over a war they cannot name.")
+
+    def split_host(self, uid: int, units: Dict[str, int],
+                   name: str = "") -> Tuple[Optional[Army], str]:
+        """Detach part of a host as a host of its own, standing where it is.
+
+        The horse ride off to burn the country while the foot sit before
+        the wall: that is what a detachment is for, and it is the one thing
+        "select the knights and send them" can honestly mean here, where a
+        host is a count of men and not a crowd of sprites. The new host takes
+        the old one's order and posture and its share of the baggage. The
+        captain stays with the host he was posted to.
+        """
+        a = self.army(uid)
+        if a is None:
+            return None, f"no host {uid}"
+        if a.owner != PLAYER:
+            return None, f"{a.name} is not yours to command"
+        if a.state == MARCHING:
+            return None, f"{a.name} is on the road -- split it when it arrives"
+        take: Dict[str, float] = {}
+        for k, n in units.items():
+            if n <= 0:
+                continue
+            have = a.units.get(k, 0.0)
+            if have < n:
+                return None, f"{a.name} has only {have:.0f} {unit(k).name}"
+            take[k] = float(n)
+        if not take:
+            return None, "name some soldiers to detach"
+        left = {k: v - take.get(k, 0.0) for k, v in a.units.items()}
+        if host_size({k: v for k, v in left.items() if v >= 0.5}) < 1:
+            return None, f"that is the whole of {a.name} -- march it instead"
+        share = host_size(take) / max(1, a.size)
+        for k, n in take.items():
+            a.units[k] -= n
+            if a.units[k] < 0.5:
+                del a.units[k]
+        b = Army(uid=self.next_army_uid, name=name or f"Host {self.next_army_uid}",
+                 owner=PLAYER, units=take, at=a.at, home=a.home,
+                 state=a.state, order=a.order, siege_days=a.siege_days)
+        self.next_army_uid += 1
+        b.stores, a.stores = a.stores * share, a.stores * (1.0 - share)
+        self.armies.append(b)
+        where = self.world.node_name(a.at)
+        a.log.append(f"{describe(take)} detached as {b.name} at {where}")
+        b.log.append(f"detached from {a.name} at {where}")
+        return b, ""
+
+    def join_hosts(self, uid: int, other: int) -> str:
+        """Fold one host into another standing in the same place."""
+        a, b = self.army(uid), self.army(other)
+        if a is None or b is None:
+            return f"no host {other if a is not None else uid}"
+        if a is b:
+            return f"{a.name} is already one host"
+        if a.owner != PLAYER or b.owner != PLAYER:
+            return "both hosts must be yours"
+        if a.state == MARCHING or b.state == MARCHING:
+            return "a host on the road cannot be joined -- wait for it to arrive"
+        if a.at != b.at:
+            return (f"{b.name} is at {self.world.node_name(b.at)}, "
+                    f"{a.name} at {self.world.node_name(a.at)}")
+        for k, n in b.units.items():
+            a.units[k] = a.units.get(k, 0.0) + n
+        a.stores += b.stores
+        a.siege_days = max(a.siege_days, b.siege_days)
+        # A captain posted to the host that is gone rides with the one that
+        # is left; otherwise he would be riding with a number.
+        for p in self.kin.people:
+            if p.alive and p.post == "captain" and p.target == str(b.uid):
+                p.target = str(a.uid)
+        self.armies.remove(b)
+        a.log.append(f"{b.name} joined: {describe(b.units)}")
+        return f"{b.name} joins {a.name} at {self.world.node_name(a.at)}: {describe(a.units)}"
 
     def disband_host(self, uid: int) -> str:
         a = self.army(uid)

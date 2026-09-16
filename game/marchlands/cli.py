@@ -1192,6 +1192,35 @@ class Console:
         b.enabled = not b.enabled
         self.say(f"  {b.spec.name} {'opened' if b.enabled else 'closed'}")
 
+    def cmd_staff(self, args: List[str]) -> None:
+        """staff <building> <hands|free> -- put hands at one shed by name."""
+        st = self.settlement()
+        if not args:
+            if not st.pins:
+                return self.say("  nobody is pinned anywhere; the queue decides "
+                                "(`work` to see it, `staff <building> <n>` to override it)")
+            self.say(ink.head("PINNED HANDS", st.name.upper()))
+            for uid, n in st.pins.items():
+                b = st.find(uid)
+                if b is None:
+                    continue
+                self.say(f"  {ink.c(ink.pad(str(uid), 5), ink.DIM)}"
+                         f"{ink.pad(b.spec.name, 18)} {n} asked, {b.staffed} seated")
+            return
+        uid = self._which(args, "staff <building> <hands|free>")
+        if uid is None:
+            return
+        if len(args) < 2:
+            return self.err("staff <building> <hands|free>")
+        if args[1] in ("free", "none", "0"):
+            return self.say("  " + st.pin_hands(uid, 0))
+        try:
+            hands = int(args[1])
+        except ValueError:
+            return self.err(f"{args[1]!r} is not a number of hands -- "
+                            "staff <building> <hands|free>")
+        self.say("  " + st.pin_hands(uid, hands))
+
     def cmd_work(self, args: List[str]) -> None:
         """Who gets hands first when there are not enough of them."""
         st = self.settlement()
@@ -3067,6 +3096,35 @@ class Console:
             return self.err("raid <host>")
         self.say("  " + self.game.raid(int(args[0])))
 
+    def cmd_split(self, args: List[str]) -> None:
+        """split <host> <soldier> <n> [...] -- detach part of a host."""
+        if len(args) < 3:
+            return self.err("split <host> <soldier> <n> [<soldier> <n> ...]")
+        uid = self._which(args, "split <host> <soldier> <n> ...")
+        if uid is None:
+            return
+        units: Dict[str, int] = {}
+        rest = args[1:]
+        for i in range(0, len(rest) - 1, 2):
+            try:
+                units[resolve_unit(rest[i])] = int(rest[i + 1])
+            except ValueError:
+                return self.err(f"{rest[i + 1]!r} is not a number of {rest[i]}")
+        b, why = self.game.split_host(uid, units)
+        if not b:
+            return self.err(why)
+        self.say(f"  {b.name} stands apart at {self._where(b)}: {describe(b.units)}")
+
+    def cmd_join(self, args: List[str]) -> None:
+        """join <host> <host> -- fold the second host into the first."""
+        if len(args) < 2:
+            return self.err("join <host> <other host>")
+        try:
+            a, b = int(args[0]), int(args[1])
+        except ValueError:
+            return self.err("join <host> <other host> -- both by number")
+        self.say("  " + self.game.join_hosts(a, b))
+
     def cmd_recall(self, args: List[str]) -> None:
         """Order a host home."""
         uid = self._which(args, "recall <host>")
@@ -3531,6 +3589,9 @@ COMMANDS = {
     "info": Console.cmd_info, "build": Console.cmd_build, "raze": Console.cmd_raze,
     "close": Console.cmd_close, "ration": Console.cmd_ration,
     "work": Console.cmd_work, "hands": Console.cmd_work, "tax": Console.cmd_tax,
+    "staff": Console.cmd_staff, "pin": Console.cmd_staff,
+    "split": Console.cmd_split, "detach": Console.cmd_split,
+    "join": Console.cmd_join, "merge": Console.cmd_join,
     "garrison": Console.cmd_garrison, "found": Console.cmd_found,
     "units": Console.cmd_units, "recruit": Console.cmd_recruit,
     "host": Console.cmd_host, "army": Console.cmd_army, "armies": Console.cmd_army,

@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="app">
-  <canvas id="view" tabindex="0" aria-label="the town, drawn. Drag to move, scroll to zoom, click a roof to act on it."></canvas>
+  <canvas id="view" tabindex="0" aria-label="the town, drawn. Click a roof to act on it, box figures and right-click a shed to send them there, right-drag to move the view, scroll to zoom."></canvas>
 
   <header id="bar">
     <span id="place">—</span>
@@ -227,6 +227,13 @@
         <dt><kbd>W</kbd></dt><dd>a week</dd>
         <dt><kbd>M</kbd></dt><dd>a month</dd>
         <dt><kbd>T</kbd> / <kbd>R</kbd></dt><dd>the town / the march</dd>
+        <dt>drag</dt><dd>box a group of figures, or of your hosts</dd>
+        <dt>shift-click</dt><dd>add one to the group</dd>
+        <dt>double-click</dt><dd>everybody of that trade, or every host there</dd>
+        <dt>right-click</dt><dd>send them: figures to a shed, hosts to a place</dd>
+        <dt><kbd>⌃1</kbd>…<kbd>⌃9</kbd> / <kbd>1</kbd>…<kbd>9</kbd></dt><dd>remember a group / call it up (twice to look)</dd>
+        <dt><kbd>.</kbd></dt><dd>the next pair of idle hands</dd>
+        <dt>right-drag / arrows</dt><dd>move the view</dd>
         <dt><kbd>H</kbd></dt><dd>what now?</dd>
         <dt><kbd>/</kbd></dt><dd>type a command</dd>
         <dt><kbd>?</kbd></dt><dd>this</dd>
@@ -235,6 +242,16 @@
       <p class="dim">The keys work when the prompt does not have the cursor.
         Click the picture to put it back.</p>
     </div>
+  </div>
+
+  <!-- Whoever is boxed. The number, what they are, and the one thing to do
+       with them next. A selection nobody can see is a selection nobody
+       trusts, which is why every game of this kind puts it on screen. -->
+  <div id="sel" hidden aria-live="polite">
+    <span id="sel-text"></span>
+    <span id="sel-hint" class="dim"></span>
+    <span id="sel-group" hidden></span>
+    <button id="sel-clear" type="button" title="let them be (esc)">×</button>
   </div>
 
   <div id="writ" hidden>

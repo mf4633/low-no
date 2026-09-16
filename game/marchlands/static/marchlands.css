@@ -1008,3 +1008,36 @@ li.task-why em.costs { color: #9a7a4a; }
   #battle-field { grid-column: 1 / -1; order: -1; min-height: 220px; }
   #battle-under { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------ the selection strip */
+#sel {
+  position: absolute; left: 14px; bottom: 58px; z-index: 12;
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 10px 7px 12px; max-width: min(560px, calc(100vw - 28px));
+  background: rgba(22,16,10,.88); border: 1px solid rgba(126,209,126,.55);
+  border-left: 3px solid rgba(126,209,126,.9); border-radius: 3px;
+  color: var(--parch); font: 13px Georgia, serif; pointer-events: auto;
+}
+#sel #sel-text { white-space: nowrap; }
+#sel #sel-hint { font-size: 12px; }
+#sel #sel-group {
+  font-size: 11px; letter-spacing: .06em; padding: 1px 6px; border-radius: 2px;
+  background: rgba(126,209,126,.18); border: 1px solid rgba(126,209,126,.5);
+}
+#sel #sel-clear {
+  margin-left: 4px; background: none; border: 0; color: var(--parch);
+  opacity: .6; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px;
+}
+#sel #sel-clear:hover, #sel #sel-clear:focus-visible { opacity: 1; }
+body.march #sel { border-color: rgba(201,162,39,.6); border-left-color: rgba(201,162,39,.95); }
+@media (max-width: 860px) { #sel { bottom: 96px; font-size: 12px; } }
+
+/* detaching part of a host, in the host panel */
+#soul-posts .detach { display: grid; grid-template-columns: 1fr 64px; gap: 4px 8px;
+  margin: 6px 0 4px; align-items: center; }
+#soul-posts .detach label { font-size: 12px; opacity: .85; }
+#soul-posts .detach input {
+  width: 100%; background: rgba(0,0,0,.35); color: var(--parch);
+  border: 1px solid rgba(201,162,39,.35); border-radius: 2px; padding: 2px 5px;
+  font: 12px Georgia, serif; text-align: right;
+}

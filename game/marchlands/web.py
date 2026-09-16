@@ -987,7 +987,9 @@ def snapshot(game, here: str = "") -> dict:
         # can tell you whether it is paying for itself. The same reading
         # `margin` gives, attached to the thing it is about.
         "margin": {r.uid: {"net": round(r.net, 2), "wage": C.WAGE,
-                           "staffed": r.staffed, "jobs": r.jobs}
+                           "staffed": r.staffed, "jobs": r.jobs,
+                           # Hands you put there by name, ahead of the queue.
+                           "pinned": s.pins.get(r.uid, 0)}
                    for r in marginal_hands(s)},
         "settlements": list(game.world.settlements),
         "town": {

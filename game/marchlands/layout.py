@@ -433,8 +433,7 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
         plan.buildings.append(Placed(
             uid=b.uid, key=b.key, x=x, y=y, category=b.spec.category,
             terrain=b.spec.terrain, complete=b.complete,
-            running=b.complete and b.enabled and b.throughput > 0.05,
-            idle=b.complete and (not b.enabled or b.throughput <= 0.05),
+            running=b.worked, idle=b.complete and not b.worked,
             burning=settlement.fires.burning(b.uid), name=b.spec.name,
             head=b.head))
 
@@ -552,6 +551,11 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
              if b.key in ("cottage", "hovel", "townhouse")]
     working = [b for b in plan.buildings if b.running
                and BUILDINGS.get(b.key) and BUILDINGS[b.key].jobs]
+    # The sheds you put hands at by name come first, so the man you sent is
+    # the man you see. A small town has few figures to go round, and the
+    # one place they must not be missing from is the shed you just pointed at.
+    pins = getattr(settlement, "pins", {}) or {}
+    working.sort(key=lambda b: 0 if b.uid in pins else 1)
     roads = [(x, y) for y in range(side) for x in range(side)
              if plan.tiles[y][x] == ROAD]
     want = int(min(MOST_FIGURES,

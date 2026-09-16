@@ -56,6 +56,16 @@ class BuildingInstance:
     def complete(self) -> bool:
         return self.days_left <= 0
 
+    @property
+    def worked(self) -> bool:
+        """Is somebody at this shed -- the one reading the picture draws from.
+
+        Yesterday's output, or hands seated since: a shed you just pinned
+        hands at is being worked this minute, and the figure walking over
+        to it must not wait for tomorrow's ledger to say so.
+        """
+        return self.complete and self.enabled and (self.throughput > 0.05 or self.staffed > 0)
+
     def to_dict(self) -> dict:
         return {"uid": self.uid, "key": self.key, "days_left": self.days_left,
                 "enabled": self.enabled, "head": self.head}
@@ -107,6 +117,12 @@ class Settlement:
     #: is most of what stops a sortie being a button you press every siege.
     sorties: int = 0
     priority: Dict[str, int] = field(default_factory=dict)
+    #: Hands you have put at a shed by name: building uid -> hands. A pin is
+    #: a floor under the queue -- pinned sheds are seated first, newest pin
+    #: first, and the bands share whatever is left. It exists because a
+    #: figure in the picture is eight hands at a shed, and the only honest
+    #: thing "send him over there" can mean is moving eight hands.
+    pins: Dict[int, int] = field(default_factory=dict)
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
     plague_labour: float = 0.0  # and hands too ill, or busy burying
@@ -318,6 +334,7 @@ class Settlement:
         return inst
 
     def demolish(self, uid: int) -> Optional[BuildingInstance]:
+        self.pins.pop(uid, None)
         for i, b in enumerate(self.buildings):
             if b.uid == uid:
                 for k, qty in b.spec.build_cost.items():
@@ -472,23 +489,78 @@ class Settlement:
         return f"{BUILDINGS[key].name} will be given hands {band}"
 
     def _staff_buildings(self) -> None:
+        for b in self.buildings:
+            b.throughput = 0.0
+        self._seat_hands()
+
+    def _seat_hands(self) -> None:
+        """Put the day's hands at the sheds. Pins first, then the queue.
+
+        Split from `_staff_buildings` so a pin can be seated the moment it
+        is made -- the figure you sent walks over now, not tomorrow --
+        without zeroing the throughput the morning already worked out.
+        """
         pool = self.workforce
         for b in self.buildings:
             b.staffed = 0
-            b.throughput = 0.0
             b.idle_reason = ""
+            if not (b.complete and b.enabled):
+                b.idle_reason = "building" if not b.complete else "closed"
+        # The sheds you named, before anything else. Newest pin first: the
+        # last order you gave is the one you meant.
+        for uid, want in self.pins.items():
+            b = self.find(uid)
+            if b is None or not (b.complete and b.enabled):
+                continue
+            take = min(b.spec.jobs, want, pool)
+            b.staffed = take
+            pool -= take
         # Hands go out in the order you asked for them, and within a band in
         # the order the sheds were raised. Whatever is at the back gets what
         # is left, which is usually nothing.
         for b in sorted(self.buildings, key=lambda b: (-self.band(b.key), b.uid)):
             if not (b.complete and b.enabled):
-                b.idle_reason = "building" if not b.complete else "closed"
                 continue
-            take = min(b.spec.jobs, pool)
-            b.staffed = take
+            take = min(b.spec.jobs - b.staffed, pool)
+            b.staffed += take
             pool -= take
-            if take < b.spec.jobs:
+            if b.staffed < b.spec.jobs:
                 b.idle_reason = "short of hands"
+
+    def pin_hands(self, uid: int, hands: int) -> str:
+        """Put so many hands at one shed, ahead of the queue; 0 frees them.
+
+        Capped at what the shed can use -- a mill with six places is a mill
+        with six places however many people you point at it -- and seated
+        at once, so the picture answers the order it was given.
+        """
+        b = self.find(uid)
+        if b is None:
+            return "no such building"
+        name = b.spec.name
+        if hands <= 0:
+            if self.pins.pop(uid, None) is None:
+                return f"nobody was pinned at the {name}"
+            self._seat_hands()
+            return f"the hands at the {name} go back into the queue"
+        if not b.spec.jobs:
+            return f"the {name} has no work for hands"
+        if not b.complete:
+            return f"the {name} is not built yet"
+        if not b.enabled:
+            return f"the {name} is closed -- open it first"
+        want = min(int(hands), b.spec.jobs)
+        # Re-insert at the front: the newest order outranks the older pins.
+        self.pins.pop(uid, None)
+        self.pins = {uid: want, **self.pins}
+        self._seat_hands()
+        note = ""
+        if want < hands:
+            note = f" -- all it can use"
+        if b.staffed < want:
+            note += (f"; only {b.staffed} could be found, "
+                     f"{self.name} has {self.workforce} hands in all")
+        return f"{want} hands pinned at the {name}{note}"
 
     def _season_multiplier(self, spec: Building, season: str) -> float:
         if spec.season == "field":
@@ -1020,6 +1092,7 @@ class Settlement:
             "tax_level": self.tax_level, "units": dict(self.units),
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
             "besieged": self.besieged, "priority": dict(self.priority),
+            "pins": {str(k): v for k, v in self.pins.items()},
             "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
             "castle": self.castle.to_dict(),
@@ -1059,6 +1132,7 @@ class Settlement:
                 raided=d.get("raided", False),
                 fires=Fires.from_dict(d.get("fires", {})), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
+        s.pins = {int(k): int(v) for k, v in d.get("pins", {}).items()}
         s.castle = keeps.Castle.from_dict(d.get("castle"))
         s.culture = d.get("culture", "")
         s.shoring = bool(d.get("shoring", False))
