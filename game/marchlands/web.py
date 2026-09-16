@@ -29,6 +29,7 @@ from io import StringIO
 from typing import Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
+from . import __version__
 from .cli import Console, catalogue
 from . import config as C
 from .economics import marginal_hands
@@ -1016,6 +1017,12 @@ def snapshot(game, here: str = "") -> dict:
         "caravans": len(game.caravans),
         "age": game.progress.age_name(),
         "relics": game.relics_held(),
+        # Off `marchlands.__version__`, which is the one place it is written
+        # and the thing the release workflow keys on. Two downloads called
+        # Marchlands.exe are otherwise indistinguishable in a downloads
+        # folder, and the first bug report against the wrong one costs more
+        # than this line.
+        "version": __version__,
     }
 
 

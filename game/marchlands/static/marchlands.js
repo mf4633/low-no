@@ -12,6 +12,7 @@
 'use strict';
 
 const TW = 64, TH = 32;                 // tile, in screen pixels
+let titleVersion = '';
 const canvas = document.getElementById('view');
 let ctx = canvas.getContext('2d');   /* let, not const: the ground is baked on a second context of its own */
 
@@ -2895,6 +2896,25 @@ function paint(s) {
   $('date').title = s.town.field
     ? `${s.town.field.words} — ${s.town.field.going_note}` : '';
   show('purse', num(s.treasury) + 'c');
+  /* Which build this is.
+   *
+   * In the window title, which for something somebody double-clicked *is*
+   * the title bar -- and two downloads both called Marchlands.exe are
+   * otherwise indistinguishable in a folder, which is how a bug report
+   * against the wrong one happens.
+   *
+   * Not in the header bar, and that was tried: as its own element or as
+   * nine more characters on the date line, it tipped the bar onto a second
+   * row at 1280 wide. The note in index.html about ten controls not fitting
+   * that width is the same wall. It is on the front door as well, where
+   * there is room for it, and set from the payload either way so it cannot
+   * drift from the version the release was cut at. */
+  if (s.version && titleVersion !== s.version) {
+    titleVersion = s.version;
+    document.title = `Marchlands ${s.version}`;
+    const tag = $('front-version');
+    if (tag) tag.textContent = `version ${s.version}`;
+  }
   show('souls', `${num(s.town.population)} of ${num(s.town.housing)} roofs`);
   // What the picture is showing, stated. A figure that stands for fourteen
   // people is only honest if the interface says it does.

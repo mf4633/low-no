@@ -649,6 +649,61 @@ class TestItShips(unittest.TestCase):
         self.assertLess(body.index("drawEffects(t)"), wash)
         self.assertLess(wash, body.index("drawGlows()"))
 
+    def test_the_build_says_which_build_it_is(self):
+        """Two downloads both called Marchlands.exe, and no way to tell them
+        apart in a folder, is how a bug report against the wrong one happens.
+
+        The version travels in the payload rather than being written into the
+        page, so it cannot drift from the number the release was cut at --
+        which is the same number `marchlands/__init__.py` holds and the
+        release workflow keys on.
+        """
+        import marchlands
+        from marchlands.web import STATIC, snapshot
+        g, _s = grown()
+        self.assertEqual(snapshot(g)["version"], marchlands.__version__)
+
+        js = open(os.path.join(STATIC, "marchlands.js"), encoding="utf-8").read()
+        self.assertIn("document.title = `Marchlands ${s.version}`", js)
+        self.assertIn("front-version", js)
+
+        # And nowhere is a version number typed out by hand: a second copy is
+        # a second thing to forget, which is the whole reason there is one
+        # source for it.
+        here = re.compile(r"\b\d+\.\d+\.\d+\b")
+        for name in ("index.html", "marchlands.js", "marchlands.css"):
+            text = open(os.path.join(STATIC, name), encoding="utf-8").read()
+            self.assertFalse(
+                here.findall(text),
+                f"{name} has a version number written into it: "
+                f"{here.findall(text)}")
+
+    def test_the_header_bar_still_fits_on_one_row(self):
+        """Not a layout test -- a note about why the version is not up there.
+
+        The bar holds the seat, the date, three views, four speeds, three
+        buttons, the ear and the purse, and at 1280 wide that is already the
+        whole row: nine more characters on the date line put it onto a
+        second, which is what the version did when it was tried up there.
+        Two buttons were taken out of this bar once for the same reason.
+
+        A ratchet, not a judgement: the number is what the bar holds today.
+        If something new belongs in it, something else comes out, and this
+        is the line that makes that a decision rather than a surprise at
+        1280 on somebody else's screen.
+        """
+        from marchlands.web import STATIC
+        html = open(os.path.join(STATIC, "index.html"), encoding="utf-8").read()
+        bar = html[html.index('<header id="bar">'):html.index("</header>")]
+        # Comments carry the reasoning and would otherwise be counted.
+        bar = re.sub(r"<!--.*?-->", "", bar, flags=re.S)
+        items = re.findall(r"<(?:span|button)\b", bar)
+        self.assertLessEqual(
+            len(items), 16,
+            f"the header bar has grown to {len(items)} items. At 1280 it "
+            f"wraps onto a second row, and the purse is the thing that "
+            f"walks off the edge.")
+
     def test_the_renderer_still_asks_the_network_for_nothing(self):
         from marchlands.web import STATIC
         for name in ("marchlands.js", "sound.js"):
