@@ -1,53 +1,53 @@
 building morning-sky regimes for 23 cities, 2022-2026
 
   ATL (KATL)...
-    1715 classified days  (2 windows incomplete, 3 no CLI, 1 3-vs-2-layer disagreements)
+    1715 classified days  (3 windows incomplete, 3 no CLI, 1 3-vs-2-layer disagreements)
   AUS (KAUS)...
-    1716 classified days  (4 windows incomplete, 0 no CLI, 2 3-vs-2-layer disagreements)
+    1716 classified days  (5 windows incomplete, 0 no CLI, 2 3-vs-2-layer disagreements)
   BOS (KBOS)...
-    1715 classified days  (2 windows incomplete, 3 no CLI, 1 3-vs-2-layer disagreements)
+    1715 classified days  (3 windows incomplete, 3 no CLI, 1 3-vs-2-layer disagreements)
   CHI (KMDW)...
-    1718 classified days  (1 windows incomplete, 1 no CLI, 3 3-vs-2-layer disagreements)
+    1719 classified days  (2 windows incomplete, 0 no CLI, 3 3-vs-2-layer disagreements)
   DAL (KDFW)...
-    1715 classified days  (1 windows incomplete, 4 no CLI, 2 3-vs-2-layer disagreements)
+    1715 classified days  (2 windows incomplete, 4 no CLI, 2 3-vs-2-layer disagreements)
   DC (KDCA)...
-    1710 classified days  (2 windows incomplete, 8 no CLI, 4 3-vs-2-layer disagreements)
+    1710 classified days  (3 windows incomplete, 8 no CLI, 4 3-vs-2-layer disagreements)
   DEN (KDEN)...
-    1718 classified days  (2 windows incomplete, 0 no CLI, 1 3-vs-2-layer disagreements)
+    1718 classified days  (3 windows incomplete, 0 no CLI, 1 3-vs-2-layer disagreements)
   EWR (KEWR)...
-    1716 classified days  (2 windows incomplete, 2 no CLI, 2 3-vs-2-layer disagreements)
+    1716 classified days  (3 windows incomplete, 2 no CLI, 2 3-vs-2-layer disagreements)
   HOU (KHOU)...
-    1715 classified days  (1 windows incomplete, 4 no CLI, 0 3-vs-2-layer disagreements)
+    1715 classified days  (2 windows incomplete, 4 no CLI, 0 3-vs-2-layer disagreements)
   LAS (KLAS)...
-    1713 classified days  (4 windows incomplete, 3 no CLI, 0 3-vs-2-layer disagreements)
+    1714 classified days  (5 windows incomplete, 2 no CLI, 0 3-vs-2-layer disagreements)
   LAX (KLAX)...
-    1715 classified days  (2 windows incomplete, 3 no CLI, 19 3-vs-2-layer disagreements)
+    1716 classified days  (3 windows incomplete, 2 no CLI, 19 3-vs-2-layer disagreements)
   MIA (KMIA)...
-    1708 classified days  (2 windows incomplete, 10 no CLI, 1 3-vs-2-layer disagreements)
+    1708 classified days  (3 windows incomplete, 10 no CLI, 1 3-vs-2-layer disagreements)
   MSP (KMSP)...
-    1719 classified days  (1 windows incomplete, 0 no CLI, 0 3-vs-2-layer disagreements)
+    1719 classified days  (2 windows incomplete, 0 no CLI, 0 3-vs-2-layer disagreements)
   MSY (KMSY)...
-    1444 classified days  (1 windows incomplete, 275 no CLI, 4 3-vs-2-layer disagreements)
+    1444 classified days  (2 windows incomplete, 275 no CLI, 4 3-vs-2-layer disagreements)
   NYC (KNYC)...
-    1716 classified days  (2 windows incomplete, 2 no CLI, 0 3-vs-2-layer disagreements)
+    1716 classified days  (3 windows incomplete, 2 no CLI, 0 3-vs-2-layer disagreements)
   OKC (KOKC)...
-    1714 classified days  (3 windows incomplete, 3 no CLI, 6 3-vs-2-layer disagreements)
+    1714 classified days  (4 windows incomplete, 3 no CLI, 6 3-vs-2-layer disagreements)
   PHL (KPHL)...
-    1718 classified days  (2 windows incomplete, 0 no CLI, 1 3-vs-2-layer disagreements)
+    1718 classified days  (3 windows incomplete, 0 no CLI, 1 3-vs-2-layer disagreements)
   PHX (KPHX)...
-    1714 classified days  (2 windows incomplete, 4 no CLI, 1 3-vs-2-layer disagreements)
+    1715 classified days  (3 windows incomplete, 3 no CLI, 1 3-vs-2-layer disagreements)
   SAN (KSAN)...
-    1715 classified days  (2 windows incomplete, 3 no CLI, 3 3-vs-2-layer disagreements)
+    1716 classified days  (3 windows incomplete, 2 no CLI, 3 3-vs-2-layer disagreements)
   SAT (KSAT)...
-    1717 classified days  (1 windows incomplete, 2 no CLI, 0 3-vs-2-layer disagreements)
+    1717 classified days  (2 windows incomplete, 2 no CLI, 0 3-vs-2-layer disagreements)
   SEA (KSEA)...
-    1713 classified days  (2 windows incomplete, 5 no CLI, 3 3-vs-2-layer disagreements)
+    1714 classified days  (3 windows incomplete, 4 no CLI, 3 3-vs-2-layer disagreements)
   SFO (KSFO)...
-    1711 classified days  (2 windows incomplete, 7 no CLI, 27 3-vs-2-layer disagreements)
+    1712 classified days  (3 windows incomplete, 6 no CLI, 27 3-vs-2-layer disagreements)
   TTN (KTTN)...
-    1713 classified days  (6 windows incomplete, 1 no CLI, 3 3-vs-2-layer disagreements)
+    1713 classified days  (7 windows incomplete, 1 no CLI, 3 3-vs-2-layer disagreements)
 
-wrote city_regimes.json (39168 city-days)
+wrote city_regimes.json (39175 city-days)
 
 PER-CITY REGIME SPLIT, month removed. eta^2 is the share of within-month
 variance the regime explains; p is a within-month label permutation.
@@ -55,13 +55,13 @@ variance the regime explains; p is a within-month label permutation.
 city      n  sd_mo   eta2       p  holm   NO_STRATUS   EARLY_BURN    LATE_BURN      NO_BURN
 -------------------------------------------------------------------------------------------
 DEN    1718  11.53  0.265  0.0005   YES    +2.3/1465      -6.6/67     -10.1/81    -19.9/105
-LAX    1715   5.55  0.166  0.0005   YES     +2.0/898     -0.9/271     -1.7/291     -4.1/255
-SAN    1715   4.75  0.148  0.0005   YES     +1.9/736     -0.2/355     -1.2/297     -2.9/327
-SEA    1713   6.84  0.130  0.0005   YES     +2.5/841     -1.7/161     -2.2/327     -2.8/384
-SFO    1711   5.66  0.117  0.0005   YES     +1.7/970     -1.5/230     -2.3/288     -2.8/223
+LAX    1716   5.55  0.166  0.0005   YES     +2.0/898     -0.9/272     -1.7/291     -4.1/255
+SAN    1716   4.75  0.148  0.0005   YES     +1.9/736     -0.2/355     -1.2/298     -2.9/327
+SEA    1714   6.84  0.130  0.0005   YES     +2.5/841     -1.8/162     -2.2/327     -2.8/384
+SFO    1712   5.66  0.117  0.0005   YES     +1.7/971     -1.5/230     -2.3/288     -2.8/223
 OKC    1714  10.19  0.089  0.0005   YES    +1.5/1295      -1.8/67     -0.6/104     -7.2/248
-AUS    1716   8.60  0.081  0.0005   YES     -0.2/872     +2.3/220     +2.6/377     -5.2/247
-SAT    1717   8.19  0.080  0.0005   YES     -0.6/721     +2.2/239     +2.5/464     -4.1/293
+AUS    1716   8.59  0.082  0.0005   YES     -0.3/872     +2.4/220     +2.6/377     -5.2/247
+SAT    1717   8.19  0.080  0.0005   YES     -0.7/721     +2.2/239     +2.5/464     -4.1/293
 DAL    1715   9.17  0.056  0.0005   YES    +0.8/1194     +0.5/112     +1.2/195     -5.7/214
 HOU    1715   7.36  0.043  0.0005   YES    -0.5/1071     +2.3/150     +2.6/262     -2.3/232
 TTN    1713   8.81  0.035  0.0005   YES    +0.1/1187      +4.4/91     +2.4/138     -2.7/297
@@ -69,28 +69,28 @@ DC     1710   8.61  0.034  0.0005   YES    +0.4/1308      +2.9/60     +1.7/110  
 MSY    1444   6.91  0.032  0.0005   YES    -0.5/1000      +2.6/84     +2.4/200     -1.3/160
 ATL    1715   7.39  0.031  0.0005   YES    +0.3/1109      +0.8/82     +1.4/241     -2.8/283
 EWR    1716   8.88  0.030  0.0005   YES    +0.3/1242      +2.8/87     +1.9/122     -3.3/265
-PHX    1714   7.19  0.026  0.0005   YES    +0.1/1688     -11.1/11       -7.2/8       -8.8/7
+PHX    1715   7.19  0.026  0.0005   YES    +0.1/1689     -11.1/11       -7.2/8       -8.8/7
 PHL    1718   8.61  0.026  0.0005   YES    +0.2/1252      +2.2/95     +2.1/117     -3.0/254
 NYC    1716   8.45  0.023  0.0005   YES    +0.3/1218     +2.6/101     +0.7/119     -2.6/278
 BOS    1715   8.80  0.021  0.0005   YES    +0.4/1223      +2.4/87     +0.4/105     -2.6/300
-CHI    1718  10.22  0.019  0.0005   YES    +1.0/1153      -2.4/84     -2.3/139     -1.8/342
+CHI    1719  10.21  0.019  0.0005   YES    +1.0/1154      -2.4/84     -2.3/139     -1.8/342
 MIA    1708   3.84  0.019  0.0005   YES    +0.2/1288      -0.4/89     +0.2/181     -1.6/150
 MSP    1719  10.70  0.017  0.0005   YES    +0.9/1187      -3.0/66     -1.2/128     -2.1/338
-LAS    1713   7.64  0.008  0.0010   YES    +0.1/1701      -12.1/4       -4.1/5       -7.5/3
+LAS    1714   7.64  0.008  0.0020   YES    +0.1/1702      -12.1/4       -4.1/5       -7.5/3
 
   cells are (mean deviation from that month's mean, F) / (n days)
 
   23 of 23 tested cities survive Holm-Bonferroni at alpha=0.05.
 
 3-LAYER vs 2-LAYER ceiling read (lax_regime.py uses 2):
-  SFO     27 of  1711 days reclassified
-  LAX     19 of  1715 days reclassified
+  SFO     27 of  1712 days reclassified
+  LAX     19 of  1716 days reclassified
   OKC      6 of  1714 days reclassified
   DC       4 of  1710 days reclassified
   MSY      4 of  1444 days reclassified
-  CHI      3 of  1718 days reclassified
-  SAN      3 of  1715 days reclassified
-  SEA      3 of  1713 days reclassified
+  CHI      3 of  1719 days reclassified
+  SAN      3 of  1716 days reclassified
+  SEA      3 of  1714 days reclassified
   TTN      3 of  1713 days reclassified
   AUS      2 of  1716 days reclassified
   DAL      2 of  1715 days reclassified
@@ -100,7 +100,7 @@ LAS    1713   7.64  0.008  0.0010   YES    +0.1/1701      -12.1/4       -4.1/5  
   DEN      1 of  1718 days reclassified
   MIA      1 of  1708 days reclassified
   PHL      1 of  1718 days reclassified
-  PHX      1 of  1714 days reclassified
+  PHX      1 of  1715 days reclassified
 
 wrote docs/city_regimes_summary.json
 
