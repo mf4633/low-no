@@ -1917,6 +1917,47 @@ has **reasons** attached, that the reasons are visible and dated, and that they
 add up *across the march* instead of only ever pointing at you one lord at a
 time.
 
+### A battle you play
+
+A storm on a wall used to be a line the day handed you. Now, when your host
+goes in or your own wall is stormed, the day stops on it: the fight is a
+`Battle` machine you step round by round -- `battle fight` in the console,
+Space on the screen -- through exactly the arithmetic the automatic fight
+used. `run()` *is* the old fight, to the last man and the last dice roll,
+and a test says so; `step()` is one round of it. Bots, the other lords and
+every fight nobody is watching still resolve at once, and two lords at each
+other's walls are nobody's business but theirs.
+
+Between rounds a side has the levers a commander had and no more. Reform
+under another order, and the line fights soft for a round (×0.92). Commit
+the reserve for one hard round (×1.25) with nothing behind it after. Pour
+the oil or fire the pitch ditch, once each, only off works you built, and
+the pitch only if there is charcoal in the store. Break off, and lose six
+per cent to the pursuit but keep the rest. Every lever is worth about an
+order and every one costs something, because the knife-edge is that fine:
+at even strength the attacker wins about one fight in fifty and at ten per
+cent up nearly every one, so a free lever would be a lever that decided
+battles. The screen shows both lines, the field with the breach sized to
+what is standing of the wall, the modifiers as numbers, and a verdict that
+stays up until you close it; the console shows the same numbers because
+they come from the same `battle_view`.
+
+### Relief
+
+Before this a host you marched to your own besieged town stood down beside
+the besiegers, and nobody fought anybody. Now it comes up *outside* the
+ring -- the besiegers are between it and the gate -- and stands off for the
+night; at dawn they must turn and face it in the open, on the same machine,
+with no wall, no oil and no pitch, every host that came up pooled against
+every host in the ring. Break the ring and the siege is broken: the
+besiegers fall back the way they came and your host walks in. Fail, and
+what is left of yours slips inside if this is its own gate and goes home if
+it is not, while the ring stays where it sat. A lord's host coming home to
+a town you are besieging does the same to you -- it comes up behind your
+lines and you fight at dawn -- so a siege is a thing that can be lifted
+from outside, which is most of what medieval field battles were for. If you
+are on either side and playing your battles, the day waits on it.
+
 ### You can see why somebody hates you
 
 ```

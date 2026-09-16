@@ -31,6 +31,9 @@ MARCHING = "marching"
 BESIEGING = "besieging"
 RETURNING = "returning"
 RAIDING = "raiding"
+#: Come up to a place under siege or raid, standing outside the ring. The
+#: besiegers must turn and fight it in the open at dawn; see engine._field_day.
+RELIEVING = "relieving"
 
 
 @dataclass(frozen=True)
@@ -913,7 +916,7 @@ def open_battle(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
                 place: str = "the field", orders: Tuple[str, str] = ("", ""),
                 field: Optional[Field] = None, works: Optional["Works"] = None,
                 state: Optional["SiegeState"] = None, have_pitch: bool = False,
-                wall_max: float = 0.0) -> "Battle":
+                wall_max: float = 0.0, walled: bool = True) -> "Battle":
     """Dress both sides for the fight and hand back the fight, un-fought.
 
     Everything `fight` did before its first round happens here: the field's
@@ -944,7 +947,7 @@ def open_battle(attacker: Side, defender: Side, *, wall_hp: float = 0.0,
         _dress(defender, def_key)
     b = Battle(attacker, defender, wall_hp=wall_hp, rng=rng, max_rounds=max_rounds,
                place=place, orders=orders, works=works, state=state,
-               have_pitch=have_pitch, wall_max=wall_max)
+               have_pitch=have_pitch, wall_max=wall_max, walled=walled)
     b._keep, b._ground = keep, ground
     b.field_words = field.words() if field is not None else ""
     return b
@@ -1080,6 +1083,10 @@ class Battle:
     #: game and wrong for the screen: a fight that ended with the garrison
     #: at a quarter of its nerve was showing 1.00 on the verdict.
     final_morale: Optional[Tuple[float, float]] = None
+    #: Whether there is a wall in this at all. A storm goes in at a breach
+    #: (wall_hp nought) and still has a gate to pour oil over; a field has
+    #: neither, and the levers that belong to a wall are not offered.
+    walled: bool = True
 
     def close(self) -> None:
         """Take the dressing off both sides. Idempotent."""
@@ -1159,7 +1166,8 @@ class Battle:
         if lost_a or lost_d:
             res.log.append(
                 f"round {rnd}: {describe({k: round(v) for k, v in lost_a.items() if v >= 1}) }"
-                f" lost storming, {describe({k: round(v) for k, v in lost_d.items() if v >= 1})}"
+                f" lost {'storming' if self.walled else 'attacking'}, "
+                f"{describe({k: round(v) for k, v in lost_d.items() if v >= 1})}"
                 f" lost holding")
 
         attacker.morale = max(0.25, attacker.alive() / max(self.start_att, 1e-9))
@@ -1195,7 +1203,10 @@ class Battle:
         out["commit"] = ("" if o.key == RESERVE and not self.committed[i]
                          else ("the reserve is already in" if o.key == RESERVE
                                else "nothing is being held back"))
-        if who == "defender":
+        if who == "defender" and self.walled:
+            # Oil and pitch belong to a wall. In the open there is no gate
+            # to pour over, so the levers are not offered at all rather
+            # than offered and refused.
             w = self.works
             if not w or not w.oil:
                 out["oil"] = "there is no oil over the gate"
@@ -1351,6 +1362,7 @@ class Battle:
                 "said": list(self.said), "have_pitch": self.have_pitch,
                 "field_words": self.field_words,
                 "final_morale": list(self.final_morale) if self.final_morale else None,
+                "walled": self.walled,
                 "keep": [list(k) for k in self._keep] if self._keep else None,
                 "ground": [dict(g) for g in self._ground] if self._ground else None,
                 "works": self.works.__dict__.copy() if self.works is not None else None,
@@ -1380,6 +1392,7 @@ class Battle:
         b.said = list(d.get("said", []))
         b.field_words = d.get("field_words", "")
         b.final_morale = tuple(d["final_morale"]) if d.get("final_morale") else None
+        b.walled = bool(d.get("walled", True))
         b._keep = tuple(tuple(k) for k in d["keep"]) if d.get("keep") else None
         b._ground = tuple(dict(g) for g in d["ground"]) if d.get("ground") else None
         r = d["res"]

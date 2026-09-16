@@ -37,7 +37,7 @@ from .league import League, PLAYER
 from .lord import Lord
 from .market import Market
 from .military import (Battle, open_battle, BESIEGING, GARRISON, HOLD, LINE, MARCHING, RAIDING,
-                       RETURNING, STORM, describe,
+                       RELIEVING, RETURNING, STORM, describe,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_size, host_speed,
                        host_strength, raid_day, recruit_cost, siege_day, unit)
@@ -150,6 +150,9 @@ class PendingBattle:
     title: str
     day: int
     stationed: List[int] = field(default_factory=list)
+    #: A field battle has hosts on both sides rather than a host and a
+    #: wall: `stationed` is the relieving side, `foes` the ring it fights.
+    foes: List[int] = field(default_factory=list)
     #: The standing wall, for the picture: the fight itself is at the
     #: breach, with `wall_hp` nought, exactly as `fight` has always had it.
     wall_standing: float = 0.0
@@ -169,7 +172,7 @@ class PendingBattle:
         return {"battle": self.battle.to_dict(), "kind": self.kind,
                 "army": self.army, "where": self.where, "side": self.side,
                 "title": self.title, "day": self.day,
-                "stationed": list(self.stationed),
+                "stationed": list(self.stationed), "foes": list(self.foes),
                 "wall_standing": self.wall_standing, "wall_full": self.wall_full,
                 "after": list(self.after), "settled": self.settled}
 
@@ -179,6 +182,7 @@ class PendingBattle:
                    army=d["army"], where=d["where"], side=d["side"],
                    title=d["title"], day=d["day"],
                    stationed=list(d.get("stationed", [])),
+                   foes=list(d.get("foes", [])),
                    wall_standing=d.get("wall_standing", 0.0),
                    wall_full=d.get("wall_full", 0.0),
                    after=list(d.get("after", [])),
@@ -1215,6 +1219,7 @@ class GameState:
             s.blockaded = False
             s.raided = False
             s.raid_pressure = 0.0
+        msgs += self._field_day()
         for a in list(self.armies):
             if a.owner != "player" and self.world.towns[a.owner].mine:
                 msgs.append(f"{a.name} turns for home -- {self.world.node_name(a.owner)} "
@@ -1261,6 +1266,168 @@ class GameState:
             del self.battles[:-120]
         return msgs
 
+    def _ring_at(self, node: str, against: str) -> List[Army]:
+        """The hosts sitting round or burning `node` that are `against`'s
+        enemies: the player's besiegers at a lord's town, or a lord's at
+        the player's. Two lords at each other's walls are nobody's business
+        but theirs, so a lord's host coming home to a lord's siege walks in
+        as it always has."""
+        out = []
+        for x in self.armies:
+            if x.at != node or x.state not in (BESIEGING, RAIDING):
+                continue
+            if against == PLAYER and x.owner != PLAYER:
+                out.append(x)
+            elif against != PLAYER and x.owner == PLAYER:
+                out.append(x)
+        return out
+
+    def _field_day(self) -> List[str]:
+        """Hosts that came up to relieve a place give battle in the open.
+
+        One fight a place, both sides pooled: every host that came up
+        against every host in the ring. The relief attacks -- it is the
+        side that has to get through -- and the ring holds its lines under
+        its own order. In the open there is no wall, so the storm's oil and
+        pitch have nothing to be poured over, and the fight is the same
+        arithmetic every field battle has always used. If you are on either
+        side and playing your battles, the day waits on it like a storm.
+        """
+        if self.pending is not None:
+            return []
+        msgs: List[str] = []
+        for node in sorted({a.at for a in self.armies if a.state == RELIEVING}):
+            relief = [a for a in self.armies if a.at == node and a.state == RELIEVING]
+            if not relief:
+                continue
+            side_owner = relief[0].owner
+            ring = self._ring_at(node, against=side_owner)
+            if not ring:
+                for a in relief:
+                    a.state = GARRISON
+                msgs.append(f"{relief[0].name} finds the lines before "
+                            f"{self.world.node_name(node)} empty and walks in")
+                continue
+            msgs += self._field_battle(node, relief, ring)
+            if self.pending is not None:
+                break
+        return msgs
+
+    def _field_side(self, hosts: List[Army]) -> Side:
+        """Every host of one side as one line, dressed as the player's are."""
+        pooled: Dict[str, float] = {}
+        for x in hosts:
+            for k, n in x.units.items():
+                pooled[k] = pooled.get(k, 0.0) + n
+        if hosts[0].owner != PLAYER:
+            return Side(pooled)
+        lead = hosts[0]
+        return Side(pooled,
+                    attack_mult=(self.progress.mult("attack")
+                                 * self.kin.mult("attack", lead.uid)
+                                 * manly.attack_bonus(self.lord, lead.uid)),
+                    defense_mult=self.progress.mult("defense"))
+
+    def _field_battle(self, node: str, relief: List[Army],
+                      ring: List[Army]) -> List[str]:
+        att, dfn = self._field_side(relief), self._field_side(ring)
+        lead, foe = relief[0], ring[0]
+        orders = (lead.order if lead.owner == PLAYER else lordly.sort_of(lead.home).fights,
+                  foe.order if foe.owner == PLAYER else lordly.sort_of(foe.home).fights)
+        name = self.world.node_name(node)
+        battle = open_battle(att, dfn, rng=self.rng, place=name, orders=orders,
+                             field=self.field_at(node), walled=False)
+        if self.battles_mode == "play":
+            self.pending = PendingBattle(
+                battle=battle, kind="field", army=lead.uid, where=node,
+                side="attacker" if lead.owner == PLAYER else "defender",
+                title=name, day=self.day,
+                stationed=[x.uid for x in relief], foes=[x.uid for x in ring])
+            return [self.note(f"*** BATTLE IS JOINED BEFORE {name.upper()}. "
+                              f"The day waits on it. ***", MOMENTOUS)]
+        battle.run()
+        battle.close()
+        return self._after_field(battle.res, node, relief, ring, att, dfn)
+
+    @staticmethod
+    def _share_out(hosts: List[Army], side: Side) -> None:
+        """Give a pooled line's survivors back to the hosts that made it up,
+        each keeping its share of what is left of each kind."""
+        before: Dict[str, float] = {}
+        for x in hosts:
+            for k, n in x.units.items():
+                before[k] = before.get(k, 0.0) + n
+        for x in hosts:
+            for k in list(x.units):
+                have = before.get(k, 0.0)
+                x.units[k] = side.units.get(k, 0.0) * (x.units[k] / have) if have else 0.0
+            x.prune()
+
+    def _after_field(self, res, node: str, relief: List[Army], ring: List[Army],
+                     att: Side, dfn: Side) -> List[str]:
+        """What follows a battle in the open before a besieged place."""
+        name = self.world.node_name(node)
+        lead, foe = relief[0], ring[0]
+        msgs = [f"BATTLE BEFORE {name.upper()}: the {res.winner} holds the ground "
+                f"after {res.rounds} rounds",
+                self._box_score(f"{lead.name} relieves {name}", res, lead.owner, foe.owner)]
+        self.scored(lead.owner, won=res.winner == "attacker")
+        self.scored(foe.owner, won=res.winner == "defender")
+        self._share_out(relief, att)
+        self._share_out(ring, dfn)
+        if res.winner == "attacker":
+            # The ring is broken. Its hosts fall back the way they came.
+            for x in ring:
+                # Marked as falling back even when nothing is left to fall
+                # back: the day's loop buries a host with no men, and it
+                # must not find a dead one still sitting at the wall.
+                x.siege_days = 0
+                x.state = RETURNING
+                if x.size > 0:
+                    self.march(x.uid, x.home)
+            msgs.append(f"The siege of {name} is broken: the host of "
+                        f"{self.world.node_name(foe.home)} falls back")
+            if foe.owner == PLAYER and self.lord.riding in [x.uid for x in ring]:
+                msgs += self._lord_fell()
+            for x in relief:
+                self._come_inside(x, node)
+            if foe.owner != PLAYER and foe.owner in self.world.towns:
+                self.court.write(foe.owner, "beaten", 22.0, self.day)
+        else:
+            # Held or stood off: the relief could not get through. What is
+            # left of it slips inside if this is its own gate, and goes home
+            # if it is not; the ring stays where it sat.
+            how = ("breaks off" if res.broken_off == "attacker"
+                   else "is thrown back" if res.winner == "defender" else "cannot get through")
+            msgs.append(f"{lead.name} {how} before {name}")
+            if lead.owner == PLAYER and self.lord.riding in [x.uid for x in relief]:
+                msgs += self._lord_fell()
+            for x in relief:
+                x.state = RETURNING
+                if x.size <= 0:
+                    continue
+                if x.home == node:
+                    self._come_inside(x, node)
+                    msgs.append(f"what is left of {x.name} slips inside the walls")
+                else:
+                    x.state = RETURNING
+                    self.march(x.uid, x.home)
+        return msgs
+
+    def _come_inside(self, x: Army, node: str) -> None:
+        """A host that has fought its way to the gate goes through it: yours
+        stands in the place as a garrisoned host, a lord's stands down into
+        his town's garrison as any host of his does at home."""
+        if x.owner == PLAYER or node not in self.world.towns:
+            x.state = GARRISON
+            x.siege_days = 0
+            return
+        town = self.world.towns[node]
+        for k, n in x.units.items():
+            town.garrison[k] = town.garrison.get(k, 0.0) + n
+        if x in self.armies:
+            self.armies.remove(x)
+
     def _arrive(self, a: Army) -> str:
         """What happens when a host walks up to a place."""
         node = a.at
@@ -1276,6 +1443,15 @@ class GameState:
                     f"{C.RELIC_DAYS} days to lift {sh.relic}.")
         if a.owner == "player":
             if self.world.is_friendly(node):
+                ring = self._ring_at(node, against=PLAYER)
+                if ring:
+                    # The besiegers are between him and the gate. He stands
+                    # off tonight and they must turn and fight him at dawn.
+                    a.state = RELIEVING
+                    return self.note(
+                        f"*** {a.name} comes up before {self.world.node_name(node)}. "
+                        f"The host of {self.world.node_name(ring[0].home)} must turn "
+                        f"and fight at dawn. ***", MOMENTOUS)
                 a.state = GARRISON
                 return f"{a.name} reaches {self.world.node_name(node)}"
             town = self.world.towns[node]
@@ -1285,6 +1461,13 @@ class GameState:
                     + self._declare(town))
 
         if node == a.home and node in self.world.towns:
+            if self._ring_at(node, against=a.owner):
+                # Your lines are between him and his own gate. He does not
+                # walk through them: he stands off, and you fight at dawn.
+                a.state = RELIEVING
+                return self.note(
+                    f"*** A host out of {self.world.node_name(node)} comes up behind "
+                    f"your lines -- {describe(a.units)}. Battle at dawn. ***", MOMENTOUS)
             # A host that gets home stands down into its own town's garrison,
             # so the lord can call it out again another year.
             town = self.world.towns[node]
@@ -2941,6 +3124,12 @@ class GameState:
         msgs: List[str] = []
         if a is None:
             msgs.append("the host that was going in is gone")
+        elif pb.kind == "field":
+            relief = [x for x in (self.army(u) for u in pb.stationed) if x]
+            ring = [x for x in (self.army(u) for u in pb.foes) if x]
+            if relief and ring:
+                msgs = self._after_field(b.res, pb.where, relief, ring,
+                                         b.attacker, b.defender)
         elif pb.kind == "wall":
             s = self.world.settlements.get(pb.where)
             if s is not None:

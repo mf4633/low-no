@@ -3287,10 +3287,14 @@ function paintBattle(v) {
   if (opening) { setSpeed(0); Sound.mark && Sound.mark('alarm'); }
 
   const mine = v[v.side], theirs = v[v.side === 'attacker' ? 'defender' : 'attacker'];
-  $('battle-title').textContent = `The storm at ${v.title}`;
+  // A storm has a wall in it and a field does not, and the words follow.
+  const open = v.kind === 'field';
+  $('battle-title').textContent = open ? `The field before ${v.title}` : `The storm at ${v.title}`;
   $('battle-sub').textContent =
     `round ${v.round} of ${v.max_rounds} · ${v.field}` +
-    (v.side === 'attacker' ? ' · you are going in' : ' · you hold the wall');
+    (open
+      ? (v.side === 'attacker' ? ' · you must break their lines' : ' · you hold your lines')
+      : (v.side === 'attacker' ? ' · you are going in' : ' · you hold the wall'));
 
   paintSideCol('battle-mine', mine, v.losses[v.side], v.kinds, theirs);
   paintSideCol('battle-theirs', theirs, v.losses[v.side === 'attacker' ? 'defender' : 'attacker'],
@@ -3383,6 +3387,11 @@ function paintSideCol(id, side, lost, kinds, foe) {
 function battleNote(v, mine) {
   const c = v.costs || {};
   if (v.round === 0) {
+    if (v.kind === 'field') {
+      return v.side === 'attacker'
+        ? 'The ring has turned to face you. Break it and the siege is broken; fail and what is left of you falls back.'
+        : 'A relieving host is drawn up against your lines. Hold and the siege goes on; break and your host falls back the way it came.';
+    }
     return v.side === 'attacker'
       ? 'Your men are in the breach. Fight a round, or reform before you do.'
       : 'They are in the breach. The wall is what your battlement is worth now, and the levers on it are yours.';

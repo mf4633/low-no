@@ -91,7 +91,9 @@ def watch(game) -> Dict[str, str]:
     # every beat for ever.
     pending = getattr(game, "pending", None)
     if pending is not None and not getattr(pending.battle, "over", True):
-        out["battle"] = f"the storm is going in at {pending.title}"
+        out["battle"] = (f"battle is joined before {pending.title}"
+                         if pending.kind == "field"
+                         else f"the storm is going in at {pending.title}")
     world = getattr(game, "world", None)
     if world is None:
         # Not every caller has a world -- the clock's own tests drive it with
