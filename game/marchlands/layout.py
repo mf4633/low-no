@@ -18,6 +18,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
+from . import config as C
 from .buildings import BUILDINGS
 from . import keep as keeps
 
@@ -43,6 +44,10 @@ class Placed:
     idle: bool
     burning: bool
     name: str
+    #: Head of livestock standing in this yard, for the yards that keep any.
+    #: Carried onto the drawing so the flock you can see is the flock the
+    #: books are paying you for -- see settlement.BuildingInstance.head.
+    head: float = -1.0
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -87,28 +92,25 @@ class Haul:
 #: on a yard of wall that is really being held. Thin the garrison and the wall
 #: visibly empties. The picture is then a readout rather than an illustration,
 #: which is the same rule the rest of this codebase follows.
-#: The beasts, and which yard they belong to.
+#: Which beast each yard keeps. How MANY is not written here: that is the
+#: yard's own head, kept on the building and paid out by the economy -- see
+#: config.HERD_FULL and settlement.BuildingInstance.head.
 #:
 #: A sheep pasture with no sheep in it is a shed with a label on, and the
 #: same is true of a dairy and a stable. They are drawn for the same reason
 #: the people are: you should be able to tell what a yard is for by looking
 #: at it, and a flock is the most legible thing in a medieval landscape.
 #:
-#: Tied to real state rather than sprinkled about. A yard that is running
-#: has its full head; one that is standing idle has a thin scatter, because
-#: a pasture nobody is working is a pasture that has been sold down. And a
-#: town whose country is being raided has none at all -- driving off the
-#: beasts is the first thing a raid does and the last thing it leaves, and
-#: it means a raid is something you can see on the ground rather than a
-#: line in the log.
+#: What makes them worth the pixels rather than decoration is that the
+#: flock you can see is the flock you are being paid for. A raid drives
+#: them off and the wool stops with them; the field empties on screen
+#: because the yard's head fell, not because a renderer was told a raid
+#: looks like an empty field. The picture cannot flatter the books.
 HERDS = {
-    "sheep_farm": ("sheep", 7),
-    "dairy": ("cow", 4),
-    "stable": ("horse", 3),
+    "sheep_farm": "sheep",
+    "dairy": "cow",
+    "stable": "horse",
 }
-
-#: What a raided country leaves in the fold.
-RAIDED_HERD = 0
 
 
 #: What a figure at each kind of shed is actually doing, as a posture the
@@ -433,7 +435,8 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
             terrain=b.spec.terrain, complete=b.complete,
             running=b.complete and b.enabled and b.throughput > 0.05,
             idle=b.complete and (not b.enabled or b.throughput <= 0.05),
-            burning=settlement.fires.burning(b.uid), name=b.spec.name))
+            burning=settlement.fires.burning(b.uid), name=b.spec.name,
+            head=b.head))
 
     # The keep stands deepest in: the tile a besieger has to cross the most
     # wall to reach, and the furthest from the gate among those. A hall on
@@ -623,14 +626,17 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
     # but not in anybody else's, which is checked per yard below.
     taken = {(b.x, b.y) for b in plan.buildings}
     for shed in plan.buildings:
-        herd = HERDS.get(shed.key)
-        if herd is None or not shed.complete:
+        kind = HERDS.get(shed.key)
+        if kind is None or not shed.complete:
             continue
-        kind, head = herd
-        if settlement.raided:
-            head = RAIDED_HERD
-        elif not shed.running:
-            head = max(1, head // 3)
+        # The real head, rounded to whole animals, because half a sheep is
+        # not a thing you can draw. A yard with a tenth of a flock left
+        # shows one beast standing in an empty field, which is the picture
+        # a raid ought to leave behind it.
+        head = int(round(max(0.0, shed.head))) if shed.head >= 0 \
+            else C.HERD_FULL.get(shed.key, 0)
+        if head <= 0:
+            continue
         keeper = herders.get(shed.uid)
         # The ground a beast may stand on: near its own yard, and not under
         # anybody's roof. A pasture is one tile in a town this dense, so the

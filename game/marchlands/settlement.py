@@ -38,6 +38,15 @@ class BuildingInstance:
     staffed: int = 0            # workers actually present today
     throughput: float = 0.0     # 0..1, what it managed to run at today
     idle_reason: str = ""
+    #: Head of livestock standing in this yard, for the yards that keep any
+    #: -- see HERDS. Real stock rather than a number for the picture: what a
+    #: pasture makes is what its flock makes, so a flock driven off is a
+    #: pasture that yields nothing until it is bred back up.
+    #:
+    #: -1 means "not stocked yet": a yard that has just been finished fills
+    #: to its complement rather than starting empty, because you bought a
+    #: pasture and not a field.
+    head: float = -1.0
 
     @property
     def spec(self) -> Building:
@@ -49,12 +58,13 @@ class BuildingInstance:
 
     def to_dict(self) -> dict:
         return {"uid": self.uid, "key": self.key, "days_left": self.days_left,
-                "enabled": self.enabled}
+                "enabled": self.enabled, "head": self.head}
 
     @classmethod
     def from_dict(cls, d: dict) -> "BuildingInstance":
         return cls(uid=d["uid"], key=d["key"], days_left=d["days_left"],
-                   enabled=d.get("enabled", True))
+                   enabled=d.get("enabled", True),
+                   head=float(d.get("head", -1.0)))
 
 
 @dataclass
@@ -345,6 +355,7 @@ class Settlement:
         self._spoil(rep, mods)
         self._burn(rep, season, rng)
         self._sicken(rep, day)
+        self._herds(rep)
         self._stand_down(rep)
         self._mend_walls(rep, mods)
         rep.taxes = self._taxes()
@@ -495,6 +506,51 @@ class Settlement:
             return mods.mult("yield_craft")
         return 1.0
 
+    def _herds(self, rep: DayReport) -> None:
+        """The beasts: bred back when the yard is worked, driven off in a raid.
+
+        The reason this is stock rather than scenery. A raid used to cost
+        exactly as long as it lasted -- output fell while horsemen were in
+        the fields and was back to the day rate the morning they left -- so
+        the one thing everybody knows about a raid, that they went away with
+        your animals, was the one thing it did not do. Now they do, and a
+        pasture yields what its flock yields, so the bill arrives for a
+        season after the riders have gone.
+        """
+        for b in self.buildings:
+            full = C.HERD_FULL.get(b.key, 0)
+            if not full or not b.complete:
+                continue
+            if b.head < 0:
+                b.head = float(full)      # you bought a pasture, not a field
+                continue
+            if self.raided and self.raid_pressure > 0:
+                gone = b.head * C.HERD_DRIVEN * min(1.0, self.raid_pressure)
+                if gone >= 0.05:
+                    b.head = max(0.0, b.head - gone)
+                    rep.notes.append(
+                        f"{self.name}: {gone:.0f} head driven off the "
+                        f"{b.spec.name.lower()}")
+                continue
+            if not b.enabled:
+                # Shut by you. Nobody is watching them, so they stray, they
+                # are lifted, and the weak ones are not pulled through -- a
+                # pasture standing at half its head is one you turned off,
+                # and you can see that from the wall without a number.
+                #
+                # Only when it is shut, not merely short-handed today. Tied
+                # to `staffed` this bled a flock away over a long game: a
+                # town where labour is always short leaves a yard unmanned
+                # on plenty of mornings, and at that rate a pasture nobody
+                # had touched was empty inside two years.
+                b.head = max(0.0, b.head - C.HERD_STRAYS * full)
+                continue
+            if not b.staffed:
+                continue                  # short-handed today; they keep
+            if b.head < full * C.HERD_SEED:
+                continue                  # nothing left to breed from
+            b.head = min(float(full), b.head + C.HERD_BREEDS * full)
+
     def _produce(self, season: str, rep: DayReport, mods: Progress) -> None:
         prod = self.productivity(mods)
         for b in self.buildings:
@@ -507,6 +563,12 @@ class Settlement:
             staff_ratio = (b.staffed / spec.jobs) if spec.jobs else 1.0
             scale = (staff_ratio * prod * self._season_multiplier(spec, season)
                      * self._tech_multiplier(spec, mods))
+            # A pasture makes what its flock makes.
+            full = C.HERD_FULL.get(b.key, 0)
+            if full:
+                scale *= max(0.0, min(1.0, b.head / full)) if b.head >= 0 else 1.0
+                if scale <= 1e-9:
+                    b.idle_reason = "no beasts"
             if scale <= 0:
                 if prod <= 0:
                     b.idle_reason = "unrest"

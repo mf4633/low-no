@@ -153,7 +153,7 @@ class TestLayout(unittest.TestCase):
         for yard in yards:
             herd = [a for a in plan.beasts if a.at == yard.uid]
             self.assertTrue(herd, f"{yard.name} keeps no beasts")
-            self.assertEqual({a.kind for a in herd}, {HERDS[yard.key][0]})
+            self.assertEqual({a.kind for a in herd}, {HERDS[yard.key]})
 
     def test_the_beasts_keep_off_everybody_elses_roof(self):
         _g, s = grown()
@@ -164,37 +164,55 @@ class TestLayout(unittest.TestCase):
             self.assertIn(owner, (None, a.at),
                           f"a {a.kind} is standing on somebody else's roof")
 
-    def test_an_idle_yard_keeps_a_thinner_head(self):
+    def test_a_yard_you_shut_loses_its_head(self):
         """Honest rather than decorative: the flock is the yard's state.
 
-        A pasture nobody is working is a pasture that has been sold down, so
-        you can read the state of a yard off the ground in front of it
-        without a number or an icon.
+        This used to be true by construction -- the drawing asked whether the
+        yard was running and thinned the flock if it was not. The head is
+        real stock now, kept on the building and paid out by the economy, so
+        it has to be true for a reason instead: you shut the yard, nobody is
+        watching them, and they stray.
         """
         from marchlands.layout import HERDS
-        _g, s = grown()
+        g, s = grown()
         yards = [b for b in s.buildings if b.key in HERDS and b.complete]
         if not yards:
             self.skipTest("this town never built a pasture, dairy or stable")
-        uid = yards[0].uid
-        working = len([a for a in plan_for(s).beasts if a.at == uid])
+        yard = yards[0]
+        was = yard.head
+        self.assertGreater(was, 0)
         for b in s.buildings:
             b.enabled = False
-        s.tick("spring", random.Random(1))
-        idle = len([a for a in plan_for(s).beasts if a.at == uid])
-        self.assertGreater(working, idle,
-                           "an idle yard keeps as many beasts as a working one")
-        self.assertGreater(idle, 0, "an idle yard kept nothing at all")
+        for d in range(40):
+            s.tick("summer", random.Random(d), g.progress, day=g.day + d)
+        self.assertLess(yard.head, was,
+                        "forty days shut and the flock is untouched")
+        self.assertLess(
+            len([a for a in plan_for(s).beasts if a.at == yard.uid]),
+            int(round(was)))
 
     def test_a_raid_drives_them_off(self):
-        """The first thing a raid takes and the last thing it leaves."""
-        _g, s = grown()
+        """The first thing a raid takes and the last thing it leaves.
+
+        Through the raid actually happening rather than through the flag.
+        The drawing used to read `raided` and hide the beasts, so the field
+        emptied and filled again the moment the riders left. It empties now
+        because the fold emptied -- see tests/test_herds.py -- which means
+        this has to raid the town instead of labelling it.
+        """
+        g, s = grown()
         if not plan_for(s).beasts:
             self.skipTest("nothing to drive off")
-        s.raided = True
-        self.assertEqual(plan_for(s).beasts, [],
-                         "the country is being raided and the beasts are "
-                         "still standing in the field")
+        for d in range(16):
+            s.raided = True
+            s.raid_pressure = 0.9
+            s.tick("summer", random.Random(d), g.progress, day=g.day + d)
+        s.raided = False
+        s.raid_pressure = 0.0
+        self.assertEqual(
+            plan_for(s).beasts, [],
+            "a fortnight of horsemen in the fields and the beasts are still "
+            "standing in them")
 
     def test_clicking_a_beast_answers_off_the_town(self):
         from marchlands.web import beast

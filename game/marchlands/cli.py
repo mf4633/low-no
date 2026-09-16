@@ -2458,6 +2458,38 @@ class Console:
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(where, on))
 
+    def cmd_herds(self, args: List[str]) -> None:
+        """The beasts in your yards, and what it costs to put them back."""
+        g = self.game
+        want = [a.lower() for a in args]
+        if want and want[0] in ("buy", "restock", "stock"):
+            uid = next((int(a) for a in want if a.isdigit()), -1)
+            return self.say("  " + g.restock(self.here, uid))
+        rows = g.herds(self.here)
+        self.say(ink.head("THE YARDS", "what is standing in them"))
+        if not rows:
+            self.say("  " + ink.c("no pasture, dairy or stable here", ink.DIM))
+            return
+        for r in rows:
+            tint = (ink.LEAF if r["share"] > 0.75 else
+                    ink.GOLD if r["seed"] else ink.BLOOD)
+            tail = ("" if r["cost"] <= 0 else
+                    "   %d head short, %sc to buy in" % (
+                        r["full"] - round(r["head"]), f"{r['cost']:,}"))
+            self.say(f"  {ink.c(str(r['uid']) + '.', ink.DIM)} "
+                     + ink.c(ink.pad(r["name"], 18), ink.PARCH)
+                     + ink.c("%.0f of %d" % (r["head"], r["full"]), tint)
+                     + ink.c(tail, ink.DIM))
+            if not r["seed"]:
+                self.say("      " + ink.c("too few left to breed from -- this "
+                                          "one only comes back if you pay for "
+                                          "it", ink.BLOOD))
+        self.say("")
+        self.say("  " + ink.c(ink.pad("herds buy [n]", 22), ink.GOLD)
+                 + ink.c("drive beasts in to a yard", ink.DIM))
+        self.say("  " + ink.c("a raid takes them, and the wool stops with "
+                              "them", ink.DIM))
+
     def cmd_water(self, args: List[str]) -> None:
         """The rivers today, the road you asked about, and the bridges."""
         g = self.game
@@ -3450,6 +3482,9 @@ COMMANDS = {
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
     "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
     "gates": Console.cmd_gates, "quarantine": Console.cmd_gates,
+    "herds": Console.cmd_herds, "flock": Console.cmd_herds,
+    "beasts": Console.cmd_herds, "livestock": Console.cmd_herds,
+    "restock": Console.cmd_herds,
     "water": Console.cmd_water, "rivers": Console.cmd_water,
     "ford": Console.cmd_water, "fords": Console.cmd_water,
     "bridge": Console.cmd_water, "bridges": Console.cmd_water,

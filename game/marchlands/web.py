@@ -551,7 +551,17 @@ def beast(game, here: str, index: int) -> dict:
                      else "grazing, with nobody set to watch them"),
            "facts": [], "said": "",
            "home": yard.name if yard else "", "work": ""}
-    out["facts"].append({"k": "head", "v": f"{len(herd)} {a.kind}"})
+    inst = next((b for b in s.buildings if b.uid == a.at), None)
+    full = C.HERD_FULL.get(inst.key, 0) if inst is not None else 0
+    if full:
+        out["facts"].append(
+            {"k": "head", "v": f"{max(0.0, inst.head):.0f} of {full}"})
+        if inst.head >= 0 and inst.head < full * C.HERD_SEED:
+            out["facts"].append(
+                {"k": "too few", "v": "to breed from -- this flock only comes "
+                                      "back if you buy one in"})
+    else:
+        out["facts"].append({"k": "head", "v": f"{len(herd)} {a.kind}"})
     if yard is not None:
         if not yard.running:
             out["facts"].append(

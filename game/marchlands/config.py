@@ -19,6 +19,37 @@ FIELD_YIELD = {"winter": 0.35, "spring": 0.90, "summer": 1.40, "autumn": 1.15}
 # Orchards are a harvest, not a flow.
 ORCHARD_YIELD = {"winter": 0.00, "spring": 0.20, "summer": 1.10, "autumn": 2.30}
 
+# --- livestock --------------------------------------------------------------
+#
+# The yards that keep beasts, and how many a full one keeps. The picture
+# draws these, the pasture's yield is scaled by them, and a raid takes them:
+# one list, so what you can see and what you are paid cannot disagree.
+HERD_FULL = {"sheep_farm": 7, "dairy": 4, "stable": 3}
+#: Head a worked yard breeds back per day. A ewe is not a sack of wheat --
+#: measured against HERD_FULL this is about a season and a half to restock a
+#: pasture from empty, which is what makes a raid worth being angry about
+#: long after the riders have gone.
+HERD_BREEDS = 0.055
+#: And the share of what is standing that a day of raiding drives off. Over
+#: the dozen days a raid tends to last that is most of a flock, and it is
+#: the part of a raid that outlives it.
+HERD_DRIVEN = 0.22
+#: And what a yard you have shut loses a day. Nobody is watching them: they
+#: stray, they are lifted, and the weak ones are not pulled through. Slower
+#: than breeding, so a yard left alone drifts down rather than collapsing --
+#: which keeps the thing worth seeing, that a pasture standing at half its
+#: head is a pasture nobody has been working.
+HERD_STRAYS = 0.022
+#: Below this share of its complement a yard cannot breed back at all --
+#: there is no flock left to breed from, and it has to be restocked by hand.
+#: See GameState.restock: a rule that a flock cannot recover is only fair if
+#: there is a way to pay for one, and the first cut of this had the rule and
+#: not the lever, which is a pasture a raid destroys for good.
+HERD_SEED = 0.12
+#: Coin a head, to buy beasts in. Dear enough that losing a flock hurts and
+#: cheap enough that a raid is a bill rather than the end of a pasture.
+HERD_PRICE = {"sheep_farm": 34.0, "dairy": 62.0, "stable": 110.0}
+
 # --- labour and money -------------------------------------------------------
 WAGE = 2.5                  # coins per employed worker per day
 # Note: every base price in goods.py was set against this number. Move it and

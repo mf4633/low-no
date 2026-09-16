@@ -816,6 +816,56 @@ class GameState:
                         best = (stop.node, nxt.node, r)
         return best
 
+    def restock(self, settlement_key: str = "", uid: int = -1) -> str:
+        """Buy beasts in for a yard that has lost its flock.
+
+        The other half of a raid driving them off. A flock below its seed
+        share cannot breed back -- there is nothing left to breed from --
+        and a rule like that is only fair if there is a way to pay your way
+        out of it. This is the bill: so much a head, to fill the yard.
+        """
+        s = self.world.settlements.get(settlement_key or "") or self.home()
+        yards = [b for b in s.buildings
+                 if b.key in C.HERD_FULL and b.complete]
+        if uid >= 0:
+            yards = [b for b in yards if b.uid == uid]
+        elif yards:
+            # The emptiest one, because that is the one you meant.
+            yards = [min(yards, key=lambda b: b.head / C.HERD_FULL[b.key])]
+        if not yards:
+            return f"{s.name} has no pasture, dairy or stable to stock"
+        yard = yards[0]
+        full = C.HERD_FULL[yard.key]
+        want = full - max(0.0, yard.head)
+        if want < 0.5:
+            return f"the {yard.spec.name.lower()} at {s.name} is fully stocked"
+        price = C.HERD_PRICE.get(yard.key, 50.0)
+        bill = want * price
+        if self.treasury < bill:
+            return (f"{want:.0f} head for the {yard.spec.name.lower()} is "
+                    f"{bill:,.0f}c and you have {self.treasury:,.0f}c")
+        self.treasury -= bill
+        yard.head = float(full)
+        return (f"{want:.0f} head driven in to the "
+                f"{yard.spec.name.lower()} at {s.name} for {bill:,.0f}c")
+
+    def herds(self, settlement_key: str = "") -> List[dict]:
+        """Every yard that keeps beasts, and how it stands."""
+        s = self.world.settlements.get(settlement_key or "") or self.home()
+        out = []
+        for b in s.buildings:
+            full = C.HERD_FULL.get(b.key, 0)
+            if not full or not b.complete:
+                continue
+            head = max(0.0, b.head)
+            out.append({"uid": b.uid, "name": b.spec.name, "key": b.key,
+                        "head": round(head, 1), "full": full,
+                        "share": round(head / full, 3),
+                        "seed": head >= full * C.HERD_SEED,
+                        "cost": round((full - head)
+                                      * C.HERD_PRICE.get(b.key, 50.0))})
+        return out
+
     def bridges_of(self, owner: str = "player") -> List[waters.Bridge]:
         return [b for b in self.world.bridges if b.owner == owner]
 
