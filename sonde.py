@@ -79,7 +79,7 @@ CACHE = "cache"
 UA = {"User-Agent": "lowno (contact: github.com/mf4633)"}
 
 
-def _get(url, timeout=600, binary=False, tries=6):
+def _get(url, timeout=600, binary=False, tries=8):
     """Fetch with backoff. NCEI returns 503 routinely under load, and the first
     run of this file died outright on a single one -- every downstream step with
     it -- because there was no retry at all. city_regime.cached() already had
@@ -98,7 +98,7 @@ def _get(url, timeout=600, binary=False, tries=6):
         except Exception as e:
             last = str(e)[:80]
         if a < tries - 1:
-            w = min(90, 5 * (2 ** a))
+            w = min(120, 5 * (2 ** a))
             print(f"    {url.rsplit('/', 1)[-1]}: {last} -- backoff {w}s "
                   f"(attempt {a + 1}/{tries})", flush=True)
             time.sleep(w)
