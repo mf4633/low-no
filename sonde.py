@@ -322,8 +322,43 @@ def nearest_dump(city, n=10):
               f"{s_['first']:>7}{s_['last']:>6}")
 
 
+# RESOLVED SITES, pinned from the committed coverage run (sonde_coverage.txt /
+# docs/sonde_result.json, 2026-09-15). Generated from those files, not retyped.
+#
+# WHY PIN THEM. Three consecutive runs died because the 1 MB IGRA station list
+# 503'd, and the station list is METADATA -- site coordinates -- not the data
+# under test. Resolving a site that a committed run already resolved should not
+# require a network call that can take the whole measurement down with it. The
+# sounding archives still come from NCEI, so the primary test and its effect
+# size continue to read the SAME slice; only the lookup is pinned.
+#
+# It also makes the choice of site reproducible: a later change to IGRA's
+# station list cannot silently move a city onto a different sounding.
+RESOLVED = {
+    "ATL": ("USM00072215", 32.6),
+    "DAL": ("USM00072249", 25.3),
+    "DC": ("USM00072403", 37.7),
+    "LAS": ("USM00072388", 3.4),
+    "MIA": ("USM00072202", 10.9),
+    "MSP": ("USM00072649", 26.7),
+    "MSY": ("USM00072233", 56.5),
+    "OKC": ("USM00072357", 27.5),
+    "PHX": ("USM00074626", 6.0),
+    "SAN": ("USM00072293", 12.7),
+    "SFO": ("USM00072493", 19.3),
+}
+
+
 def igra_for_city(city, max_km=80.0):
-    """The nearest currently-reporting IGRA site, refused beyond `max_km`."""
+    """The nearest currently-reporting IGRA site, refused beyond `max_km`.
+
+    Uses the pinned RESOLVED table when the city is in it, and only falls back
+    to downloading the station list otherwise.
+    """
+    if city in RESOLVED:
+        sid, km = RESOLVED[city]
+        return dict(id=sid, name=f"{sid} (pinned)", elev=float("nan"),
+                    lat=None, lon=None, first=0, last=9999), km
     m = CITIES[city]
     stns = [s for s in station_list() if s["last"] >= 2025]
     best = min(stns, key=lambda s: haversine_km(m["lat"], m["lon"], s["lat"], s["lon"]))
@@ -544,14 +579,15 @@ def test_all(max_km=80.0):
     (no outcome has been seen); selecting on RESULT is not, and running all of
     them removes the question.
     """
-    stns = [x for x in station_list() if x["last"] >= 2025]
-    elig = []
-    for c in sorted(CITIES):
-        m = CITIES[c]
-        best = min(stns, key=lambda s: haversine_km(m["lat"], m["lon"], s["lat"], s["lon"]))
-        km = haversine_km(m["lat"], m["lon"], best["lat"], best["lon"])
-        if km <= max_km:
-            elig.append(c)
+    elig = [c for c in sorted(RESOLVED) if RESOLVED[c][1] <= max_km]
+    if not elig:
+        stns = [x for x in station_list() if x["last"] >= 2025]
+        for c in sorted(CITIES):
+            m = CITIES[c]
+            best = min(stns, key=lambda s: haversine_km(m["lat"], m["lon"],
+                                                        s["lat"], s["lon"]))
+            if haversine_km(m["lat"], m["lon"], best["lat"], best["lon"]) <= max_km:
+                elig.append(c)
     print(f"cities within {max_km:.0f} km of a reporting sounding: "
           f"{len(elig)} -- {', '.join(elig)}\n")
     res = {}

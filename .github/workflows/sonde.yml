@@ -22,6 +22,12 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: coverage -- which cities can even be reached
+        # DIAGNOSTIC, and non-fatal. It is the one step that still needs the IGRA
+        # station list, and three runs died here on a 503 before the measurement
+        # ever started. Its output is already committed and the resolved sites
+        # are pinned in sonde.RESOLVED, so a metadata outage must not take the
+        # test down with it.
+        continue-on-error: true
         run: |
           # tee TRUNCATES its target before the command runs, so a
           # failure would replace good committed output with a
@@ -29,6 +35,7 @@ jobs:
           python sonde.py --coverage 2>&1 | tee sonde_coverage.txt.new
           mv sonde_coverage.txt.new sonde_coverage.txt
       - name: diagnostic -- why DEN got a site 341 km away
+        continue-on-error: true
         run: |
           # tee TRUNCATES its target before the command runs, so a
           # failure would replace good committed output with a
