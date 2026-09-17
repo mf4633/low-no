@@ -1,68 +1,18 @@
 {
- "at": "2026-09-17T19:32:14.361413Z",
+ "at": "2026-09-17T20:33:41.115018Z",
  "traps": [
-  {
-   "city": "BOS",
-   "ceiling": 75,
-   "price": 24,
-   "p_model": 1.0,
-   "p_market": 0.24,
-   "edge_pts": 76.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 76 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "24c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "MSP",
-   "ceiling": 74,
-   "price": 8,
-   "p_model": 0.4391,
-   "p_market": 0.08,
-   "edge_pts": 35.9,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "NO_HISTORY",
-     "why": "n_eff=19.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
   {
    "city": "HOU",
    "ceiling": 87,
-   "price": 71,
+   "price": 55,
    "p_model": 1.0,
-   "p_market": 0.71,
-   "edge_pts": 29.0,
+   "p_market": 0.55,
+   "edge_pts": 45.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
@@ -74,7 +24,57 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "71c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "55c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 74,
+   "price": 4,
+   "p_model": 0.2255,
+   "p_market": 0.04,
+   "edge_pts": 18.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 2.4F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "BOS",
+   "ceiling": 75,
+   "price": 11,
+   "p_model": 0.2117,
+   "p_market": 0.11,
+   "edge_pts": 10.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "NO_HISTORY",
+     "why": "n_eff=19.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 1.1F short. The climb window has closed."
     }
    ]
   }
