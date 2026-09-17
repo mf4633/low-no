@@ -2359,3 +2359,77 @@ do not. Two corrections to what was assumed when this was proposed:
   `last >= 2025` filter was correct, not broken. Whether the site still flies
   and IGRA merely stopped ingesting it is a question about the ARCHIVE, not
   about Denver, and it is not answered here.
+
+## WITHIN-MONTH EFFECT SIZE (2026-09-17) -- and a correction to the section above
+
+Quartiles cut WITHIN each calendar month, so the confound is removed from the
+CUT and not only from the outcome. `sonde.py --effect`, output
+`sonde_effect.txt` / `docs/sonde_effect.json`. Validated on synthetics first: a
+pure seasonal spread confound with no within-month effect returns 1.037, a real
+within-month effect returns 3.832.
+
+| city | n | sd Q1 | sd Q4 | ratio | bootstrap 95% CI | tail Q1 | tail Q4 | Holm |
+|---|---|---|---|---|---|---|---|---|
+| MSY | 1421 | 5.42 | 7.92 | 1.462 | [1.32, 1.63] | 5.9% | 33.3% | no |
+| **OKC** | 1598 | 8.54 | 11.57 | **1.356** | **[1.22, 1.49]** | 13.8% | 47.9% | **YES** |
+| **DAL** | 1645 | 7.71 | 10.37 | **1.344** | **[1.21, 1.50]** | 12.2% | 42.0% | **YES** |
+| ATL | 1159 | 5.71 | 7.32 | 1.281 | [1.10, 1.45] | 5.8% | 40.0% | no |
+| MIA | 1307 | 3.50 | 4.33 | 1.239 | [1.03, 1.49] | 5.1% | 12.3% | no |
+| LAS | 1243 | 7.64 | 7.22 | 0.946 | [0.82, 1.04] | 24.8% | 34.8% | no |
+| MSP | 1282 | 10.18 | 9.50 | 0.933 | [0.84, 1.03] | 16.3% | 46.4% | no |
+| DC | 1671 | 8.70 | 7.82 | 0.899 | [0.82, 0.99] | 16.8% | 44.3% | no |
+| **SFO** | 1640 | 7.03 | 4.64 | **0.659** | **[0.58, 0.75]** | 14.7% | 21.4% | no |
+| **SAN** | 1619 | 6.04 | 3.06 | **0.506** | **[0.45, 0.60]** | 10.0% | 14.0% | no |
+
+## CORRECTION -- "the seductive table is the confounded one" was WRONG
+
+The section above asserted that DAL's 11.5% -> 42.9% left tail was "largely
+seasonal" because the quartiles were cut on raw Q2000. **Month-controlling
+barely moves it: 12.2% -> 42.0%.** The tail effect at DAL was robust all along
+and the confounding claim was mine, asserted without checking. What was actually
+harsh was the Spearman permutation, and the reason ATL failed it at p = 0.106
+while showing a clean within-month ratio of 1.281 [1.10, 1.45] is POWER -- a
+rank correlation across the pooled Q2000 range is a weak instrument for what is
+really a tails contrast.
+
+## THE TAIL COLUMN MIXES A MEAN SHIFT IN. MSP proves it.
+
+MSP's tail rate nearly TRIPLES, 16.3% -> 46.4%, while its sd ratio is 0.933 --
+no widening at all. `P(dev <= -5F)` rises when the mean shifts DOWN as readily
+as when the spread grows, so at MSP a strong cap makes the day colder rather
+than less certain. The sd ratio is the clean variance measure; the tail column
+is a mean-and-variance mixture and must not be read as spread.
+
+## Five CIs exclude 1.00, not two -- and that changes nothing registered
+
+MSY, OKC, DAL, ATL and MIA all have ratio CIs above 1.00, against the two
+cities that survived Holm on the primary. That is a power story, not a licence:
+the primary test was registered with its statistic, its null and its family
+correction fixed in advance, and the effect size is DESCRIPTION computed
+afterwards with no p-value of its own. **The registered result remains 2 of 10.**
+Reporting five because the follow-up looks better is the exact move the
+pre-specification exists to prevent.
+
+## The marine inversion is not weakness, it is a strong signal pointing the other way
+
+SAN's high-cap days carry **half** the spread of its low-cap days in the same
+month (6.04 -> 3.06), and SFO's about two-thirds (7.03 -> 4.64), both with CIs
+nowhere near 1.00. A strong marine inversion does not make the day uncertain --
+it makes it the most PREDICTABLE kind of day there is at those stations.
+
+## WHY THIS STILL DOES NOT REACH prob.py -- the units are not the same quantity
+
+The deciding caveat, and it is easy to miss because the ratios look actionable:
+
+    the sd measured here is the spread of the CLI high around ITS OWN MONTHLY
+    MEAN -- 3 to 11 F. `prob.py`'s sigma is a FORECAST-ERROR sigma, the spread
+    of settle around the guide, and runs 1.5 to 2.2 F.
+
+These are different quantities. This result says cap strength predicts how far
+a day lands from CLIMATOLOGY. It does not say cap strength predicts how far a
+day lands from the NBM, and the NBM already absorbs most of that day-to-day
+variation -- soundings are assimilated into every run that feeds it.
+
+The bridge is the `|settle - guide|` version of the test, and it has ~38 logged
+days. Under-powered by a wide margin. **Until that is measured, nothing here
+licenses a per-day sigma**, and `MARINE = {SFO, LAX, SAN}` stands.
