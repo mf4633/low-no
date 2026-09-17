@@ -144,6 +144,17 @@ class TestTheRide(unittest.TestCase):
         self.assertNotEqual(g.lord.name, was, "the heir is named")
         self.assertTrue(any("cut down at the head" in ln for ln in g.pending.lord_lines))
 
+    def test_the_heir_does_not_inherit_the_wound(self):
+        # Abed in the baggage when the host broke, and fell with it: the son
+        # raised in his place is a whole man, not one with weeks left in bed.
+        g, a, town = storm(garrison=BIG)
+        g.lord.wounded = 30
+        g.lord.alive = False
+        g.lord.heir_days = 1
+        said = " ".join(g.lord.day())
+        self.assertIn("raised in his father's place", said)
+        self.assertEqual((g.lord.wounded, g.lord.hits), (0, 0))
+
     def test_the_aftermath_says_what_his_hand_did(self):
         g, a, town = storm(garrison=BIG)
         g.battle_step("ride", "2 0")

@@ -9,6 +9,7 @@ tomorrow rather than rewriting today.
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import random
@@ -4615,6 +4616,13 @@ class GameState:
 
     @classmethod
     def from_dict(cls, d: dict) -> "GameState":
+        # The save is read, not taken. Readers below keep lists and dicts
+        # from `d` by reference where copying them would be busywork, which
+        # is fine for a file read once and wrong for a dict loaded twice:
+        # two games built from one dict shared their stock and their
+        # history and drifted apart by the second morning. One copy here
+        # keeps every reader honest without each having to remember.
+        d = copy.deepcopy(d)
         g = cls(world=World.from_dict(d["world"]), treasury=d["treasury"],
                 day=d["day"], seed=d["seed"], house=d.get("house", ""),
                 goals=Goals.from_dict(d.get("goals", {})),

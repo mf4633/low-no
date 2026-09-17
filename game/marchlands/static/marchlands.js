@@ -3272,6 +3272,8 @@ function paintWater(v) {
  */
 let battleNow = null, battleWas = null, battleAnim = null, battleDrops = [];
 
+let battleShut = '';        // the finished fight the player has already closed
+function battleKey(v) { return v ? `${v.kind}|${v.title}|${v.day}` : ''; }
 function paintBattle(v) {
   const box = $('battle');
   if (!v) {
@@ -3281,6 +3283,9 @@ function paintBattle(v) {
     if (!(battleNow && battleNow.over)) { battleNow = null; box.hidden = true; }
     return;
   }
+  // Closed by the player, and a poll that left before the close landed
+  // has just brought the finished fight back. It stays closed.
+  if (v.over && battleKey(v) === battleShut) return;
   const opening = box.hidden;
   battleWas = battleNow; battleNow = v;
   box.hidden = false;
@@ -3536,6 +3541,7 @@ $('battle-order').addEventListener('change', e => {
   if (e.target.value) send(`battle order ${e.target.value}`);
 });
 $('battle-close').addEventListener('click', () => {
+  battleShut = battleKey(battleNow);
   battleNow = null; battleDrops = []; $('battle').hidden = true;
   send('battle close');
 });

@@ -505,6 +505,10 @@ def caravan_to_dict(c: Caravan) -> dict:
 
 
 def caravan_from_dict(d: dict) -> Caravan:
+    # A copy, because this reads a save and must not eat it: loading the
+    # same dict twice used to give a second game whose carts had no cargo,
+    # no route and no memory -- the first load had popped them out.
+    d = dict(d)
     route = [Stop.from_dict(s) for s in d.pop("route", [])]
     cargo = dict(d.pop("cargo", {}))
     log = list(d.pop("log", []))

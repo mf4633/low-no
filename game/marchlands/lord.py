@@ -108,6 +108,10 @@ class Lord:
         self.alive = True
         self.captured = False
         self.riding = 0
+        # A new man: his father's wound and his father's blows are buried
+        # with his father.
+        self.wounded = 0
+        self.hits = 0
         return [f"*** {self.name} is raised in his father's place. ***"]
 
     def cannot_ride(self) -> str:
