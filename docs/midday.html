@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOW-NO MIDDAY HIGHS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFAF6; --ink:#20242A; --faint:#6B7078; --rule:#D8D6CE;
+    --win:#0B6B4F; --miss:#A4382E; --hold:#8A6D1C; --band:#EFEDE5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#16181B; --ink:#E7E5DE; --faint:#9A9C98; --rule:#33363B;
+           --win:#4FB08D; --miss:#D97C6E; --hold:#C8A64B; --band:#1E2125; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:14px/1.55 "IBM Plex Mono",ui-monospace,monospace}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 16px 80px}
+  h1{font-size:15px;letter-spacing:.14em;margin:0 0 4px}
+  .sub{color:var(--faint);font-size:12px;margin:0 0 22px}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
+  th{text-align:right;color:var(--faint);font-weight:400;padding:6px 8px;
+     border-bottom:1px solid var(--rule);white-space:nowrap}
+  td{padding:7px 8px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child,th.l,td.l{text-align:left}
+  tr.inwin td{background:var(--band)}
+  .best{font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .tag{font-size:11px;padding:1px 6px;border:1px solid currentColor;border-radius:2px}
+  .usenws{color:var(--miss)} .edge{color:var(--win)} .win{color:var(--hold)}
+  .faint{color:var(--faint)}
+  .notes{color:var(--faint);font-size:12px;margin-top:22px}
+  .notes p{margin:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MIDDAY HIGHS · OURS vs NWS vs OPEN-METEO</h1>
+  <p class="sub" id="sub">loading latest scan…</p>
+  <div class="scroll"><table>
+    <thead><tr>
+      <th>city</th><th>local</th><th>scan age</th><th>obs max</th><th>now</th>
+      <th>ours</th><th>NWS</th><th>O-M</th><th class="l">market fav</th><th class="l">trust</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+  <div class="notes">
+    <p><b>ours</b> = max(observed max so far, rest of the Open-Meteo hourly curve). Before today's obs bind it IS Open-Meteo, cold bias included.</p>
+    <p>Shaded rows are in the 10:00–12:59 local window, the only window where this comparison is a real forecast (after 13:00 ours wins everywhere only because the max is already observed — the market sees that too).</p>
+    <p><span class="tag usenws">use NWS</span> Open-Meteo ran 1.7–2.8°F cold; ours lost 0.5–1.2°F to NWS at 10–12 local.
+       <span class="tag edge">ours edged</span> beat both by 0.1–0.2°F at 10–12 local (22 days, within noise).
+       Scored 2026-09-18 against CLI settlements; not re-fitted since.</p>
+    <p>No CLI offset applied (DEN settles ~+1°F over the hourly-print max). Refreshes every 5 min; the scan itself updates ~every 55 min.</p>
+  </div>
+</div>
+<script>
+const USE_NWS=new Set(["PHL","TTN","OKC","AUS","DAL","MIA"]);
+const EDGED=new Set(["BOS","CHI","LAX"]);
+const TZ={AUS:"America/Chicago",DAL:"America/Chicago",SAT:"America/Chicago",HOU:"America/Chicago",
+  MSY:"America/Chicago",CHI:"America/Chicago",MSP:"America/Chicago",OKC:"America/Chicago",
+  DEN:"America/Denver",PHX:"America/Phoenix",LAS:"America/Los_Angeles",LAX:"America/Los_Angeles",
+  SFO:"America/Los_Angeles",SAN:"America/Los_Angeles",SEA:"America/Los_Angeles"};
+const tz=c=>TZ[c]||"America/New_York";
+const localHour=(c,d)=>+new Intl.DateTimeFormat("en-US",{timeZone:tz(c),hour:"numeric",hourCycle:"h23"}).format(d);
+const localHM=(c,d)=>new Intl.DateTimeFormat("en-US",{timeZone:tz(c),hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(d);
+const f1=v=>typeof v==="number"?v.toFixed(1):"–";
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+
+function bracket(r){
+  if(r.fl==null&&r.cap!=null) return "≤"+r.cap;
+  if(r.cap==null&&r.fl!=null) return "≥"+r.fl;
+  return r.fl+"–"+r.cap;
+}
+function fav(rungs){
+  if(!Array.isArray(rungs)||!rungs.length) return null;
+  let best=null;
+  for(const r of rungs){
+    const p=(typeof r.yb==="number"&&typeof r.ya==="number")?(r.yb+r.ya)/2:(r.ya??r.yb);
+    if(typeof p!=="number") continue;
+    if(!best||p>best.p) best={p,label:bracket(r)};
+  }
+  return best;
+}
+
+async function load(){
+  const now=new Date();
+  const day=now.toISOString().slice(0,10);
+  const url=`https://raw.githubusercontent.com/mf4633/low-no/main/logs/${day}.jsonl?cb=${Date.now()}`;
+  let text;
+  try{ const r=await fetch(url); if(!r.ok) throw new Error(r.status); text=await r.text(); }
+  catch(e){ document.getElementById("sub").textContent=`no scan log for ${day} yet (${e.message})`; return; }
+  const fc={}, lad={};
+  for(const line of text.split("\n")){
+    if(!line) continue;
+    let r; try{ r=JSON.parse(line); }catch{ continue; }
+    const d=r.detail, c=r.city;
+    if(!c||!d||typeof d!=="object") continue;
+    if(d.forecasts&&(!fc[c]||r.at>fc[c].at)) fc[c]={at:r.at,d};
+    if(d.rungs&&(!lad[c]||r.at>lad[c].at)) lad[c]={at:r.at,d};
+  }
+  const rows=[]; let newest="";
+  for(const c of Object.keys(fc)){
+    const {at,d}=fc[c]; if(at>newest) newest=at;
+    const t=new Date(at+"Z"), h=localHour(c,now);
+    const cur=d.airmass&&d.airmass.curve;
+    let ours=null;
+    if(cur){
+      const hScan=localHour(c,t);
+      const rest=Object.entries(cur).filter(([k])=>+k>=hScan).map(([,v])=>v);
+      const rm=typeof d.run_max==="number"?d.run_max:-Infinity;
+      ours=Math.max(rm,...(rest.length?rest:[-Infinity]));
+      if(!isFinite(ours)) ours=null;
+    }
+    const nws=d.forecasts.nws_grid, om=d.forecasts.om_best;
+    const f=fav(lad[c]&&lad[c].d.rungs);
+    const trust=USE_NWS.has(c)?'<span class="tag usenws">use NWS</span>':EDGED.has(c)?'<span class="tag edge">ours edged</span>':"";
+    const ageMin=Math.round((now-t)/60000);
+    rows.push({c,h,html:`<tr class="${h>=10&&h<13?"inwin":""}">
+      <td><b>${esc(c)}</b></td><td>${localHM(c,now)}</td><td class="faint">${ageMin}m</td>
+      <td>${f1(d.run_max)}</td><td>${f1(d.temp_now)}</td>
+      <td class="${USE_NWS.has(c)?"":"best"}">${f1(ours)}</td>
+      <td class="${USE_NWS.has(c)?"best":""}">${f1(nws)}</td><td>${f1(om)}</td>
+      <td class="l">${f?esc(f.label)+' <span class="faint">'+Math.round(f.p)+'¢</span>':"–"}</td>
+      <td class="l">${trust}</td></tr>`});
+  }
+  // in-window cities first, then by local hour
+  rows.sort((a,b)=>((b.h>=10&&b.h<13)-(a.h>=10&&a.h<13))||(b.h-a.h)||a.c.localeCompare(b.c));
+  document.getElementById("rows").innerHTML=rows.map(r=>r.html).join("");
+  const inwin=rows.filter(r=>r.h>=10&&r.h<13).map(r=>r.c);
+  document.getElementById("sub").textContent=
+    `latest scan ${newest.slice(11,16)}Z · ${rows.length} cities · in 10–13 local window now: ${inwin.join(", ")||"none"} · page loaded ${now.toLocaleTimeString()}`;
+}
+load(); setInterval(load,5*60*1000);
+</script>
+</body>
+</html>
