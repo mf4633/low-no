@@ -1,22 +1,26 @@
 {
- "at": "2026-09-18T21:41:23.253129Z",
+ "at": "2026-09-18T21:49:39.910776Z",
  "traps": [
   {
    "city": "SAT",
    "ceiling": 95,
    "price": 1,
-   "p_model": 0.0116,
+   "p_model": 0.0148,
    "p_market": 0.01,
-   "edge_pts": 0.2,
-   "size_lcb": 0.0008,
+   "edge_pts": 0.5,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-8F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=19.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "PAST_PEAK",
