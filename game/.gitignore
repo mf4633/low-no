@@ -4,6 +4,10 @@ dist/
 *.egg-info/
 
 # Saves and campaigns a player makes while playing out of the source tree.
+# The autosave belongs here too: `--autosave FILE` writes one every day, so
+# anybody who plays or tests from the source tree leaves one lying about.
 *.save
+*.autosave
 *.campaign
 marchlands.save
+marchlands.autosave
