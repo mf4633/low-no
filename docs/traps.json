@@ -1,13 +1,13 @@
 {
- "at": "2026-09-18T14:19:01.980960Z",
+ "at": "2026-09-18T15:20:51.074736Z",
  "traps": [
   {
    "city": "SAT",
    "ceiling": 95,
-   "price": 18,
-   "p_model": 0.9348,
-   "p_market": 0.18,
-   "edge_pts": 75.5,
+   "price": 13,
+   "p_model": 0.4192,
+   "p_market": 0.13,
+   "edge_pts": 28.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,26 +16,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 75 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
      "why": "n_eff=19.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
-    }
-   ]
-  },
-  {
-   "city": "CHI",
-   "ceiling": 69,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
