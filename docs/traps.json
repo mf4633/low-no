@@ -1,5 +1,25 @@
 {
- "at": "2026-09-18T23:01:08.858474Z",
- "traps": [],
+ "at": "2026-09-18T23:26:15.202841Z",
+ "traps": [
+  {
+   "city": "SEA",
+   "ceiling": 68,
+   "price": 68,
+   "p_model": 0.7925,
+   "p_market": 0.68,
+   "edge_pts": 11.2,
+   "size_lcb": 0.1484,
+   "signals": [
+    {
+     "code": "GRAVEYARD",
+     "why": "68c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 0.0F short. The climb window has closed."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
