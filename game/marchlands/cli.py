@@ -2121,7 +2121,9 @@ class Console:
         g = self.game
         econ, a = g.economy, g.accounts
         self.say(ink.head("THE ACCOUNTS", f"{a.cpi:,.0f} on the index"))
-        year = econ.at(int(C.DAYS_PER_YEAR)) or econ.at(len(econ.series) - 1)
+        # A year back if there is a year; otherwise the oldest day there is,
+        # and on the first morning there is none at all.
+        year = econ.at(int(C.DAYS_PER_YEAR)) or econ.at(max(0, len(econ.series) - 1))
         real_purse = 100.0 * g.treasury / max(a.cpi, 1e-9)
         rows = [
             ("prices", f"{a.cpi:,.0f}", "100 is every good at what it is worth",
@@ -3541,7 +3543,15 @@ def _level(text: str, labels: Dict[int, str]) -> int:
     for k, v in labels.items():
         if v == t:
             return k
-    n = int(text)
+    # A word that is not one of the labels is the likeliest thing a player
+    # types here -- `ration full` rather than `ration double` -- and it used
+    # to answer with `invalid literal for int() with base 10: 'full'`, which
+    # is Python talking to a player. Say what the dial takes instead.
+    try:
+        n = int(text)
+    except ValueError:
+        raise ValueError(f"no setting called {text!r}; "
+                         f"try {', '.join(labels.values())}") from None
     if n not in labels:
         raise ValueError(f"level must be one of {sorted(labels)} or "
                          f"{', '.join(labels.values())}")

@@ -207,7 +207,14 @@ class Economy:
         return Accounts.from_dict(self.series[-1]) if self.series else Accounts()
 
     def at(self, days_ago: int) -> Optional[Accounts]:
-        if len(self.series) <= days_ago:
+        """The accounts as they stood that many days back, or None.
+
+        Negative is None too. It looks like a caller's problem and it is,
+        but `at(-1)` indexed off the end of an empty series and handed the
+        player `list index out of range` the first time he asked for the
+        accounts in a game that had not had a day yet.
+        """
+        if days_ago < 0 or len(self.series) <= days_ago:
             return None
         return Accounts.from_dict(self.series[-1 - days_ago])
 

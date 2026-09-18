@@ -275,6 +275,15 @@ class ForeignTown:
                 "signed": self.signed,
                 "sworn_friend": self.sworn_friend,
                 "prosperity": self.prosperity, "harbour": self.harbour,
+                # The day this lord last sent men to a shrine. `from_dict`
+                # has always been ready to read it and nothing ever wrote
+                # it, so every lord came back off a save believing he had
+                # never sent any -- and sent a party the next morning. It
+                # looks derived, in the way `raid_heat` and yesterday's
+                # hands look derived, and it is not: it gates a decision
+                # taken days later, which is the whole class of bug this
+                # file keeps relearning.
+                "last_pilgrimage": self.last_pilgrimage,
                 "sick": self.sick.to_dict(), "last_sick": self.last_sick}
 
     @classmethod
@@ -624,13 +633,36 @@ class World:
                 "river_lines": [r.to_dict() for r in self.river_lines],
                 "bridges": [b.to_dict() for b in self.bridges],
                 "river_seed": self.river_seed,
+                # The order the places were laid down in, kept as a list of
+                # its own. A dict rebuilt from JSON comes back in the order
+                # the keys sit in the file, and the day walks the towns in
+                # that order -- so a save run through any pretty-printer
+                # that sorts keys came back a different campaign: another
+                # town caught the shock, another lord took offence first,
+                # and every seeded thing behind them moved. The state was
+                # never the hard part of saving a game; this is the same
+                # lesson as the stream positions, one layer down.
+                "order": {"settlements": list(self.settlements),
+                          "towns": list(self.towns)},
                 "next_bridge": self._next_bridge}
 
     @classmethod
     def from_dict(cls, d: dict) -> "World":
         w = cls()
-        w.settlements = {k: Settlement.from_dict(v) for k, v in d["settlements"].items()}
-        w.towns = {k: ForeignTown.from_dict(v) for k, v in d["towns"].items()}
+        order = d.get("order", {})
+
+        def laid_out(raw: dict, kept) -> list:
+            """The keys in the order they were laid down, then any the save
+            order does not mention -- a save from before this was written
+            keeps the order its file happens to have, which is what it had
+            before, so nothing moves under an old game."""
+            named = [k for k in kept if k in raw]
+            return named + [k for k in raw if k not in set(named)]
+
+        w.settlements = {k: Settlement.from_dict(d["settlements"][k])
+                         for k in laid_out(d["settlements"], order.get("settlements", []))}
+        w.towns = {k: ForeignTown.from_dict(d["towns"][k])
+                   for k in laid_out(d["towns"], order.get("towns", []))}
         w.coords = {k: tuple(v) for k, v in d["coords"].items()}
         w.sites = {k: Site(**v) for k, v in d.get("sites", {}).items()}
         w.shrines = {k: Shrine.from_dict(v) for k, v in d.get("shrines", {}).items()}
