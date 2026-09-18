@@ -1,22 +1,18 @@
 {
- "at": "2026-09-18T18:32:46.245902Z",
+ "at": "2026-09-18T19:35:49.955803Z",
  "traps": [
   {
-   "city": "SAT",
-   "ceiling": 95,
-   "price": 3,
-   "p_model": 0.5852,
-   "p_market": 0.03,
-   "edge_pts": 55.5,
-   "size_lcb": 0.0,
+   "city": "DAL",
+   "ceiling": 96,
+   "price": 98,
+   "p_model": 1.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
+   "size_lcb": 0.0442,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 56 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "NO_HISTORY",
