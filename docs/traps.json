@@ -1,30 +1,60 @@
 {
- "at": "2026-09-17T23:23:38.142298Z",
+ "at": "2026-09-18T11:22:31.061259Z",
  "traps": [
   {
-   "city": "MSP",
-   "ceiling": 74,
-   "price": 1,
-   "p_model": 0.209,
-   "p_market": 0.01,
-   "edge_pts": 19.9,
+   "city": "SAT",
+   "ceiling": 95,
+   "price": 22,
+   "p_model": 0.7371,
+   "p_market": 0.22,
+   "edge_pts": 51.7,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 52 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "NO_HISTORY",
-     "why": "n_eff=19.3 settled days at this station -- the probability rests on a diffuse prior, not observation."
+     "why": "n_eff=19.9 settled days at this station -- the probability rests on a diffuse prior, not observation."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.6F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "22c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "MIA",
+   "ceiling": 84,
+   "price": 95,
+   "p_model": 0.9729,
+   "p_market": 0.95,
+   "edge_pts": 2.3,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "CHI",
+   "ceiling": 69,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
