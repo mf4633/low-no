@@ -1,4 +1,4 @@
-settlements: 845 cached, 3 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 845 cached, 0 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
 om_gfs        8099    27  -0.60  1.71  2.22    68%
 om_best       6670    27  -0.63  1.73  2.24    68%
@@ -57,7 +57,7 @@ station guide bias (guide - CLI): {'LAX': -2.81, 'NYC': 1.44, 'OKC': -1.08, 'BOS
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-18': 1} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
 
@@ -68,7 +68,7 @@ PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [####################] 42/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
   H4b   market lag on curve_dev    [####################] 581/200 events  +22/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 34/60 city-day units  +supply only; scoring waits on H4a (17 days since 2026-09-01)
+  H5    contested band 81-95c (blocked on H4a) [....................] 34/60 city-day units  +supply only; scoring waits on H4a (18 days since 2026-09-01)
   H6    market prices off the stale print [#########...........] 98/200 print transitions  +14/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
   H8    run_max/temp_now gap (H4a x H7) [#######.............] 57/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
