@@ -19501,9 +19501,268 @@
      "attribution": "WIN"
     }
    ]
+  },
+  {
+   "date": "2026-09-19",
+   "flags": [
+    {
+     "date": "2026-09-19",
+     "city": "NYC",
+     "station": "KNYC",
+     "verdict": "DEAD_SCAVENGE",
+     "detail": {
+      "ticker": "KXHIGHNY-26SEP19-T69",
+      "ceiling": 68,
+      "no_ask": 0.98,
+      "quote_src": "native",
+      "yes_bid": 2,
+      "run_max": 69.08,
+      "guide": 71,
+      "pop": 0,
+      "upstream": {
+       "city": "NYC",
+       "status": "ok",
+       "upwind_bearing": 50,
+       "target_temp_f": 64.9,
+       "target_dew_f": 50.0,
+       "wind_mps": 12.96,
+       "upstream": [
+        {
+         "station": "KBDR",
+         "ts": "2026-09-19T11:00:00+00:00",
+         "temp_f": 60.8,
+         "dew_f": 42.8,
+         "wind_dir": null,
+         "wind_mps": null,
+         "km": 82.7,
+         "bearing": 58.5,
+         "name": "Bridgeport, Sikorsky Memorial Airport"
+        },
+        {
+         "station": "KHPN",
+         "ts": "2026-09-19T11:00:00+00:00",
+         "temp_f": 59.0,
+         "dew_f": 44.6,
+         "wind_dir": 20,
+         "wind_mps": 9.252,
+         "km": 38.6,
+         "bearing": 35.1,
+         "name": "White Plains - Westchester County Airport"
+        },
+        {
+         "station": "KDXR",
+         "ts": "2026-09-19T11:00:00+00:00",
+         "temp_f": 57.2,
+         "dew_f": null,
+         "wind_dir": 50,
+         "wind_mps": 7.416,
+         "km": 77.4,
+         "bearing": 31.5,
+         "name": "Danbury, Danbury Municipal Airport"
+        }
+       ],
+       "max_upstream_temp_f": 60.8,
+       "advection_potential_f": -4.1,
+       "dew_differential_f": -5.4,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "BKN",
+       "base_ft": 5512,
+       "layers": [
+        {
+         "amount": "BKN",
+         "base_ft": 5512
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 69.08,
+       "source": "fivemin",
+       "n_metar": 4,
+       "n_obs": 6
+      },
+      "sst": {
+       "buoy": "44065",
+       "sst_f": 72.3,
+       "obs_utc": "2026-09-19T11:00"
+      },
+      "forecasts": {
+       "nws_grid": 71.0,
+       "om_best": 71.6,
+       "om_ecmwf": 72.3,
+       "om_gfs": 71.6,
+       "om_icon": 70.8,
+       "om_metno": 73.1
+      },
+      "airmass": {
+       "t850_max_f": 51.8,
+       "z500_max_m": 5860,
+       "soil_m3m3": 0.325,
+       "curve": {
+        "0": 71.2,
+        "1": 68.4,
+        "2": 65.3,
+        "3": 63.7,
+        "4": 62.0,
+        "5": 61.0,
+        "6": 59.0,
+        "7": 57.8,
+        "8": 59.1,
+        "9": 60.9,
+        "10": 63.1,
+        "11": 64.6,
+        "12": 66.2,
+        "13": 67.5,
+        "14": 69.0,
+        "15": 70.7,
+        "16": 71.6,
+        "17": 70.9,
+        "18": 68.9,
+        "19": 67.3,
+        "20": 64.2,
+        "21": 63.2,
+        "22": 63.5,
+        "23": 63.5
+       },
+       "curve_max_f": 71.6
+      },
+      "temp_now": 64.9,
+      "curve_pred_now": 57.8,
+      "curve_dev": 7.1,
+      "run_max_nowcast": 69.08,
+      "nowcast_detail": {
+       "nowcast_f": 63.86,
+       "last_print_f": 64.94,
+       "last_print_at": "2026-09-19T09:51Z",
+       "stale_min": 87,
+       "n_neighbours": 5,
+       "n_expected": 5,
+       "quality": "full",
+       "as_of": "2026-09-19T11:00Z",
+       "age_of_estimate_min": 18,
+       "sd_f": 1.03,
+       "ci95_lo": 61.8,
+       "ci95_hi": 65.92,
+       "window_min": 69,
+       "aligned_to": "2026-09-19T11:00Z",
+       "spread_f": 0.69,
+       "dropped": null
+      },
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 98,
+       "depth_at_best": 1867,
+       "depth_le_max": 1867,
+       "notional_le_max": 1829.66,
+       "levels": [
+        [
+         98,
+         1867
+        ]
+       ],
+       "yes_best_ask": 3,
+       "yes_ctr_le_10c": 737,
+       "yes_usd_le_10c": 46.41
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-09-19T09:51:00+00:00",
+         "tC": 18.3
+        },
+        {
+         "ts": "2026-09-19T08:51:00+00:00",
+         "tC": 18.3
+        },
+        {
+         "ts": "2026-09-19T07:51:00+00:00",
+         "tC": 18.9
+        },
+        {
+         "ts": "2026-09-19T06:51:00+00:00",
+         "tC": 19.4
+        },
+        {
+         "ts": "2026-09-19T05:51:00+00:00",
+         "tC": 19.4
+        },
+        {
+         "ts": "2026-09-19T04:51:00+00:00",
+         "tC": 20.6
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHNY-26SEP19-T76",
+         "cap": null,
+         "floor": 77,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHNY-26SEP19-T69",
+         "cap": 68,
+         "floor": null,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHNY-26SEP19-B75.5",
+         "cap": 76,
+         "floor": 75,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHNY-26SEP19-B73.5",
+         "cap": 74,
+         "floor": 73,
+         "no_ask": 93,
+         "yes_bid": 7
+        },
+        {
+         "ticker": "KXHIGHNY-26SEP19-B71.5",
+         "cap": 72,
+         "floor": 71,
+         "no_ask": 44,
+         "yes_bid": 56
+        },
+        {
+         "ticker": "KXHIGHNY-26SEP19-B69.5",
+         "cap": 70,
+         "floor": 69,
+         "no_ask": 73,
+         "yes_bid": 27
+        }
+       ],
+       "wx": "Mostly Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 1.0,
+       "p_source": "blend(w_emp=0.0)",
+       "p_empirical": 1.0,
+       "emp_n": null,
+       "sigma": 1.97,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "OVERRIDE_TO_PASS",
+      "confidence": 0.82,
+      "p_exceed": 0.72,
+      "reasoning": "Position wins only if max EXCEEDS 68F. Current temp is 64.9F at 09:51Z with a COOLING trend (20.6C at 04:51Z \u2192 18.3C at 09:51Z). BKN055-060 marine layer suppressing insolation with ENE flow advecting cold upstream air (KBDR 60.8F, KHPN 59.0F, advection_potential -4.1F). Curve model peaks at 71.6F but the actual tape shows temps FALLING through the morning against a rising curve expectation\u2014curve_dev of +7.1F means current obs are already 7F BELOW the modeled curve. The B69.5 market at 27 YES / 73 NO (fair shot but not near-certain) and run_max already 69.08F offers some comfort, but the suppressed and falling morning trend with persistent marine deck argues the day struggles to decisively clear 68F. Not near-certain enough to concur at 98c ask.",
+      "watch": "BKN base rising above 7000ft AND temp print >= 68F before 14:00Z local would flip to CONCUR"
+     },
+     "settle": null,
+     "attribution": "UNGRADED"
+    }
+   ]
   }
  ],
- "generated": "2026-09-19T08:58:28.752405Z",
+ "generated": "2026-09-19T11:56:03.540960Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24"
