@@ -1,5 +1,62 @@
 {
- "at": "2026-09-18T23:26:15.206685Z",
- "tracked": [],
+ "at": "2026-09-19T11:23:38.660135Z",
+ "tracked": [
+  {
+   "city": "NYC",
+   "station": "KNYC",
+   "ticker": "KXHIGHNY-26SEP19-T69",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 68,
+   "run_max": 69.08,
+   "gap_to_clear": -1.1,
+   "already_cleared": true,
+   "guide": 71,
+   "pop": 0,
+   "no_ask": 0.98,
+   "local_hour": 7,
+   "obs_trace": [
+    {
+     "ts": "2026-09-19T09:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-19T08:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-19T07:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-19T06:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-19T05:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-19T04:51:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 3.0,
+    "q50": 9.0,
+    "q90": 14.0
+   },
+   "projected_max": {
+    "q10": 72.1,
+    "q50": 78.1,
+    "q90": 83.1
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
