@@ -157,10 +157,16 @@ class TestThePeopleYouCanSee(unittest.TestCase):
         self.assertTrue(d["posts"], "clicking one of yours offers no work")
         self.assertTrue(any(p["can"] for p in d["posts"]))
 
-    def test_the_client_opens_the_panel_when_a_figure_is_clicked(self):
+    def test_a_click_picks_one_up_and_the_rest_is_one_press_away(self):
+        # A left click means "I mean that one" and nothing else, the way it
+        # does in the games this borrows from. What they are and what they
+        # are doing goes on the strip; the whole card is behind `i` or the
+        # strip's own button.
         self.assertIn("function folkAt", JS)
-        self.assertIn("openSoul(who)", JS)
+        self.assertIn("function openSelection", JS)
         self.assertIn("'beast' : 'folk'", JS)
+        self.assertIn("$('sel-more').addEventListener('click', openSelection)", JS)
+        self.assertIn('id="sel-more"', HTML)
 
 
 # ------------------------------------------------------------- ask three
@@ -471,7 +477,7 @@ class TestTheControls(unittest.TestCase):
             self.assertIn(bit, JS, bit)
 
     def test_every_order_the_mouse_gives_is_a_command_you_could_type(self):
-        for line in ("send(`staff ${b.uid} ${hands}`)",
+        for line in ("send(`staff ${shed.uid} ${hands}`)",
                      "send(`march ${h.uid} ${n.key}`)",
                      "send(`post ${first} captain ${h.uid}`)",
                      "send(`split ${h.uid} ${pairs.join(' ')}`)",

@@ -1191,14 +1191,22 @@ H                what now?      /  type a command      ?  the keys
 ### Pointing at things
 
 The mouse is held the way every player of this kind of game already holds
-it. A left drag boxes a group -- figures in the town, your pennons on the
-march. A click picks one and shift-click adds one; a double-click picks
-everybody of that kind, every figure of the trade or every host standing
-there. A right-click is the order: figures go to the shed you point at,
-hosts go to the place, one of yours goes to the post (a host makes them
-captain, a town of yours makes them steward). The view moves on the right
-button, the middle one, alt-drag or the arrows, because the left drag means
-a box everywhere else and a player's hands do not relearn that for one game.
+it. A left click picks one up -- a villager, a host of yours -- and does
+nothing else: no panel opens, because a click that opens a panel is a click
+you have to close. What they are and what they are doing goes on the strip
+above the console, which is where that game has always put it; the whole
+card is behind `i` or the strip's own button. A left drag boxes a group,
+shift-click adds one, and a double-click picks everybody of that kind.
+
+A right-click is the order, and it is forgiving on purpose: point at a shed
+and the hands go to that shed, point at bare ground and they go to the
+nearest work to where you pointed, and the line says which so they never
+walk off somewhere you did not mean. Hosts go to the place you point at,
+or the nearest one to it. One of yours goes to the post -- a host makes
+them captain, a town of yours makes them steward. The view moves on the
+right button, the middle one, alt-drag or the arrows, because the left drag
+means a box everywhere else and a player's hands do not relearn that for
+one game.
 
 What makes this honest rather than decorative is that a selection is only a
 list of things to say a command about, and every right-click *is* a command

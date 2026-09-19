@@ -157,7 +157,7 @@ class TestControls(unittest.TestCase):
 
     def test_a_right_click_is_the_order(self):
         self.assertIn("addEventListener('contextmenu'", self.js)
-        for line in ("send(`staff ${b.uid} ${hands}`)", "send(`march ${h.uid} ${n.key}`)",
+        for line in ("send(`staff ${shed.uid} ${hands}`)", "send(`march ${h.uid} ${n.key}`)",
                      "send(`post ${first} captain ${h.uid}`)",
                      "send(`split ${h.uid} ${pairs.join(' ')}`)",
                      "send(`join ${h.uid} ${b.dataset.join}`)"):

@@ -2693,6 +2693,9 @@ document.addEventListener('keydown', e => {
   if (meta || e.altKey) return;
   if (/^[1-9]$/.test(e.key) && !typing()) { recallGroup(e.key); e.preventDefault(); return; }
   if (e.key === '.' && !typing()) { nextIdle(); e.preventDefault(); return; }
+  if ((e.key === 'i' || e.key === 'I') && !typing() && sel.ids.length) {
+    openSelection(); e.preventDefault(); return;
+  }
   if (e.key.startsWith('Arrow') && !typing() && mode !== 'march') {
     const step = 48;
     if (e.key === 'ArrowLeft') camera.x += step;
@@ -2864,7 +2867,13 @@ function leftClick(e, shift) {
     }
     const h = hostAt(e);
     if (h) {
-      if (h.mine) select('host', h.uid, shift); else if (!shift) clearSel();
+      // Yours: picked up, not opened. A left click in this kind of game
+      // means "I mean that one" and nothing else; what it is and what it
+      // can be told is on the strip, and the whole panel is one press
+      // further (the strip's button, or `i`). Somebody else's host has no
+      // orders to give, so a click on one is only ever a question.
+      if (h.mine) { select('host', h.uid, shift); closeWrit(); return closeSoul(); }
+      if (!shift) clearSel();
       return openHost(h);
     }
     if (!shift) clearSel();
@@ -2875,8 +2884,13 @@ function leftClick(e, shift) {
   // pointing at, and the roof is a bigger target that would always win.
   const who = folkAt(e);
   if (who !== null) {
-    if (plan.folk[who].kind !== 'watch') select('folk', who, shift);
-    return openSoul(who);
+    // The watch on the wall is a fact, not a unit: there is no order to
+    // give it, so a click on one asks rather than selects. Everybody else
+    // is picked up and the strip says who they are.
+    if (plan.folk[who].kind === 'watch') return openSoul(who);
+    select('folk', who, shift);
+    closeWrit();
+    return closeSoul();
   }
   if (!shift) clearSel();
   const beast = beastAt(e);
@@ -3787,9 +3801,9 @@ $('good').innerHTML = GOODS.map(g =>
   frameTown();
   loadOptions();
   loadCommands();
-  say('Marchlands. Click a roof to do something with it, or an empty plot to raise '
-      + 'something on it. Box some figures and right-click a shed to send them there; '
-      + 'right-drag or the arrows move the view, the wheel zooms it.');
+  say('Marchlands. Click a villager to pick them up and right-click where they should '
+      + 'work; drag a box to take several. Click a roof to do something with it, or an '
+      + 'empty plot to raise something on it. Right-drag or the arrows move the view.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   nextFrame();
   // The server decides whether anybody has chosen yet. A packaged build or a
@@ -4594,7 +4608,7 @@ function rightClick(e) {
   if (!sel.ids.length) return;
   if (sel.kind === 'host') {
     if (mode !== 'march') return say('hosts are sent on the march (R), not in the town.');
-    const n = townNodeAt(e);
+    const n = townNodeAt(e) || nearestNode(e);
     if (!n) return say('nowhere there to march to.');
     const hosts = selHosts();
     let sent = 0;
@@ -4620,11 +4634,58 @@ function rightClick(e) {
     return say(`${first} takes a post, not a shed -- click them for the posts, or right-click a host or town on the march.`);
   }
   if (mode === 'march') return say('hands are sent to a shed in the town (T).');
-  const b = buildingAt(e);
-  if (!b) return say('point at a shed to put them there.');
   const hands = folk.filter(f => f.kind !== 'kin').reduce((n, f) => n + (f.souls || 0), 0);
   if (!hands) return say('nobody there with hands to send.');
-  send(`staff ${b.uid} ${hands}`);
+  // Point at a shed and they go to it; point at the ground and they go to
+  // the nearest work to where you pointed, which is what the click means
+  // in every game that has villagers. Naming the shed keeps it honest --
+  // they walked somewhere, and the line says where.
+  const hit = buildingAt(e);
+  const shed = (hit && worksAt(hit)) ? hit : nearestWork(e);
+  if (!shed) return say('no shed near there has work for hands.');
+  if (!hit || shed.uid !== hit.uid) say(`nearest work is the ${shed.name}.`);
+  send(`staff ${shed.uid} ${hands}`);
+}
+
+/* Which sheds can take hands at all, and which is nearest to a click.
+ * `margin` carries the jobs a shed offers, because that is the same
+ * reading the writ shows and there must not be two answers to it. */
+function worksAt(b) {
+  const m = state && state.margin ? state.margin[b.uid] : null;
+  return !!(b.complete && m && m.jobs);
+}
+function nearestWork(ev) {
+  if (!plan) return null;
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
+           + (plan.w - plan.h) * TW / 4;
+  const py = (ev.clientY - r.top - r.height / 2 - camera.y) / camera.zoom
+           + (plan.w + plan.h) * TH / 4;
+  let best = null, bestD = Infinity;
+  for (const b of plan.buildings) {
+    if (!worksAt(b)) continue;
+    const [sx, sy] = iso(b.x, b.y);
+    const d = Math.hypot(sx - px, (sy - py) * 1.9);
+    if (d < bestD) { bestD = d; best = b; }
+  }
+  return best;
+}
+/* The nearest place on the march, however loosely you pointed at it. A
+ * host is sent to a town, not to a patch of moor, so a click between two
+ * of them means the nearer one rather than nothing at all. */
+function nearestNode(ev) {
+  if (!world) return null;
+  const r = canvas.getBoundingClientRect();
+  const f = mapFit(canvas.clientWidth, canvas.clientHeight);
+  const px = ev.clientX - r.left, py = ev.clientY - r.top;
+  let best = null, bestD = Infinity;
+  for (const n of world.nodes) {
+    if (n.kind === 'site') continue;
+    const [x, y] = mapXY(n, f);
+    const d = Math.hypot(x - px, y - py);
+    if (d < bestD) { bestD = d; best = n; }
+  }
+  return bestD <= 120 ? best : null;
 }
 
 /* Control groups. ⌃N remembers what is boxed; N calls it back; N again
@@ -4692,19 +4753,41 @@ function lookAtFolk(i) {
   camera.y = -(at[1] - (plan.w + plan.h) * TH / 4) * camera.zoom;
 }
 
+/* What the strip says. With one thing picked up it is the whole card --
+ * who, what they are doing, how many they stand for -- because a click
+ * that opened a panel every time was a click you had to close every time.
+ * The panel is still there, one press away, for the rest of it. */
 function selWords() {
   if (sel.kind === 'host') {
     const hosts = selHosts();
     const men = hosts.reduce((n, h) => n + h.size, 0);
-    return hosts.length === 1 ? `${hosts[0].name} · ${men} men` : `${hosts.length} hosts · ${men} men`;
+    if (hosts.length !== 1) return `${hosts.length} hosts · ${men} men`;
+    const h = hosts[0];
+    return `${h.name} · ${men} men · ${hostDoing(h)}`;
   }
   const folk = sel.ids.map(i => plan && plan.folk[i]).filter(Boolean);
-  const kin = folk.filter(f => f.kind === 'kin');
-  if (kin.length === folk.length && kin.length === 1) return kin[0].who || 'one of yours';
   const hands = folk.filter(f => f.kind !== 'kin').reduce((n, f) => n + (f.souls || 0), 0);
+  if (folk.length === 1) {
+    const f = folk[0];
+    const shed = plan.buildings.find(b => b.uid === f.work);
+    const doing = f.kind === 'idle' ? 'nothing to do'
+      : f.at + (shed && !String(f.at).includes(shed.name) ? ` at ${shed.name}` : '');
+    if (f.kind === 'kin') return `${f.who || 'one of yours'} · ${doing}`;
+    return `${doing} · ${hands} hands`;
+  }
   const doing = [...new Set(folk.map(f => f.kind === 'idle' ? 'idle' : (f.at || f.trade)))]
     .slice(0, 3).join(', ');
-  return `${folk.length} ${folk.length === 1 ? 'figure' : 'figures'} · ${hands} hands · ${doing}`;
+  return `${folk.length} figures · ${hands} hands · ${doing}`;
+}
+
+/* The rest of it: the same panel a click used to open, now asked for. */
+function openSelection() {
+  if (!sel.ids.length) return;
+  if (sel.kind === 'host') {
+    const h = selHosts()[0];
+    return h ? openHost(h) : null;
+  }
+  return openSoul(sel.ids[0]);
 }
 
 function paintSel() {
@@ -4734,10 +4817,14 @@ function paintSel() {
     sel.kind === 'host'
       ? (mode === 'march' ? 'right-click a place to march there' : 'R for the march, then right-click a place')
       : kin ? 'right-click a host (captain) or a town of yours (steward) on the march'
-      : (mode === 'town' ? 'right-click a shed to put them there' : 'T for the town, then right-click a shed');
+      : (mode === 'town' ? 'right-click where they should work'
+                         : 'T for the town, then right-click where they should work');
   const g = groupOf();
   $('sel-group').hidden = !g;
   if (g) $('sel-group').textContent = `⌃${g}`;
+  const more = $('sel-more');
+  more.hidden = sel.ids.length !== 1;
+  more.textContent = sel.kind === 'host' ? 'orders' : 'who is this?';
 }
 function drawSelBox() {
   if (!box) return;
@@ -4753,6 +4840,7 @@ function drawSelBox() {
   ctx.restore();
 }
 $('sel-clear').addEventListener('click', clearSel);
+$('sel-more').addEventListener('click', openSelection);
 
 
 /* ------------------------------------------------------- at their head */

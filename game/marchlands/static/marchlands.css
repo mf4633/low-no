@@ -1024,6 +1024,14 @@ li.task-why em.costs { color: #9a7a4a; }
   font-size: 11px; letter-spacing: .06em; padding: 1px 6px; border-radius: 2px;
   background: rgba(126,209,126,.18); border: 1px solid rgba(126,209,126,.5);
 }
+#sel #sel-more {
+  background: none; border: 1px solid rgba(126,209,126,.5); border-radius: 2px;
+  color: var(--parch); font: 11.5px Georgia, serif; padding: 2px 7px; cursor: pointer;
+  opacity: .85; white-space: nowrap;
+}
+#sel #sel-more:hover, #sel #sel-more:focus-visible {
+  opacity: 1; border-color: rgba(126,209,126,.95);
+}
 #sel #sel-clear {
   margin-left: 4px; background: none; border: 0; color: var(--parch);
   opacity: .6; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px;
