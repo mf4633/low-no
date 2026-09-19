@@ -1,32 +1,13 @@
 {
- "at": "2026-09-19T22:54:30.971041Z",
+ "at": "2026-09-19T23:23:47.489021Z",
  "traps": [
-  {
-   "city": "MSP",
-   "ceiling": 62,
-   "price": 11,
-   "p_model": 1.0,
-   "p_market": 0.11,
-   "edge_pts": 89.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 89 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
   {
    "city": "DAL",
    "ceiling": 96,
-   "price": 33,
+   "price": 22,
    "p_model": 1.0,
-   "p_market": 0.33,
-   "edge_pts": 67.0,
+   "p_market": 0.22,
+   "edge_pts": 78.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -35,11 +16,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 67 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 78 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "22c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -47,9 +28,9 @@
    "city": "LAX",
    "ceiling": 77,
    "price": 1,
-   "p_model": 0.574,
+   "p_model": 0.6495,
    "p_market": 0.01,
-   "edge_pts": 56.4,
+   "edge_pts": 63.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -58,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 56 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 64 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -66,30 +47,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "ATL",
-   "ceiling": 91,
-   "price": 78,
-   "p_model": 1.0,
-   "p_market": 0.78,
-   "edge_pts": 22.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
@@ -97,22 +55,33 @@
    "city": "SFO",
    "ceiling": 69,
    "price": 1,
-   "p_model": 0.1836,
+   "p_model": 0.1065,
    "p_market": 0.01,
-   "edge_pts": 17.4,
+   "edge_pts": 9.7,
    "size_lcb": 0.0,
    "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
-    },
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "ATL",
+   "ceiling": 91,
+   "price": 92,
+   "p_model": 1.0,
+   "p_market": 0.92,
+   "edge_pts": 8.0,
+   "size_lcb": 0.3414,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   },
@@ -120,10 +89,10 @@
    "city": "SAT",
    "ceiling": 94,
    "price": 1,
-   "p_model": 0.0924,
+   "p_model": 0.0492,
    "p_market": 0.01,
-   "edge_pts": 8.2,
-   "size_lcb": 0.0042,
+   "edge_pts": 3.9,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -131,22 +100,45 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (16:00) with the running max still 2.6F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (16:00) with the running max still 2.6F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 62,
+   "price": 10,
+   "p_model": 0.1264,
+   "p_market": 0.1,
+   "edge_pts": 2.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SEA",
    "ceiling": 69,
-   "price": 6,
-   "p_model": 0.0693,
-   "p_market": 0.06,
-   "edge_pts": 0.9,
+   "price": 5,
+   "p_model": 0.0658,
+   "p_market": 0.05,
+   "edge_pts": 1.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 6.4F short. The climb window has closed."
     }
    ]
   }
