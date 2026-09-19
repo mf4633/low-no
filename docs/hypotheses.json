@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-18T12:16:50.001647Z",
+ "generated": "2026-09-19T03:18:41.681034Z",
  "hypotheses": [
   {
    "id": "H4a",
@@ -18,21 +18,21 @@
   {
    "id": "H4b",
    "name": "market lag on curve_dev",
-   "have": 581,
+   "have": 615,
    "need": 200,
    "unit": "events",
    "also": {
-    "have": 22,
+    "have": 23,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": true,
-   "note": "22/20 distinct days"
+   "note": "23/20 distinct days"
   },
   {
    "id": "H5",
    "name": "contested band 81-95c (blocked on H4a)",
-   "have": 34,
+   "have": 36,
    "need": 60,
    "unit": "city-day units",
    "also": {
@@ -46,16 +46,16 @@
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 98,
+   "have": 99,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 14,
+    "have": 15,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": false,
-   "note": "14/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "15/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
