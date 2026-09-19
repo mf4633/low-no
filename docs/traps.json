@@ -1,5 +1,5 @@
 {
- "at": "2026-09-19T22:51:22.021387Z",
+ "at": "2026-09-19T22:54:30.971041Z",
  "traps": [
   {
    "city": "MSP",
@@ -23,23 +23,23 @@
   {
    "city": "DAL",
    "ceiling": 96,
-   "price": 40,
+   "price": 33,
    "p_model": 1.0,
-   "p_market": 0.4,
-   "edge_pts": 60.0,
+   "p_market": 0.33,
+   "edge_pts": 67.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 60 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 67 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "40c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -71,6 +71,29 @@
    ]
   },
   {
+   "city": "ATL",
+   "ceiling": 91,
+   "price": 78,
+   "p_model": 1.0,
+   "p_market": 0.78,
+   "edge_pts": 22.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
    "city": "SFO",
    "ceiling": 69,
    "price": 1,
@@ -90,25 +113,6 @@
     {
      "code": "PAST_PEAK",
      "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "ATL",
-   "ceiling": 91,
-   "price": 89,
-   "p_model": 1.0,
-   "p_market": 0.89,
-   "edge_pts": 11.0,
-   "size_lcb": 0.3846,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "89c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
