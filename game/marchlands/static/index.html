@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marchlands</title>
+<meta name="description" content="A town, a march, and the trade between them.">
+<meta name="theme-color" content="#14110d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%224%22%20fill%3D%22%2314110d%22%2F%3E%3Cpath%20fill%3D%22%23c9a227%22%20d%3D%22M6%2012h3V9h3v3h4V9h3v3h4V9h3v3h1v15H5V12z%22%2F%3E%3Cpath%20fill%3D%22%2314110d%22%20d%3D%22M14%2020h4v7h-4z%22%2F%3E%3Cpath%20fill%3D%22%2314110d%22%20d%3D%22M9%2015h3v3H9zm11%200h3v3h-3z%22%2F%3E%3C%2Fsvg%3E">
+<link rel="stylesheet" href="marchlands.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="view" tabindex="0" aria-label="the town, drawn. Click a roof to act on it, box figures and right-click a shed to send them there, right-drag to move the view, scroll to zoom."></canvas>
+
+  <header id="bar">
+    <span id="place">—</span>
+    <span id="date" class="dim">—</span>
+
+    <span class="grow"></span>
+    <span id="views" class="views">
+      <button id="v-town" type="button" aria-pressed="true">the town</button>
+      <button id="v-march" type="button" aria-pressed="false">the march</button>
+      <button id="v-castle" type="button" aria-pressed="false">the wall</button>
+    </span>
+    <span id="pace" class="views" role="group" aria-label="the pace of time">
+      <button id="c-0" type="button" aria-pressed="true" title="stop the clock">&#9208;</button>
+      <button id="c-1" type="button" aria-pressed="false" title="let the days pass">&#9205;</button>
+      <button id="c-2" type="button" aria-pressed="false" title="faster">&#9205;&#9205;</button>
+      <button id="c-3" type="button" aria-pressed="false" title="faster still">&#9205;&#9205;&#9205;</button>
+    </span>
+    <!-- `country` and `resume` used to sit here as well, and both were the
+         front door's own buttons a second time: it offers "continue your
+         last game" and "draw the country yourself…". Ten controls did not
+         fit a 1280-wide window without being squeezed, and at 900 the last
+         three walked off the edge -- one of them the purse. Two fewer, and
+         nothing you could do before you cannot do now. -->
+    <button id="v-menu" type="button"
+            title="new game, resume, draw a country">menu</button>
+    <button id="v-save" type="button" title="write this game down">save</button>
+    <button id="ear" type="button" aria-pressed="false"
+            title="the sound of the town, made out of arithmetic">sound</button>
+    <label id="goodpick" class="dim" hidden>price of
+      <select id="good"></select>
+    </label>
+    <span id="purse">—</span>
+  </header>
+
+  <aside id="panel">
+    <section id="trade" hidden>
+      <h2>the best runs today</h2>
+      <ul id="runs"></ul>
+      <h2>your carts</h2>
+      <ul id="carts"></ul>
+    </section>
+    <section id="letter" hidden>
+      <h2>the letter against you</h2>
+      <ul id="signed"></ul>
+      <p id="letter-out" class="dim"></p>
+    </section>
+    <section id="league" hidden>
+      <h2>the table</h2>
+      <ul id="standings"></ul>
+      <p id="clock" class="dim" hidden></p>
+    </section>
+    <section>
+      <h2>the town</h2>
+      <div class="row"><label>souls</label><span id="souls">—</span></div>
+      <div class="row"><label>mood</label><span id="moodbar" class="meter"><i></i></span></div>
+      <div class="row"><label>hands</label><span id="hands">—</span></div>
+      <div class="row"><label>wall</label><span id="wallbar" class="meter"><i></i></span></div>
+      <div class="row"><label>soldiers</label><span id="soldiers">—</span></div>
+    </section>
+    <section>
+      <h2>what moves the mood</h2>
+      <ul id="mood"></ul>
+    </section>
+    <section>
+      <h2>the day's ledger</h2>
+      <ul id="ledger"></ul>
+    </section>
+    <section id="roll-box" hidden>
+      <h2>the roll <span id="roll-count" class="dim"></span></h2>
+      <ul id="roll"></ul>
+    </section>
+    <section id="feats-box" hidden>
+      <h2>feats <span id="feats-count" class="dim"></span></h2>
+      <ul id="feats"></ul>
+    </section>
+    <section id="estates-box">
+      <h2>the estates</h2>
+      <ul id="estates"></ul>
+    </section>
+    <section id="racing" hidden>
+      <h2>the race, at this rate</h2>
+      <ul id="race"></ul>
+    </section>
+    <section id="housekeeping">
+      <h2>the house</h2>
+      <ul id="kinlist"></ul>
+      <p id="repute" class="dim" hidden></p>
+    </section>
+  </aside>
+
+  <p id="scale" class="dim"></p>
+
+  <p id="halt" hidden role="status"></p>
+
+  <!-- Somebody you clicked on. -->
+  <aside id="soul" hidden aria-live="polite">
+    <button id="soul-close" type="button" title="close">×</button>
+    <h3 id="soul-name">somebody</h3>
+    <p id="soul-count" class="dim">one figure</p>
+    <p id="soul-doing"></p>
+    <ul id="soul-facts"></ul>
+    <p id="soul-said" hidden></p>
+    <div id="soul-person" hidden>
+      <p id="soul-age" class="dim"></p>
+      <ul id="soul-skills"></ul>
+    </div>
+    <div id="soul-posts" hidden></div>
+  </aside>
+
+  <!-- The front door. A packaged build is something somebody double-clicked,
+       so the first thing it shows has to be a choice, not a prompt. -->
+  <div id="front" hidden role="dialog" aria-modal="true"
+       aria-labelledby="front-title">
+    <div id="front-box">
+      <h1 id="front-title">Marchlands</h1>
+      <p id="front-sub" class="dim">A holding, a hinterland, and seven towns
+        that each want what somebody else has.</p>
+      <!-- The version, where there is room for it. It is in the window title
+           too; it is not in the header bar, because nine more characters up
+           there put the whole row onto a second line at 1280 wide. -->
+      <p id="front-version" class="dim">—</p>
+      <div id="front-resume" hidden>
+        <button id="front-continue" type="button" class="go wide">
+          continue your last game</button>
+      </div>
+      <h3>the house you were born into</h3>
+      <div id="housepick" class="pickrow"></div>
+      <p id="house-note" class="dim">—</p>
+      <h3>what you are</h3>
+      <div id="rolepick" class="pickrow"></div>
+      <p id="role-note" class="dim">—</p>
+      <h3>where</h3>
+      <div id="wherepick" class="pickrow"></div>
+      <p id="where-note" class="dim">—</p>
+      <div class="acts">
+        <button id="front-go" type="button" class="go">begin</button>
+        <button id="front-dials" type="button">draw the country yourself…</button>
+        <button id="front-close" type="button" hidden>back to the game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The country, as dials you can actually turn. Six real places to start
+       from, eight sliders, and a march that redraws under your hand. -->
+  <div id="drawmap" hidden role="dialog" aria-modal="true"
+       aria-label="draw a march">
+    <div id="drawmap-box">
+      <header>
+        <h2>draw a march</h2>
+        <button id="drawmap-close" type="button" aria-label="close">×</button>
+      </header>
+      <div id="drawmap-body">
+        <div id="drawmap-left">
+          <p class="dim" id="drawmap-note">—</p>
+          <div id="regionpick"></div>
+          <div id="dialbank"></div>
+          <div class="acts">
+            <button id="reseed" type="button">another of the same</button>
+            <button id="drawgo" type="button" class="go">play this march</button>
+          </div>
+        </div>
+        <div id="drawmap-right">
+          <canvas id="drawmap-view" width="460" height="360"></canvas>
+          <p id="drawmap-says" class="dim">—</p>
+          <ul id="drawmap-towns"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tip" hidden></div>
+
+  <!-- Drawing the castle. The one screen in this game that is a pencil
+       rather than a report: pick a thing, drag along the ground, and the
+       wall is where you put it. -->
+  <div id="drawbar" hidden>
+    <span class="hand" id="drawhand">—</span>
+    <span class="tools">
+      <button type="button" data-lay="wall" aria-pressed="true">wall</button>
+      <button type="button" data-lay="tower" aria-pressed="false">tower</button>
+      <button type="button" data-lay="gate" aria-pressed="false">gate</button>
+      <button type="button" data-lay="moat" aria-pressed="false">moat</button>
+      <button type="button" data-lay="pitch" aria-pressed="false">pitch</button>
+      <button type="button" data-lay="pits" aria-pressed="false">pits</button>
+      <button type="button" data-lay="unwall" aria-pressed="false">take down</button>
+    </span>
+    <span id="drawread" class="dim">—</span>
+  </div>
+
+  <!-- Everything the console will take, searchable. The one screen that
+       makes a command line discoverable instead of a memory test. -->
+  <div id="palette" hidden role="dialog" aria-modal="true"
+       aria-label="commands">
+    <div id="palette-box">
+      <input id="palette-q" type="text" autocomplete="off" spellcheck="false"
+             placeholder="what would you like to do?" aria-controls="palette-list"
+             aria-autocomplete="list">
+      <ul id="palette-list" role="listbox" aria-label="commands"></ul>
+      <footer id="palette-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> choose</span>
+        <span><kbd>↵</kbd> run</span>
+        <span><kbd>esc</kbd> close</span>
+      </footer>
+    </div>
+  </div>
+
+  <div id="keys" hidden role="dialog" aria-modal="true" aria-label="keys">
+    <div id="keys-box">
+      <h3>Keys</h3>
+      <dl>
+        <dt><kbd>⌘</kbd><kbd>K</kbd></dt><dd>every command, searchable</dd>
+        <dt><kbd>space</kbd></dt><dd>a day passes</dd>
+        <dt><kbd>W</kbd></dt><dd>a week</dd>
+        <dt><kbd>M</kbd></dt><dd>a month</dd>
+        <dt><kbd>T</kbd> / <kbd>R</kbd></dt><dd>the town / the march</dd>
+        <dt>click</dt><dd>pick up a villager or a host of yours</dd>
+        <dt>drag</dt><dd>box a group of figures, or of your hosts</dd>
+        <dt>shift-click</dt><dd>add one to the group</dd>
+        <dt>double-click</dt><dd>everybody of that trade, or every host there</dd>
+        <dt>right-click</dt><dd>send them where you point: to that shed, or the nearest work to it</dd>
+        <dt><kbd>i</kbd></dt><dd>everything about whoever is picked up</dd>
+        <dt><kbd>⌃1</kbd>…<kbd>⌃9</kbd> / <kbd>1</kbd>…<kbd>9</kbd></dt><dd>remember a group / call it up (twice to look)</dd>
+        <dt><kbd>.</kbd></dt><dd>the next pair of idle hands</dd>
+        <dt>right-drag / arrows</dt><dd>move the view</dd>
+        <dt><kbd>H</kbd></dt><dd>what now?</dd>
+        <dt><kbd>/</kbd></dt><dd>type a command</dd>
+        <dt><kbd>?</kbd></dt><dd>this</dd>
+        <dt><kbd>esc</kbd></dt><dd>close whatever is open</dd>
+      </dl>
+      <p class="dim">The keys work when the prompt does not have the cursor.
+        Click the picture to put it back.</p>
+    </div>
+  </div>
+
+  <!-- Whoever is boxed. The number, what they are, and the one thing to do
+       with them next. A selection nobody can see is a selection nobody
+       trusts, which is why every game of this kind puts it on screen. -->
+  <div id="sel" hidden aria-live="polite">
+    <span id="sel-text"></span>
+    <span id="sel-hint" class="dim"></span>
+    <span id="sel-group" hidden></span>
+    <button id="sel-more" type="button" title="all of it (i)">who is this?</button>
+    <button id="sel-clear" type="button" title="let them be (esc)">×</button>
+  </div>
+
+  <div id="writ" hidden>
+    <header><span id="writ-title"></span>
+      <button id="writ-close" type="button" aria-label="close">×</button></header>
+    <div id="writ-body"></div>
+  </div>
+
+  <div id="advance">
+    <button type="button" data-do="next">a day</button>
+    <button type="button" data-do="next 7">a week</button>
+    <button type="button" data-do="next 30">a month</button>
+    <button type="button" data-do="hint">what now?</button>
+  </div>
+  <div id="alarm" hidden></div>
+
+  <!-- The right-hand rail. One column, most urgent at the top, and each
+       panel on screen only when it has something to decide. It is a flex
+       column rather than three absolutely-placed boxes because that is what
+       three of them need: the old arrangement pushed the sickness down with
+       `#siege:not([hidden]) ~ #pest`, and pest comes FIRST in this document,
+       so the selector matched nothing and the two panels sat on top of each
+       other whenever a besieged town fell ill. -->
+  <div id="rail">
+    <!-- Only ever on screen while there is an army outside. Two levers and the
+         three numbers they turn on, because a defender who can only watch the
+         wall come down is not playing. -->
+    <aside id="siege" hidden aria-label="the siege">
+      <h3>The ring is closed <em id="siege-host"></em></h3>
+      <ul id="siege-read"></ul>
+      <div class="acts">
+        <button id="siege-shore" type="button"></button>
+        <button id="siege-sally" type="button">At the works</button>
+        <button id="siege-torch" type="button">At the wagons</button>
+        <!-- Small sizes first, and one of them selected: the wagons are the
+             small party's target and a picker that opens on "most of it"
+             teaches the opposite. -->
+        <select id="siege-men" aria-label="how many go out">
+          <option value="0.15">a handful</option>
+          <option value="0.3" selected>a quarter of them</option>
+          <option value="0.5">half the garrison</option>
+          <option value="0.8">most of it</option>
+          <option value="1">everyone</option>
+        </select>
+      </div>
+      <div id="siege-odds" hidden></div>
+      <p id="siege-note" class="dim"></p>
+    </aside>
+    <!-- Only on screen when there is something to decide: sickness in the
+         town, or word of it from a road your carts are on. -->
+    <aside id="pest" hidden aria-label="the sickness">
+      <h3 id="pest-head">the sickness</h3>
+      <p id="pest-says" class="dim"></p>
+      <ul id="pest-word"></ul>
+      <div class="acts"><button id="pest-gate" type="button"></button></div>
+      <p id="pest-note" class="dim"></p>
+    </aside>
+    <!-- The water. On screen only when it is doing something a player can act
+         on: a river up, a bridge of yours, or a host about to walk over one. A
+         panel that said "low water" every day of the summer would teach people
+         to stop reading the rail. -->
+    <aside id="water" hidden aria-label="the rivers">
+      <h3>The water <em id="water-stage"></em></h3>
+      <ul id="water-rivers"></ul>
+      <ul id="water-bridges"></ul>
+      <div class="acts" id="water-acts"></div>
+      <p id="water-note" class="dim"></p>
+    </aside>
+  </div>
+
+  <!-- The battle. A screen rather than a panel, because the day has stopped
+       and nothing else on the page can be acted on until this is fought: it
+       covers. Two columns the way a Paradox battle screen has them, the field
+       drawn between them the way a real-time game has it, and the wall in
+       the middle of the field the way Stronghold has it. -->
+  <div id="battle" hidden role="dialog" aria-modal="true" aria-labelledby="battle-title">
+    <div id="battle-box">
+      <header id="battle-head">
+        <h1 id="battle-title">The storm at —</h1>
+        <p id="battle-sub" class="dim">—</p>
+      </header>
+      <div id="battle-cols">
+        <section class="battle-side" id="battle-mine">
+          <h3>yours <em id="battle-mine-order"></em></h3>
+          <div class="bars">
+            <div class="bar"><label>men</label><div class="track"><div class="fill men"></div></div><span class="num"></span></div>
+            <div class="bar"><label>steadiness</label><div class="track"><div class="fill morale"></div></div><span class="num"></span></div>
+          </div>
+          <ul class="units"></ul>
+        </section>
+        <canvas id="battle-field" width="620" height="300"
+                aria-label="the field, drawn"></canvas>
+        <section class="battle-side" id="battle-theirs">
+          <h3>theirs <em id="battle-theirs-order"></em></h3>
+          <div class="bars">
+            <div class="bar"><label>men</label><div class="track"><div class="fill men"></div></div><span class="num"></span></div>
+            <div class="bar"><label>steadiness</label><div class="track"><div class="fill morale"></div></div><span class="num"></span></div>
+          </div>
+          <ul class="units"></ul>
+        </section>
+      </div>
+      <div id="battle-under">
+        <ul id="battle-mods" aria-label="what you are fighting under"></ul>
+        <ul id="battle-log" aria-label="the fight so far"></ul>
+      </div>
+      <div id="battle-acts" class="acts">
+        <button id="battle-fight" type="button" class="go">Fight a round <kbd>space</kbd></button>
+        <button id="battle-ride" type="button" class="go ride">Ride at their head</button>
+        <select id="battle-order" aria-label="reform under another order"></select>
+        <button id="battle-commit" type="button">Commit the reserve</button>
+        <button id="battle-oil" type="button">Pour the oil</button>
+        <button id="battle-pitch" type="button">Fire the ditch</button>
+        <button id="battle-break" type="button" class="grim">Break off</button>
+        <button id="battle-auto" type="button">Let it run</button>
+      </div>
+      <p id="battle-note" class="dim"></p>
+      <!-- The melee: the lord is one man in the line for six seconds, and
+           this is the strip that counts what his hand did. -->
+      <div id="melee-hud" hidden>
+        <span id="melee-count">0 cut down · no blow taken</span>
+        <div id="melee-time"><i></i></div>
+        <span class="dim">arrows / WASD move · space or click strikes · blows past three bear you down</span>
+      </div>
+      <div id="battle-done" hidden>
+        <h2 id="battle-verdict">—</h2>
+        <p id="battle-after"></p>
+        <button id="battle-close" type="button" class="go">Back to the day</button>
+      </div>
+    </div>
+  </div>
+  <ul id="toasts" role="status" aria-live="polite"></ul>
+
+  <footer id="console">
+    <ul id="log" role="log" aria-live="polite" aria-label="what happened"></ul>
+    <form id="ask" autocomplete="off">
+      <span class="prompt">&gt;</span>
+      <input id="line" type="text" placeholder="next 7 · build cottage · hint · help" autofocus>
+    </form>
+  </footer>
+</div>
+<script src="sound.js"></script>
+<script src="marchlands.js"></script>
+</body>
+</html>

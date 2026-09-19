@@ -1,0 +1,1066 @@
+:root {
+  --ink: #14110d;
+  --parch: #e8dcc4;
+  --dim: #8a7f6a;
+  --gold: #c9a227;
+  --blood: #9b2c2c;
+  --leaf: #5f8a3f;
+  /* Opaque enough to read against a bright field on its own. The panels used
+     to blur their backdrop as well, which costs a composited layer per frame
+     over a canvas that never stops drawing, for a blur nobody can see through
+     nine tenths of an inch of ink. A shadow seats them instead. */
+  --panel: rgba(18, 15, 11, 0.90);
+  --edge: rgba(201, 162, 39, 0.28);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0b09; }
+body {
+  font: 14px/1.45 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  color: var(--parch);
+}
+#app { position: relative; height: 100%; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+#bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+  /* Wraps at every width, not only on a phone. At 900 by 620 -- an ordinary
+     window for anybody who double-clicked the exe -- the last three controls
+     walked off the right-hand edge, and one of them was the purse. A bar
+     that wraps is a bar that cannot lose your treasury. */
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+  padding: 10px 16px 18px;
+  /* Deeper and taller than it was. The date used to fade out over a bright
+     sky, which is exactly where it needed to be readable. */
+  background: linear-gradient(rgba(13,11,9,.92) 0%, rgba(13,11,9,.72) 55%,
+                              rgba(13,11,9,0) 100%);
+  pointer-events: none;
+}
+#place { font-size: 19px; letter-spacing: .09em; text-transform: uppercase;
+         color: var(--gold); text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+#purse { color: var(--gold); font-variant-numeric: tabular-nums;
+         font-size: 15px; padding-left: 4px;
+         text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+.grow { flex: 1; }
+.dim { color: var(--dim); }
+#date { color: #a8997c; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+
+#panel {
+  position: absolute; top: var(--under-bar, 52px); left: 14px; z-index: 3;
+  width: 236px; max-height: calc(100% - var(--under-bar, 52px) - 138px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.32);
+}
+#panel h2 {
+  margin: 14px 0 7px; font-size: 10px; font-weight: normal;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--dim);
+}
+#panel section:first-child h2 { margin-top: 0; }
+#panel ul { margin: 0; padding: 0; list-style: none; }
+#panel li, .row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 13px; padding: 1px 0;
+}
+#panel label { color: var(--dim); }
+.meter { position: relative; width: 108px; height: 9px; align-self: center;
+         background: rgba(232,220,196,.13); border-radius: 1px; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--leaf); }
+.meter.warn i { background: var(--gold); }
+.meter.bad i  { background: var(--blood); }
+.up { color: var(--leaf); } .down { color: var(--blood); }
+/* Set by the page whenever the panel has more in it than it can show. A list
+   that simply stops at the fold looks like the whole list. */
+#panel.more { box-shadow: inset 0 -26px 20px -21px rgba(6,5,3,.95),
+                          0 8px 24px rgba(0,0,0,.32); }
+
+/* The furniture is dark parchment; the platform's own scrollbars are not. */
+#panel, #log, #writ-body {
+  scrollbar-width: thin; scrollbar-color: rgba(201,162,39,.34) transparent;
+}
+#panel::-webkit-scrollbar, #log::-webkit-scrollbar,
+#writ-body::-webkit-scrollbar { width: 7px; height: 7px; }
+#panel::-webkit-scrollbar-thumb, #log::-webkit-scrollbar-thumb,
+#writ-body::-webkit-scrollbar-thumb {
+  background: rgba(201,162,39,.30); border-radius: 4px;
+}
+#panel::-webkit-scrollbar-thumb:hover, #log::-webkit-scrollbar-thumb:hover,
+#writ-body::-webkit-scrollbar-thumb:hover { background: rgba(201,162,39,.55); }
+#panel::-webkit-scrollbar-track, #log::-webkit-scrollbar-track,
+#writ-body::-webkit-scrollbar-track { background: transparent; }
+
+#console {
+  position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 3;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.32);
+}
+/* The prompt is focused from the moment the page loads, so a ring around the
+   input would be permanent furniture. The frame brightens instead. */
+#console:focus-within { border-color: rgba(201,162,39,.52); }
+#log {
+  margin: 0; padding: 9px 13px 4px; list-style: none;
+  max-height: 132px; overflow: auto;
+  font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap; color: #cdc2a8;
+}
+#log li.said { color: var(--parch); }
+#log li.you { color: var(--gold); }
+#ask { display: flex; gap: 8px; align-items: center; padding: 7px 13px 9px;
+       border-top: 1px solid rgba(201,162,39,.16); }
+.prompt { color: var(--gold); }
+#line {
+  flex: 1; background: none; border: 0; outline: none; color: var(--parch);
+  font: 14px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+#line::placeholder { color: #6d6455; }
+
+#tip {
+  position: absolute; z-index: 4; pointer-events: none;
+  padding: 5px 9px; font-size: 12.5px;
+  background: rgba(13,11,9,.93); border: 1px solid var(--edge); border-radius: 2px;
+}
+#tip b { color: var(--gold); font-weight: normal; }
+
+#alarm {
+  position: absolute; top: var(--under-bar, 52px); left: 50%;
+  transform: translateX(-50%); z-index: 4;
+  padding: 7px 18px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: 12px; color: #f3e4c6;
+  background: rgba(155,44,44,.88); border-radius: 2px;
+}
+/* The right-hand rail: the siege, the sickness and the water, stacked, each
+   on screen only when it has something to say. A flex column rather than
+   three absolute boxes -- see the note in index.html for what the old
+   arrangement did when two of them were up at once. */
+#rail {
+  position: absolute; top: calc(var(--under-bar, 52px) + 44px); right: 16px;
+  z-index: 5; width: 264px; max-width: calc(100vw - 32px);
+  /* A definite height, not `100%`: the rail's parent has no height of
+     its own, so a percentage resolved to nothing and the third panel
+     ran off the bottom of the screen under the console. */
+  max-height: calc(100vh - var(--under-bar, 52px) - 150px);
+  display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto; pointer-events: none;
+}
+#rail > aside { position: static; width: auto; pointer-events: auto; }
+/* The sickness. */
+#pest {
+  padding: 12px 14px 10px;
+  background: var(--panel); border: 1px solid #6b4a7a; border-radius: 2px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+#pest h3 {
+  margin: 0 0 6px; font-size: 12px; font-weight: normal;
+  letter-spacing: .14em; text-transform: uppercase; color: #b98fc9;
+}
+#pest p { margin: 0 0 8px; font-size: 12px; }
+#pest ul { margin: 0 0 10px; padding: 0; list-style: none; }
+#pest li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#pest li span { color: var(--parch); }
+#pest li em { font-style: normal; color: var(--dim); }
+#pest li em.down { color: var(--blood); }
+#pest .acts button {
+  font: 12px/1 inherit; letter-spacing: .06em; padding: 7px 10px;
+  color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+#pest .acts button[aria-pressed="true"] { background: #6b4a7a; color: #f3e8f7; }
+#pest .acts button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+
+/* The siege board. On the right, under the day buttons: the left is the town's
+   own column, and a panel that covers the readings you are defending with is
+   worse than no panel. */
+#siege {
+  padding: 12px 14px 10px;
+  background: var(--panel); border: 1px solid var(--blood); border-radius: 2px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+#siege h3 {
+  margin: 0 0 8px; font-size: 12px; font-weight: normal;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--blood);
+}
+#siege h3 em { font-style: normal; color: var(--dim); letter-spacing: .04em; }
+#siege ul { margin: 0 0 10px; padding: 0; list-style: none; }
+#siege li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#siege li label { color: var(--dim); }
+#siege li span { font-variant-numeric: tabular-nums; }
+#siege li.low span { color: var(--blood); }
+#siege .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+#siege .acts button, #siege .acts select {
+  font: 12px/1 inherit; letter-spacing: .06em;
+  padding: 7px 10px; color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+#siege .acts button[aria-pressed="true"] { background: var(--gold); color: var(--ink); }
+#siege .acts button:disabled { opacity: .45; cursor: default; }
+#siege .acts button:focus-visible, #siege .acts select:focus-visible {
+  outline: 2px solid var(--parch); outline-offset: 1px;
+}
+#siege-odds {
+  margin: 9px 0 0; padding-top: 8px; font-size: 12px;
+  border-top: 1px solid var(--edge); color: var(--parch);
+}
+#siege-odds b { color: var(--gold); font-weight: 600; }
+#siege-odds em { font-style: normal; color: var(--dim); }
+#siege-odds ul { margin: 5px 0 0; padding: 0 0 0 11px; list-style: none; }
+#siege-odds li { color: var(--dim); }
+#siege-odds li.up::before { content: "+ "; color: var(--leaf); }
+#siege-odds li.down::before { content: "\2212 "; color: var(--blood); }
+
+#siege .dim { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+
+[hidden] { display: none !important; }
+
+/* the view switch, and the trade panel that comes with the march */
+.views { display: flex; gap: 2px; pointer-events: auto; }
+.views button {
+  font: 12px/1 inherit; letter-spacing: .09em; text-transform: uppercase;
+  padding: 6px 11px; color: var(--dim); background: rgba(20,17,13,.55);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+.views button[aria-pressed="true"] { background: var(--gold); color: #14110d; }
+.views button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+#goodpick { pointer-events: auto; font-size: 12px; }
+/* The bar is pointer-events: none so the sky behind it can be dragged, and
+   every control on it has to opt back in. A button that does not is a button
+   the canvas swallows -- which is how `country` shipped unclickable for about
+   ten minutes. */
+#ear, #v-menu, #v-save {
+  pointer-events: auto; font: 12px/1 inherit; letter-spacing: .09em;
+  text-transform: uppercase; padding: 6px 11px; cursor: pointer;
+  color: var(--dim); background: rgba(20,17,13,.55);
+  border: 1px solid var(--edge); border-radius: 2px;
+}
+#v-draw:hover, #v-menu:hover, #v-save:hover, #v-load:hover {
+  color: var(--parch); border-color: rgba(201,162,39,.5);
+}
+#ear[aria-pressed="true"] { background: var(--leaf); color: #14110d; }
+#v-draw:focus-visible, #v-menu:focus-visible,
+#v-save:focus-visible, #v-load:focus-visible {
+  outline: 2px solid var(--parch); outline-offset: 1px;
+}
+#ear:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+body.march #ear, body.march #v-menu, body.march #v-save {
+  color: #6b5c3e; background: rgba(235,224,194,.75);
+  border-color: rgba(120,96,58,.35);
+}
+#goodpick select {
+  font: 12px inherit; color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; padding: 4px 6px;
+  margin-left: 5px;
+}
+/* The house: a name and an age on the left, what they are good at on the
+   right. The head of it is the one in gold, because he is the one who dies. */
+#kinlist li { font-size: 12.5px; padding: 2px 0; align-items: baseline; }
+#kinlist label { color: var(--parch); }
+#kinlist li.head label { color: var(--gold); }
+#kinlist em { font-style: normal; color: var(--dim); font-size: 11px;
+              padding-left: 6px; font-variant-numeric: tabular-nums; }
+#kinlist span { color: var(--dim); font-size: 11.5px; text-align: right; }
+#repute { margin: 6px 0 0; font-size: 11.5px; font-style: italic; }
+
+#standings li { font-size: 12.5px; padding: 1px 0; }
+#standings li.me label, #standings li.me span { color: var(--gold); }
+#standings span { color: var(--dim); font-variant-numeric: tabular-nums; }
+#clock { margin: 6px 0 0; font-size: 11.5px; font-style: italic; }
+#clock.down { color: var(--blood); font-style: normal; }
+
+#race em { font-style: normal; color: var(--dim); font-size: 11px; }
+#race span { font-variant-numeric: tabular-nums; font-size: 12.5px; }
+
+#runs li, #carts li { display: block; padding: 3px 0; font-size: 12.5px; }
+#runs b, #carts b { color: var(--gold); font-weight: normal; }
+#runs span, #carts span { color: var(--dim); }
+
+/* The march is drawn on parchment, so the furniture over it has to change
+   colour or it is dark ink on a dark scrim over a light ground. */
+body.march #bar {
+  background: linear-gradient(rgba(222,208,172,.96) 0%, rgba(222,208,172,.78) 55%,
+                              rgba(222,208,172,0) 100%);
+}
+body.march #place, body.march #date, body.march #purse { text-shadow: none; }
+body.march #place { color: #5e4712; }
+body.march #date, body.march #goodpick { color: #6b5c3e; }
+body.march #purse { color: #6b5212; }
+body.march .views button { color: #6b5c3e; background: rgba(235,224,194,.75);
+                           border-color: rgba(120,96,58,.35); }
+body.march .views button[aria-pressed="true"] { background: #96731a; color: #f2e9d2; }
+body.march #goodpick select { color: #3c3323; background: rgba(235,224,194,.9);
+                              border-color: rgba(120,96,58,.35); }
+
+/* A number that moved says so for a second. A panel where everything is
+   always highlighted highlights nothing. */
+@keyframes moved {
+  from { color: var(--gold); text-shadow: 0 0 12px rgba(201,162,39,.55); }
+  to   { color: inherit; text-shadow: none; }
+}
+.moved { animation: moved 1.5s ease-out 1; }
+@media (prefers-reduced-motion: reduce) { .moved { animation: none; } }
+
+/* The console keeps everything; these catch the one line in a month you would
+   have been sorry to scroll past. */
+#toasts {
+  position: absolute; top: var(--under-bar, 52px); left: 50%;
+  transform: translateX(-50%);
+  z-index: 6; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  width: min(520px, calc(100% - 32px)); pointer-events: none;
+}
+#toasts li {
+  padding: 9px 16px; border-radius: 3px; text-align: center; font-size: 13px;
+  color: #f4e8cc; background: rgba(28, 22, 15, .95);
+  border: 1px solid rgba(201,162,39,.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  opacity: 0; transform: translateY(-8px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+#toasts li.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  #toasts li { transition: none; opacity: 1; transform: none; }
+}
+
+/* ------------------------------------------------------- the command palette
+   Seventy commands, searchable. A command line is the fastest interface there
+   is for somebody who knows the commands and the worst for somebody who does
+   not; this is the bridge, so it is deliberately the brightest thing on the
+   screen while it is open and gone the moment it is not. */
+#palette {
+  position: absolute; inset: 0; z-index: 8;
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: 12vh 16px 16px;
+  background: rgba(8, 6, 4, .52);
+}
+#palette-box {
+  width: min(620px, 100%); max-height: 72vh;
+  display: flex; flex-direction: column;
+  background: rgba(24, 20, 15, .97);
+  border: 1px solid rgba(201,162,39,.42); border-radius: 6px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.6);
+  overflow: hidden;
+}
+#palette-q {
+  border: 0; outline: none; background: none; color: var(--parch);
+  font: 17px/1.4 "Iowan Old Style", Palatino, Georgia, serif;
+  padding: 15px 18px; border-bottom: 1px solid rgba(201,162,39,.20);
+}
+#palette-q::placeholder { color: #6f6555; }
+#palette-list {
+  margin: 0; padding: 6px; list-style: none; overflow: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(201,162,39,.34) transparent;
+}
+#palette-list li {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 12px; border-radius: 3px; cursor: pointer;
+}
+#palette-list li b { color: var(--parch); font-weight: normal; font-size: 14px; }
+#palette-list li em { color: var(--gold); font-style: normal; font-size: 13px; }
+#palette-list li span {
+  color: var(--dim); font-size: 12.5px; margin-left: auto; text-align: right;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 62%;
+}
+#palette-list li.on { background: rgba(201,162,39,.20); }
+#palette-list li.on b { color: var(--gold); }
+#palette-list li.on span { color: #b9ad94; }
+#palette-list li.none { color: var(--dim); cursor: default; }
+#palette-foot {
+  display: flex; gap: 16px; padding: 8px 14px;
+  border-top: 1px solid rgba(201,162,39,.14);
+  color: var(--dim); font-size: 11.5px;
+}
+kbd {
+  display: inline-block; min-width: 17px; text-align: center;
+  padding: 1px 5px; margin: 0 1px;
+  font: 11px/1.5 ui-monospace, Menlo, monospace; color: var(--parch);
+  background: rgba(232,220,196,.10); border: 1px solid rgba(201,162,39,.26);
+  border-radius: 3px;
+}
+
+/* the keys sheet */
+#keys {
+  position: absolute; inset: 0; z-index: 8;
+  display: flex; justify-content: center; align-items: center;
+  padding: 16px; background: rgba(8, 6, 4, .52);
+}
+#keys-box {
+  width: min(420px, 100%); padding: 20px 24px 18px;
+  background: rgba(24, 20, 15, .97);
+  border: 1px solid rgba(201,162,39,.42); border-radius: 6px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.6);
+}
+#keys-box h3 {
+  margin: 0 0 14px; font-size: 11px; font-weight: normal; color: var(--dim);
+  letter-spacing: .18em; text-transform: uppercase;
+}
+#keys-box dl {
+  margin: 0; display: grid; grid-template-columns: auto 1fr;
+  gap: 7px 16px; align-items: baseline;
+}
+#keys-box dt { text-align: right; white-space: nowrap; }
+#keys-box dd { margin: 0; color: var(--parch); font-size: 13px; }
+#keys-box p { margin: 16px 0 0; font-size: 12px; line-height: 1.5; }
+
+/* the writ: what you can do to the thing you just clicked */
+#writ {
+  position: absolute; z-index: 5; width: 290px; max-height: 60%;
+  display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+}
+#writ header {
+  display: flex; align-items: center; gap: 8px; padding: 9px 8px 9px 13px;
+  border-bottom: 1px solid rgba(201,162,39,.18);
+}
+#writ-title { flex: 1; color: var(--gold); font-size: 14px;
+              letter-spacing: .05em; text-transform: uppercase; }
+#writ-close { background: none; border: 0; color: var(--dim); font-size: 18px;
+              line-height: 1; cursor: pointer; padding: 0 4px; }
+#writ-close:hover { color: var(--parch); }
+#writ-body { overflow: auto; padding: 10px 13px 13px; }
+#writ-body p { margin: 0 0 9px; font-size: 13px; color: #cdc2a8; }
+#writ-body .said { color: #cdc2a8; font-size: 12.5px; line-height: 1.5;
+                   border-left: 2px solid rgba(201,162,39,.3);
+                   padding-left: 9px; margin: 0 0 10px; }
+#writ-body .said em { display: block; font-style: normal; color: var(--dim);
+                      font-size: 11px; margin-bottom: 2px; }
+#writ-body .why { color: var(--dim); font-size: 12px; }
+#writ-body .why b { color: inherit; font-weight: normal; }
+#writ-body .why.up { color: #8fb86a; }
+#writ-body .why.down { color: #cc7b6e; }
+.acts { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.acts button, #advance button {
+  font: 12px/1 inherit; padding: 7px 10px; cursor: pointer;
+  color: var(--parch); background: rgba(232,220,196,.09);
+  border: 1px solid var(--edge); border-radius: 2px;
+}
+/* The writ's buttons sit on a panel; the clock's sit on the sky. */
+#advance button { background: rgba(20,17,13,.62); }
+.acts button:focus-visible, #advance button:focus-visible,
+#writ-close:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 1px;
+}
+.acts button:hover, #advance button:hover { background: var(--gold); color: #14110d; }
+.acts button:disabled { opacity: .35; cursor: not-allowed; }
+.acts button:disabled:hover { background: rgba(232,220,196,.09); color: var(--parch); }
+.pick { display: grid; gap: 3px; }
+.pick button {
+  display: flex; justify-content: space-between; gap: 10px; width: 100%;
+  text-align: left; font: 13px/1.35 inherit; padding: 6px 9px; cursor: pointer;
+  color: var(--parch); background: none; border: 0; border-radius: 2px;
+}
+.pick button:hover:not(:disabled) { background: rgba(201,162,39,.18); }
+.pick button:disabled { color: var(--dim); cursor: not-allowed; }
+.pick em { font-style: normal; color: var(--dim); font-size: 12px;
+           font-variant-numeric: tabular-nums; }
+#advance {
+  position: absolute; right: 14px; top: var(--under-bar, 52px); z-index: 3;
+  display: flex; gap: 4px;
+}
+body.march #advance button { color: #6b5c3e; background: rgba(235,224,194,.8);
+                           border-color: rgba(120,96,58,.35); }
+body.march #advance button:hover { background: #96731a; color: #f2e9d2; }
+/* Narrow. The panel used to be hidden outright, which took the four numbers
+   the game is actually played on off the screen. It lies down instead. */
+@media (max-width: 720px) {
+  #bar { flex-wrap: wrap; gap: 8px 10px; padding: 8px 10px 12px; }
+  #place { font-size: 16px; }
+  #panel {
+    top: auto; bottom: 0; left: 8px; right: 8px; width: auto;
+    max-height: none; overflow: hidden; padding: 7px 10px;
+  }
+  #panel, #panel.more { box-shadow: none; }
+  #panel h2, #panel #trade, #panel section:nth-of-type(n+3) { display: none; }
+  #panel section { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  #panel .row { padding: 0; gap: 5px; font-size: 12px; }
+  #panel .meter { width: 52px; }
+  /* Stacked from the bottom edge up: vitals, console, clock. The log is given
+     a fixed height rather than a cap so those three stack to a known total
+     instead of sliding about as the log fills. */
+  #console { left: 8px; right: 8px; bottom: 65px; }
+  #log { height: 84px; max-height: none; }
+  #advance { right: 8px; top: auto; bottom: 196px; flex-wrap: wrap;
+           justify-content: flex-end; max-width: calc(100% - 16px); }
+  #writ { width: calc(100% - 28px); left: 14px !important; }
+  #siege { top: 84px; right: 8px; width: min(264px, calc(100% - 16px)); }
+}
+
+/* ------------------------------------------------------------ the pencil */
+/* Drawing a castle is the one thing in here that is not a report, so the
+   bar it lives on sits over the picture rather than beside it: your hands
+   are on the ground, not on a panel. */
+#drawbar {
+  /* Clear of the console: the log runs to 132px plus its prompt and its own
+     12px of air, and a toolbar that covers the line telling you what you
+     just laid is a toolbar that hides its own result. */
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 196px;
+  display: flex; align-items: center; gap: 14px; z-index: 6;
+  padding: 7px 13px; border-radius: 9px;
+  background: rgba(20,18,15,.92); border: 1px solid rgba(201,162,39,.28);
+  box-shadow: 0 8px 26px rgba(0,0,0,.45);
+  font-size: 12px; max-width: min(94vw, 780px); flex-wrap: wrap;
+}
+#drawbar .tools { display: flex; gap: 4px; flex-wrap: wrap; }
+#drawbar button {
+  background: transparent; border: 1px solid rgba(201,162,39,.22);
+  color: #cdc2a8; border-radius: 5px; padding: 4px 9px; cursor: pointer;
+  font: inherit; letter-spacing: .02em;
+}
+#drawbar button:hover { border-color: rgba(201,162,39,.55); color: var(--parch); }
+#drawbar button[aria-pressed="true"] {
+  background: rgba(201,162,39,.18); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+#drawbar .hand { color: var(--gold); white-space: nowrap; }
+#drawbar #drawread { color: var(--dim); }
+#drawbar #drawread b { color: #cdc2a8; font-weight: normal; }
+#drawbar #drawread .bad { color: #c46a5a; }
+@media (max-width: 620px) {
+  #drawbar { bottom: 176px; gap: 6px; font-size: 11px; padding: 6px 9px; }
+}
+
+/* ------------------------------------------------------------- the court */
+/* An opinion is a list of reasons or it is a mood. Everything here exists so
+   that "he is hostile" can be read as "he is hostile because of the town you
+   took eighty days ago, and it has two hundred days left to run". */
+#writ-body .standing { color: var(--parch); font-size: 13px; margin: 0 0 6px; }
+#writ-body .standing b { color: var(--gold); font-weight: 600; }
+#writ-body .standing .bad { color: #c46a5a; }
+#writ-body .standing .good { color: #8fb86a; }
+#writ-body .standing .claim { color: var(--gold); }
+/* The country and the sky, in the writ that decides whether to march. */
+#writ-body .field-head {
+  margin: 10px 0 4px; font-size: 13px; color: var(--parch);
+  border-top: 1px solid var(--edge); padding-top: 9px;
+}
+#writ-body .field-head b { color: var(--gold); font-weight: 600; }
+#writ-body .field-head .firm { font-style: normal; color: #8fb86a; }
+
+#writ-body .why-list {
+  list-style: none; margin: 0 0 8px; padding: 0 0 0 9px;
+  border-left: 2px solid rgba(201,162,39,.22);
+}
+#writ-body .why-list li {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 12px; color: var(--dim); line-height: 1.6;
+}
+#writ-body .why-list em {
+  font-style: normal; font-variant-numeric: tabular-nums; flex: none;
+}
+#writ-body .why-list em.up { color: #8fb86a; }
+#writ-body .why-list em.down { color: #c46a5a; }
+
+/* What a drawn figure stands for. The picture is a readout of the numbers,
+   and a readout with no scale on it is a decoration. */
+#scale {
+  /* Below the day buttons rather than across them: both were pinned to the
+     same line, so on a window narrow enough to wrap the bar the legend ran
+     straight through "a day, a week, a month". */
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(var(--under-bar, 52px) + 30px);
+  margin: 0; z-index: 4; pointer-events: none;
+  font-size: 11px; letter-spacing: .04em; color: #a8a08c;
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+}
+body.march #scale { display: none; }
+@media (max-width: 620px) { #scale { display: none; } }
+
+/* ----------------------------------------------------------- the country */
+/* Dials you can turn. The country redraws under your hand because drawing is
+   cheap and starting a game is not, so the preview is free to be live. */
+#drawmap {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(12,10,8,.72); backdrop-filter: blur(2px); padding: 18px;
+}
+#drawmap-box {
+  width: min(980px, 96vw); max-height: 92vh; overflow: auto;
+  background: var(--panel); border: 1px solid rgba(201,162,39,.34);
+  border-radius: 6px; box-shadow: 0 24px 70px rgba(0,0,0,.55);
+}
+#drawmap header {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 12px 16px 8px; border-bottom: 1px solid var(--edge);
+}
+#drawmap h2 {
+  margin: 0; font: 400 15px/1 var(--serif, Georgia, serif);
+  letter-spacing: .09em; text-transform: uppercase; color: var(--gold);
+}
+#drawmap-close {
+  margin-left: auto; background: none; border: 0; color: var(--dim);
+  font-size: 19px; cursor: pointer; line-height: 1;
+}
+#drawmap-close:hover { color: var(--parch); }
+#drawmap-body {
+  display: grid; grid-template-columns: 1fr 480px; gap: 18px; padding: 14px 16px 18px;
+}
+#drawmap-note { margin: 0 0 10px; font-size: 12px; line-height: 1.55; }
+#regionpick { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+#regionpick button {
+  background: transparent; border: 1px solid rgba(201,162,39,.22);
+  color: #cdc2a8; border-radius: 5px; padding: 5px 9px; cursor: pointer;
+  font: inherit; font-size: 12px;
+}
+#regionpick button:hover { border-color: rgba(201,162,39,.55); }
+#regionpick button[aria-pressed="true"] {
+  background: rgba(201,162,39,.18); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+.dial { display: grid; grid-template-columns: 74px 1fr 108px; gap: 9px;
+        align-items: center; margin-bottom: 7px; font-size: 12px; }
+.dial label { color: var(--dim); letter-spacing: .03em; }
+.dial output { color: #cdc2a8; text-align: right; font-size: 11.5px; }
+.dial input[type=range] {
+  -webkit-appearance: none; appearance: none; height: 3px; border-radius: 2px;
+  background: rgba(201,162,39,.26); outline: none;
+}
+.dial input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--gold); cursor: pointer; border: 0;
+}
+.dial input[type=range]::-moz-range-thumb {
+  width: 13px; height: 13px; border-radius: 50%; background: var(--gold);
+  cursor: pointer; border: 0;
+}
+#drawmap .acts { display: flex; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
+#drawmap .acts button {
+  background: transparent; border: 1px solid rgba(201,162,39,.28);
+  color: #cdc2a8; border-radius: 5px; padding: 7px 13px; cursor: pointer;
+  font: inherit; font-size: 12.5px;
+}
+#drawmap .acts button:hover { border-color: rgba(201,162,39,.6); color: var(--parch); }
+#drawmap .acts .go {
+  background: rgba(201,162,39,.2); border-color: rgba(201,162,39,.66);
+  color: var(--gold);
+}
+#drawmap-view {
+  width: 100%; height: auto; display: block; border-radius: 4px;
+  background: #1a1712; border: 1px solid var(--edge);
+}
+#drawmap-says { margin: 8px 0 6px; font-size: 11.5px; line-height: 1.6; }
+#drawmap-towns { list-style: none; margin: 0; padding: 0; font-size: 11.5px;
+                 max-height: 150px; overflow: auto; }
+#drawmap-towns li { display: flex; gap: 8px; padding: 2px 0; color: var(--dim); }
+#drawmap-towns b { color: #cdc2a8; font-weight: normal; min-width: 96px; }
+#drawmap-towns span { color: var(--dim); }
+@media (max-width: 860px) {
+  #drawmap-body { grid-template-columns: 1fr; }
+  #drawmap-right { order: -1; }
+}
+
+/* Somebody else's roofline. Five architecture sets are worth having only if
+   you are shown one that is not your own. */
+#writ-body canvas.skyline {
+  display: block; width: 100%; height: 104px; margin: 0 0 5px;
+  border-radius: 3px; background: linear-gradient(rgba(40,52,64,.5),
+                                                  rgba(28,26,22,.25));
+}
+
+/* ----------------------------------------------------------- the front door */
+/* Somebody who double-clicked an icon should be met by a choice, not a
+   prompt. Everything here exists so the game can be started, saved and picked
+   back up without a command being typed. */
+#front {
+  position: fixed; inset: 0; z-index: 30; display: grid; place-items: center;
+  padding: 20px; overflow: auto;
+  /* Opaque, not nearly-opaque. At .96 the town's own sidebar read straight
+     through it -- souls, mood, hands, the whole ledger -- which makes a
+     screen that is asking you to choose a house look like a sheet laid over
+     a game already in progress. It is a screen; it covers. */
+  background: radial-gradient(120% 90% at 50% 0%, #262016, #0a0907);
+}
+#front-box { width: min(720px, 94vw); text-align: center; }
+#front h1 {
+  margin: 0 0 6px; font: 400 40px/1 var(--serif, Georgia, serif);
+  letter-spacing: .2em; color: var(--gold); text-transform: uppercase;
+}
+#front-version {
+  margin: -14px auto 20px; font-size: 11px; letter-spacing: .1em;
+  opacity: .45; font-variant-numeric: tabular-nums;
+}
+#front-sub { margin: 0 auto 10px; max-width: 46ch; font-size: 13px; line-height: 1.6; }
+#front h3 {
+  margin: 18px 0 8px; font: 400 11px/1 inherit; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--dim);
+}
+.pickrow { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pickrow button {
+  background: transparent; border: 1px solid rgba(201,162,39,.22);
+  color: #cdc2a8; border-radius: 5px; padding: 7px 12px; cursor: pointer;
+  font: inherit; font-size: 12.5px;
+}
+.pickrow button:hover { border-color: rgba(201,162,39,.6); color: var(--parch); }
+.pickrow button[aria-pressed="true"] {
+  background: rgba(201,162,39,.18); border-color: rgba(201,162,39,.75);
+  color: var(--gold);
+}
+#house-note, #where-note {
+  margin: 9px auto 0; max-width: 56ch; font-size: 12px; line-height: 1.6;
+  min-height: 2.6em;
+}
+#front .acts { display: flex; gap: 8px; justify-content: center; margin-top: 22px;
+               flex-wrap: wrap; }
+#front .acts button, #front-resume button {
+  background: transparent; border: 1px solid rgba(201,162,39,.3);
+  color: #cdc2a8; border-radius: 5px; padding: 9px 18px; cursor: pointer;
+  font: inherit; font-size: 13px;
+}
+#front .acts button:hover, #front-resume button:hover {
+  border-color: rgba(201,162,39,.7); color: var(--parch);
+}
+/* Specificity, not order: `#front .acts button` is one class heavier than a
+   bare `#front .go`, so the primary action lost its own fill to the rule for
+   the buttons beside it and `begin` looked exactly like `draw it yourself`. */
+#front .acts button.go, #front-resume button.go {
+  background: rgba(201,162,39,.22); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+#front-resume { margin-bottom: 4px; }
+#front-resume .wide { padding: 10px 26px; }
+@media (max-width: 520px) { #front h1 { font-size: 30px; } }
+
+/* ------------------------------------------------------------- a person */
+/* Clicking somebody opens this. It sits in the corner rather than over the
+   town, because the answer to "who is that" is worth nothing if it covers up
+   the person you were pointing at. */
+#soul {
+  position: fixed; right: 14px; bottom: 14px; z-index: 12;
+  width: min(300px, calc(100vw - 28px)); max-height: min(70vh, 620px);
+  overflow: auto; padding: 14px 15px 15px;
+  background: rgba(16,14,11,.99); border: 1px solid rgba(201,162,39,.28);
+  border-radius: 4px; box-shadow: 0 10px 34px rgba(0,0,0,.5);
+}
+#soul-close {
+  position: absolute; top: 6px; right: 7px; width: 22px; height: 22px;
+  background: transparent; border: 0; color: var(--dim); cursor: pointer;
+  font-size: 17px; line-height: 1;
+}
+#soul-close:hover { color: var(--parch); }
+#soul h3 {
+  margin: 0 20px 2px 0; font: 400 16px/1.25 var(--serif, Georgia, serif);
+  color: var(--gold); letter-spacing: .02em;
+}
+#soul-count {
+  margin: 0 0 8px; font-size: 10.5px; letter-spacing: .13em;
+  text-transform: uppercase;
+}
+#soul-count.mine { color: var(--gold); }
+#soul-doing { margin: 0 0 10px; font-size: 12.5px; line-height: 1.5; }
+#soul-facts, #soul-skills { list-style: none; margin: 0; padding: 0; }
+#soul-facts li {
+  display: flex; gap: 10px; justify-content: space-between;
+  font-size: 12px; padding: 3px 0; border-top: 1px solid rgba(201,162,39,.09);
+}
+#soul-facts li span:last-child { text-align: right; color: #cdc2a8; }
+#soul-said {
+  margin: 11px 0 0; padding: 9px 11px; font-size: 12px; line-height: 1.55;
+  font-style: italic; color: #cdc2a8;
+  background: rgba(201,162,39,.07); border-left: 2px solid rgba(201,162,39,.4);
+  border-radius: 0 3px 3px 0;
+}
+#soul-person { margin-top: 11px; padding-top: 9px;
+               border-top: 1px solid rgba(201,162,39,.16); }
+#soul-age { margin: 0 0 6px; font-size: 11.5px; }
+#soul-skills li { font-size: 12px; padding: 2px 0; }
+#soul-skills b { color: var(--gold); font-weight: 400; }
+#soul-posts { margin-top: 11px; padding-top: 9px;
+              border-top: 1px solid rgba(201,162,39,.16); }
+#soul-posts h4 {
+  margin: 0 0 7px; font: 400 10.5px/1 inherit; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--dim);
+}
+#soul-posts .pickrow { justify-content: flex-start; }
+#soul-posts p { margin: 7px 0 0; font-size: 11px; }
+@media (max-width: 560px) {
+  #soul { left: 14px; right: 14px; width: auto; max-height: 52vh; }
+}
+
+/* --------------------------------------------------------------- the clock */
+/* Time runs on its own now, so the pace of it is a control rather than a
+   command. It sits with the view buttons because it is the same kind of
+   thing: what you are looking at, and how fast. */
+#pace { margin-right: 4px; }
+#pace button {
+  pointer-events: auto; font: 12px/1 inherit; padding: 6px 8px; cursor: pointer;
+  color: var(--dim); background: rgba(20,17,13,.55);
+  border: 1px solid var(--edge); border-radius: 2px; letter-spacing: -1px;
+}
+#pace button:hover { color: var(--parch); border-color: rgba(201,162,39,.5); }
+#pace button[aria-pressed="true"] {
+  background: rgba(201,162,39,.2); border-color: rgba(201,162,39,.7);
+  color: var(--gold);
+}
+#pace button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+body.march #pace button { color: #6b5c3e; background: rgba(235,224,194,.75);
+                          border-color: rgba(120,96,58,.35); }
+/* Why it stopped, said where you are looking rather than in the log. */
+#halt {
+  position: fixed; left: 50%; top: 58px; transform: translateX(-50%); z-index: 13;
+  padding: 7px 15px; font-size: 12.5px; letter-spacing: .04em;
+  color: #f0d9a0; background: rgba(86,26,20,.94);
+  border: 1px solid rgba(201,162,39,.45); border-radius: 3px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.45); pointer-events: none;
+}
+
+/* The matchup, in the person panel's skill slot. Green is an advantage,
+   red is one against you, and the number is the multiplier the battle will
+   actually use -- not a rating invented for the display. */
+#soul-skills b.up { color: var(--leaf); }
+#soul-skills b.down { color: var(--blood); }
+#soul-skills b.dim { color: var(--dim); }
+#soul-skills li span.dim { font-size: 11px; }
+
+/* The ways into somebody else's castle. Five approaches, and what each one
+   would meet -- the point being that the answer is different for each lord,
+   because they no longer all build the same wall. */
+ul.ways { list-style: none; margin: 6px 0 0; padding: 0; }
+ul.ways li {
+  display: grid; grid-template-columns: 8.5em 1fr; gap: 8px;
+  font-size: 11.5px; line-height: 1.45; padding: 4px 0;
+  border-top: 1px solid rgba(201,162,39,.1);
+}
+ul.ways b { color: var(--gold); font-weight: 400; }
+ul.ways span { color: #b9ad94; }
+ul.ways em { color: var(--leaf); font-style: normal; }
+body.march ul.ways li { border-color: rgba(120,96,58,.2); }
+body.march ul.ways b { color: #7a5c1e; }
+body.march ul.ways span { color: #5c5240; }
+body.march ul.ways em { color: #4a6b2a; }
+
+/* The three you govern with. The number that matters is the multiplier, not
+   the loyalty: "the knights are unhappy" is a mood face, "muster ×0.89" is a
+   decision. */
+#estates { list-style: none; margin: 0; padding: 0; }
+li.estate {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 8px;
+  align-items: baseline; font-size: 12.5px; padding: 3px 0;
+}
+li.estate label { color: var(--parch); }
+li.estate span.up { color: var(--leaf); }
+li.estate span.down { color: var(--blood); }
+li.estate + li .why-list { margin: 0 0 7px; }
+#estates .why-row { display: flex; justify-content: space-between; gap: 8px;
+                    font-size: 11px; padding: 1px 0; }
+#estates .why-row span { color: var(--dim); }
+
+/* Feats: what you have done, and the nearest few you have not. A list you
+   scroll is a list nobody reads, so the panel shows the earned ones and the
+   four easiest of the rest. */
+#feats { list-style: none; margin: 0; padding: 0; }
+li.feat { display: flex; justify-content: space-between; gap: 8px;
+          font-size: 12.5px; padding: 2px 0; }
+li.feat label { color: #b9ad94; }
+li.feat.got label { color: var(--leaf); }
+li.feat-why { font-size: 11px; color: var(--dim); padding: 0 0 5px;
+              line-height: 1.4; }
+
+/* The roll: what your house is for, as the next thing to do. A mission in
+   gold is one only your house has. */
+#roll { list-style: none; margin: 0; padding: 0; }
+li.task { font-size: 12.5px; padding: 2px 0; }
+li.task label { color: #b9ad94; }
+li.task.mine label { color: var(--gold); }
+li.task-why { font-size: 11px; color: var(--dim); line-height: 1.45;
+              padding: 0 0 6px; display: flex; flex-direction: column; }
+li.task-why em { font-style: normal; }
+li.task-why em.pays { color: var(--leaf); }
+li.task-why em.costs { color: #9a7a4a; }
+
+/* The water. Blue where the siege is red and the sickness is purple: three
+   panels in one column need to be told apart at a glance, and colour does it
+   faster than a heading does. */
+#water {
+  padding: 12px 14px 10px;
+  background: var(--panel); border: 1px solid #3f6f86; border-radius: 2px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+#water h3 {
+  margin: 0 0 8px; font-size: 12px; font-weight: normal;
+  letter-spacing: .14em; text-transform: uppercase; color: #7fb5cd;
+}
+#water h3 em {
+  font-style: normal; color: var(--dim); letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+#water ul { margin: 0 0 9px; padding: 0; list-style: none; }
+#water ul:empty { margin: 0; }
+#water li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#water li label { color: var(--parch); }
+#water li span { color: var(--dim); font-variant-numeric: tabular-nums; }
+#water li.up span { color: var(--gold); }
+#water li.out span { color: var(--blood); }
+#water li.mine label { color: var(--gold); }
+#water .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+#water .acts button {
+  font: 12px/1 inherit; letter-spacing: .06em; padding: 7px 10px;
+  color: var(--parch); background: rgba(20,17,13,.7);
+  border: 1px solid var(--edge); border-radius: 2px; cursor: pointer;
+}
+#water .acts button:disabled { opacity: .45; cursor: default; }
+#water .acts button:focus-visible { outline: 2px solid var(--parch); outline-offset: 1px; }
+#water p { margin: 8px 0 0; font-size: 12px; }
+#water p:empty { margin: 0; }
+
+/* ------------------------------------------------------------- the battle
+   A screen, not a panel: the day has stopped on this and nothing behind it
+   can be acted on until it is fought, so it covers. Red-edged like the
+   siege board, because it is the siege board's worst morning. */
+#battle {
+  position: fixed; inset: 0; z-index: 32; display: grid; place-items: center;
+  padding: 16px; overflow: auto;
+  background: radial-gradient(120% 90% at 50% 0%, #2a1a14, #0a0806);
+}
+#battle-box {
+  width: min(1040px, 96vw); color: var(--parch);
+  display: flex; flex-direction: column; gap: 12px;
+}
+#battle-head { text-align: center; }
+#battle-head h1 {
+  margin: 0 0 4px; font: 400 30px/1.1 var(--serif, Georgia, serif);
+  letter-spacing: .16em; color: var(--gold); text-transform: uppercase;
+}
+#battle-sub { margin: 0; font-size: 12.5px; letter-spacing: .04em; }
+
+#battle-cols {
+  display: grid; grid-template-columns: 220px 1fr 220px; gap: 12px;
+  align-items: stretch;
+}
+.battle-side {
+  padding: 10px 12px 8px; background: var(--panel);
+  border: 1px solid var(--edge); border-radius: 3px;
+}
+#battle-mine { border-color: rgba(95,138,63,.55); }
+#battle-theirs { border-color: rgba(155,44,44,.55); }
+.battle-side h3 {
+  margin: 0 0 8px; font-size: 11px; font-weight: normal;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--dim);
+  display: flex; justify-content: space-between; gap: 8px;
+}
+#battle-mine h3 { color: #9fc27c; }
+#battle-theirs h3 { color: #d98a8a; }
+.battle-side h3 em { font-style: normal; color: var(--dim); letter-spacing: .04em;
+  text-transform: none; font-size: 11px; text-align: right; }
+.bars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 9px; }
+.bar { display: grid; grid-template-columns: 62px 1fr 42px; gap: 7px; align-items: center;
+  font-size: 11px; }
+.bar label { color: var(--dim); letter-spacing: .04em; }
+.bar .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--parch); }
+.track { height: 9px; background: rgba(255,255,255,.07); border-radius: 2px; overflow: hidden;
+  border: 1px solid rgba(0,0,0,.4); }
+.fill { height: 100%; width: 100%; transition: width .45s ease; }
+#battle-mine .fill.men { background: linear-gradient(90deg, #4f7a34, #8ab55e); }
+#battle-theirs .fill.men { background: linear-gradient(90deg, #7c2626, #c0504d); }
+.fill.morale { background: linear-gradient(90deg, #8a6a2e, var(--gold)); }
+.units { margin: 0; padding: 0; list-style: none; font-size: 12px; }
+.units li { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 6px; align-items: baseline;
+  padding: 2px 0; border-top: 1px solid rgba(255,255,255,.05); }
+.units li:first-child { border-top: 0; }
+.units .kind { width: 10px; height: 10px; border-radius: 2px; align-self: center; }
+.units .kind.foot { background: #a88a5a; } .units .kind.ranged { background: #7fa06a; }
+.units .kind.horse { background: #c0a04a; } .units .kind.siege { background: #8a8a90; }
+.units .n { font-variant-numeric: tabular-nums; }
+.units .lost { color: var(--blood); font-variant-numeric: tabular-nums; font-size: 11px; }
+.units .eats { color: var(--dim); font-size: 10.5px; letter-spacing: .03em; }
+
+#battle-field {
+  width: 100%; height: 100%; min-height: 300px; display: block;
+  background: #1a1711; border: 1px solid var(--edge); border-radius: 3px;
+}
+
+#battle-under { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#battle-mods, #battle-log {
+  margin: 0; padding: 9px 12px; list-style: none; font-size: 12px;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  max-height: 150px; overflow: auto;
+}
+#battle-mods li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#battle-mods li span { color: var(--dim); }
+#battle-mods li b { font-weight: normal; font-variant-numeric: tabular-nums; }
+#battle-mods li.good b { color: #9fc27c; } #battle-mods li.bad b { color: #d98a8a; }
+#battle-log li { color: var(--dim); padding: 2px 0; }
+#battle-log li.you { color: var(--gold); }
+#battle-log li:last-child { color: var(--parch); }
+
+#battle-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+#battle-acts button, #battle-acts select, #battle-done button {
+  font: inherit; font-size: 13px; letter-spacing: .04em; padding: 9px 16px;
+  color: #cdc2a8; background: rgba(20,17,13,.7);
+  border: 1px solid rgba(201,162,39,.3); border-radius: 5px; cursor: pointer;
+}
+#battle-acts button:hover:not(:disabled), #battle-acts select:hover { border-color: rgba(201,162,39,.7); color: var(--parch); }
+#battle-acts button.go, #battle-done button.go {
+  background: rgba(201,162,39,.22); border-color: rgba(201,162,39,.7); color: var(--gold);
+}
+#battle-acts button.grim { border-color: rgba(155,44,44,.55); color: #d98a8a; }
+#battle-acts button.grim:hover:not(:disabled) { border-color: rgba(155,44,44,.9); }
+#battle-acts button:disabled { opacity: .38; cursor: default; }
+#battle-acts kbd {
+  font: 10px/1 inherit; margin-left: 6px; padding: 2px 5px; border-radius: 3px;
+  border: 1px solid rgba(201,162,39,.35); color: var(--dim); vertical-align: middle;
+}
+#battle-note { margin: 0; text-align: center; font-size: 12px; min-height: 1.4em; }
+#battle-done { text-align: center; padding: 10px 0 0; }
+#battle-done h2 {
+  margin: 0 0 6px; font: 400 22px/1.2 var(--serif, Georgia, serif);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--gold);
+}
+#battle-done p { margin: 0 0 12px; font-size: 13px; color: var(--parch); white-space: pre-line; }
+@media (max-width: 860px) {
+  #battle-cols { grid-template-columns: 1fr 1fr; }
+  #battle-field { grid-column: 1 / -1; order: -1; min-height: 220px; }
+  #battle-under { grid-template-columns: 1fr; }
+}
+
+/* ------------------------------------------------------ the selection strip */
+#sel {
+  position: absolute; left: 14px; bottom: 58px; z-index: 12;
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 10px 7px 12px; max-width: min(560px, calc(100vw - 28px));
+  background: rgba(22,16,10,.88); border: 1px solid rgba(126,209,126,.55);
+  border-left: 3px solid rgba(126,209,126,.9); border-radius: 3px;
+  color: var(--parch); font: 13px Georgia, serif; pointer-events: auto;
+}
+#sel #sel-text { white-space: nowrap; }
+#sel #sel-hint { font-size: 12px; }
+#sel #sel-group {
+  font-size: 11px; letter-spacing: .06em; padding: 1px 6px; border-radius: 2px;
+  background: rgba(126,209,126,.18); border: 1px solid rgba(126,209,126,.5);
+}
+#sel #sel-more {
+  background: none; border: 1px solid rgba(126,209,126,.5); border-radius: 2px;
+  color: var(--parch); font: 11.5px Georgia, serif; padding: 2px 7px; cursor: pointer;
+  opacity: .85; white-space: nowrap;
+}
+#sel #sel-more:hover, #sel #sel-more:focus-visible {
+  opacity: 1; border-color: rgba(126,209,126,.95);
+}
+#sel #sel-clear {
+  margin-left: 4px; background: none; border: 0; color: var(--parch);
+  opacity: .6; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px;
+}
+#sel #sel-clear:hover, #sel #sel-clear:focus-visible { opacity: 1; }
+body.march #sel { border-color: rgba(201,162,39,.6); border-left-color: rgba(201,162,39,.95); }
+@media (max-width: 860px) { #sel { bottom: 96px; font-size: 12px; } }
+
+/* detaching part of a host, in the host panel */
+#soul-posts .detach { display: grid; grid-template-columns: 1fr 64px; gap: 4px 8px;
+  margin: 6px 0 4px; align-items: center; }
+#soul-posts .detach label { font-size: 12px; opacity: .85; }
+#soul-posts .detach input {
+  width: 100%; background: rgba(0,0,0,.35); color: var(--parch);
+  border: 1px solid rgba(201,162,39,.35); border-radius: 2px; padding: 2px 5px;
+  font: 12px Georgia, serif; text-align: right;
+}
+
+/* ------------------------------------------------------ riding at their head */
+#battle-acts .ride { border-color: rgba(201,162,39,.75); color: #e8cf7a; }
+#battle-acts .ride:disabled { opacity: .45; }
+#melee-hud {
+  display: flex; align-items: center; gap: 14px; justify-content: center;
+  margin: 6px auto 0; max-width: 880px; font: 13px Georgia, serif; color: var(--parch);
+}
+#melee-hud #melee-count { min-width: 190px; text-align: right; }
+#melee-hud #melee-time { width: 220px; height: 6px; background: rgba(0,0,0,.45);
+  border: 1px solid rgba(201,162,39,.4); border-radius: 3px; overflow: hidden; }
+#melee-hud #melee-time i { display: block; height: 100%; width: 100%;
+  background: linear-gradient(90deg, #c9a227, #e8cf7a); }
+#melee-hud .dim { font-size: 11.5px; }
+#battle-field.melee { cursor: crosshair; outline: 1px solid rgba(201,162,39,.55); }
