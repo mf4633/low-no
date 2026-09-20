@@ -157,7 +157,7 @@ class TestControls(unittest.TestCase):
 
     def test_a_right_click_is_the_order(self):
         self.assertIn("addEventListener('contextmenu'", self.js)
-        for line in ("send(`staff ${shed.uid} ${hands}`)", "send(`march ${h.uid} ${n.key}`)",
+        for line in ("send(`staff ${want.shed.uid} ${hands}`)", "send(`march ${h.uid} ${n.key}`)",
                      "send(`post ${first} captain ${h.uid}`)",
                      "send(`split ${h.uid} ${pairs.join(' ')}`)",
                      "send(`join ${h.uid} ${b.dataset.join}`)"):
@@ -179,3 +179,140 @@ class TestControls(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheyWalkThere(unittest.TestCase):
+    """A right-click means "go there", and going takes walking.
+
+    The books seat the hands the moment the order is given -- a day is the
+    unit in there -- so the walk is a transition the picture draws between
+    two true states. What the client must get right is which shed the
+    ground was asking for, and that a shed you have shut is never one of
+    them.
+    """
+
+    def setUp(self):
+        self.js = (STATIC / "marchlands.js").read_text()
+
+    def test_the_ground_is_asked_what_it_wants_doing(self):
+        # Trees mean the woodcutter, the field means the farm, water means
+        # the boats: the tile under the click picks the kind of shed.
+        self.assertIn("const WORK_ON = { forest: 'forest', field: 'fertile', water: 'coast'", self.js)
+        self.assertIn("function workFor", self.js)
+        self.assertIn("function tileKind", self.js)
+        # and the fallback is still the nearest work there is
+        self.assertIn("the nearest work", self.js)
+
+    def test_a_shed_you_have_shut_is_not_work(self):
+        self.assertIn("b.enabled !== false", self.js)
+
+    def test_the_walk_is_drawn(self):
+        for bit in ("function setThemWalking", "function claimTrip", "function crossesWater",
+                    "const arriving = new Map()", "claimedTrip.clear()"):
+            self.assertIn(bit, self.js, bit)
+        # the figure that would otherwise stand there is the one that walks
+        self.assertIn("const trip = (f.kind === 'worker' && !afoot) ? claimTrip(f.work) : null", self.js)
+
+    def test_the_drawing_is_told_whether_a_shed_is_open(self):
+        from marchlands.layout import plan_for
+        g, key = None, None
+        st = start("marchlands", seed=3).world.settlements["aldworth"]
+        shed = next(b for b in st.buildings if b.complete and b.spec.jobs)
+        self.assertTrue(next(p for p in plan_for(st).buildings if p.uid == shed.uid).enabled)
+        shed.enabled = False
+        self.assertFalse(next(p for p in plan_for(st).buildings if p.uid == shed.uid).enabled)
+        self.assertIn("enabled", plan_for(st).to_dict()["buildings"][0])
+
+
+class TestIdleHands(unittest.TestCase):
+    """Hands with nothing to do, and the chip that says so.
+
+    Age of Empires needs an idle-villager button because its villagers
+    scatter and are commanded one at a time. Stronghold has none, because
+    its idle peasants all stand round the campfire where you cannot miss
+    them. This town scatters its idle folk along the roads, so it takes
+    the button -- and what it counts is hands, not figures, because a
+    figure here is eight of them.
+    """
+
+    def setUp(self):
+        self.js = (STATIC / "marchlands.js").read_text()
+        self.html = (STATIC / "index.html").read_text()
+
+    def test_the_chip_is_on_the_page_and_wired_to_the_same_order(self):
+        self.assertIn('id="idle"', self.html)
+        self.assertIn('id="idle-count"', self.html)
+        self.assertIn("$('idle').addEventListener('click', nextIdle)", self.js)
+        self.assertIn("function paintIdle", self.js)
+
+    def test_it_counts_hands_rather_than_figures(self):
+        self.assertIn("String(idle.length * per)", self.js)
+
+    def test_idle_figures_mean_a_town_with_more_hands_than_work(self):
+        # The claim the chip makes, checked against the town it is drawn
+        # from: nobody stands about while there is a job going.
+        from marchlands.sim import Bot
+        g = start("marchlands", seed=5)
+        Bot(g).run(150)
+        st = g.world.settlements["aldworth"]
+        # Enough sheds for everybody: nobody is drawn standing about.
+        while st.jobs_offered < st.workforce:
+            st.population -= 10
+        st._seat_hands()
+        self.assertFalse([f for f in plan_for(st).folk if f.kind == "idle"],
+                         "somebody is drawn idle in a town with work going spare")
+        # More hands than the town has work for: now they stand about, and
+        # the chip has something to count.
+        st.population += 400
+        st._seat_hands()
+        self.assertLess(st.jobs_offered, st.workforce)
+        self.assertTrue([f for f in plan_for(st).folk if f.kind == "idle"],
+                        "a town that has outgrown its work draws nobody idle")
+
+
+class TestTheyGatherAtTheMarket(unittest.TestCase):
+    """Stronghold's campfire, in a town that has a market square.
+
+    Idle folk used to be sprinkled along the roads, which is the AoE2
+    picture and hid the one thing worth seeing: a town with more hands
+    than work. They stand together now, in front of the square, and the
+    size of the crowd is the reading.
+    """
+
+    def crowded(self, seed=5, extra=400):
+        from marchlands.sim import Bot
+        g = start("marchlands", seed=seed)
+        Bot(g).run(200)
+        st = g.world.settlements["aldworth"]
+        st.population += extra
+        st._seat_hands()
+        return st, plan_for(st)
+
+    def test_they_stand_together_in_front_of_the_square(self):
+        import math
+        st, plan = self.crowded()
+        market = next((b for b in plan.buildings if b.key == "market"), None)
+        self.assertIsNotNone(market, "this fixture wants a market square")
+        idle = [f for f in plan.folk if f.kind == "idle"]
+        self.assertTrue(idle, "nobody is idle in a town with more hands than jobs")
+        for f in idle:
+            gap = math.hypot(f.x - market.x, f.y - market.y)
+            self.assertLess(gap, 4.5, "an idle figure is nowhere near the square")
+            self.assertGreater(gap, 0.8, "an idle figure is standing on the square itself")
+            self.assertGreater(f.y, market.y, "somebody is loitering round the back")
+
+    def test_they_say_what_they_are_waiting_for(self):
+        st, plan = self.crowded()
+        idle = [f for f in plan.folk if f.kind == "idle"]
+        self.assertIn("waiting at the", idle[0].at)
+        self.assertIn("Market Square", idle[0].at)
+
+    def test_a_town_with_nowhere_to_gather_still_draws_them(self):
+        st, _ = self.crowded()
+        for b in st.buildings:
+            if b.key in ("market", "chapel", "inn"):
+                b.days_left = 5          # unbuilt: nowhere to stand about
+        plan = plan_for(st)
+        idle = [f for f in plan.folk if f.kind == "idle"]
+        self.assertTrue(idle, "the idle vanished when the square did")
+        self.assertEqual(idle[0].at, "nothing to do")

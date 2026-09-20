@@ -48,6 +48,11 @@ class Placed:
     #: Carried onto the drawing so the flock you can see is the flock the
     #: books are paying you for -- see settlement.BuildingInstance.head.
     head: float = -1.0
+    #: Whether it is open for business at all. `idle` covers both a shed
+    #: short of hands and a shed you have shut, and those are not the same
+    #: thing to anybody deciding where to send people: one wants hands and
+    #: the other refuses them.
+    enabled: bool = True
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -434,6 +439,7 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
             uid=b.uid, key=b.key, x=x, y=y, category=b.spec.category,
             terrain=b.spec.terrain, complete=b.complete,
             running=b.worked, idle=b.complete and not b.worked,
+            enabled=b.enabled,
             burning=settlement.fires.burning(b.uid), name=b.spec.name,
             head=b.head))
 
@@ -606,16 +612,53 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
                                 trade="walk", home=home_roof.uid,
                                 work=shed.uid, souls=SOULS_PER_FIGURE))
 
-    for i in range(max(0, want - at_work)):
-        if not roads:
+    # --- the idle, gathered where a town gathers ---------------------------
+    #
+    # Stronghold's answer to "where are my spare hands" is that they are all
+    # in one place. Its peasants stand round the campfire until a building
+    # takes one, so the crowd by the fire *is* the readout -- there is no
+    # idle-villager button in that game because there is nothing to hunt
+    # for. Scattering them along the roads, which is what this did, made
+    # the same fact invisible: a town with sixty spare hands looked like a
+    # town with a slightly busier street.
+    #
+    # The market square is this game's campfire. Failing one, the chapel or
+    # the inn -- somewhere people would actually stand about -- and failing
+    # all three they are back on the roads, because a town with none of
+    # those has nowhere to gather and that is the honest picture of it.
+    gather = next((b for b in plan.buildings
+                   if b.key == "market" and b.complete), None)
+    for fallback in ("chapel", "inn"):
+        if gather is None:
+            gather = next((b for b in plan.buildings
+                           if b.key == fallback and b.complete), None)
+    idle_folk = max(0, want - at_work)
+    for i in range(idle_folk):
+        roof = roofs[(i * 5 + 1) % len(roofs)] if roofs else None
+        if gather is not None:
+            # A crowd, not a queue: the golden angle keeps them from
+            # falling into rings you can count, and the ring grows as the
+            # square fills, so sixty idle hands look like sixty.
+            # In front of it, never on it and never round the back: a
+            # fan that widens as the square fills, so sixty idle hands
+            # look like sixty rather than like a ring you can count.
+            ring = 1 + i // 7
+            frac = ((i * 0.6180339887) % 1.0)
+            ang = math.pi * (0.13 + 0.74 * frac)
+            rad = 0.62 + 0.5 * ring
+            x = gather.x + math.cos(ang) * rad
+            y = gather.y + 0.62 + math.sin(ang) * rad * 0.7
+            where = f"waiting at the {gather.name} for somebody to want them"
+        elif roads:
+            x, y = roads[(i * 7 + 3) % len(roads)]
+            where = "nothing to do"
+        else:
             break
-        x, y = roads[(i * 7 + 3) % len(roads)]
         # Idle folk sleep somewhere too, and being able to say where is
         # half of what makes them people rather than filler.
-        roof = roofs[(i * 5 + 1) % len(roofs)] if roofs else None
         plan.folk.append(Walker(
-            x=x + rng.random() * 0.6 - 0.3, y=y + rng.random() * 0.6 - 0.3,
-            kind="idle", at="nothing to do", trade="idle",
+            x=x + rng.random() * 0.34 - 0.17, y=y + rng.random() * 0.34 - 0.17,
+            kind="idle", at=where, trade="idle",
             souls=SOULS_PER_FIGURE, home=roof.uid if roof else -1))
 
     # --- the beasts in the yards -------------------------------------------

@@ -1198,10 +1198,19 @@ above the console, which is where that game has always put it; the whole
 card is behind `i` or the strip's own button. A left drag boxes a group,
 shift-click adds one, and a double-click picks everybody of that kind.
 
-A right-click is the order, and it is forgiving on purpose: point at a shed
-and the hands go to that shed, point at bare ground and they go to the
-nearest work to where you pointed, and the line says which so they never
-walk off somewhere you did not mean. Hosts go to the place you point at,
+A right-click is the order, and it means what it means in that game: they
+go there. Point at a shed and they go to it; point at the trees and they
+go to the woodcutter, at the field and they go to the farm, at the water
+and they go to the boats -- the ground is asked what it wants doing and
+answers with the kind of shed that does it, falling back to the nearest
+work there is. Then they *walk*: out of the field they were standing in,
+across the town, wading where the line crosses water, and only when they
+arrive do they take up the work. The books seat the hands the moment you
+click -- a day is the unit there -- and the walk is the seconds of it you
+watch, a transition between two true states rather than a lie about
+either. A shed you have shut is not work and is never offered, because a
+picture that hands you an order the game will refuse is worse than one
+that offers nothing. Hosts go to the place you point at,
 or the nearest one to it. One of yours goes to the post -- a host makes
 them captain, a town of yours makes them steward. The view moves on the
 right button, the middle one, alt-drag or the arrows, because the left drag
@@ -1965,6 +1974,28 @@ a town you are besieging does the same to you -- it comes up behind your
 lines and you fight at dawn -- so a siege is a thing that can be lifted
 from outside, which is most of what medieval field battles were for. If you
 are on either side and playing your battles, the day waits on it.
+
+### Where the idle stand
+
+Age of Empires has an idle-villager button because its villagers scatter
+and are told what to do one at a time; you go hunting for the one you
+forgot. Stronghold has no such button, and does not need one: its peasants
+come out of the hovels and stand round the campfire until a building takes
+one, so the crowd by the fire *is* the readout.
+
+This game is nearer Stronghold -- the queue seats every hand each morning,
+and you cannot forget to task anybody -- so figures stand about only when
+the town has more hands than jobs. That is a fact about the town, not a
+mistake you made, and scattering the idle along the roads hid it: sixty
+spare hands looked like a slightly busier street. They gather at the
+market square now, in a fan in front of it that widens as the square
+fills, and say what they are waiting for when you click one. Failing a
+market it is the chapel or the inn, and failing all three they are back on
+the roads, because a town with nowhere to gather has nowhere to gather.
+
+The button is there as well, above the console, counting hands rather than
+figures and taking you to the next of them -- but the crowd is the point,
+and the button is for the moment you are looking somewhere else.
 
 ### Riding at their head
 

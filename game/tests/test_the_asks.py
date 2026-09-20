@@ -477,7 +477,7 @@ class TestTheControls(unittest.TestCase):
             self.assertIn(bit, JS, bit)
 
     def test_every_order_the_mouse_gives_is_a_command_you_could_type(self):
-        for line in ("send(`staff ${shed.uid} ${hands}`)",
+        for line in ("send(`staff ${want.shed.uid} ${hands}`)",
                      "send(`march ${h.uid} ${n.key}`)",
                      "send(`post ${first} captain ${h.uid}`)",
                      "send(`split ${h.uid} ${pairs.join(' ')}`)",

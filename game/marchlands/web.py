@@ -510,7 +510,9 @@ def folk(game, here: str, index: int) -> dict:
             out["facts"].append(
                 {"k": "makes", "v": ", ".join(sorted(spec.outputs))})
     else:
-        out["doing"] = "standing in the street, because nothing is staffed"
+        # Where they are standing is drawn, so say the same thing the
+        # picture is saying rather than a second version of it.
+        out["doing"] = f.at or "standing about, because nothing wants doing"
         out["facts"].append(
             {"k": "why", "v": f"{s.employed:.0f} of {s.workforce:.0f} "
              f"hands have work"})

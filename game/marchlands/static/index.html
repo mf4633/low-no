@@ -231,10 +231,10 @@
         <dt>drag</dt><dd>box a group of figures, or of your hosts</dd>
         <dt>shift-click</dt><dd>add one to the group</dd>
         <dt>double-click</dt><dd>everybody of that trade, or every host there</dd>
-        <dt>right-click</dt><dd>send them where you point: to that shed, or the nearest work to it</dd>
+        <dt>right-click</dt><dd>send them there — they walk over and take up what that ground needs: the trees, the field, the water</dd>
         <dt><kbd>i</kbd></dt><dd>everything about whoever is picked up</dd>
         <dt><kbd>⌃1</kbd>…<kbd>⌃9</kbd> / <kbd>1</kbd>…<kbd>9</kbd></dt><dd>remember a group / call it up (twice to look)</dd>
-        <dt><kbd>.</kbd></dt><dd>the next pair of idle hands</dd>
+        <dt><kbd>.</kbd></dt><dd>the next pair of idle hands (or the idle button)</dd>
         <dt>right-drag / arrows</dt><dd>move the view</dd>
         <dt><kbd>H</kbd></dt><dd>what now?</dd>
         <dt><kbd>/</kbd></dt><dd>type a command</dd>
@@ -262,6 +262,14 @@
       <button id="writ-close" type="button" aria-label="close">×</button></header>
     <div id="writ-body"></div>
   </div>
+
+  <!-- Hands with nothing to do, and the way to the next of them. AoE2 has
+       this because its villagers scatter; Stronghold does not because its
+       idle peasants all stand round one campfire where you cannot miss
+       them. This town scatters, so it gets the button. -->
+  <button id="idle" type="button" hidden title="the next pair of idle hands (.)">
+    <span id="idle-count">0</span> idle
+  </button>
 
   <div id="advance">
     <button type="button" data-do="next">a day</button>

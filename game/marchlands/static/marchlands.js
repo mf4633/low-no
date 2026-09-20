@@ -1173,9 +1173,26 @@ function armsFor(trade, t, i) {
 }
 
 function drawFolk(f, i, t) {
-  let wx = f.x, wy = f.y, bob = 0, stride = 0;
-  const trade = f.trade || (f.kind === 'watch' ? 'guard' : 'idle');
-  if (f.path && f.path.length > 1) {
+  let wx = f.x, wy = f.y, bob = 0, stride = 0, swimming = false;
+  let trade = f.trade || (f.kind === 'watch' ? 'guard' : 'idle');
+  // Sent somewhere a moment ago: on the road to it, not standing in it.
+  // Only a figure that would otherwise be standing there takes the walk --
+  // the town's own road-walkers are already going somewhere, and handing
+  // one of them the trip left the newly-arrived figure popping into the
+  // yard, which is the very thing the walk is here to stop.
+  const afoot = f.path && f.path.length > 1;
+  const trip = (f.kind === 'worker' && !afoot) ? claimTrip(f.work) : null;
+  const shed = trip ? plan.buildings.find(b => b.uid === f.work) : null;
+  if (trip && shed) {
+    const g = Math.min(1, (performance.now() - trip.born) / trip.ms);
+    wx = trip.from[0] + (shed.x - trip.from[0]) * g;
+    wy = trip.from[1] + (shed.y - trip.from[1]) * g;
+    swimming = trip.swim && tileKind(wx, wy) === 'water';
+    trade = 'walk';
+    bob = swimming ? Math.abs(Math.sin(t * 2.2 + i)) * 0.8
+                   : Math.abs(Math.sin(t * 3.1 + i)) * 1.6;
+    stride = swimming ? 0 : Math.sin(t * 5.4 + i * 2.1) * 3.2;
+  } else if (afoot) {
     // Up the street and back again, each at their own pace.
     const cycle = (t * 0.06 + i * 0.17) % 2;
     const at = walkAlong(f.path, cycle < 1 ? cycle : 2 - cycle);
@@ -1188,11 +1205,18 @@ function drawFolk(f, i, t) {
   }
   const [sx0, sy0] = iso(wx, wy);
   const lift = f.kind === 'watch' ? 16 : 0;      // up on the wall-walk
-  const sx = sx0, sy = sy0 - lift;
+  // In the water they are in it up to the chest, and it rings round them.
+  const sx = sx0, sy = sy0 - lift + (swimming ? 4 : 0);
   folkSpots.set(i, [sx, sy]);
 
+  if (swimming) {
+    ctx.strokeStyle = 'rgba(210,228,238,.5)'; ctx.lineWidth = 1;
+    const r = 5 + Math.sin(t * 3 + i) * 1.4;
+    ctx.beginPath(); ctx.ellipse(sx, sy + 1, r + 3, (r + 3) * 0.38, 0, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(sx, sy + 1, r, r * 0.38, 0, 0, 7); ctx.stroke();
+  }
   ctx.fillStyle = 'rgba(0,0,0,.26)';
-  ctx.beginPath(); ctx.ellipse(sx, sy + 1, 5, 2.3, 0, 0, 7); ctx.fill();
+  if (!swimming) { ctx.beginPath(); ctx.ellipse(sx, sy + 1, 5, 2.3, 0, 0, 7); ctx.fill(); }
   if (isSelected('folk', i)) {
     // The ring under a chosen figure. Green, because every player who has
     // ever boxed a group of villagers already knows what green means.
@@ -2324,6 +2348,7 @@ function frame() {
     const things = [];
     folkSpots.clear();
     beastSpots.clear();
+    claimedTrip.clear();
     for (let y = 0; y < plan.h; y++)
       for (let x = 0; x < plan.w; x++)
         if (plan.tiles[y][x] === 'forest') things.push({ d: x + y, x, y, kind: 'wood' });
@@ -2981,6 +3006,7 @@ function paint(s) {
   const wasAge = state && state.age;
   state = s; plan = s.plan;
   paintSel();   // a new plan: find the same people in it
+  paintIdle();
   if (window.Sound) {
     Sound.feed(s);
     // A bell for the things worth stopping to hear.
@@ -3766,6 +3792,7 @@ function setMode(next) {
                          ['v-castle', 'castle']])
     $(id).setAttribute('aria-pressed', String(mode === m));
   document.body.classList.toggle('march', mode === 'march');
+  paintIdle();
   $('goodpick').hidden = mode !== 'march';
   $('trade').hidden = mode !== 'march';
   // The pencil is the town with your hands on it, so the town is still what
@@ -3801,9 +3828,9 @@ $('good').innerHTML = GOODS.map(g =>
   frameTown();
   loadOptions();
   loadCommands();
-  say('Marchlands. Click a villager to pick them up and right-click where they should '
-      + 'work; drag a box to take several. Click a roof to do something with it, or an '
-      + 'empty plot to raise something on it. Right-drag or the arrows move the view.');
+  say('Marchlands. Click a villager to pick them up and right-click where they should go: '
+      + 'they walk over and take up whatever that ground needs doing. Drag a box to take '
+      + 'several. Right-drag or the arrows move the view, the wheel zooms it.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   nextFrame();
   // The server decides whether anybody has chosen yet. A packaged build or a
@@ -4640,21 +4667,51 @@ function rightClick(e) {
   // the nearest work to where you pointed, which is what the click means
   // in every game that has villagers. Naming the shed keeps it honest --
   // they walked somewhere, and the line says where.
-  const hit = buildingAt(e);
-  const shed = (hit && worksAt(hit)) ? hit : nearestWork(e);
-  if (!shed) return say('no shed near there has work for hands.');
-  if (!hit || shed.uid !== hit.uid) say(`nearest work is the ${shed.name}.`);
-  send(`staff ${shed.uid} ${hands}`);
+  const want = workFor(e);
+  if (!want) return say('there is no work that way for them to go to.');
+  if (want.said) say(`off they go ${want.said}.`);
+  setThemWalking(want.shed, sel.ids.filter(i => plan.folk[i] && plan.folk[i].kind !== 'kin'));
+  send(`staff ${want.shed.uid} ${hands}`);
 }
 
 /* Which sheds can take hands at all, and which is nearest to a click.
  * `margin` carries the jobs a shed offers, because that is the same
  * reading the writ shows and there must not be two answers to it. */
 function worksAt(b) {
+  // Built, open, and with places to fill. A shed you have shut is not
+  // work: sending hands to it only earns "open it first" from the console,
+  // which is the picture offering an order the game will refuse.
   const m = state && state.margin ? state.margin[b.uid] : null;
-  return !!(b.complete && m && m.jobs);
+  return !!(b.complete && b.enabled !== false && m && m.jobs);
 }
-function nearestWork(ev) {
+/* What kind of shed the ground you pointed at is asking for. Click the
+ * trees and you mean the woodcutter, click the water and you mean the
+ * boats: "do what needs doing here" is a question the terrain answers. */
+const WORK_ON = { forest: 'forest', field: 'fertile', water: 'coast',
+                  hill: 'hills', clay: 'clay' };
+
+function tileKind(x, y) {
+  const tx = Math.round(x), ty = Math.round(y);
+  if (!plan || ty < 0 || ty >= plan.h || tx < 0 || tx >= plan.w) return 'grass';
+  return plan.tiles[ty][tx];
+}
+
+/* The shed a right-click means: the one you pointed at, else the nearest
+ * that works this kind of ground, else simply the nearest work there is. */
+function workFor(ev) {
+  const hit = buildingAt(ev);
+  if (hit && worksAt(hit)) return { shed: hit, said: '' };
+  const kind = tileKind(...screenToTile(ev));
+  const want = WORK_ON[kind];
+  if (want) {
+    const fit = nearestWork(ev, want);
+    if (fit) return { shed: fit, said: `to the ${fit.name}` };
+  }
+  const any = nearestWork(ev);
+  return any ? { shed: any, said: `to the ${any.name}, the nearest work` } : null;
+}
+
+function nearestWork(ev, terrain) {
   if (!plan) return null;
   const r = canvas.getBoundingClientRect();
   const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
@@ -4664,11 +4721,61 @@ function nearestWork(ev) {
   let best = null, bestD = Infinity;
   for (const b of plan.buildings) {
     if (!worksAt(b)) continue;
+    if (terrain && b.terrain !== terrain) continue;
     const [sx, sy] = iso(b.x, b.y);
     const d = Math.hypot(sx - px, (sy - py) * 1.9);
     if (d < bestD) { bestD = d; best = b; }
   }
   return best;
+}
+
+/* ------------------------------------------------------------- the walk */
+/* Told to go somewhere, they go: out of the field they were standing in,
+ * across the town, into the yard you pointed at, and only then do they
+ * take up the work. The books seat the hands the moment you say so -- a
+ * day is the unit there -- and this is the seconds of it you watch. It is
+ * a transition between two true states, not a lie about either: the shed
+ * they are walking to is the shed they belong to from the click onward. */
+const arriving = new Map();     // shed uid -> the walks still going on
+const claimedTrip = new Map();  // and which figure took which, this frame
+const WALK_PER_TILE = 150, WALK_LEAST = 700, WALK_MOST = 4500;
+
+function crossesWater(from, to) {
+  for (let i = 1; i < 12; i++) {
+    const g = i / 12;
+    if (tileKind(from[0] + (to[0] - from[0]) * g,
+                 from[1] + (to[1] - from[1]) * g) === 'water') return true;
+  }
+  return false;
+}
+
+function setThemWalking(shed, idx) {
+  const list = arriving.get(shed.uid) || [];
+  for (const i of idx) {
+    const f = plan.folk[i];
+    if (!f) continue;
+    const from = [f.x, f.y];
+    const far = Math.hypot(shed.x - from[0], shed.y - from[1]);
+    list.push({ from, born: performance.now(),
+                ms: Math.min(WALK_MOST, Math.max(WALK_LEAST, far * WALK_PER_TILE)),
+                swim: crossesWater(from, [shed.x, shed.y]) });
+  }
+  arriving.set(shed.uid, list);
+}
+
+/* One walk to one figure, per frame. The figures at a shed are drawn in a
+ * stable order, so the first ones there are the ones still on the road. */
+function claimTrip(uid) {
+  const list = arriving.get(uid);
+  if (!list) return null;
+  const now = performance.now();
+  const live = list.filter(t => now - t.born < t.ms);
+  if (!live.length) { arriving.delete(uid); return null; }
+  if (live.length !== list.length) arriving.set(uid, live);
+  const used = claimedTrip.get(uid) || 0;
+  if (used >= live.length) return null;
+  claimedTrip.set(uid, used + 1);
+  return live[used];
 }
 /* The nearest place on the march, however loosely you pointed at it. A
  * host is sent to a town, not to a patch of moor, so a click between two
@@ -4746,6 +4853,33 @@ function nextIdle() {
   const per = plan.per_figure || 8;
   say(`${idle.length} idle ${idle.length === 1 ? 'figure' : 'figures'} · ${idle.length * per} hands with nothing to do. Right-click a shed to put these there.`);
 }
+/* How many pairs of hands are standing about, and the chip that says so.
+ * Counted off the drawing, which is counted off the town: a figure is
+ * drawn idle exactly when the town has more hands than jobs for them. */
+function idleFolk() {
+  if (!plan) return [];
+  const out = [];
+  plan.folk.forEach((f, i) => { if (f.kind === 'idle') out.push(i); });
+  return out;
+}
+function paintIdle() {
+  const chip = $('idle');
+  if (!chip) return;
+  const idle = idleFolk();
+  const per = (plan && plan.per_figure) || 8;
+  chip.hidden = !idle.length || mode === 'march';
+  if (chip.hidden) return;
+  // Stacked above the console, and above the selection strip when there is
+  // one: the corner where the orders live, rather than on top of the rail.
+  const con = $('console'), strip = $('sel');
+  const under = (con ? con.offsetHeight + 20 : 58)
+              + (strip && !strip.hidden ? strip.offsetHeight + 6 : 0);
+  chip.style.bottom = `${under}px`;
+  $('idle-count').textContent = String(idle.length * per);
+  chip.title = `${idle.length} ${idle.length === 1 ? 'figure' : 'figures'} with nothing to do`
+             + ` -- click for the next of them (.)`;
+}
+
 function lookAtFolk(i) {
   const at = folkSpots.get(i);
   if (!at) return;
@@ -4793,6 +4927,7 @@ function openSelection() {
 function paintSel() {
   const el = $('sel');
   if (!el) return;
+  setTimeout(paintIdle, 0);   // it stacks on top of this one, so after it
   // A new day is a new plan: find the same people in it.
   if (sel.kind === 'folk' && plan && plan !== selPlan) {
     sel.ids = findFolk(sel.desc || []);
@@ -4817,8 +4952,8 @@ function paintSel() {
     sel.kind === 'host'
       ? (mode === 'march' ? 'right-click a place to march there' : 'R for the march, then right-click a place')
       : kin ? 'right-click a host (captain) or a town of yours (steward) on the march'
-      : (mode === 'town' ? 'right-click where they should work'
-                         : 'T for the town, then right-click where they should work');
+      : (mode === 'town' ? 'right-click where they should go'
+                         : 'T for the town, then right-click where they should go');
   const g = groupOf();
   $('sel-group').hidden = !g;
   if (g) $('sel-group').textContent = `⌃${g}`;
@@ -4841,6 +4976,7 @@ function drawSelBox() {
 }
 $('sel-clear').addEventListener('click', clearSel);
 $('sel-more').addEventListener('click', openSelection);
+$('idle').addEventListener('click', nextIdle);
 
 
 /* ------------------------------------------------------- at their head */
