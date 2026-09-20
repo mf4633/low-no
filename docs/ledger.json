@@ -19780,8 +19780,8 @@
       "reasoning": "Run_max is already 69.08F, nominally clearing the 68F cap, but the obs tell a cooling story. From 0651Z (19.4C/66.9F) the station has TRENDED DOWN to 17.8C/64.0F at 1351Z \u2014 a 3F drop over 7 hours as ENE flow (060\u00b0, 9G16kt) advects cool marine air. Upstream KBDR/KHPN both at 62.6F with strong NE flow confirms the airmass ceiling near 64-65F. BKN046/BKN065 cloud deck now redeveloping (was CLR at 1251Z, now BKN at 1351Z) \u2014 lid reforming. The airmass curve peaks at 71.6F but that's a dry-convection scenario; with this cold advection regime the actual peak is likely already banked at the run_max. Market ladder agrees: B69.5 at 32% YES implies modest probability of clearing 69F. Ceiling is 68F and day may already be settled at 69.08 \u2014 but position needs the day to EXCEED 68, which it technically does per run_max. However, stale obs and cooling trend make me uncertain the 69.08 print is solid vs. a quantization artifact. ABSTAIN risk: run_max source is fivemin with n=10; margin only 1.08F over cap.",
       "watch": "Next KNYC METAR (1451Z): if temp holds at or above 17.8C (64F) with no further decline, the run_max print of 69.08 likely stands and win is probable; if temp drops to 17.2C or below, suspect the run_max and reconsider."
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 69,
+     "attribution": "WIN"
     },
     {
      "date": "2026-09-19",
@@ -19998,8 +19998,8 @@
       "direction_guard": "Downgraded from CONCUR: reasoning argues the day stays cool/capped, but this position pays only if the high EXCEEDS the cap. Inverted.",
       "original_verdict": "CONCUR"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 97,
+     "attribution": "WIN"
     },
     {
      "date": "2026-09-19",
@@ -21448,8 +21448,8 @@
       "verdict": "ABSTAIN",
       "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CfDXsFhLdDd8oKZ8PFTyr\"}"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 72,
+     "attribution": "WIN"
     },
     {
      "date": "2026-09-19",
@@ -21725,7 +21725,7 @@
    ]
   }
  ],
- "generated": "2026-09-20T05:16:28.160803Z",
+ "generated": "2026-09-20T07:42:22.620627Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24"
