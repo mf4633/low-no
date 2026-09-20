@@ -1,5 +1,5 @@
 {
- "at": "2026-09-20T22:58:20.514532Z",
+ "at": "2026-09-20T23:06:27.200979Z",
  "traps": [
   {
    "city": "DAL",
@@ -43,10 +43,10 @@
    "city": "SAT",
    "ceiling": 95,
    "price": 4,
-   "p_model": 0.1656,
+   "p_model": 0.1271,
    "p_market": 0.04,
-   "edge_pts": 12.6,
-   "size_lcb": 0.0134,
+   "edge_pts": 8.7,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -54,22 +54,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (16:00) with the running max still 1.1F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 69,
-   "price": 93,
-   "p_model": 1.0,
-   "p_market": 0.93,
-   "edge_pts": 7.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "local hour 18:00 is past this station's measured convergence hour (16:00) with the running max still 1.1F short. The climb window has closed."
     }
    ]
   },
@@ -77,9 +62,9 @@
    "city": "NYC",
    "ceiling": 70,
    "price": 4,
-   "p_model": 0.0613,
+   "p_model": 0.0442,
    "p_market": 0.04,
-   "edge_pts": 2.1,
+   "edge_pts": 0.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -87,12 +72,8 @@
      "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 2.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   }
