@@ -1,13 +1,13 @@
 {
- "at": "2026-09-21T19:55:07.354579Z",
+ "at": "2026-09-21T20:58:12.394541Z",
  "traps": [
   {
    "city": "SEA",
    "ceiling": 68,
-   "price": 18,
-   "p_model": 0.5127,
-   "p_market": 0.18,
-   "edge_pts": 33.3,
+   "price": 11,
+   "p_model": 0.621,
+   "p_market": 0.11,
+   "edge_pts": 51.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,22 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 51 pts. In this ledger the market won 7 of 8 such disputes."
+    }
+   ]
+  },
+  {
+   "city": "LAS",
+   "ceiling": 89,
+   "price": 96,
+   "p_model": 1.0,
+   "p_market": 0.96,
+   "edge_pts": 4.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
