@@ -837,6 +837,14 @@ function tiles(a, b, c, d, colour) {
 function drawBuilding(b, t) {
   const st = styleOf(b.key);
   const [sx, sy] = iso(b.x, b.y);
+  // Picked up: the same green ring the figures wear, on the ground under
+  // it, so one glance says what a right click is about to be about.
+  if (isSelected('building', b.uid)) {
+    ctx.strokeStyle = 'rgba(126,209,126,.95)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + 2, st.w * 0.62 + 5, (st.w * 0.62 + 5) * (TH / TW) + 2, 0, 0, 7);
+    ctx.stroke();
+  }
   if (st.roof === 'trees') { drawTrees(b.x, b.y); return; }
 
   const w = st.w / 2, d = (st.w / 2) * (TH / TW);
@@ -1365,6 +1373,11 @@ function drawBeast(b, t) {
   const face = Math.sin(own * 0.19) < 0 ? -1 : 1;     // which way it stands
 
   beastSpots.set(b.i, [x, y - spec.leg]);
+  if (isSelected('beast', b.i)) {
+    ctx.strokeStyle = 'rgba(126,209,126,.95)'; ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 1, spec.w * 0.95 + 3, spec.h * 0.45 + 2, 0, 0, 7); ctx.stroke();
+  }
   ctx.fillStyle = 'rgba(0,0,0,.22)';
   ctx.beginPath();
   ctx.ellipse(x, y + 1, spec.w * 0.82, spec.h * 0.4, 0, 0, 7); ctx.fill();
@@ -1887,8 +1900,11 @@ function drawMarch(w, h, t) {
     ctx.globalAlpha = ghost ? 0.55 : 1;
     ctx.fillStyle = 'rgba(40,30,18,.25)';
     ctx.beginPath(); ctx.ellipse(x, y + 12, 9, 3.2, 0, 0, 7); ctx.fill();
-    if (h.mine && isSelected('host', h.uid)) {
-      ctx.strokeStyle = 'rgba(126,209,126,.95)'; ctx.lineWidth = 1.6;
+    if (isSelected(h.mine ? 'host' : 'theirs', h.uid)) {
+      // Theirs rings red: picked up to be looked at or gone after, not
+      // to be ordered about.
+      ctx.strokeStyle = h.mine ? 'rgba(126,209,126,.95)' : 'rgba(214,106,92,.95)';
+      ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.ellipse(x, y + 12, 12, 4.6, 0, 0, 7); ctx.stroke();
     }
     // A pennon on a staff. Its length is the size of the host, so a thin
@@ -1914,6 +1930,10 @@ function drawMarch(w, h, t) {
   // The places themselves.
   for (const n of world.nodes) {
     const [x, y] = mapXY(n, f);
+    if (isSelected('place', n.key)) {
+      ctx.strokeStyle = 'rgba(126,209,126,.95)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(x, y, 15, 0, 7); ctx.stroke();
+    }
     if (n.kind === 'shrine') {
       ctx.strokeStyle = n.who === 'yours' ? '#96731a' : '#6a5a44';
       ctx.lineWidth = 2;
@@ -2694,6 +2714,7 @@ document.addEventListener('keydown', e => {
   if (meta && (e.key === 'k' || e.key === 'K' || e.key === 'p')) {
     openPalette(''); e.preventDefault(); return;
   }
+  if (e.key === 'Escape' && stopPlacing()) return;
   if (e.key === 'Escape') {
     // Everything Escape closes, innermost first. The keys card promises it
     // closes "whatever is open", and that was a lie for the draw-a-march
@@ -2720,6 +2741,12 @@ document.addEventListener('keydown', e => {
   if (e.key === '.' && !typing()) { nextIdle(); e.preventDefault(); return; }
   if ((e.key === 'i' || e.key === 'I') && !typing() && sel.ids.length) {
     openSelection(); e.preventDefault(); return;
+  }
+  if ((e.key === 'b' || e.key === 'B') && !typing()) {
+    startPlacing(); e.preventDefault(); return;
+  }
+  if ((e.key === 'f' || e.key === 'F') && !typing()) {
+    eyesOpen(); e.preventDefault(); return;
   }
   if (e.key.startsWith('Arrow') && !typing() && mode !== 'march') {
     const step = 48;
@@ -2764,6 +2791,7 @@ $('keys').addEventListener('click', () => { $('keys').hidden = true; });
  * out of the front door before one has started would leave the player
  * looking at an empty field with nothing to press. */
 const ESC_CLOSES = [
+  ['eyes', eyesShut],
   ['palette', closePalette],
   ['keys', () => { $('keys').hidden = true; $('line').focus(); }],
   ['drawmap', closeCountry],
@@ -2879,8 +2907,8 @@ window.addEventListener('pointermove', e => {
 function leftClick(e, shift) {
   if (mode === 'march') {
     // Sending a host somewhere is two clicks: the host, then the place. While
-    // the second is pending every node is a destination, so the node writ
-    // would be in the way.
+    // the second is pending every node is a destination, so nothing else on
+    // the map may answer a click.
     const n = townNodeAt(e);
     if (sending !== null) {
       const to = n ? n.key : '';
@@ -2891,41 +2919,32 @@ function leftClick(e, shift) {
       return send(`march ${uid} ${to}`);
     }
     const h = hostAt(e);
-    if (h) {
-      // Yours: picked up, not opened. A left click in this kind of game
-      // means "I mean that one" and nothing else; what it is and what it
-      // can be told is on the strip, and the whole panel is one press
-      // further (the strip's button, or `i`). Somebody else's host has no
-      // orders to give, so a click on one is only ever a question.
-      if (h.mine) { select('host', h.uid, shift); closeWrit(); return closeSoul(); }
-      if (!shift) clearSel();
-      return openHost(h);
-    }
-    if (!shift) clearSel();
-    return n ? nodeWrit(n, e) : closeWrit();
+    if (h) return select(h.mine ? 'host' : 'theirs', h.uid, shift);
+    if (n) return select('place', n.key, shift);
+    return clearSel();
   }
   if (!plan) return;
+  // A plot was picked out to build on: this click says which one.
+  if (placing) {
+    const [px, py] = screenToTile(e);
+    const p = plan.precinct;
+    placing = false;
+    canvas.style.cursor = '';
+    if (buildingAt(e) || !(px >= p.x0 && px <= p.x1 && py >= p.y0 && py <= p.y1))
+      return say('that is not an empty plot inside the walls.');
+    return plotWrit(px, py, e);
+  }
   // People first. A figure standing in front of a roof is the thing you were
   // pointing at, and the roof is a bigger target that would always win.
   const who = folkAt(e);
-  if (who !== null) {
-    // The watch on the wall is a fact, not a unit: there is no order to
-    // give it, so a click on one asks rather than selects. Everybody else
-    // is picked up and the strip says who they are.
-    if (plan.folk[who].kind === 'watch') return openSoul(who);
-    select('folk', who, shift);
-    closeWrit();
-    return closeSoul();
-  }
-  if (!shift) clearSel();
+  if (who !== null) return select('folk', who, shift);
   const beast = beastAt(e);
-  if (beast !== null) return openSoul(beast, true);
+  if (beast !== null) return select('beast', beast, shift);
   const b = buildingAt(e);
-  if (b) return buildingWrit(b, e);
-  const [tx, ty] = screenToTile(e);
-  const p = plan.precinct;
-  if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) return plotWrit(tx, ty, e);
-  closeWrit();
+  if (b) return select('building', b.uid, shift);
+  // Bare ground: let them be. It used to throw a build menu at you, which
+  // is a panel arriving because you clicked nothing in particular.
+  return clearSel();
 }
 
 /* Double-click: everybody of that kind. Every figure of the trade you
@@ -2942,7 +2961,19 @@ canvas.addEventListener('dblclick', e => {
   }
   if (!plan) return;
   const who = folkAt(e);
-  if (who === null) return;
+  if (who === null) {
+    // Nothing there: the old way to the build menu, for anybody whose hand
+    // still reaches for the ground.
+    if (buildingAt(e) || beastAt(e) !== null) return;
+    const [px, py] = screenToTile(e);
+    const p = plan.precinct;
+    if (px >= p.x0 && px <= p.x1 && py >= p.y0 && py <= p.y1) {
+      placing = false;
+      canvas.style.cursor = '';
+      return plotWrit(px, py, e);
+    }
+    return;
+  }
   const f = plan.folk[who];
   if (f.kind === 'watch' || f.kind === 'kin') return;
   const ids = [];
@@ -3828,9 +3859,10 @@ $('good').innerHTML = GOODS.map(g =>
   frameTown();
   loadOptions();
   loadCommands();
-  say('Marchlands. Click a villager to pick them up and right-click where they should go: '
-      + 'they walk over and take up whatever that ground needs doing. Drag a box to take '
-      + 'several. Right-drag or the arrows move the view, the wheel zooms it.');
+  say('Marchlands. A click picks up whatever you point at -- villager, beast, shed, town -- '
+      + 'and a right-click sends them there: they walk over and take up what that ground '
+      + 'needs doing. Drag a box for several, B to build, `i` for the whole card, and the '
+      + 'ground itself to let them be.');
   say('Type `hint` if you are not sure what to do next, or `help` for everything.');
   nextFrame();
   // The server decides whether anybody has chosen yet. A packaged build or a
@@ -4551,6 +4583,11 @@ document.addEventListener('keydown', e => {
  * the day and not across it: a control group remembers *what* was chosen
  * (the shed and the trade) and finds those figures again in the morning. */
 let sel = { kind: '', ids: [] }, selPlan = null;
+/* Waiting for a plot to build on. Bare ground no longer throws a build
+ * menu at a stray click, so building is asked for: B, or the strip's
+ * button, and then the plot. A double-click on an empty plot is the short
+ * way round for anybody who liked the old one. */
+let placing = false;
 const groups = {};
 let groupPressed = { key: '', at: 0 };
 let idleCursor = -1;
@@ -4561,6 +4598,10 @@ function setSel(kind, ids) {
   sel = uniq.length ? { kind, ids: uniq } : { kind: '', ids: [] };
   if (kind === 'folk') sel.desc = uniq.map(i => folkDesc(plan.folk[i], i)).filter(Boolean);
   selPlan = plan;
+  // Picking something up is not asking about it: whatever panel was open
+  // belonged to the last question, and this is a new one.
+  closeWrit();
+  closeSoul();
   paintSel();
 }
 function select(kind, id, add) {
@@ -4589,9 +4630,11 @@ function findFolk(descs) {
   });
   return ids;
 }
-function selHosts() {
+function selHosts(kind) {
+  const want = kind || sel.kind;
   const by = new Map((world && world.hosts || []).map(h => [h.uid, h]));
-  return sel.ids.map(uid => by.get(uid)).filter(h => h && h.mine);
+  return sel.ids.map(uid => by.get(uid))
+    .filter(h => h && (want === 'theirs' ? !h.mine : h.mine));
 }
 
 function boxSelect(b) {
@@ -4635,9 +4678,21 @@ function rightClick(e) {
   if (!sel.ids.length) return;
   if (sel.kind === 'host') {
     if (mode !== 'march') return say('hosts are sent on the march (R), not in the town.');
+    const hosts = selHosts();
+    // A host of theirs under the cursor is a thing to go at, not a place to
+    // walk past: march on where it is -- or where you last saw it, which is
+    // all you have of a host you are not looking at.
+    const foe = hostAt(e);
+    if (foe && !foe.mine) {
+      const where = foe.at || foe.to;
+      if (!where) return say(`you do not know where ${foe.name} is.`);
+      const seen = foe.state === 'remembered' ? ' -- where it was last seen' : '';
+      say(`going after ${foe.name} at ${nodeName(where)}${seen}.`);
+      for (const h of hosts) send(`march ${h.uid} ${where}`);
+      return;
+    }
     const n = townNodeAt(e) || nearestNode(e);
     if (!n) return say('nowhere there to march to.');
-    const hosts = selHosts();
     let sent = 0;
     for (const h of hosts) {
       if (h.at === n.key && !h.moving) continue;
@@ -4646,8 +4701,20 @@ function rightClick(e) {
     if (!sent) say(`${hosts.length > 1 ? 'they are' : 'it is'} already at ${n.name}.`);
     return;
   }
+  // The things that take no orders say so rather than doing nothing, which
+  // is how a player learns what a right click is for.
+  if (sel.kind === 'theirs')
+    return say('that host is not yours to command. Pick one of yours and right-click it to go after it.');
+  if (sel.kind === 'place')
+    return say('a place takes no orders. Pick a host of yours, then right-click where it should go.');
+  if (sel.kind === 'building')
+    return say('a shed stays where it was put -- `i` to open it, shut it, or pull it down.');
+  if (sel.kind === 'beast')
+    return say('the beasts keep to their yard -- `i` for what they are worth.');
   if (!plan) return;
   const folk = sel.ids.map(i => plan.folk[i]).filter(Boolean);
+  if (folk.length && folk.every(f => f.kind === 'watch'))
+    return say('the watch holds the wall. There is no order to give it but the wall itself.');
   const kin = folk.find(f => f.kind === 'kin');
   if (kin && folk.length === 1) {
     const first = (kin.who || '').split(' ')[0];
@@ -4661,7 +4728,8 @@ function rightClick(e) {
     return say(`${first} takes a post, not a shed -- click them for the posts, or right-click a host or town on the march.`);
   }
   if (mode === 'march') return say('hands are sent to a shed in the town (T).');
-  const hands = folk.filter(f => f.kind !== 'kin').reduce((n, f) => n + (f.souls || 0), 0);
+  const hands = folk.filter(f => f.kind !== 'kin' && f.kind !== 'watch')
+    .reduce((n, f) => n + (f.souls || 0), 0);
   if (!hands) return say('nobody there with hands to send.');
   // Point at a shed and they go to it; point at the ground and they go to
   // the nearest work to where you pointed, which is what the click means
@@ -4670,7 +4738,8 @@ function rightClick(e) {
   const want = workFor(e);
   if (!want) return say('there is no work that way for them to go to.');
   if (want.said) say(`off they go ${want.said}.`);
-  setThemWalking(want.shed, sel.ids.filter(i => plan.folk[i] && plan.folk[i].kind !== 'kin'));
+  setThemWalking(want.shed, sel.ids.filter(i => plan.folk[i]
+    && plan.folk[i].kind !== 'kin' && plan.folk[i].kind !== 'watch'));
   send(`staff ${want.shed.uid} ${hands}`);
 }
 
@@ -4892,19 +4961,48 @@ function lookAtFolk(i) {
  * that opened a panel every time was a click you had to close every time.
  * The panel is still there, one press away, for the rest of it. */
 function selWords() {
-  if (sel.kind === 'host') {
-    const hosts = selHosts();
+  if (sel.kind === 'host' || sel.kind === 'theirs') {
+    const hosts = selHosts(sel.kind);
     const men = hosts.reduce((n, h) => n + h.size, 0);
     if (hosts.length !== 1) return `${hosts.length} hosts · ${men} men`;
     const h = hosts[0];
+    if (!h.mine) {
+      return `${h.name} · ${h.size} men as last seen · ${hostDoing(h)}`;
+    }
     return `${h.name} · ${men} men · ${hostDoing(h)}`;
   }
+  if (sel.kind === 'place') {
+    const n = (world && world.nodes || []).find(q => q.key === sel.ids[0]);
+    if (!n) return 'somewhere';
+    const whose = n.kind === 'mine' ? 'yours'
+      : n.kind === 'site' ? 'nobody\'s'
+      : n.who ? `${n.who}'s` : 'free';
+    return `${n.name} · ${whose}` + (n.price > 0 ? ` · ${world.good} ${n.price.toFixed(2)}c` : '');
+  }
+  if (sel.kind === 'building') {
+    const b = plan && plan.buildings.find(q => q.uid === sel.ids[0]);
+    if (!b) return 'a building';
+    if (sel.ids.length > 1) return `${sel.ids.length} buildings`;
+    const m = state && state.margin ? state.margin[b.uid] : null;
+    const how = !b.complete ? 'being built' : b.burning ? 'on fire'
+      : b.enabled === false ? 'shut' : b.running ? 'working' : 'idle';
+    return `${b.name} · ${how}` + (m && m.jobs ? ` · ${m.staffed} of ${m.jobs} hands` : '');
+  }
+  if (sel.kind === 'beast') {
+    const a = plan && plan.beasts[sel.ids[0]];
+    if (!a) return 'livestock';
+    const yard = a && plan.buildings.find(q => q.uid === a.at);
+    const head = yard ? plan.beasts.filter(q => q.at === yard.uid).length : sel.ids.length;
+    return `${a.kind}` + (yard ? ` at the ${yard.name} · ${head} head` : '');
+  }
   const folk = sel.ids.map(i => plan && plan.folk[i]).filter(Boolean);
-  const hands = folk.filter(f => f.kind !== 'kin').reduce((n, f) => n + (f.souls || 0), 0);
+  const hands = folk.filter(f => f.kind !== 'kin' && f.kind !== 'watch')
+    .reduce((n, f) => n + (f.souls || 0), 0);
   if (folk.length === 1) {
     const f = folk[0];
+    if (f.kind === 'watch') return `${f.souls} of the garrison · holding the wall`;
     const shed = plan.buildings.find(b => b.uid === f.work);
-    const doing = f.kind === 'idle' ? 'nothing to do'
+    const doing = f.kind === 'idle' ? (f.at || 'nothing to do')
       : f.at + (shed && !String(f.at).includes(shed.name) ? ` at ${shed.name}` : '');
     if (f.kind === 'kin') return `${f.who || 'one of yours'} · ${doing}`;
     return `${doing} · ${hands} hands`;
@@ -4914,13 +5012,37 @@ function selWords() {
   return `${folk.length} figures · ${hands} hands · ${doing}`;
 }
 
-/* The rest of it: the same panel a click used to open, now asked for. */
+/* The rest of it: the same panel a click used to open, now asked for.
+ * A writ wants somewhere to open, and a thing that was clicked has a place
+ * on the screen -- so the panel comes up beside the thing it is about. */
+function atScreen(px, py) {
+  const r = canvas.getBoundingClientRect();
+  return { clientX: r.left + px, clientY: r.top + py };
+}
+function isoOnScreen(x, y) {
+  const r = canvas.getBoundingClientRect();
+  const [sx, sy] = iso(x, y);
+  return atScreen((sx - (plan.w - plan.h) * TW / 4) * camera.zoom + r.width / 2 + camera.x,
+                  (sy - (plan.w + plan.h) * TH / 4) * camera.zoom + r.height / 2 + camera.y);
+}
 function openSelection() {
   if (!sel.ids.length) return;
-  if (sel.kind === 'host') {
+  if (sel.kind === 'host' || sel.kind === 'theirs') {
     const h = selHosts()[0];
     return h ? openHost(h) : null;
   }
+  if (sel.kind === 'place') {
+    const n = (world && world.nodes || []).find(q => q.key === sel.ids[0]);
+    if (!n) return;
+    const f = mapFit(canvas.clientWidth, canvas.clientHeight);
+    const [x, y] = mapXY(n, f);
+    return nodeWrit(n, atScreen(x, y));
+  }
+  if (sel.kind === 'building') {
+    const b = plan && plan.buildings.find(q => q.uid === sel.ids[0]);
+    return b ? buildingWrit(b, isoOnScreen(b.x, b.y)) : null;
+  }
+  if (sel.kind === 'beast') return openSoul(sel.ids[0], true);
   return openSoul(sel.ids[0]);
 }
 
@@ -4934,9 +5056,20 @@ function paintSel() {
     selPlan = plan;
     if (!sel.ids.length) sel = { kind: '', ids: [] };
   }
-  if (sel.kind === 'host' && world) {
-    const alive = new Set((world.hosts || []).filter(h => h.mine).map(h => h.uid));
+  if ((sel.kind === 'host' || sel.kind === 'theirs') && world) {
+    const mine = sel.kind === 'host';
+    const alive = new Set((world.hosts || []).filter(h => !!h.mine === mine).map(h => h.uid));
     sel.ids = sel.ids.filter(uid => alive.has(uid));
+    if (!sel.ids.length) sel = { kind: '', ids: [] };
+  }
+  // A shed that has come down, or an animal that is gone: let it go rather
+  // than keep a ring under nothing.
+  if (sel.kind === 'building' && plan) {
+    sel.ids = sel.ids.filter(uid => plan.buildings.some(b => b.uid === uid));
+    if (!sel.ids.length) sel = { kind: '', ids: [] };
+  }
+  if (sel.kind === 'beast' && plan) {
+    sel.ids = sel.ids.filter(i => plan.beasts[i]);
     if (!sel.ids.length) sel = { kind: '', ids: [] };
   }
   el.hidden = !sel.ids.length;
@@ -4948,18 +5081,35 @@ function paintSel() {
   $('sel-text').textContent = selWords();
   const folk = sel.kind === 'folk' ? sel.ids.map(i => plan && plan.folk[i]).filter(Boolean) : [];
   const kin = folk.length === 1 && folk[0].kind === 'kin';
+  const watch = folk.length && folk.every(f => f.kind === 'watch');
   $('sel-hint').textContent =
     sel.kind === 'host'
-      ? (mode === 'march' ? 'right-click a place to march there' : 'R for the march, then right-click a place')
+      ? (mode === 'march' ? 'right-click a place, or a host of theirs, to go at it'
+                          : 'R for the march, then right-click a place')
+      : sel.kind === 'theirs' ? 'what you last saw of it — `i` for the whole of that'
+      : sel.kind === 'place' ? 'right-click it with a host of yours to march there'
+      : sel.kind === 'building' ? '`i` to open it, shut it, or pull it down'
+      : sel.kind === 'beast' ? '`i` for what it is worth'
+      : watch ? 'the wall holds itself — there is no order to give the watch'
       : kin ? 'right-click a host (captain) or a town of yours (steward) on the march'
-      : (mode === 'town' ? 'right-click where they should go'
+      : (mode === 'town' ? 'right-click where they should go · B to build'
                          : 'T for the town, then right-click where they should go');
   const g = groupOf();
   $('sel-group').hidden = !g;
   if (g) $('sel-group').textContent = `⌃${g}`;
   const more = $('sel-more');
   more.hidden = sel.ids.length !== 1;
-  more.textContent = sel.kind === 'host' ? 'orders' : 'who is this?';
+  more.textContent = (sel.kind === 'host' || sel.kind === 'theirs') ? 'orders'
+    : sel.kind === 'building' ? 'the shed'
+    : sel.kind === 'place' ? 'the place'
+    : sel.kind === 'beast' ? 'the beasts'
+    : 'who is this?';
+  // Villagers can be set to building something, which is where the build
+  // menu went when bare ground stopped opening one.
+  const build = $('sel-build');
+  if (build) build.hidden = !(sel.kind === 'folk' && mode === 'town' && !watch);
+  const their = $('sel-eyes');
+  if (their) their.hidden = !(sel.kind === 'folk' && sel.ids.length === 1 && mode === 'town');
 }
 function drawSelBox() {
   if (!box) return;
@@ -4976,6 +5126,21 @@ function drawSelBox() {
 }
 $('sel-clear').addEventListener('click', clearSel);
 $('sel-more').addEventListener('click', openSelection);
+$('sel-build').addEventListener('click', startPlacing);
+
+function startPlacing() {
+  if (mode !== 'town') setMode('town');
+  placing = true;
+  canvas.style.cursor = 'crosshair';
+  say('pick an empty plot inside the walls to build on. (esc to think better of it)');
+}
+function stopPlacing() {
+  if (!placing) return false;
+  placing = false;
+  canvas.style.cursor = '';
+  say('nothing raised.');
+  return true;
+}
 $('idle').addEventListener('click', nextIdle);
 
 
@@ -5124,3 +5289,382 @@ $('battle-field').addEventListener('pointerdown', e => {
   melee.lord.face = cx >= melee.lord.x ? 1 : -1;
   meleeStrike();
 });
+
+/* ===================================================== through their eyes */
+/* An isometric town is a thing you look at from above and outside. This is
+ * the other view: stand where one person is standing and look out of them.
+ *
+ * It is the same town, from the same plan, projected differently -- every
+ * roof, wall, tree and neighbour is where the map says it is, and the sky
+ * is the sky the day has. Nothing here is a second world: if the picture
+ * above shows a mill on your left, so does this.
+ *
+ * There is no walking. A figure is eight pairs of hands at a shed, which is
+ * a fact about the town rather than a body you can drive around it -- so
+ * what this offers is what standing there and turning round would offer.
+ */
+let eyes = null;
+
+const EYE_FOV = 78 * Math.PI / 180;
+const EYE_HEIGHT = 0.46;          // in tiles, and a tile is a good stride
+const EYE_FAR = 26;               // how far the haze swallows the town
+
+function eyesOpen() {
+  if (!plan) return;
+  if (sel.kind !== 'folk' || sel.ids.length !== 1)
+    return say('pick one villager, one of your house, or the watch, and press F to stand with them.');
+  const i = sel.ids[0];
+  const f = plan.folk[i];
+  if (!f) return;
+  // Facing what they are doing: a man at a shed looks at it, the watch on
+  // the wall looks out of the town, and anybody else looks at the middle.
+  const shed = plan.buildings.find(b => b.uid === f.work);
+  const mid = [(plan.precinct.x0 + plan.precinct.x1) / 2,
+               (plan.precinct.y0 + plan.precinct.y1) / 2];
+  let toward = shed ? [shed.x, shed.y] : mid;
+  if (f.kind === 'watch') toward = [f.x + (f.x - mid[0]), f.y + (f.y - mid[1])];
+  const a = Math.atan2(toward[1] - f.y, toward[0] - f.x);
+  eyes = { i, a, drag: null, raf: null,
+           z: EYE_HEIGHT + (f.kind === 'watch' ? 0.95 : 0) };
+  $('eyes').hidden = false;
+  setSpeed(0);
+  paintEyesCaption();
+  eyesFrame();
+}
+function eyesShut() {
+  if (!eyes) return;
+  if (eyes.raf) cancelAnimationFrame(eyes.raf);
+  eyes = null;
+  $('eyes').hidden = true;
+}
+function eyesTurn(by) { if (eyes) { eyes.a += by; paintEyesCaption(); } }
+
+/* Which way they are facing, in words, and the nearest thing in front. */
+function paintEyesCaption() {
+  if (!eyes || !plan) return;
+  const f = plan.folk[eyes.i];
+  if (!f) return eyesShut();
+  const who = f.kind === 'kin' ? (f.who || 'one of yours')
+    : f.kind === 'watch' ? `${f.souls} of the garrison`
+    : f.kind === 'idle' ? 'a pair of idle hands'
+    : 'one of the town';
+  $('eyes-who').textContent = who;
+  const shed = plan.buildings.find(b => b.uid === f.work);
+  $('eyes-where').textContent = f.kind === 'watch'
+    ? 'on the wall-walk, looking out'
+    : (f.at || 'standing about') + (shed ? ` at the ${shed.name}` : '');
+  // What is in front of them, nearest first: the honest caption for a view.
+  const ahead = [];
+  for (const b of plan.buildings) {
+    if (b.key === 'trees' || !b.complete) continue;
+    const dx = b.x - f.x, dy = b.y - f.y;
+    const fwd = dx * Math.cos(eyes.a) + dy * Math.sin(eyes.a);
+    const rgt = -dx * Math.sin(eyes.a) + dy * Math.cos(eyes.a);
+    if (fwd > 0.6 && Math.abs(rgt) < fwd * 0.75) ahead.push([fwd, b.name]);
+  }
+  ahead.sort((p, q) => p[0] - q[0]);
+  const names = [...new Set(ahead.map(r => r[1]))].slice(0, 3);
+  $('eyes-ahead').textContent = names.length
+    ? `ahead: ${names.join(', ')}` : 'ahead: open ground, and the wall beyond';
+}
+
+/* How much ground a shed covers, in tiles. One answer, because the view
+ * both draws these boxes and has to know when it is standing in one. */
+function eyesFootprint(b) {
+  const st = styleOf(b.key);
+  const hw = Math.max(0.2, (st.w / 2) / TW) * 1.35;
+  return { hw, hd: hw * 0.86,
+           ht: Math.max(0.42, (22 * st.s) / TW * 2.2), st };
+}
+
+/* Where they are standing, which is not quite where they are drawn: a
+ * worker is painted beside his door, and the door is inside the shed's
+ * footprint -- so the first view out of one was the inside of a wall
+ * filling the whole frame. Step out of whatever you are in, the shortest
+ * way, and look at it instead of through it. */
+function eyesStand(f) {
+  let x = f.x, y = f.y;
+  for (const b of plan.buildings) {
+    if (b.key === 'trees') continue;
+    const { hw, hd } = eyesFootprint(b);
+    const dx = x - b.x, dy = y - b.y;
+    if (Math.abs(dx) > hw + 0.12 || Math.abs(dy) > hd + 0.12) continue;
+    // Out by a couple of paces, not by a hand's breadth: a man standing
+    // with his nose against the wall of his own mill sees a wall.
+    const outX = (hw + 1.5) - Math.abs(dx), outY = (hd + 1.5) - Math.abs(dy);
+    if (outX < outY) x += Math.sign(dx || 1) * outX;
+    else y += Math.sign(dy || 1) * outY;
+  }
+  return { x, y };
+}
+
+function eyesCam(W, H) {
+  const f = plan.folk[eyes.i];
+  const at = f.kind === 'watch' ? { x: f.x, y: f.y } : eyesStand(f);
+  return { x: at.x, y: at.y, z: eyes.z, a: eyes.a, w: W, h: H,
+           f: (W / 2) / Math.tan(EYE_FOV / 2) };
+}
+function eyesPoint(cam, wx, wy, z) {
+  const dx = wx - cam.x, dy = wy - cam.y;
+  const fwd = dx * Math.cos(cam.a) + dy * Math.sin(cam.a);
+  if (fwd < 0.08) return null;
+  const rgt = -dx * Math.sin(cam.a) + dy * Math.cos(cam.a);
+  return { x: cam.w / 2 + (rgt / fwd) * cam.f,
+           y: cam.h / 2 - ((z - cam.z) / fwd) * cam.f, d: fwd };
+}
+function eyesQuad(g, pts, fill) {
+  if (pts.some(q => !q)) return false;
+  g.fillStyle = fill;
+  g.beginPath();
+  g.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+  g.closePath(); g.fill();
+  return true;
+}
+/* Distance steals colour before it steals shape. */
+function eyesFar(colour, d, haze) {
+  return mix(colour, haze, Math.min(0.82, Math.max(0, (d - 2) / EYE_FAR)));
+}
+
+function eyesFrame() {
+  if (!eyes) return;
+  eyes.raf = null;
+  const c = $('eyes-view');
+  if (!c || $('eyes').hidden || !plan) return;
+  const g = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const f = plan.folk[eyes.i];
+  if (!f) return eyesShut();
+  const cam = eyesCam(W, H);
+  const p = pal(), s = sun();
+  const dark = 1 - s.night * 0.62;
+  const haze = shade(mix(p.sky[1], p.grass, 0.62), dark * 0.94);
+
+  // --- the sky, and the ground it sits on -------------------------------
+  const horizon = H / 2 + (cam.z - EYE_HEIGHT) * 0 + 0;
+  const sky = g.createLinearGradient(0, 0, 0, horizon);
+  sky.addColorStop(0, shade(p.sky[0], dark * (0.9 + s.alt * 0.2)));
+  sky.addColorStop(1, shade(p.sky[1], dark));
+  g.fillStyle = sky; g.fillRect(0, 0, W, horizon);
+  // the sun or the moon, where the day says it is
+  const sunA = s.az - cam.a;
+  const sx = W / 2 + Math.tan(Math.max(-1.2, Math.min(1.2, sunA))) * cam.f;
+  if (Math.abs(sunA) < 1.2) {
+    g.fillStyle = s.night > 0.5 ? 'rgba(226,232,240,.85)' : shade(p.sun, dark);
+    g.beginPath();
+    g.arc(sx, horizon - 40 - s.alt * (H * 0.36), s.night > 0.5 ? 9 : 14, 0, 7);
+    g.fill();
+  }
+  const ground = g.createLinearGradient(0, horizon, 0, H);
+  ground.addColorStop(0, haze);
+  ground.addColorStop(0.07, shade(p.grass, dark));
+  ground.addColorStop(1, shade(p.grass, dark * 0.8));
+  g.fillStyle = ground; g.fillRect(0, horizon, W, H - horizon);
+
+  // --- everything standing up, far to near ------------------------------
+  const things = [];
+  const seen = (x, y) => {
+    const dx = x - cam.x, dy = y - cam.y;
+    const fwd = dx * Math.cos(cam.a) + dy * Math.sin(cam.a);
+    if (fwd < 0.15 || fwd > EYE_FAR) return 0;
+    const rgt = -dx * Math.sin(cam.a) + dy * Math.cos(cam.a);
+    return Math.abs(rgt) > fwd * 1.5 + 2 ? 0 : fwd;
+  };
+  // the ground it stands on: water and road read as places, grass does not
+  for (let ty = 0; ty < plan.h; ty++) {
+    for (let tx = 0; tx < plan.w; tx++) {
+      const k = plan.tiles[ty][tx];
+      if (k === 'grass' || k === 'field') continue;
+      const d = seen(tx, ty);
+      if (!d) continue;
+      things.push({ d, kind: 'tile', tx, ty, k });
+    }
+  }
+  for (const b of plan.buildings) {
+    const d = seen(b.x, b.y);
+    if (d) things.push({ d, kind: 'b', b });
+  }
+  for (const w of (plan.walls || [])) {
+    const d = seen(w.x, w.y);
+    if (d) things.push({ d, kind: 'wall', w });
+  }
+  plan.folk.forEach((q, i) => {
+    if (i === eyes.i) return;
+    const d = seen(q.x, q.y);
+    if (d > 0.35) things.push({ d, kind: 'folk', q });
+  });
+  (plan.beasts || []).forEach(a => {
+    const d = seen(a.x, a.y);
+    if (d > 0.35) things.push({ d, kind: 'beast', a });
+  });
+  things.sort((a, b) => b.d - a.d);
+
+  for (const t of things) {
+    if (t.kind === 'tile') eyesTile(g, cam, t, p, dark, haze);
+    else if (t.kind === 'b') eyesBuilding(g, cam, t.b, p, dark, haze);
+    else if (t.kind === 'wall') eyesWall(g, cam, t.w, p, dark, haze);
+    else if (t.kind === 'folk') eyesFigure(g, cam, t.q, dark, haze);
+    else eyesBeast(g, cam, t.a, dark, haze);
+  }
+
+  // --- the frame of a face looking out ----------------------------------
+  const vig = g.createRadialGradient(W / 2, H / 2, H * 0.36, W / 2, H / 2, H * 0.78);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,.26)');
+  g.fillStyle = vig; g.fillRect(0, 0, W, H);
+
+  if (!STILL) eyes.raf = requestAnimationFrame(eyesFrame);
+}
+
+function eyesTile(g, cam, t, p, dark, haze) {
+  const k = t.k;
+  const col = k === 'water' ? p.water
+    : k === 'forest' ? mix(p.grass, p.tree, 0.5)
+    : k === 'road' || k === 'yard' ? shade(p.earth, k === 'road' ? 1.3 : 1.15)
+    : k === 'marsh' ? mix('#5f6b4a', p.water, 0.3)
+    : k === 'clay' ? shade(p.earth, 0.9) : k === 'hill' ? shade(p.grass, 0.92) : p.grass;
+  const h = 0.008;
+  eyesQuad(g, [eyesPoint(cam, t.tx - 0.5, t.ty - 0.5, h),
+               eyesPoint(cam, t.tx + 0.5, t.ty - 0.5, h),
+               eyesPoint(cam, t.tx + 0.5, t.ty + 0.5, h),
+               eyesPoint(cam, t.tx - 0.5, t.ty + 0.5, h)],
+           eyesFar(shade(col, dark), t.d, haze));
+}
+
+/* A box with a ridge on it: near enough a house, and honest about where it
+ * stands and how big it is, which is what the view is for. */
+function eyesBox(g, cam, cx, cy, hw, hd, ht, wallC, roofC, d, haze, ridge) {
+  const P = (x, y, z) => eyesPoint(cam, x, y, z);
+  const faces = [
+    { n: [-1, 0], pts: [P(cx - hw, cy - hd, 0), P(cx - hw, cy + hd, 0),
+                        P(cx - hw, cy + hd, ht), P(cx - hw, cy - hd, ht)], lit: 0.86, on: cam.x < cx - hw },
+    { n: [1, 0], pts: [P(cx + hw, cy - hd, 0), P(cx + hw, cy + hd, 0),
+                       P(cx + hw, cy + hd, ht), P(cx + hw, cy - hd, ht)], lit: 1.06, on: cam.x > cx + hw },
+    { n: [0, -1], pts: [P(cx - hw, cy - hd, 0), P(cx + hw, cy - hd, 0),
+                        P(cx + hw, cy - hd, ht), P(cx - hw, cy - hd, ht)], lit: 1.0, on: cam.y < cy - hd },
+    { n: [0, 1], pts: [P(cx - hw, cy + hd, 0), P(cx + hw, cy + hd, 0),
+                       P(cx + hw, cy + hd, ht), P(cx - hw, cy + hd, ht)], lit: 0.92, on: cam.y > cy + hd },
+  ];
+  for (const face of faces) {
+    if (!face.on) continue;
+    eyesQuad(g, face.pts, eyesFar(shade(wallC, face.lit), d, haze));
+  }
+  if (!ridge) {
+    eyesQuad(g, [P(cx - hw, cy - hd, ht), P(cx + hw, cy - hd, ht),
+                 P(cx + hw, cy + hd, ht), P(cx - hw, cy + hd, ht)],
+             eyesFar(shade(roofC, 1.1), d, haze));
+    return;
+  }
+  // two slopes to a ridge along the longer side
+  const up = ht + Math.min(hw, hd) * 1.5;
+  if (hw >= hd) {
+    eyesQuad(g, [P(cx - hw, cy - hd, ht), P(cx + hw, cy - hd, ht),
+                 P(cx + hw, cy, up), P(cx - hw, cy, up)], eyesFar(shade(roofC, 1.12), d, haze));
+    eyesQuad(g, [P(cx - hw, cy + hd, ht), P(cx + hw, cy + hd, ht),
+                 P(cx + hw, cy, up), P(cx - hw, cy, up)], eyesFar(shade(roofC, 0.88), d, haze));
+  } else {
+    eyesQuad(g, [P(cx - hw, cy - hd, ht), P(cx - hw, cy + hd, ht),
+                 P(cx, cy + hd, up), P(cx, cy - hd, up)], eyesFar(shade(roofC, 1.12), d, haze));
+    eyesQuad(g, [P(cx + hw, cy - hd, ht), P(cx + hw, cy + hd, ht),
+                 P(cx, cy + hd, up), P(cx, cy - hd, up)], eyesFar(shade(roofC, 0.88), d, haze));
+  }
+}
+
+function eyesBuilding(g, cam, b, p, dark, haze) {
+  const st = styleOf(b.key);
+  const d = Math.hypot(b.x - cam.x, b.y - cam.y);
+  if (st.roof === 'trees') {
+    // a trunk and three sails of leaf, facing whoever is looking. Standing
+    // under one is standing under one: it is not worth drawing the inside
+    // of a canopy over the whole town.
+    if (d < 1.1) return;
+    const trunk = eyesPoint(cam, b.x, b.y, 0), top = eyesPoint(cam, b.x, b.y, 1.0);
+    if (!trunk || !top) return;
+    const wpx = (0.045 / trunk.d) * cam.f;
+    g.fillStyle = eyesFar(shade('#5a4326', dark), d, haze);
+    g.fillRect(trunk.x - wpx, top.y, wpx * 2, trunk.y - top.y);
+    const leaf = state && state.season === 'winter' ? mix(p.tree, '#6b6b5a', 0.55) : p.tree;
+    for (let i = 0; i < 3; i++) {
+      const z = 0.95 + i * 0.3, r = (0.38 - i * 0.09);
+      const at = eyesPoint(cam, b.x, b.y, z);
+      if (!at) continue;
+      const rr = (r / at.d) * cam.f;
+      g.fillStyle = eyesFar(shade(leaf, dark * (0.9 + i * 0.07)), d, haze);
+      g.beginPath(); g.ellipse(at.x, at.y, rr, rr * 0.82, 0, 0, 7); g.fill();
+    }
+    return;
+  }
+  const { hw, ht } = eyesFootprint(b);
+  // Standing in it: you would see one wall filling the world, which is
+  // true and useless. The nudge in `eyesStand` keeps this rare.
+  if (Math.abs(cam.x - b.x) < hw && Math.abs(cam.y - b.y) < hw * 0.86) return;
+  const wallC = shade(st.c || '#8a7a5c', dark);
+  const roofC = shade(st.roof_tint || mix(st.c || '#8a7a5c', '#5a4326', 0.55), dark);
+  eyesBox(g, cam, b.x, b.y, hw, hw * 0.86, b.complete ? ht : ht * 0.45,
+          wallC, roofC, d, haze, b.complete);
+
+}
+
+function eyesWall(g, cam, w, p, dark, haze) {
+  const d = Math.hypot(w.x - cam.x, w.y - cam.y);
+  const tall = w.kind === 'tower' ? 1.7 : 1.15;
+  eyesBox(g, cam, w.x, w.y, 0.5, 0.5, tall,
+          shade('#9a9384', dark), shade('#6f6a5e', dark), d, haze, false);
+}
+
+function eyesFigure(g, cam, q, dark, haze) {
+  const d = Math.hypot(q.x - cam.x, q.y - cam.y);
+  if (d < 0.55) return;              // close enough to be leaning on you
+  const foot = eyesPoint(cam, q.x, q.y, q.kind === 'watch' ? 0.95 : 0);
+  const head = eyesPoint(cam, q.x, q.y, (q.kind === 'watch' ? 0.95 : 0) + 0.46);
+  if (!foot || !head) return;
+  const wpx = Math.max(1, (0.11 / foot.d) * cam.f);
+  const tint = q.kind === 'watch' ? '#8d9299' : q.kind === 'kin' ? '#c9a227' : '#8a6a4a';
+  g.fillStyle = eyesFar(shade(tint, dark), d, haze);
+  g.fillRect(foot.x - wpx, head.y + wpx * 1.6, wpx * 2, foot.y - head.y - wpx * 1.6);
+  g.fillStyle = eyesFar(shade('#e6d8b6', dark), d, haze);
+  g.beginPath(); g.arc(foot.x, head.y + wpx * 0.8, wpx * 1.15, 0, 7); g.fill();
+}
+
+function eyesBeast(g, cam, a, dark, haze) {
+  const d = Math.hypot(a.x - cam.x, a.y - cam.y);
+  const at = eyesPoint(cam, a.x, a.y, 0.12);
+  if (!at) return;
+  if (d < 0.5) return;
+  const wpx = Math.max(1.2, (0.11 / at.d) * cam.f);
+  const col = a.kind === 'sheep' ? '#d8d2c4' : a.kind === 'cow' ? '#8a6f52' : '#6f5a42';
+  const paint = eyesFar(shade(col, dark), d, haze);
+  // A body on legs with a head down in the grass, not a puddle of wool:
+  // a flat ellipse on the ground was exactly what it looked like.
+  g.strokeStyle = eyesFar(shade(col, dark * 0.7), d, haze);
+  g.lineWidth = Math.max(0.6, wpx * 0.22);
+  g.beginPath();
+  g.moveTo(at.x - wpx * 0.5, at.y); g.lineTo(at.x - wpx * 0.5, at.y + wpx * 0.75);
+  g.moveTo(at.x + wpx * 0.5, at.y); g.lineTo(at.x + wpx * 0.5, at.y + wpx * 0.75);
+  g.stroke();
+  g.fillStyle = paint;
+  g.beginPath(); g.ellipse(at.x, at.y - wpx * 0.15, wpx, wpx * 0.66, 0, 0, 7); g.fill();
+  g.beginPath();
+  g.ellipse(at.x + wpx * 0.95, at.y + wpx * 0.2, wpx * 0.42, wpx * 0.38, 0, 0, 7); g.fill();
+}
+
+/* the ways in and out */
+$('eyes-close').addEventListener('click', eyesShut);
+$('eyes-left').addEventListener('click', () => eyesTurn(-0.28));
+$('eyes-right').addEventListener('click', () => eyesTurn(0.28));
+$('sel-eyes').addEventListener('click', eyesOpen);
+$('eyes-view').addEventListener('pointerdown', e => {
+  if (eyes) eyes.drag = e.clientX;
+});
+window.addEventListener('pointermove', e => {
+  if (!eyes || eyes.drag === null || eyes.drag === undefined) return;
+  eyesTurn((e.clientX - eyes.drag) * -0.006);
+  eyes.drag = e.clientX;
+});
+window.addEventListener('pointerup', () => { if (eyes) eyes.drag = null; });
+document.addEventListener('keydown', e => {
+  if (!eyes) return;
+  if (e.key === 'Escape') { eyesShut(); e.preventDefault(); return; }
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { eyesTurn(-0.2); e.preventDefault(); }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { eyesTurn(0.2); e.preventDefault(); }
+}, true);

@@ -316,3 +316,114 @@ class TestTheyGatherAtTheMarket(unittest.TestCase):
         idle = [f for f in plan.folk if f.kind == "idle"]
         self.assertTrue(idle, "the idle vanished when the square did")
         self.assertEqual(idle[0].at, "nothing to do")
+
+
+class TestTheThreeRules(unittest.TestCase):
+    """Left click selects. Drag selects a group. Right click is the order.
+
+    No exceptions left: every clickable thing in the town and on the march
+    is picked up by a click, nothing opens a panel by itself, and bare
+    ground lets go. The panels are all behind `i` and the strip's button.
+    """
+
+    def setUp(self):
+        self.js = (STATIC / "marchlands.js").read_text()
+        self.html = (STATIC / "index.html").read_text()
+
+    def test_a_click_selects_every_kind_of_thing(self):
+        for line in ("return select('folk', who, shift)",
+                     "return select('beast', beast, shift)",
+                     "return select('building', b.uid, shift)",
+                     "return select(h.mine ? 'host' : 'theirs', h.uid, shift)",
+                     "return select('place', n.key, shift)"):
+            self.assertIn(line, self.js, line)
+
+    def test_no_click_opens_a_panel_by_itself(self):
+        # The writs are only reachable through the selection now.
+        self.assertNotIn("return buildingWrit(b, e)", self.js)
+        self.assertNotIn("return openSoul(beast, true)", self.js)
+        self.assertNotIn("return nodeWrit(n, e)", self.js)
+        self.assertIn("closeWrit();\n  closeSoul();\n  paintSel();", self.js)
+
+    def test_bare_ground_lets_go(self):
+        self.assertIn("// Bare ground: let them be.", self.js)
+        self.assertIn("return clearSel();", self.js)
+
+    def test_building_is_asked_for_rather_than_stumbled_into(self):
+        self.assertIn("function startPlacing", self.js)
+        self.assertIn("$('sel-build').addEventListener('click', startPlacing)", self.js)
+        self.assertIn('id="sel-build"', self.html)
+        self.assertIn("if (placing) {", self.js)
+        # and the old way is kept as a double-click on a plot
+        self.assertIn("// still reaches for the ground.", self.js.replace(
+            "still reaches for the ground.", "still reaches for the ground."))
+
+    def test_every_kind_answers_a_right_click(self):
+        for said in ("that host is not yours to command",
+                     "a place takes no orders",
+                     "a shed stays where it was put",
+                     "the beasts keep to their yard",
+                     "the watch holds the wall"):
+            self.assertIn(said, self.js, said)
+
+    def test_going_after_a_host_of_theirs(self):
+        self.assertIn("going after ${foe.name}", self.js)
+        self.assertIn("where it was last seen", self.js)
+
+    def test_the_card_is_one_press_away_for_everything(self):
+        for bit in ("if (sel.kind === 'place')", "if (sel.kind === 'building')",
+                    "if (sel.kind === 'beast') return openSoul(sel.ids[0], true)"):
+            self.assertIn(bit, self.js, bit)
+        self.assertIn("function isoOnScreen", self.js)
+
+    def test_the_keys_card_says_all_of_it(self):
+        for words in ("pick up whatever you point at", "let them be",
+                      "<kbd>B</kbd> / double-click"):
+            self.assertIn(words, self.html, words)
+
+
+class TestThroughTheirEyes(unittest.TestCase):
+    """The one view an isometric game never gives you.
+
+    Bannerlord's hold on people is not its polygons, it is that you are
+    somebody standing in the place rather than a hand above it. This is
+    that, in the only terms this game has: the same plan, the same day's
+    sky, projected out of one figure's eyes instead of down onto the town.
+
+    There is no walking in it, and that is not a shortcut: a figure here is
+    eight pairs of hands at a shed, which is a fact about the town, not a
+    body to drive around it. What standing there offers is what it offers.
+    """
+
+    def setUp(self):
+        self.js = (STATIC / "marchlands.js").read_text()
+        self.html = (STATIC / "index.html").read_text()
+
+    def test_the_view_is_on_the_page_and_reachable(self):
+        for el in ("eyes", "eyes-view", "eyes-who", "eyes-where", "eyes-ahead",
+                   "eyes-left", "eyes-right", "eyes-close"):
+            self.assertIn(f'id="{el}"', self.html, el)
+        self.assertIn('id="sel-eyes"', self.html)
+        self.assertIn("$('sel-eyes').addEventListener('click', eyesOpen)", self.js)
+        self.assertIn("['eyes', eyesShut]", self.js)
+
+    def test_it_projects_the_same_town(self):
+        for fn in ("function eyesOpen", "function eyesFrame", "function eyesPoint",
+                   "function eyesBox", "function eyesBuilding", "function eyesWall",
+                   "function eyesFigure", "function eyesBeast", "function eyesTile"):
+            self.assertIn(fn, self.js, fn)
+        # from the plan and the day, not from a second world
+        self.assertIn("for (const b of plan.buildings)", self.js)
+        self.assertIn("const p = pal(), s = sun();", self.js)
+
+    def test_you_stand_outside_what_you_work_at(self):
+        self.assertIn("function eyesStand", self.js)
+        self.assertIn("function eyesFootprint", self.js)
+
+    def test_it_says_who_is_looking_and_at_what(self):
+        self.assertIn("$('eyes-ahead').textContent", self.js)
+        self.assertIn("on the wall-walk, looking out", self.js)
+
+    def test_turning_is_the_whole_of_the_movement(self):
+        self.assertIn("function eyesTurn", self.js)
+        self.assertNotIn("function eyesWalk", self.js)

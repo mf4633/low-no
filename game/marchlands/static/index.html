@@ -227,12 +227,15 @@
         <dt><kbd>W</kbd></dt><dd>a week</dd>
         <dt><kbd>M</kbd></dt><dd>a month</dd>
         <dt><kbd>T</kbd> / <kbd>R</kbd></dt><dd>the town / the march</dd>
-        <dt>click</dt><dd>pick up a villager or a host of yours</dd>
+        <dt>click</dt><dd>pick up whatever you point at — villager, beast, shed, host, town</dd>
+        <dt>click the ground</dt><dd>let them be</dd>
         <dt>drag</dt><dd>box a group of figures, or of your hosts</dd>
         <dt>shift-click</dt><dd>add one to the group</dd>
         <dt>double-click</dt><dd>everybody of that trade, or every host there</dd>
         <dt>right-click</dt><dd>send them there — they walk over and take up what that ground needs: the trees, the field, the water</dd>
-        <dt><kbd>i</kbd></dt><dd>everything about whoever is picked up</dd>
+        <dt><kbd>i</kbd></dt><dd>everything about whatever is picked up</dd>
+        <dt><kbd>B</kbd> / double-click</dt><dd>build: pick the plot, then the building</dd>
+        <dt><kbd>F</kbd></dt><dd>stand where the chosen one stands and look out</dd>
         <dt><kbd>⌃1</kbd>…<kbd>⌃9</kbd> / <kbd>1</kbd>…<kbd>9</kbd></dt><dd>remember a group / call it up (twice to look)</dd>
         <dt><kbd>.</kbd></dt><dd>the next pair of idle hands (or the idle button)</dd>
         <dt>right-drag / arrows</dt><dd>move the view</dd>
@@ -253,8 +256,30 @@
     <span id="sel-text"></span>
     <span id="sel-hint" class="dim"></span>
     <span id="sel-group" hidden></span>
+    <button id="sel-build" type="button" hidden title="set them building (B)">build…</button>
+    <button id="sel-eyes" type="button" hidden title="stand where they stand (F)">their eyes</button>
     <button id="sel-more" type="button" title="all of it (i)">who is this?</button>
     <button id="sel-clear" type="button" title="let them be (esc)">×</button>
+  </div>
+
+  <!-- Standing where they stand. Not a window on the town: a window out of
+       one person in it, which is the one view an isometric game never gives
+       you and the one Bannerlord is built on. -->
+  <div id="eyes" hidden role="dialog" aria-modal="true" aria-label="through their eyes">
+    <div id="eyes-box">
+      <header>
+        <h3 id="eyes-who">somebody</h3>
+        <p id="eyes-where" class="dim"></p>
+      </header>
+      <canvas id="eyes-view" width="900" height="470"></canvas>
+      <p id="eyes-ahead" class="dim"></p>
+      <div id="eyes-acts" class="acts">
+        <button id="eyes-left" type="button" title="look left (←)">◀ look</button>
+        <button id="eyes-right" type="button" title="look right (→)">look ▶</button>
+        <button id="eyes-close" type="button" class="go">back to the town</button>
+      </div>
+      <p class="dim">arrows or A/D to turn · drag to look · esc to stand back</p>
+    </div>
   </div>
 
   <div id="writ" hidden>

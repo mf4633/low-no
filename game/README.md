@@ -1191,12 +1191,21 @@ H                what now?      /  type a command      ?  the keys
 ### Pointing at things
 
 The mouse is held the way every player of this kind of game already holds
-it. A left click picks one up -- a villager, a host of yours -- and does
-nothing else: no panel opens, because a click that opens a panel is a click
-you have to close. What they are and what they are doing goes on the strip
-above the console, which is where that game has always put it; the whole
-card is behind `i` or the strip's own button. A left drag boxes a group,
-shift-click adds one, and a double-click picks everybody of that kind.
+it, and the rule has no exceptions left: **a left click picks up whatever
+you point at** -- a villager, an animal, a shed, the watch on the wall, a
+host, a town on the march, even somebody else's host -- and does nothing
+else. No panel opens, because a click that opens a panel is a click you
+have to close. What the thing is goes on the strip above the console,
+which is where that game has always put it, and the whole card is behind
+`i` or the strip's own button. A click on bare ground lets go, which is
+what bare ground means.
+
+That last rule cost the build menu its home, so building is asked for now:
+**B**, or the *build…* button that appears when villagers are picked up,
+and then the plot. A double-click on an empty plot still opens it
+directly, for hands that have learnt the old way. A left drag boxes a
+group, shift-click adds one, and a double-click on somebody picks
+everybody of that kind.
 
 A right-click is the order, and it means what it means in that game: they
 go there. Point at a shed and they go to it; point at the trees and they
@@ -1210,9 +1219,13 @@ click -- a day is the unit there -- and the walk is the seconds of it you
 watch, a transition between two true states rather than a lie about
 either. A shed you have shut is not work and is never offered, because a
 picture that hands you an order the game will refuse is worse than one
-that offers nothing. Hosts go to the place you point at,
-or the nearest one to it. One of yours goes to the post -- a host makes
-them captain, a town of yours makes them steward. The view moves on the
+that offers nothing. Hosts go to the place you point at, or the nearest one to it -- and
+right-clicking a host of *theirs* means going after it, to where it is or
+to the last place you saw it, which is all you have of a host you are not
+looking at. One of yours goes to the post -- a host makes
+them captain, a town of yours makes them steward. Everything that takes no
+order says so in a line rather than doing nothing, because silence is how
+a player learns the wrong lesson about a button. The view moves on the
 right button, the middle one, alt-drag or the arrows, because the left drag
 means a box everywhere else and a player's hands do not relearn that for
 one game.
@@ -1974,6 +1987,29 @@ a town you are besieging does the same to you -- it comes up behind your
 lines and you fight at dawn -- so a siege is a thing that can be lifted
 from outside, which is most of what medieval field battles were for. If you
 are on either side and playing your battles, the day waits on it.
+
+### Through their eyes
+
+An isometric town is a thing you look at from above and outside. Press
+**F** with one figure picked up and you look *out* of them instead: the
+same plan, the same day's sky, the same roofs and trees and neighbours,
+projected from where that person is standing. A man at the mill sees his
+mill; the watch on the wall-walk sees the country the town is watching
+for. Turn with the arrows, A/D, or by dragging.
+
+What it is not is Bannerlord's battlefield, and the difference is worth
+being plain about. There is no walking in it. A figure in this game is
+eight pairs of hands at a shed -- a fact about the town, not a body to
+drive around it -- so what this offers is what standing there and turning
+round would offer, which is a great deal more than an isometric view ever
+shows: how close the neighbour's roof is, what the wall hides, whether
+your own square is empty.
+
+The projection is the honest one: every box is where the map says it is
+and as big as the map says it is, the haze is distance, the sun is where
+the day put it, and nobody is drawn who is not there. The one liberty is
+that you stand a couple of paces clear of whatever you work at, because a
+man with his nose against the wall of his own mill sees a wall.
 
 ### Where the idle stand
 
