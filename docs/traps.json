@@ -1,32 +1,32 @@
 {
- "at": "2026-09-21T20:58:12.394541Z",
+ "at": "2026-09-21T22:00:59.491075Z",
  "traps": [
   {
    "city": "SEA",
    "ceiling": 68,
-   "price": 11,
-   "p_model": 0.621,
-   "p_market": 0.11,
-   "edge_pts": 51.1,
-   "size_lcb": 0.0,
+   "price": 33,
+   "p_model": 0.4572,
+   "p_market": 0.33,
+   "edge_pts": 12.7,
+   "size_lcb": 0.0302,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 51 pts. In this ledger the market won 7 of 8 such disputes."
+     "code": "GRAVEYARD",
+     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "LAS",
    "ceiling": 89,
-   "price": 96,
+   "price": 93,
    "p_model": 1.0,
-   "p_market": 0.96,
-   "edge_pts": 4.0,
+   "p_market": 0.93,
+   "edge_pts": 7.0,
    "size_lcb": 0.0,
    "signals": [
     {
