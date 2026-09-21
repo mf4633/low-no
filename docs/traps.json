@@ -1,5 +1,5 @@
 {
- "at": "2026-09-21T12:26:34.133958Z",
+ "at": "2026-09-21T13:29:44.075458Z",
  "traps": [
   {
    "city": "MSP",
@@ -23,10 +23,10 @@
   {
    "city": "SEA",
    "ceiling": 68,
-   "price": 37,
-   "p_model": 0.6098,
-   "p_market": 0.37,
-   "edge_pts": 24.0,
+   "price": 36,
+   "p_model": 0.6428,
+   "p_market": 0.36,
+   "edge_pts": 28.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -35,21 +35,21 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "37c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "36c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "CHI",
    "ceiling": 62,
-   "price": 83,
-   "p_model": 0.9267,
-   "p_market": 0.83,
-   "edge_pts": 9.7,
+   "price": 82,
+   "p_model": 0.9474,
+   "p_market": 0.82,
+   "edge_pts": 12.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,7 +62,26 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "83c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SFO",
+   "ceiling": 65,
+   "price": 87,
+   "p_model": 0.9448,
+   "p_market": 0.87,
+   "edge_pts": 7.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "87c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
