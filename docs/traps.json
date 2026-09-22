@@ -1,13 +1,13 @@
 {
- "at": "2026-09-22T20:58:01.401713Z",
+ "at": "2026-09-22T22:02:43.195679Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 86,
    "price": 1,
-   "p_model": 0.724,
+   "p_model": 0.6596,
    "p_market": 0.01,
-   "edge_pts": 71.4,
+   "edge_pts": 65.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 71 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 65 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,7 +24,30 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "SFO",
+   "ceiling": 67,
+   "price": 10,
+   "p_model": 0.1851,
+   "p_market": 0.1,
+   "edge_pts": 8.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 0.8F short. The climb window has closed."
     }
    ]
   },
@@ -32,9 +55,9 @@
    "city": "DC",
    "ceiling": 65,
    "price": 1,
-   "p_model": 0.0472,
+   "p_model": 0.081,
    "p_market": 0.01,
-   "edge_pts": 3.7,
+   "edge_pts": 7.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -47,30 +70,22 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "SFO",
-   "ceiling": 67,
-   "price": 64,
-   "p_model": 0.6475,
-   "p_market": 0.64,
-   "edge_pts": 0.8,
+   "city": "LAS",
+   "ceiling": 87,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "64c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
