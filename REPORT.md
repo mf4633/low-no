@@ -8,5 +8,6 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
+- **NYC** DEAD_SCAVENGE @ 0.97 ceil 62 guide 65 -> CLI None :: **UNGRADED**  _park bowl: Td throttle, -3.5F vs EWR clear days, -2 cloudy. EWR leads by 2-3h; LGA = marine sentinel._
 
 no qualified flags today -- a complete and acceptable outcome
