@@ -2168,6 +2168,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWrit();
 
 function reopen(ev) {
   if (picked && picked.kind === 'plot') return plotWrit(picked.x, picked.y, ev);
+  if (picked && picked.kind === 'book') return bookWrit(ev);
   if (picked && picked.kind === 'building') {
     const again = plan.buildings.find(b => b.uid === picked.uid);
     if (again) return buildingWrit(again, ev);
@@ -2221,10 +2222,12 @@ function buildingWrit(b, ev) {
 function plotWrit(x, y, ev) {
   picked = { kind: 'plot', x, y };
   if (!opts) { openWrit('this plot', '<p class="why">asking…</p>', ev); return; }
-  const rows = opts.buildings.slice(0, 30).map(b => `
+  const list = opts.buildings.slice(0, 30), keys = buildLetters(list);
+  const rows = list.map(b => `
     <button data-do="build ${b.key}" ${b.can ? '' : 'disabled'}
+            data-key="${keys[b.key] || ''}"
             title="${b.can ? (b.note || b.name) : b.why}">
-      <span>${b.name}</span>
+      <span>${keys[b.key] ? `<kbd>${keys[b.key].toUpperCase()}</kbd>` : ''}${b.name}</span>
       <em>${b.can ? num(b.coin) + 'c · ' + b.days + 'd' : b.why}</em>
     </button>`).join('');
   const room = Object.entries(opts.slots)
@@ -2353,6 +2356,7 @@ function frame() {
   if (mode === 'march') {
     drawMarch(w, h, t);
     drawSelBox();
+    drawBarks(w, h);
     nextFrame();
     return;
   }
@@ -2424,6 +2428,7 @@ function frame() {
     drawPencil(t);
     ctx.restore();
   }
+  drawBarks(w, h);
   nextFrame();
 }
 
@@ -2706,11 +2711,25 @@ const typing = () => {
   return el && (el.tagName === 'INPUT' || el.tagName === 'SELECT'
                 || el.isContentEditable);
 };
+/* Space is not here: it stops and starts the clock (below), the way it
+ * does in every game that runs one. It used to send `next` as well, from
+ * this table, so with the picture focused one press did both. */
 const KEYS = {
-  ' ': 'next', w: 'next 7', m: 'next 30', h: 'hint',
+  w: 'next 7', m: 'next 30', h: 'hint',
 };
 document.addEventListener('keydown', e => {
   const meta = e.metaKey || e.ctrlKey;
+  // The build list is open: a letter builds what it is written against,
+  // ahead of every other use that letter has.
+  if (!meta && !e.altKey && !typing() && picked && picked.kind === 'plot'
+      && !$('writ').hidden && /^[a-z]$/i.test(e.key)) {
+    const btn = $('writ').querySelector(`button[data-key="${e.key.toLowerCase()}"]`);
+    if (btn) {
+      e.preventDefault();
+      if (btn.disabled) say(btn.title); else btn.click();
+      return;
+    }
+  }
   if (meta && (e.key === 'k' || e.key === 'K' || e.key === 'p')) {
     openPalette(''); e.preventDefault(); return;
   }
@@ -2748,6 +2767,17 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'f' || e.key === 'F') && !typing()) {
     eyesOpen(); e.preventDefault(); return;
   }
+  if (e.key === 'Home' && !typing()) { goAlert(); e.preventDefault(); return; }
+  if ((e.key === 'p' || e.key === 'P') && !typing()) {
+    bookWrit(null); e.preventDefault(); return;
+  }
+  // Faster and slower, the Europa Universalis way.
+  if ((e.key === '+' || e.key === '=') && !typing()) {
+    setSpeed(Math.min(3, speedNow + 1)); e.preventDefault(); return;
+  }
+  if ((e.key === '-' || e.key === '_') && !typing()) {
+    setSpeed(Math.max(0, speedNow - 1)); e.preventDefault(); return;
+  }
   if (e.key.startsWith('Arrow') && !typing() && mode !== 'march') {
     const step = 48;
     if (e.key === 'ArrowLeft') camera.x += step;
@@ -2774,14 +2804,16 @@ document.addEventListener('keydown', e => {
   // spends all its time in. A command cannot begin with a space, so there
   // is nothing to be ambiguous about. The letters stay behind the guard,
   // because `w` in an empty box is as likely to be the start of `wall`.
-  if (e.key === ' ' && typing() && $('line').value === '') {
-    send('next'); e.preventDefault(); return;
+  if (e.key === ' ' && document.activeElement === $('line') && $('line').value === '') {
+    // A battle has the clock stopped and its own use for the key.
+    if ($('battle').hidden) setSpeed(speedNow ? 0 : 1);
+    e.preventDefault(); return;
   }
   if (typing()) return;
   if (e.key === 't' || e.key === 'T') { setMode('town'); return; }
   if (e.key === 'r' || e.key === 'R') { setMode('march'); return; }
   if (e.key === 'w' || e.key === 'W') { setMode(drawing() ? 'town' : 'castle'); return; }
-  const line = KEYS[e.key.toLowerCase()] || (e.key === ' ' ? 'next' : '');
+  const line = KEYS[e.key.toLowerCase()] || '';
   if (line) { send(line); e.preventDefault(); }
 });
 $('keys').addEventListener('click', () => { $('keys').hidden = true; });
@@ -2919,7 +2951,7 @@ function leftClick(e, shift) {
       return send(`march ${uid} ${to}`);
     }
     const h = hostAt(e);
-    if (h) return select(h.mine ? 'host' : 'theirs', h.uid, shift);
+    if (h) { select(h.mine ? 'host' : 'theirs', h.uid, shift); return bark('pick', e); }
     if (n) return select('place', n.key, shift);
     return clearSel();
   }
@@ -2937,9 +2969,9 @@ function leftClick(e, shift) {
   // People first. A figure standing in front of a roof is the thing you were
   // pointing at, and the roof is a bigger target that would always win.
   const who = folkAt(e);
-  if (who !== null) return select('folk', who, shift);
+  if (who !== null) { select('folk', who, shift); return bark('pick', e); }
   const beast = beastAt(e);
-  if (beast !== null) return select('beast', beast, shift);
+  if (beast !== null) { select('beast', beast, shift); return bark('pick', e); }
   const b = buildingAt(e);
   if (b) return select('building', b.uid, shift);
   // Bare ground: let them be. It used to throw a build menu at you, which
@@ -3034,16 +3066,19 @@ function meter(el, frac, warnAt, badAt) {
 }
 
 function paint(s) {
-  const wasAge = state && state.age;
+  const was = state;
   state = s; plan = s.plan;
   paintSel();   // a new plan: find the same people in it
   paintIdle();
   if (window.Sound) {
     Sound.feed(s);
-    // A bell for the things worth stopping to hear.
-    if (wasAge && s.age !== wasAge) Sound.mark('bell');
+    // A bell for the things worth stopping to hear. A new age has its own
+    // fanfare now, from the herald.
     if (s.over) Sound.mark('bell');
   }
+  paintStores(s);
+  noteAlerts(was, s);
+  noteHeralds(was, s);
   paintDrawbar(s);
   $('place').textContent = s.town.name;
   // A browser tab full of identical "Marchlands" is no use to anyone playing
@@ -3360,7 +3395,9 @@ function paintBattle(v) {
   const opening = box.hidden;
   battleWas = battleNow; battleNow = v;
   box.hidden = false;
-  if (opening) { setSpeed(0); Sound.mark && Sound.mark('alarm'); }
+  // A field battle is men meeting in the open: the horn. A storm is a
+  // town's bell.
+  if (opening) { setSpeed(0); Sound.mark && Sound.mark(v.kind === 'field' ? 'horn' : 'alarm'); }
 
   const mine = v[v.side], theirs = v[v.side === 'attacker' ? 'defender' : 'attacker'];
   // A storm has a wall in it and a field does not, and the words follow.
@@ -3429,6 +3466,8 @@ function paintBattle(v) {
   $('battle-acts').hidden = v.over || !!melee;
   if (v.over) {
     const won = v.winner === v.side;
+    // Once, the first time the verdict is read, and only for a win.
+    if (won && !(battleWas && battleWas.over) && window.Sound) Sound.mark('fanfare');
     $('battle-verdict').textContent = won ? 'The ground is yours' : 'The ground is theirs';
     $('battle-after').textContent = (v.after && v.after.length ? v.after : (v.log || []).slice(-3))
       .filter(l => !l.trim().startsWith('box')).join('\n');
@@ -4510,6 +4549,9 @@ document.addEventListener('keydown', e => {
 let speedNow = 0, seqNow = 0, polling = false, wasHalted = false;
 
 async function setSpeed(n) {
+  // Said at once, not when the server answers: two quick presses of `-`
+  // must be two steps, not the same step taken twice from a stale reading.
+  speedNow = n;
   const c = await post('/speed', { speed: n });
   applyClock(c);
   if (c.speed) pollOn(); 
@@ -4531,7 +4573,8 @@ function applyClock(c) {
     // besieged". The day's own line goes underneath it when there is one.
     halt.textContent = c.stopped_for;
     halt.title = c.stopped_at || c.stopped_for;
-    if (!wasHalted) Sound.mark('alarm');
+    // The horn has already said it if it was men at the gate.
+    if (!wasHalted && performance.now() - hornAt > 3000) Sound.mark('alarm');
     halt.hidden = false;
   } else {
     halt.hidden = true;
@@ -4565,7 +4608,7 @@ for (let i = 0; i <= 3; i++) {
  * you are typing into the command line, obviously. */
 document.addEventListener('keydown', e => {
   if (e.code !== 'Space' || e.target.tagName === 'INPUT') return;
-  if (!$('front').hidden || !$('drawmap').hidden) return;
+  if (!$('front').hidden || !$('drawmap').hidden || !$('battle').hidden) return;
   e.preventDefault();
   setSpeed(speedNow ? 0 : 1);
 });
@@ -4689,6 +4732,7 @@ function rightClick(e) {
       const seen = foe.state === 'remembered' ? ' -- where it was last seen' : '';
       say(`going after ${foe.name} at ${nodeName(where)}${seen}.`);
       for (const h of hosts) send(`march ${h.uid} ${where}`);
+      bark('go', e, 'foe');
       return;
     }
     const n = townNodeAt(e) || nearestNode(e);
@@ -4699,6 +4743,7 @@ function rightClick(e) {
       send(`march ${h.uid} ${n.key}`); sent++;
     }
     if (!sent) say(`${hosts.length > 1 ? 'they are' : 'it is'} already at ${n.name}.`);
+    else bark('go', e, 'host');
     return;
   }
   // The things that take no orders say so rather than doing nothing, which
@@ -4741,6 +4786,7 @@ function rightClick(e) {
   setThemWalking(want.shed, sel.ids.filter(i => plan.folk[i]
     && plan.folk[i].kind !== 'kin' && plan.folk[i].kind !== 'watch'));
   send(`staff ${want.shed.uid} ${hands}`);
+  bark('go', e, want.shed.terrain);
 }
 
 /* Which sheds can take hands at all, and which is nearest to a click.
@@ -5174,6 +5220,7 @@ function startMelee(v) {
             kills: 0, hits: 0, cap: r.cap || 1, down: r.down || 3, taken: r.hits || 0,
             valour: r.valour || 0, keys: {}, swing: 0, flash: 0, done: false };
   $('melee-hud').hidden = false; $('battle-acts').hidden = true;
+  if (window.Sound) Sound.mark('horn');           // he rides in: the charge
   c.classList.add('melee');
   paintMeleeHud();
   if (!battleAnim) battleAnim = requestAnimationFrame(drawBattleFrame);
@@ -5668,3 +5715,430 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { eyesTurn(-0.2); e.preventDefault(); }
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { eyesTurn(0.2); e.preventDefault(); }
 }, true);
+
+
+/* ============================================================ the frame
+ * What the other games put round the picture, and most of why they feel
+ * the way they do: Age of Empires' row of piles and its minimap, the horn
+ * when you are attacked, villagers who answer when you click them, the
+ * banner when an age turns; Stronghold's popularity number and the book
+ * with the rations and the tax in it. None of it decides anything. Every
+ * number here is one the panel or the console already gives -- this is
+ * where the eye goes first, not a second set of books.
+ */
+
+/* ------------------------------------------------------------ the yards */
+const PILE_ICON = {
+  food: '<svg viewBox="0 0 16 16"><ellipse cx="8" cy="9.5" rx="6.5" ry="4.2" fill="#c08a45"/>' +
+        '<path d="M4.5 7.2l1.6 3M7.6 6.4l1.4 3.4M10.8 7l1.2 3" stroke="#7a4f22" stroke-width="1.1"/></svg>',
+  wood: '<svg viewBox="0 0 16 16"><rect x="2" y="5" width="11" height="6.5" rx="1" fill="#8a6038"/>' +
+        '<ellipse cx="13" cy="8.25" rx="2.3" ry="3.25" fill="#d6b27a"/>' +
+        '<ellipse cx="13" cy="8.25" rx="1" ry="1.5" fill="none" stroke="#8a6038" stroke-width=".8"/></svg>',
+  stone: '<svg viewBox="0 0 16 16"><path d="M2 11l2-5.5 5-2 5 3-1 5.5-6 1.5z" fill="#a9a59a"/>' +
+         '<path d="M4 5.5l5 2 5-1M9 7.5l-1 6.5" stroke="#6f6c64" stroke-width=".9" fill="none"/></svg>',
+  iron: '<svg viewBox="0 0 16 16"><path d="M1.5 12l2.5-6h8l2.5 6z" fill="#6f7a86"/>' +
+        '<path d="M4 6h8l-1.2 2.6H5.2z" fill="#aab4bf"/></svg>',
+  ale: '<svg viewBox="0 0 16 16"><rect x="3" y="4.5" width="7.5" height="9" rx="1" fill="#b5873f"/>' +
+       '<path d="M10.5 6.5h1.7a1.3 1.3 0 011.3 1.3v2.4a1.3 1.3 0 01-1.3 1.3h-1.7" fill="none" stroke="#b5873f" stroke-width="1.4"/>' +
+       '<ellipse cx="6.75" cy="4.4" rx="4.1" ry="1.8" fill="#efe4c8"/></svg>',
+  arms: '<svg viewBox="0 0 16 16"><path d="M3 13L12.5 3.5l.9-.9.4 1.3-9.4 9.5z" fill="#c7ccd2"/>' +
+        '<path d="M3.2 9.6l3.2 3.2M2 14l2-2" stroke="#8a6038" stroke-width="1.6"/></svg>',
+  room: '<svg viewBox="0 0 16 16"><rect x="2.5" y="4" width="11" height="9.5" fill="#9a7447"/>' +
+        '<path d="M2.5 4h11M2.5 8.7h11M8 4v9.5" stroke="#5e4428" stroke-width="1"/></svg>',
+  souls: '<svg viewBox="0 0 16 16"><circle cx="8" cy="4.6" r="2.4" fill="#e3d4b3"/>' +
+         '<path d="M3.6 14c0-3.6 2-5.8 4.4-5.8s4.4 2.2 4.4 5.8z" fill="#8c6b4a"/></svg>',
+};
+/* Stronghold's face, drawn for the number it stands beside. */
+function moodFace(p) {
+  const fill = p >= 60 ? '#7fae5a' : p >= 40 ? '#d8b44a' : '#c65a44';
+  const mouth = p >= 60 ? 'M5 9.6q3 2.8 6 0' : p >= 40 ? 'M5.2 10.4h5.6' : 'M5 11.4q3-2.6 6 0';
+  return `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.6" fill="${fill}"/>` +
+    `<circle cx="5.9" cy="6.4" r=".95" fill="#1d160e"/><circle cx="10.1" cy="6.4" r=".95" fill="#1d160e"/>` +
+    `<path d="${mouth}" stroke="#1d160e" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>`;
+}
+function signed(v) { return (v > 0 ? '+' : '') + (Math.abs(v) >= 10 ? Math.round(v) : v); }
+function pileParts(p) {
+  return Object.entries(p.of || {}).map(([k, v]) => `${k.replace('_', ' ')} ${num(v)}`).join(' · ');
+}
+
+function paintStores(s) {
+  const box = $('stores');
+  if (!box) return;
+  const st = s.stores;
+  if (!st) { box.hidden = true; return; }
+  box.hidden = false;
+  const chips = [];
+  for (const p of st.piles) {
+    const moved = Math.abs(p.moved) >= 0.5
+      ? `<span class="d ${p.moved > 0 ? 'up' : 'down'}">${signed(p.moved)}</span>` : '';
+    if (p.key === 'food') {
+      // Days on the chip, so the change beside it is a direction, not a
+      // second unit: the rations it moved are in the tooltip.
+      const fell = Math.abs(p.moved) >= 0.5
+        ? `<span class="d ${p.moved > 0 ? 'up' : 'down'}">${p.moved > 0 ? '▲' : '▼'}</span>` : '';
+      const days = p.days === null || p.days === undefined ? null : p.days;
+      const short = days !== null && days < 5;
+      const said = days === null ? `${num(p.have)} rations` : `${days < 10 ? days : Math.round(days)}d`;
+      chips.push(`<button type="button" class="pile${short ? ' short' : ''}" data-pile="food"` +
+        ` title="food: ${num(p.have)} rations${days !== null ? `, about ${Math.round(days)} days at ${s.town.book ? s.town.book.rations.find(r => r.now).label : 'these'} rations` : ''}` +
+        `${pileParts(p) ? ' — ' + pileParts(p) : ''}` +
+        `${fell ? ` · ${signed(p.moved)} rations yesterday` : ''}. Click for the rations.">` +
+        `${PILE_ICON.food}<span>${said}</span>${fell}</button>`);
+      continue;
+    }
+    chips.push(`<span class="pile" data-pile="${p.key}" title="${p.label}: ${num(p.have)}` +
+      `${pileParts(p) ? ' — ' + pileParts(p) : ''}` +
+      `${Math.abs(p.moved) >= 0.5 ? ` · ${signed(p.moved)} yesterday` : ''}">` +
+      `${PILE_ICON[p.key] || ''}<span>${num(p.have)}</span>${moved}</span>`);
+  }
+  const full = st.room > 0 && st.held >= 0.95 * st.room;
+  chips.push(`<span class="pile${full ? ' full' : ''}" data-pile="room" title="the yards hold ` +
+    `${num(st.held)} of ${num(st.room)}${full ? ' — full: anything more spills and is lost' : ''}">` +
+    `${PILE_ICON.room}<span>${num(st.held)}/${num(st.room)}</span></span>`);
+  const t = s.town, arriving = t.arriving || 0;
+  chips.push(`<span class="pile" data-pile="souls" title="${num(t.population)} souls under ` +
+    `${num(t.housing)} roofs${Math.abs(arriving) >= 0.1 ? ` · ${arriving > 0 ? 'arriving' : 'leaving'}: ` +
+    `${Math.abs(arriving).toFixed(1)} a day` : ''}">${PILE_ICON.souls}` +
+    `<span>${num(t.population)}/${num(t.housing)}</span>` +
+    `${Math.abs(arriving) >= 0.1 ? `<span class="d ${arriving > 0 ? 'up' : 'down'}">${arriving > 0 ? '▲' : '▼'}</span>` : ''}</span>`);
+  const p = Math.round(t.popularity), head = t.heading === undefined ? p : t.heading;
+  const way = head > t.popularity + 0.5 ? '▲' : head < t.popularity - 0.5 ? '▼' : '';
+  const tone = p >= 60 ? 'good' : p >= 40 ? 'fair' : 'bad';
+  chips.push(`<button type="button" class="pile mood ${tone}" data-pile="mood" ` +
+    `title="popularity ${p} of 100, heading for ${Math.round(head)}. Click for the scribe's book (P).">` +
+    `${moodFace(p)}<b>${p}</b>` +
+    `${way ? `<span class="d ${way === '▲' ? 'up' : 'down'}">${way}</span>` : ''}</button>`);
+  const html = chips.join('');
+  if (box.dataset.was !== html) { box.innerHTML = html; box.dataset.was = html; }
+}
+$('stores').addEventListener('click', e => {
+  const b = e.target.closest('button.pile');
+  if (b) bookWrit(e);
+});
+
+/* ------------------------------------------------------ the scribe's book */
+/* Stronghold's book: the popularity, what is moving it, and the two dials
+ * you move it with, every band priced before you turn it. */
+function bookWrit(ev) {
+  if (!state) return;
+  picked = { kind: 'book' };
+  const t = state.town, bk = t.book || { rations: [], tax: [] };
+  const head = t.heading === undefined ? t.popularity : t.heading;
+  const factors = [...(t.mood || [])].sort((a, b) => Math.abs(b.by) - Math.abs(a.by));
+  const band = (list, word, extra) => list.map(r =>
+    `<button data-do="${word} ${r.label}" data-keep="1" aria-pressed="${r.now}"` +
+    ` class="${r.now ? 'now' : ''}" title="${r.label}: ${signed(r.mood)} mood${extra ? extra(r) : ''}">` +
+    `${r.label} <em class="${r.mood > 0 ? 'up' : r.mood < 0 ? 'down' : ''}">${signed(r.mood)}</em></button>`).join('');
+  const at = ev && ev.clientX !== undefined ? ev
+    : { clientX: canvas.clientWidth / 2 - 150, clientY: 120 };
+  openWrit("the scribe's book", `
+    <p class="standing"><b>${Math.round(t.popularity)}</b> of 100 ·
+      heading for <b>${Math.round(head)}</b>
+      ${Math.abs(t.arriving || 0) >= 0.1
+        ? ` · ${(t.arriving > 0 ? 'arriving ' : 'leaving ')}${Math.abs(t.arriving).toFixed(1)} a day` : ''}</p>
+    <ul class="why-list">${factors.map(m =>
+      `<li><span>${esc(m.what)}</span><em class="${m.by > 0 ? 'up' : 'down'}">${signed(m.by)}</em></li>`).join('')}</ul>
+    <p class="why">rations</p>
+    <div class="acts book">${band(bk.rations, 'ration')}</div>
+    <p class="why">tax</p>
+    <div class="acts book">${band(bk.tax, 'tax', r => ` · collects ${num(r.collects)}c a day`)}</div>
+    <p class="why">above 50 they come, below it they go.</p>`, at);
+}
+
+/* --------------------------------------------------------- the minimap */
+/* The whole plan, small, in the same diamond the town is drawn in. Click
+ * or drag it to look there; it flashes where something has gone wrong. */
+const pings = [];
+let lastAlert = null, miniDrag = false;
+const MINI_W = 200, MINI_H = 104;
+const MINI_TILE = { forest: 'tree', water: 'water', field: 'crop', road: 'earth', yard: 'earth' };
+
+function miniUnit() { return plan ? MINI_W / (plan.w + plan.h) : 1; }
+function miniAt(x, y) {
+  const u = miniUnit();
+  return [(x - y + plan.h) * u, (x + y) * u / 2 + 2];
+}
+/* Where on the plan a point of the screen is, as the minimap draws it. */
+function miniFromScreen(cx, cy) {
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const px = (cx - W / 2 - camera.x) / camera.zoom + (plan.w - plan.h) * TW / 4;
+  const py = (cy - H / 2 - camera.y) / camera.zoom + (plan.w + plan.h) * TH / 4;
+  const d = px / (TW / 2), s = py / (TH / 2);
+  const u = miniUnit();
+  return [(d + plan.h) * u, s * u / 2 + 2];
+}
+function lookAtTile(x, y) {
+  if (!plan) return;
+  const [sx, sy] = iso(x, y);
+  camera.x = -(sx - (plan.w - plan.h) * TW / 4) * camera.zoom;
+  camera.y = -(sy - (plan.w + plan.h) * TH / 4) * camera.zoom;
+}
+
+function paintMini() {
+  const box = $('mini');
+  if (!box) return;
+  box.hidden = !plan || mode === 'march';
+  if (box.hidden) return;
+  const con = $('console');
+  box.style.bottom = `${(con ? con.offsetHeight + 20 : 150)}px`;
+  const c = $('mini-view'), r = Math.min(2, window.devicePixelRatio || 1);
+  if (c.width !== MINI_W * r) { c.width = MINI_W * r; c.height = MINI_H * r; }
+  const g = c.getContext('2d');
+  g.setTransform(r, 0, 0, r, 0, 0);
+  g.clearRect(0, 0, MINI_W, MINI_H);
+  const P = pal(), u = miniUnit(), now = performance.now();
+  const TONE = { tree: P.tree, water: P.water, crop: P.crop, earth: P.earth };
+  for (let y = 0; y < plan.h; y++) {
+    for (let x = 0; x < plan.w; x++) {
+      const k = plan.tiles[y][x];
+      g.fillStyle = TONE[MINI_TILE[k]] || (k === 'hill' ? '#9a9270' : k === 'clay' ? '#a8674a' : P.grass);
+      const [mx, my] = miniAt(x, y);
+      // A tile is a diamond twice as wide as it is tall, as in the town.
+      g.beginPath();
+      g.moveTo(mx, my - u / 2 - 0.3); g.lineTo(mx + u + 0.3, my);
+      g.lineTo(mx, my + u / 2 + 0.3); g.lineTo(mx - u - 0.3, my);
+      g.closePath(); g.fill();
+    }
+  }
+  g.fillStyle = '#d8d0bc';
+  for (const w of plan.walls) { const [mx, my] = miniAt(w.x, w.y); g.fillRect(mx - 1, my - 1, 2, 2); }
+  const blink = Math.floor(now / 400) % 2 === 0;
+  for (const b of plan.buildings) {
+    if (b.key === 'trees') continue;
+    const [mx, my] = miniAt(b.x, b.y);
+    g.fillStyle = b.burning ? (blink ? '#ff5a36' : '#7a1d10')
+      : !b.complete ? 'rgba(232,207,122,.45)' : b.key === 'keep' ? '#f3e2a0' : '#e0c46a';
+    g.fillRect(mx - 1.6, my - 1.6, 3.2, 3.2);
+  }
+  for (const [i, f] of plan.folk.entries()) {
+    const [mx, my] = miniAt(f.x, f.y);
+    g.fillStyle = isSelected('folk', i) ? '#7ed17e'
+      : f.kind === 'idle' ? (blink ? '#ffe28a' : '#8a7a3a')
+      : f.kind === 'watch' ? '#c9a227' : f.kind === 'kin' ? '#9fd0ff' : '#f3ead6';
+    g.fillRect(mx - 0.8, my - 0.8, 1.6, 1.6);
+  }
+  // A town under siege has a red edge, all round.
+  if (state && state.town && (state.town.besieged || state.town.raided)) {
+    g.strokeStyle = `rgba(214,70,48,${0.45 + 0.4 * Math.sin(now / 260)})`;
+    g.lineWidth = 2; g.strokeRect(1, 1, MINI_W - 2, MINI_H - 2);
+  }
+  for (let i = pings.length - 1; i >= 0; i--) {
+    const p = pings[i], age = (now - p.born) / 1000;
+    if (age > 6) { pings.splice(i, 1); continue; }
+    const [mx, my] = miniAt(p.x, p.y);
+    for (const lag of [0, 0.6]) {
+      const a = ((age + lag) % 1.2) / 1.2;
+      g.strokeStyle = `rgba(255,${p.tone === 'plague' ? 140 : 80},${p.tone === 'plague' ? 220 : 60},${1 - a})`;
+      g.lineWidth = 1.5;
+      g.beginPath(); g.arc(mx, my, 3 + a * 14, 0, 7); g.stroke();
+    }
+  }
+  // What the screen is looking at.
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const [ax, ay] = miniFromScreen(0, 0), [bx, by] = miniFromScreen(W, H);
+  g.strokeStyle = 'rgba(243,234,214,.85)'; g.lineWidth = 1;
+  g.strokeRect(Math.round(ax) + 0.5, Math.round(ay) + 0.5, bx - ax, by - ay);
+  $('mini-alert').hidden = !alertStanding();
+}
+setInterval(() => { try { paintMini(); } catch (_) { /* a plan mid-swap */ } }, 200);
+
+function miniLook(e) {
+  if (!plan) return;
+  const r = $('mini-view').getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top, u = miniUnit();
+  const d = mx / u - plan.h, s = (my - 2) * 2 / u;
+  lookAtTile((d + s) / 2, (s - d) / 2);
+}
+$('mini-view').addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  miniDrag = true; miniLook(e); e.preventDefault();
+});
+window.addEventListener('mousemove', e => { if (miniDrag) miniLook(e); });
+window.addEventListener('mouseup', () => { miniDrag = false; });
+$('mini-alert').addEventListener('click', goAlert);
+
+/* ------------------------------------------------------------- alarms */
+/* What changed since the last reading that somebody should be told about
+ * out loud. The horn is for men at the gate, the bell for everything that
+ * burns or sickens -- the same split Age of Empires makes between "you are
+ * under attack" and everything else. */
+let hornAt = 0;
+function alertStanding() {
+  const t = state && state.town;
+  if (!t || !plan) return false;
+  return !!(t.besieged || t.raided || (t.sick && t.sick.here)
+            || plan.buildings.some(b => b.burning));
+}
+function heart() {
+  const keep = plan.buildings.find(b => b.key === 'keep');
+  if (keep) return [keep.x, keep.y];
+  const p = plan.precinct;
+  return [(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2];
+}
+function raiseAlert(x, y, tone, sound) {
+  pings.push({ x, y, tone, born: performance.now() });
+  lastAlert = { x, y };
+  if (sound === 'horn') hornAt = performance.now();
+  if (sound && window.Sound) Sound.mark(sound);
+}
+function noteAlerts(was, s) {
+  if (!was || !was.town || !s.town || !s.plan) return;
+  if (was.here !== s.here || s.day < was.day) return;   // another game, or a load
+  const p = s.plan, t = s.town, w = was.town;
+  const lit = new Set(((was.plan && was.plan.buildings) || []).filter(b => b.burning).map(b => b.uid));
+  for (const b of p.buildings) {
+    if (b.burning && !lit.has(b.uid)) raiseAlert(b.x, b.y, 'fire', 'alarm');
+  }
+  const keep = p.buildings.find(b => b.key === 'keep');
+  const mid = keep ? [keep.x, keep.y]
+    : [(p.precinct.x0 + p.precinct.x1) / 2, (p.precinct.y0 + p.precinct.y1) / 2];
+  if (t.besieged && !w.besieged) raiseAlert(mid[0], mid[1], 'war', 'horn');
+  if (t.raided && !w.raided) raiseAlert(mid[0] + 6, mid[1] + 6, 'war', t.besieged ? '' : 'horn');
+  if (t.sick && t.sick.here && !(w.sick && w.sick.here)) {
+    const m = p.buildings.find(b => b.key === 'market') || keep;
+    raiseAlert(m ? m.x : mid[0], m ? m.y : mid[1], 'plague', 'bell');
+  }
+}
+/* Home: look at the last thing that went wrong, the way AoE2's does. */
+function goAlert() {
+  if (!plan) return;
+  if (mode === 'march') setMode('town');
+  const b = plan.buildings.find(q => q.burning);
+  const at = lastAlert || (b ? { x: b.x, y: b.y } : null)
+    || (alertStanding() ? { x: heart()[0], y: heart()[1] } : null);
+  if (!at) return say('nothing has gone wrong that needs looking at.');
+  lookAtTile(at.x, at.y);
+  pings.push({ x: at.x, y: at.y, tone: 'war', born: performance.now() });
+}
+
+/* ------------------------------------------------------------- answers */
+/* Click a villager in either game and they say something; tell them to go
+ * and they say something else. It is the cheapest thing in the genre and
+ * it is why a crowd of figures reads as people. The line is chosen from
+ * what they are and where they were sent; nothing is decided by it. */
+const BARK = {
+  pick: {
+    worker: ['Aye?', "M'lord?", "What'll it be?", 'At your word.', 'Yes?', 'Hm?'],
+    soldier: ['Sire!', 'Ready.', "Spear's sharp, m'lord.", 'Orders?'],
+    idle: ["Anything for me, m'lord?", 'Idle hands, sire.', 'Been stood here since Lammas.'],
+    watch: ['Road is quiet.', "Nothing on the road, m'lord.", 'Cold up here.'],
+    kin: ['My lord.', 'You called?', 'Yes?'],
+    host: ['Sire!', 'We are with you.', 'Orders, my lord?'],
+    sheep: ['Baa.'], cow: ['Moo.'], horse: ['*snort*'],
+  },
+  go: {
+    forest: ['To the trees.', "The oaks won't fell themselves."],
+    fertile: ['To the furrows.', 'Back to the field, then.'],
+    coast: ['Wet feet again.', 'To the water.'],
+    hills: ['Up the hill it is.', 'To the stone.'],
+    clay: ['Muck it is.', 'To the pits.'],
+    worker: ['On my way.', "Aye, m'lord.", "It'll be done.", 'Right you are.'],
+    soldier: ['Moving!', 'As you say, sire.'],
+    host: ['Forward!', 'We march!', 'As you command.'],
+    foe: ['For the March!', 'At them!', 'To arms!'],
+  },
+};
+let bubble = null;
+function folkVoice(f) {
+  if (!f) return 'worker';
+  if (f.kind === 'worker' && f.trade === 'guard') return 'soldier';
+  return BARK.pick[f.kind] ? f.kind : 'worker';
+}
+function bark(what, ev, where) {
+  let lines, anchor = { sx: ev ? ev.clientX : 0, sy: ev ? ev.clientY : 0 }, sound = 'voice';
+  if (sel.kind === 'folk' && plan) {
+    const f = plan.folk[sel.ids[0]], who = folkVoice(f);
+    anchor.folk = sel.ids[0];
+    lines = what === 'go' ? (BARK.go[where] || BARK.go[who === 'soldier' ? 'soldier' : 'worker'])
+                          : BARK.pick[who];
+    sound = who === 'soldier' ? 'voice:soldier' : who === 'idle' ? 'voice:idle' : 'voice';
+  } else if (sel.kind === 'beast' && plan) {
+    const b = (plan.beasts || [])[sel.ids[0]];
+    lines = BARK.pick[b && b.kind] || BARK.pick.sheep;
+    anchor.beast = sel.ids[0]; sound = 'voice:beast';
+  } else if (sel.kind === 'host') {
+    lines = what === 'go' ? BARK.go[where === 'foe' ? 'foe' : 'host'] : BARK.pick.host;
+    sound = 'voice:soldier';
+  } else return;
+  if (!lines || !lines.length) return;
+  bubble = { text: lines[Math.floor(Math.random() * lines.length)], anchor, born: performance.now() };
+  if (window.Sound) Sound.mark(sound);
+}
+function drawBarks(w, h) {
+  if (!bubble) return;
+  const age = (performance.now() - bubble.born) / 1000;
+  if (age > 2.2) { bubble = null; return; }
+  let { sx, sy } = bubble.anchor;
+  const a = bubble.anchor;
+  const spot = plan && mode !== 'march'
+    ? (a.folk !== undefined ? folkSpots.get(a.folk) : a.beast !== undefined ? beastSpots.get(a.beast) : null)
+    : null;
+  if (spot) {
+    sx = (spot[0] - (plan.w - plan.h) * TW / 4) * camera.zoom + w / 2 + camera.x;
+    sy = (spot[1] - (plan.w + plan.h) * TH / 4) * camera.zoom + h / 2 + camera.y - 20 * camera.zoom;
+  }
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.globalAlpha = age < 1.7 ? 1 : Math.max(0, 1 - (age - 1.7) / 0.5);
+  ctx.font = 'italic 13px Georgia, serif';
+  const tw = ctx.measureText(bubble.text).width, bw = tw + 16, bh = 22;
+  const bx = Math.round(sx - bw / 2), by = Math.round(sy - bh - 12 - Math.min(age, 0.15) * 20);
+  ctx.fillStyle = 'rgba(243,234,214,.95)';
+  ctx.strokeStyle = 'rgba(60,44,24,.7)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bx + 4, by); ctx.lineTo(bx + bw - 4, by); ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + 4);
+  ctx.lineTo(bx + bw, by + bh - 4); ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - 4, by + bh);
+  ctx.lineTo(sx + 5, by + bh); ctx.lineTo(sx, by + bh + 7); ctx.lineTo(sx - 3, by + bh);
+  ctx.lineTo(bx + 4, by + bh); ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - 4);
+  ctx.lineTo(bx, by + 4); ctx.quadraticCurveTo(bx, by, bx + 4, by);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#2a1f12'; ctx.textBaseline = 'middle';
+  ctx.fillText(bubble.text, bx + 8, by + bh / 2 + 1);
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------ the herald */
+let heraldTimer = null;
+function herald(kicker, title, sub, sound) {
+  const el = $('herald');
+  $('herald-kicker').textContent = kicker;
+  $('herald-title').textContent = title;
+  $('herald-sub').textContent = sub || '';
+  el.hidden = true; void el.offsetWidth; el.hidden = false;   // restart it
+  clearTimeout(heraldTimer);
+  heraldTimer = setTimeout(() => { el.hidden = true; }, 4700);
+  if (sound && window.Sound) Sound.mark(sound);
+}
+/* A new age, a feat, a step on your house's path: said once, the day it
+ * happens, and never for a game that was merely loaded. */
+function noteHeralds(was, s) {
+  if (!was || was.here !== s.here || s.day <= was.day || s.day - was.day > 60) return;
+  if (was.age && s.age !== was.age) {
+    return herald(`${s.town.name} enters`, s.age, 'what the new age allows is on the build list now.', 'fanfare');
+  }
+  const done = new Set(((was.feats && was.feats.list) || []).filter(f => f.day !== null && f.day !== undefined).map(f => f.key));
+  const fresh = ((s.feats && s.feats.list) || []).find(f => f.day !== null && f.day !== undefined && !done.has(f.key));
+  if (fresh) return herald('a feat', fresh.name, fresh.blurb, 'bell');
+  const won = new Set(((was.missions && was.missions.won) || []).map(m => m.key));
+  const step = ((s.missions && s.missions.won) || []).find(m => !won.has(m.key));
+  if (step) return herald('your house', step.name, '', 'bell');
+}
+
+/* ------------------------------------------------------ the build letters */
+/* A letter for each building in the list, off its own name, so a player who
+ * has built one twice builds it the third time without reading. */
+function buildLetters(list) {
+  // What you can raise now gets first pick of the alphabet: there are more
+  // buildings than letters, and a letter on something greyed out is a
+  // letter nobody can use. Initials before other letters, so a Wheat Farm
+  // is W and, when W is gone, F -- the way AoE2 spells its grid.
+  const used = new Set(), out = {};
+  const order = [...list.filter(b => b.can), ...list.filter(b => !b.can)];
+  for (const b of order) {
+    const name = b.name.toLowerCase().replace(/^the /, '').replace(/[^a-z ]/g, '');
+    const initials = name.split(' ').filter(Boolean).map(w => w[0]);
+    const ch = [...initials, ...name.replace(/ /g, '')].find(c => !used.has(c));
+    if (ch) { used.add(ch); out[b.key] = ch; }
+  }
+  return out;
+}

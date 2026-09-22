@@ -331,10 +331,12 @@ class TestTheThreeRules(unittest.TestCase):
         self.html = (STATIC / "index.html").read_text()
 
     def test_a_click_selects_every_kind_of_thing(self):
-        for line in ("return select('folk', who, shift)",
-                     "return select('beast', beast, shift)",
+        # A figure, a beast and a host also answer once picked up (see
+        # test_frame), so those three are not a bare `return select(...)`.
+        for line in ("select('folk', who, shift)",
+                     "select('beast', beast, shift)",
                      "return select('building', b.uid, shift)",
-                     "return select(h.mine ? 'host' : 'theirs', h.uid, shift)",
+                     "select(h.mine ? 'host' : 'theirs', h.uid, shift)",
                      "return select('place', n.key, shift)"):
             self.assertIn(line, self.js, line)
 

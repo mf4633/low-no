@@ -53,6 +53,7 @@ from . import supply
 from .buildings import BUILDINGS
 from .military import BESIEGING, UNITS
 from .layout import plan_for
+from . import goods as goods_mod
 
 
 def _static_dir() -> str:
@@ -865,6 +866,80 @@ def _siege_view(game, s, key: str = "") -> Optional[dict]:
     }
 
 
+#: The piles that sit along the top of the screen, and what goes into each.
+#: Six, because Age of Empires got by on four and Stronghold's stockpile
+#: showed you twenty and nobody read it: the ones a player acts on, in the
+#: order the town needs them. Food is not here -- it is counted in days.
+STORES = (
+    ("wood", "wood", ("wood", "planks")),
+    ("stone", "stone", ("stone",)),
+    ("iron", "iron", ("iron_ore", "iron")),
+    ("ale", "ale", ("ale", "hops")),
+    ("arms", "arms", ("spears", "bows", "armour", "weapons")),
+)
+
+
+def _stores(game, s) -> dict:
+    """What is in the town's yards, read the way a top bar reads it.
+
+    Food as days rather than units, because four hundred cheese and four
+    hundred wheat are not the same four hundred and the only question the
+    number is asked is "how long have I got". The rest are plain piles, each
+    with what it is made of, so the tooltip can say why "wood" is 212 when
+    the forester has only cut 90.
+    """
+    stock = s.market.stock
+    per_head, _mood = C.RATION_LEVELS[s.ration_level]
+    need = per_head * s.population
+    rations = goods_mod.nourishment(
+        {k: stock.get(k, 0.0) for k in goods_mod.RATION_GOODS})
+    made, used = s.report.produced, s.report.consumed
+    eaten = s.report.eaten
+
+    def pile(keys):
+        return {k: round(stock.get(k, 0.0)) for k in keys
+                if stock.get(k, 0.0) >= 0.5}
+
+    def moved(keys):
+        return round(sum(made.get(k, 0.0) - used.get(k, 0.0)
+                         - eaten.get(k, 0.0) for k in keys), 1)
+
+    # Food moves in rations, like the pile it belongs to: a day that turned
+    # ten wheat into eight bread moved the units and barely moved the meals.
+    fed = round(sum((made.get(k, 0.0) - used.get(k, 0.0) - eaten.get(k, 0.0))
+                    * goods_mod.GOODS[k].nourish
+                    for k in goods_mod.RATION_GOODS), 1)
+    out = [{"key": "food", "label": "food",
+            "have": round(rations),
+            "days": round(rations / need, 1) if need > 0 else None,
+            "of": pile(goods_mod.RATION_GOODS),
+            "moved": fed}]
+    for key, label, keys in STORES:
+        out.append({"key": key, "label": label,
+                    "have": round(sum(stock.get(k, 0.0) for k in keys)),
+                    "of": pile(keys), "moved": moved(keys)})
+    held = sum(v for v in stock.values() if v > 0)
+    return {"piles": out, "held": round(held),
+            "room": round(s.storage(game.progress))}
+
+
+def _book(s) -> dict:
+    """The two levers the scribe's book is for, each band priced.
+
+    What every ration and tax band would do to the mood, and what each tax
+    band would collect, so the book can offer the whole dial rather than a
+    "more" and a "less". The same figures `tax` prints on the console.
+    """
+    return {
+        "rations": [{"level": k, "label": C.RATION_LABELS[k],
+                     "mood": mood, "now": k == s.ration_level}
+                    for k, (_per, mood) in sorted(C.RATION_LEVELS.items())],
+        "tax": [{"level": k, "label": C.TAX_LABELS[k], "mood": mood,
+                 "collects": round(s.tax_take(k), 1), "now": k == s.tax_level}
+                for k, (_rate, mood) in sorted(C.TAX_LEVELS.items())],
+    }
+
+
 def snapshot(game, here: str = "") -> dict:
     """Everything the picture needs, and nothing it does not."""
     key = here or next(iter(game.world.settlements))
@@ -1026,7 +1101,18 @@ def snapshot(game, here: str = "") -> dict:
             "tax": s.tax_level,
             "mood": [{"what": k, "by": round(v, 1)} for k, v in s.mood_factors(
                 game.progress) if v],
+            # Where the mood is going, not only where it is. Stronghold put a
+            # number and the direction it was moving side by side, and the
+            # direction is the half you act on: 62 and falling is a worse
+            # town than 48 and rising. The same sum `update_mood` pulls
+            # toward, so the arrow cannot disagree with tomorrow.
+            "heading": round(max(0.0, min(100.0, 50.0 + sum(
+                v for _, v in s.mood_factors(game.progress)))), 1),
+            "arriving": round(s.report.migration, 1),
+            "book": _book(s),
         },
+        # The yards, as a top bar reads them. See `_stores`.
+        "stores": _stores(game, s),
         "ledger": {"taxes": round(led.taxes, 1), "trade": round(led.trade, 1),
                    "tribute": round(led.tribute, 1), "wages": round(led.wages, 1),
                    "upkeep": round(led.upkeep, 1), "net": round(led.net, 1)},

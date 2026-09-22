@@ -123,6 +123,87 @@ const Sound = (() => {
     }
   }
 
+  /* The horn. What Age of Empires sounds when you are attacked, and the
+   * one noise in that game everybody can hum: low brass, two long calls,
+   * the second a fourth up. A sawtooth through a lowpass that opens as the
+   * note swells is about as close to a horn as two oscillators get. */
+  function horn(when) {
+    for (const [f, at, len] of [[147, 0, 0.9], [196, 1.0, 1.3]]) {
+      const t0 = when + at;
+      for (const detune of [0, 4]) {
+        const osc = ctx.createOscillator(), filt = ctx.createBiquadFilter();
+        const g = ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.value = f + detune * 0.25;
+        filt.type = 'lowpass'; filt.Q.value = 1.2;
+        filt.frequency.setValueAtTime(260, t0);
+        filt.frequency.linearRampToValueAtTime(1150, t0 + 0.28);
+        filt.frequency.linearRampToValueAtTime(700, t0 + len);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.09, t0 + 0.16);
+        g.gain.setValueAtTime(0.09, t0 + len - 0.25);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+        osc.connect(filt).connect(g).connect(master);
+        osc.start(t0); osc.stop(t0 + len + 0.05);
+        made++;
+      }
+    }
+  }
+
+  /* A new age: three rising notes and the chord they make, on something
+   * between a trumpet and a shawm. */
+  function fanfare(when) {
+    const notes = [[262, 0, 0.22], [330, 0.2, 0.22], [392, 0.4, 0.34],
+                   [523, 0.72, 1.4], [392, 0.72, 1.4], [330, 0.72, 1.4]];
+    for (const [f, at, len] of notes) {
+      const t0 = when + at;
+      const osc = ctx.createOscillator(), filt = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+      osc.type = 'square'; osc.frequency.value = f;
+      filt.type = 'lowpass'; filt.frequency.value = 1800;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.045, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+      osc.connect(filt).connect(g).connect(master);
+      osc.start(t0); osc.stop(t0 + len + 0.05);
+      made++;
+    }
+  }
+
+  /* "Aye?" -- not words, but the shape of a word: a buzz through a vowel
+   * formant that slides, twice. Villagers in both games answer when you
+   * click them, and a click that gets an answer feels like a person. Lower
+   * for soldiers, higher for the idle; `beast` bleats. */
+  function voice(when, kind) {
+    const base = kind === 'soldier' ? 110 : kind === 'idle' ? 190 : 150;
+    const sylls = kind === 'beast' ? 1 : 2;
+    for (let i = 0; i < sylls; i++) {
+      const t0 = when + i * 0.13;
+      const osc = ctx.createOscillator(), filt = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+      osc.type = 'sawtooth';
+      const f = (kind === 'beast' ? 300 : base) * (1 + 0.12 * Math.random());
+      osc.frequency.setValueAtTime(f, t0);
+      osc.frequency.linearRampToValueAtTime(f * (i ? 0.86 : 1.1), t0 + 0.12);
+      if (kind === 'beast') {
+        // A bleat is a vowel with a wobble in it.
+        const lfo = ctx.createOscillator(), depth = ctx.createGain();
+        lfo.frequency.value = 22; depth.gain.value = 18;
+        lfo.connect(depth).connect(osc.frequency);
+        lfo.start(t0); lfo.stop(t0 + 0.42);
+      }
+      filt.type = 'bandpass'; filt.Q.value = 3.2;
+      filt.frequency.setValueAtTime(i ? 650 : 900, t0);
+      filt.frequency.linearRampToValueAtTime(i ? 1100 : 700, t0 + 0.12);
+      const len = kind === 'beast' ? 0.4 : 0.14;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.11, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+      osc.connect(filt).connect(g).connect(master);
+      osc.start(t0); osc.stop(t0 + len + 0.05);
+      made++;
+    }
+  }
+
   function drum(when) {
     const osc = ctx.createOscillator(), g = ctx.createGain();
     osc.type = 'sine';
@@ -202,6 +283,9 @@ const Sound = (() => {
       if (kind === 'bell') bell(ctx.currentTime + 0.05);
       if (kind === 'drum') drum(ctx.currentTime + 0.05);
       if (kind === 'alarm') alarm(ctx.currentTime + 0.05);
+      if (kind === 'horn') horn(ctx.currentTime + 0.05);
+      if (kind === 'fanfare') fanfare(ctx.currentTime + 0.05);
+      if (kind.startsWith('voice')) voice(ctx.currentTime + 0.02, kind.slice(6));
     },
     stop() { if (timer) clearInterval(timer); },
     /* For the page to check what it is hearing. */

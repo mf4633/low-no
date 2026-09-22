@@ -611,6 +611,32 @@ class TestRidingAtTheirHead(unittest.TestCase):
 
 
 # -------------------------------------------------------- the whole thing
+class TestTheFeelOfThem(unittest.TestCase):
+    """"capture the feel of those referenced games even more so" -- the
+    frame round the picture: piles and a popularity number along the top,
+    the book with the dials in it, a minimap, the horn, answers, a herald."""
+
+    def test_the_top_of_the_screen_reads_like_the_games_it_is_from(self):
+        g, key = grown(days=150)
+        snap = web.snapshot(g, key)
+        self.assertEqual([p["key"] for p in snap["stores"]["piles"]][:3],
+                         ["food", "wood", "stone"])
+        self.assertIsNotNone(snap["stores"]["piles"][0]["days"])
+        self.assertIn("heading", snap["town"])
+        self.assertTrue(snap["town"]["book"]["tax"])
+        for el in ("stores", "mini", "herald"):
+            self.assertIn(f'id="{el}"', HTML)
+
+    def test_what_the_book_offers_the_console_accepts(self):
+        g, key = grown(days=5)
+        con = Console(g, out=io.StringIO())
+        book = web.snapshot(g, key)["town"]["book"]
+        pick = next(r for r in book["tax"] if not r["now"])
+        con.do(f"tax {pick['label']}")
+        again = web.snapshot(g, key)["town"]["book"]
+        self.assertTrue(next(r for r in again["tax"] if r["label"] == pick["label"])["now"])
+
+
 class TestItAllStillHoldsTogether(unittest.TestCase):
     def test_a_game_with_every_feature_in_it_saves_and_loads(self):
         g, a, town = storm_at(riding=True)

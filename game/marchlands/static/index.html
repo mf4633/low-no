@@ -223,7 +223,8 @@
       <h3>Keys</h3>
       <dl>
         <dt><kbd>⌘</kbd><kbd>K</kbd></dt><dd>every command, searchable</dd>
-        <dt><kbd>space</kbd></dt><dd>a day passes</dd>
+        <dt><kbd>space</kbd></dt><dd>stop / start the clock</dd>
+        <dt><kbd>+</kbd> / <kbd>−</kbd></dt><dd>faster / slower</dd>
         <dt><kbd>W</kbd></dt><dd>a week</dd>
         <dt><kbd>M</kbd></dt><dd>a month</dd>
         <dt><kbd>T</kbd> / <kbd>R</kbd></dt><dd>the town / the march</dd>
@@ -234,7 +235,9 @@
         <dt>double-click</dt><dd>everybody of that trade, or every host there</dd>
         <dt>right-click</dt><dd>send them there — they walk over and take up what that ground needs: the trees, the field, the water</dd>
         <dt><kbd>i</kbd></dt><dd>everything about whatever is picked up</dd>
-        <dt><kbd>B</kbd> / double-click</dt><dd>build: pick the plot, then the building</dd>
+        <dt><kbd>B</kbd> / double-click</dt><dd>build: pick the plot, then the building — or its letter</dd>
+        <dt><kbd>P</kbd></dt><dd>the scribe's book: popularity, rations, tax</dd>
+        <dt><kbd>Home</kbd></dt><dd>look at the last thing that went wrong</dd>
         <dt><kbd>F</kbd></dt><dd>stand where the chosen one stands and look out</dd>
         <dt><kbd>⌃1</kbd>…<kbd>⌃9</kbd> / <kbd>1</kbd>…<kbd>9</kbd></dt><dd>remember a group / call it up (twice to look)</dd>
         <dt><kbd>.</kbd></dt><dd>the next pair of idle hands (or the idle button)</dd>
@@ -295,6 +298,30 @@
   <button id="idle" type="button" hidden title="the next pair of idle hands (.)">
     <span id="idle-count">0</span> idle
   </button>
+
+  <!-- The yards, along the top. Age of Empires put four piles and a head
+       count where your eye goes first, and Stronghold put the popularity
+       number beside them; between them that line is most of what "feels
+       like" either one. Each chip says what it is made of when you hover,
+       and the last one opens the scribe's book. -->
+  <div id="stores" hidden role="group" aria-label="what is in the yards"></div>
+
+  <!-- The whole town in a corner, the AoE2 way: click it to look there,
+       and it flashes where something has gone wrong. -->
+  <div id="mini" hidden>
+    <canvas id="mini-view" width="200" height="104"
+            aria-label="the whole town, small. Click to look there."></canvas>
+    <button id="mini-alert" type="button" hidden
+            title="look at the last thing that went wrong (Home)">!</button>
+  </div>
+
+  <!-- A new age, a feat won: said across the middle of the screen, once,
+       and then out of the way. -->
+  <div id="herald" hidden aria-live="polite">
+    <p id="herald-kicker"></p>
+    <h2 id="herald-title"></h2>
+    <p id="herald-sub"></p>
+  </div>
 
   <div id="advance">
     <button type="button" data-do="next">a day</button>

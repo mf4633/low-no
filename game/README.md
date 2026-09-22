@@ -1181,12 +1181,48 @@ The parts nobody names when they work:
 
 ```
 ⌘K / ctrl-K      every command, searchable
-space W M        a day, a week, a month
+space            stop / start the clock      + / -   faster / slower
+W M              a week, a month
 T / R            the town / the march
 H                what now?      /  type a command      ?  the keys
 ⌃1..⌃9 / 1..9    remember a group / call it up (twice to look at it)
 .                the next pair of idle hands
+B, then a letter build: the plot, then the building by its letter
+P                the scribe's book: popularity, rations, tax
+Home             look at the last thing that went wrong
 ```
+
+### The frame round the picture
+
+Most of what makes those games feel like themselves is round the picture
+rather than in it, so the picture now has the frame:
+
+* **The yards along the top.** Food in *days* rather than units, then
+  wood, stone, iron, ale, arms, how full the stores are, and souls under
+  roofs -- each with yesterday's change beside it and what it is made of when
+  you hover. At the end, Stronghold's popularity: the number, a face, and an
+  arrow for where the mood is heading, which is the half you act on.
+* **The scribe's book** (`P`, or click the food or the face). What is moving
+  the mood, and the rations and the tax as rows of bands, each priced in
+  mood (and the tax in coin) before you pull it.
+* **The minimap**, bottom right. The town in the same diamond it is drawn in,
+  your figures as dots, the idle ones blinking. Click or drag it to look
+  there. It rings in red where something burns or sickens, and its edge goes
+  red while you are besieged or raided.
+* **The horn.** Men at the gate or fire in the country sound a war horn --
+  low brass, two calls -- and a fire in the town or a sickness rings the
+  bell. `Home`, or the red `!` on the minimap, takes you to it.
+* **They answer.** Click a villager and they say *Aye?*; send them to the
+  trees and they say so. Soldiers are gruffer, the idle keener, sheep bleat.
+  The words are written, the voices are synthesised like the rest of the
+  sound, and none of it decides anything.
+* **The herald.** A new age is announced across the middle of the screen
+  with a fanfare; so is a feat, and each step on your house's path.
+* **Letters in the build list**, off each building's own name, so the third
+  granary is `B`, a click, `G`.
+* **Space is the clock**, as in Europa Universalis: stop and start. `+` and
+  `-` step the pace. It used to be "a day passes" too, from a second table,
+  so with the picture focused one press did both.
 
 ### Pointing at things
 
