@@ -121,10 +121,10 @@ class TestThePopularity(unittest.TestCase):
 class TestThePageHasTheFrame(unittest.TestCase):
 
     def setUp(self):
-        self.js = (STATIC / "marchlands.js").read_text()
-        self.html = (STATIC / "index.html").read_text()
-        self.css = (STATIC / "marchlands.css").read_text()
-        self.sound = (STATIC / "sound.js").read_text()
+        self.js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+        self.html = (STATIC / "index.html").read_text(encoding="utf-8")
+        self.css = (STATIC / "marchlands.css").read_text(encoding="utf-8")
+        self.sound = (STATIC / "sound.js").read_text(encoding="utf-8")
 
     def test_the_pieces_are_on_the_page(self):
         for el in ("stores", "mini", "mini-view", "mini-alert", "herald",
@@ -134,27 +134,39 @@ class TestThePageHasTheFrame(unittest.TestCase):
     def test_they_are_drawn_from_every_reading(self):
         for call in ("paintStores(s);", "noteAlerts(was, s);", "noteHeralds(was, s);"):
             self.assertIn(call, self.js, call)
-        self.assertIn("setInterval(() => { try { paintMini(); }", self.js)
+        self.assertIn("try { paintMini(); } catch (err)", self.js)
+        # a broken minimap is said once, not swallowed for good
+        self.assertIn("console.error('minimap:', err)", self.js)
         self.assertEqual(self.js.count("drawBarks(w, h);"), 2)   # town and march
 
     def test_a_load_is_not_news(self):
         # A save with more feats, or a siege already on, must not sound the
-        # horn and herald the lot as though it happened today.
-        self.assertIn("if (was.here !== s.here || s.day < was.day) return;", self.js)
-        self.assertIn("s.day <= was.day || s.day - was.day > 60) return;", self.js)
+        # horn and herald the lot as though it happened today. The page tells
+        # a load from a day by the game's own number, which the snapshot
+        # carries and a load changes (tested in the asks, against the server).
+        self.assertIn("if (was.game !== s.game || was.here !== s.here || s.day < was.day) return;",
+                      self.js)
+        self.assertIn("if (!was || was.game !== s.game || was.here !== s.here", self.js)
 
     def test_the_horn_and_the_bell_divide_the_work(self):
         for sound in ("function horn(", "function fanfare(", "function voice("):
             self.assertIn(sound, self.sound, sound)
         for kind in ("'horn'", "'fanfare'", "kind.startsWith('voice')"):
             self.assertIn(kind, self.sound, kind)
-        self.assertIn("raiseAlert(mid[0], mid[1], 'war', 'horn')", self.js)
-        self.assertIn("raiseAlert(b.x, b.y, 'fire', 'alarm')", self.js)
-        # and the halt's bell does not ring over a horn already sounding
+        self.assertIn("raiseAlert(mid[0], mid[1], 'war', 'horn', s)", self.js)
+        self.assertIn("raiseAlert(b.x, b.y, 'fire', 'bell', s)", self.js)
+        # and the halt's alarm does not ring over a horn already sounding --
+        # which needs the reading painted (horn) before the clock is applied
+        # (alarm), on the running clock's path as on a typed command's.
         self.assertIn("performance.now() - hornAt > 3000", self.js)
+        poll = self.js[self.js.index("async function pollOn()"):]
+        poll = poll[:poll.index("\n}\n")]
+        self.assertLess(poll.index("paint(s);"), poll.index("applyClock(s.clock)"))
 
     def test_they_answer_both_being_picked_and_being_sent(self):
-        self.assertIn("select('folk', who, shift); return bark('pick', e);", self.js)
+        # the one clicked answers, and one just let go of does not
+        self.assertIn("select('folk', who, shift); return bark('pick', e, null, who);", self.js)
+        self.assertIn("if (id !== undefined && !sel.ids.includes(id)) return;", self.js)
         self.assertIn("bark('go', e, want.shed.terrain);", self.js)
         self.assertIn("bark('go', e, 'foe');", self.js)
         # every kind of ground a right-click can mean has its own answer
@@ -163,8 +175,13 @@ class TestThePageHasTheFrame(unittest.TestCase):
 
     def test_the_keys(self):
         self.assertIn("e.key === 'Home' && !typing()) { goAlert();", self.js)
-        self.assertIn("setSpeed(Math.min(3, speedNow + 1))", self.js)
-        self.assertIn("setSpeed(Math.max(0, speedNow - 1))", self.js)
+        # + and - step the clock, but not past a screen that stopped it
+        self.assertIn("if (!clockHeld()) setSpeed(Math.min(3, speedNow + 1));", self.js)
+        self.assertIn("if (!clockHeld()) setSpeed(Math.max(0, speedNow - 1));", self.js)
+        held = self.js[self.js.index("function clockHeld()"):]
+        held = held[:held.index("}")]
+        for screen in ("front", "drawmap", "battle"):
+            self.assertIn(f"$('{screen}').hidden", held, screen)
         self.assertIn("bookWrit(null)", self.js)
         # space no longer also sends a day from the shortcut table
         self.assertNotIn("' ': 'next'", self.js)
@@ -172,14 +189,20 @@ class TestThePageHasTheFrame(unittest.TestCase):
                      "the scribe&#39;s book", "the last thing that went wrong"):
             self.assertIn(said.replace("&#39;", "'"), self.html, said)
 
-    def test_space_leaves_a_battle_alone(self):
-        self.assertIn("!$('battle').hidden) return;", self.js)
-        self.assertIn("if ($('battle').hidden) setSpeed(speedNow ? 0 : 1);", self.js)
+    def test_space_leaves_the_clock_to_a_battle_and_fights_it(self):
+        self.assertIn("if (!clockHeld()) setSpeed(speedNow ? 0 : 1);", self.js)
+        # The battle's own listener takes Space from an empty prompt, where
+        # the cursor sits by default; skipping every INPUT left it dead.
+        self.assertIn("if (e.target.tagName === 'INPUT' && !(e.target === $('line') "
+                      "&& e.target.value === '')) return;", self.js)
 
     def test_the_build_list_has_letters(self):
         self.assertIn("function buildLetters(list)", self.js)
         self.assertIn('data-key="${keys[b.key] || \'\'}"', self.js)
         self.assertIn("picked.kind === 'plot'", self.js)
+        # one build per press: a held letter repeats, a button in flight refuses
+        self.assertIn("if (e.repeat) return;", self.js)
+        self.assertIn("if (btn.dataset.busy) return;", self.js)
 
     def test_the_march_keeps_its_own_screen(self):
         self.assertIn("body.march #stores { display: none; }", self.css)

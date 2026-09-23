@@ -18,6 +18,7 @@ here, because it is the same Console underneath.
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import random
@@ -893,21 +894,27 @@ def _stores(game, s) -> dict:
     need = per_head * s.population
     rations = goods_mod.nourishment(
         {k: stock.get(k, 0.0) for k in goods_mod.RATION_GOODS})
-    made, used = s.report.produced, s.report.consumed
-    eaten = s.report.eaten
+    # What each pile is now against what it was when the day began: the
+    # whole of the change, where adding up made, used and eaten left out the
+    # building, the mending, the rot and the road, and so showed wood rising
+    # on the very day it was being spent.
+    opened = s.report.opened
+
+    def change(k):
+        if opened is None:
+            return 0.0
+        return stock.get(k, 0.0) - opened.get(k, 0.0)
 
     def pile(keys):
         return {k: round(stock.get(k, 0.0)) for k in keys
                 if stock.get(k, 0.0) >= 0.5}
 
     def moved(keys):
-        return round(sum(made.get(k, 0.0) - used.get(k, 0.0)
-                         - eaten.get(k, 0.0) for k in keys), 1)
+        return round(sum(change(k) for k in keys), 1)
 
     # Food moves in rations, like the pile it belongs to: a day that turned
     # ten wheat into eight bread moved the units and barely moved the meals.
-    fed = round(sum((made.get(k, 0.0) - used.get(k, 0.0) - eaten.get(k, 0.0))
-                    * goods_mod.GOODS[k].nourish
+    fed = round(sum(change(k) * goods_mod.GOODS[k].nourish
                     for k in goods_mod.RATION_GOODS), 1)
     out = [{"key": "food", "label": "food",
             "have": round(rations),
@@ -940,12 +947,31 @@ def _book(s) -> dict:
     }
 
 
+_GAMES = itertools.count(1)
+
+
+def _which_game(game) -> int:
+    """A number for this game, new each time one is begun or read back.
+
+    The page tells a day that happened from a game that was loaded by
+    whether this changed. Comparing the day and the place was a guess that
+    a new game followed by an early save of the same country got past, and
+    heralded the save's feats and sounded its siege as though both were
+    news. Kept on the object and never written to a save, so a save read
+    back is always a different game from the one that wrote it.
+    """
+    if getattr(game, "_web_game", None) is None:
+        game._web_game = next(_GAMES)
+    return game._web_game
+
+
 def snapshot(game, here: str = "") -> dict:
     """Everything the picture needs, and nothing it does not."""
     key = here or next(iter(game.world.settlements))
     s = game.world.settlements[key]
     led = game.ledger
     return {
+        "game": _which_game(game),
         "day": game.day,
         "date": game.date_str(),
         # The three you govern with. Not a fourth resource bar: what each one

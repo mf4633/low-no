@@ -2156,7 +2156,12 @@ function openWrit(title, html, ev) {
   writ.style.maxHeight = Math.max(160, r.height - y - 18) + 'px';
   for (const btn of writ.querySelectorAll('[data-do]')) {
     btn.addEventListener('click', async () => {
-      await send(btn.dataset.do);
+      // One order per press. The writ stays open until the server answers,
+      // so a quick second click -- or a held build letter -- was a second
+      // `build` of the same thing.
+      if (btn.dataset.busy) return;
+      btn.dataset.busy = '1';
+      try { await send(btn.dataset.do); } finally { delete btn.dataset.busy; }
       if (btn.dataset.keep === undefined) closeWrit();
       else reopen(ev);
     });
@@ -2726,6 +2731,9 @@ document.addEventListener('keydown', e => {
     const btn = $('writ').querySelector(`button[data-key="${e.key.toLowerCase()}"]`);
     if (btn) {
       e.preventDefault();
+      // A held key repeats: holding G a moment too long raised two
+      // granaries. The button itself refuses a second press in flight.
+      if (e.repeat) return;
       if (btn.disabled) say(btn.title); else btn.click();
       return;
     }
@@ -2771,12 +2779,16 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'p' || e.key === 'P') && !typing()) {
     bookWrit(null); e.preventDefault(); return;
   }
-  // Faster and slower, the Europa Universalis way.
+  // Faster and slower, the Europa Universalis way -- but not while a battle,
+  // the front door or the country drawing is up, which stopped the clock
+  // for a reason Space already respects.
   if ((e.key === '+' || e.key === '=') && !typing()) {
-    setSpeed(Math.min(3, speedNow + 1)); e.preventDefault(); return;
+    if (!clockHeld()) setSpeed(Math.min(3, speedNow + 1));
+    e.preventDefault(); return;
   }
   if ((e.key === '-' || e.key === '_') && !typing()) {
-    setSpeed(Math.max(0, speedNow - 1)); e.preventDefault(); return;
+    if (!clockHeld()) setSpeed(Math.max(0, speedNow - 1));
+    e.preventDefault(); return;
   }
   if (e.key.startsWith('Arrow') && !typing() && mode !== 'march') {
     const step = 48;
@@ -2805,8 +2817,9 @@ document.addEventListener('keydown', e => {
   // is nothing to be ambiguous about. The letters stay behind the guard,
   // because `w` in an empty box is as likely to be the start of `wall`.
   if (e.key === ' ' && document.activeElement === $('line') && $('line').value === '') {
-    // A battle has the clock stopped and its own use for the key.
-    if ($('battle').hidden) setSpeed(speedNow ? 0 : 1);
+    // A battle has the clock stopped and its own use for the key, and its
+    // own listener takes it from an empty prompt too.
+    if (!clockHeld()) setSpeed(speedNow ? 0 : 1);
     e.preventDefault(); return;
   }
   if (typing()) return;
@@ -2969,9 +2982,9 @@ function leftClick(e, shift) {
   // People first. A figure standing in front of a roof is the thing you were
   // pointing at, and the roof is a bigger target that would always win.
   const who = folkAt(e);
-  if (who !== null) { select('folk', who, shift); return bark('pick', e); }
+  if (who !== null) { select('folk', who, shift); return bark('pick', e, null, who); }
   const beast = beastAt(e);
-  if (beast !== null) { select('beast', beast, shift); return bark('pick', e); }
+  if (beast !== null) { select('beast', beast, shift); return bark('pick', e, null, beast); }
   const b = buildingAt(e);
   if (b) return select('building', b.uid, shift);
   // Bare ground: let them be. It used to throw a build menu at you, which
@@ -3658,7 +3671,12 @@ $('battle-close').addEventListener('click', () => {
 /* Space fights a round while the screen is up -- the clock's pause key,
  * repurposed, because time is already stopped. */
 document.addEventListener('keydown', e => {
-  if ($('battle').hidden || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if ($('battle').hidden || e.target.tagName === 'SELECT') return;
+  // The prompt holds the cursor by default, so an empty one is not typing:
+  // skipping every INPUT left Space dead in a battle in the state the page
+  // spends most of its time in. Anything already typed there is a command
+  // being written, and the keys stay with it.
+  if (e.target.tagName === 'INPUT' && !(e.target === $('line') && e.target.value === '')) return;
   if (melee) {
     // While the lord is in the line the keys are his: move, and strike.
     if (e.code === 'Space') { e.preventDefault(); meleeStrike(); return; }
@@ -4589,8 +4607,12 @@ async function pollOn() {
     while (speedNow) {
       const s = await (await fetch(`/state?since=${seqNow}`)).json();
       for (const line of (s.said || [])) say(line, 'said');
-      if (s.clock) { seqNow = s.clock.seq; applyClock(s.clock); }
+      // Painted before the clock is applied, as `send` does: painting is
+      // where a siege sounds the horn, and the halt only rings its alarm if
+      // the horn has not, so the other way round played both.
+      if (s.clock) seqNow = s.clock.seq;
       paint(s);
+      if (s.clock) applyClock(s.clock);
       if (mode === 'march') loadMarch();
       // A beat under the fastest pace, so a day is never shown twice and
       // never missed. Faster than this is polling for the sake of it.
@@ -4606,9 +4628,14 @@ for (let i = 0; i <= 3; i++) {
 }
 /* Space is pause, the way it is in every game that runs a clock. Not while
  * you are typing into the command line, obviously. */
+/* The screens that stop the clock and keep it stopped: while one is up,
+ * neither Space nor + and - may start it again behind the player's back. */
+function clockHeld() {
+  return !$('front').hidden || !$('drawmap').hidden || !$('battle').hidden;
+}
 document.addEventListener('keydown', e => {
   if (e.code !== 'Space' || e.target.tagName === 'INPUT') return;
-  if (!$('front').hidden || !$('drawmap').hidden || !$('battle').hidden) return;
+  if (clockHeld()) return;
   e.preventDefault();
   setSpeed(speedNow ? 0 : 1);
 });
@@ -5940,7 +5967,15 @@ function paintMini() {
   g.strokeRect(Math.round(ax) + 0.5, Math.round(ay) + 0.5, bx - ax, by - ay);
   $('mini-alert').hidden = !alertStanding();
 }
-setInterval(() => { try { paintMini(); } catch (_) { /* a plan mid-swap */ } }, 200);
+// A plan caught mid-swap can throw once and is gone by the next beat; said
+// once in the console all the same, because swallowing every error for good
+// is how a broken minimap goes unnoticed for a release.
+let miniFailed = false;
+setInterval(() => {
+  try { paintMini(); } catch (err) {
+    if (!miniFailed) { miniFailed = true; console.error('minimap:', err); }
+  }
+}, 200);
 
 function miniLook(e) {
   if (!plan) return;
@@ -5975,28 +6010,31 @@ function heart() {
   const p = plan.precinct;
   return [(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2];
 }
-function raiseAlert(x, y, tone, sound) {
+function raiseAlert(x, y, tone, sound, s) {
   pings.push({ x, y, tone, born: performance.now() });
-  lastAlert = { x, y };
+  // Which game and which town it was in, so Home never takes you to a tile
+  // of a place you have since left, or of a game you have since loaded.
+  lastAlert = { x, y, here: s.here, game: s.game };
   if (sound === 'horn') hornAt = performance.now();
   if (sound && window.Sound) Sound.mark(sound);
 }
 function noteAlerts(was, s) {
   if (!was || !was.town || !s.town || !s.plan) return;
-  if (was.here !== s.here || s.day < was.day) return;   // another game, or a load
+  // Another game, a load, or another town: nothing in it is news today.
+  if (was.game !== s.game || was.here !== s.here || s.day < was.day) return;
   const p = s.plan, t = s.town, w = was.town;
   const lit = new Set(((was.plan && was.plan.buildings) || []).filter(b => b.burning).map(b => b.uid));
   for (const b of p.buildings) {
-    if (b.burning && !lit.has(b.uid)) raiseAlert(b.x, b.y, 'fire', 'alarm');
+    if (b.burning && !lit.has(b.uid)) raiseAlert(b.x, b.y, 'fire', 'bell', s);
   }
   const keep = p.buildings.find(b => b.key === 'keep');
   const mid = keep ? [keep.x, keep.y]
     : [(p.precinct.x0 + p.precinct.x1) / 2, (p.precinct.y0 + p.precinct.y1) / 2];
-  if (t.besieged && !w.besieged) raiseAlert(mid[0], mid[1], 'war', 'horn');
-  if (t.raided && !w.raided) raiseAlert(mid[0] + 6, mid[1] + 6, 'war', t.besieged ? '' : 'horn');
+  if (t.besieged && !w.besieged) raiseAlert(mid[0], mid[1], 'war', 'horn', s);
+  if (t.raided && !w.raided) raiseAlert(mid[0] + 6, mid[1] + 6, 'war', t.besieged ? '' : 'horn', s);
   if (t.sick && t.sick.here && !(w.sick && w.sick.here)) {
     const m = p.buildings.find(b => b.key === 'market') || keep;
-    raiseAlert(m ? m.x : mid[0], m ? m.y : mid[1], 'plague', 'bell');
+    raiseAlert(m ? m.x : mid[0], m ? m.y : mid[1], 'plague', 'bell', s);
   }
 }
 /* Home: look at the last thing that went wrong, the way AoE2's does. */
@@ -6004,7 +6042,14 @@ function goAlert() {
   if (!plan) return;
   if (mode === 'march') setMode('town');
   const b = plan.buildings.find(q => q.burning);
-  const at = lastAlert || (b ? { x: b.x, y: b.y } : null)
+  // The last alarm, while it is still this town's and something is still
+  // wrong in it; once the fire is out and the siege lifted it is history,
+  // and Home says so rather than showing you a quiet street.
+  const last = lastAlert && state && lastAlert.here === state.here
+    && lastAlert.game === state.game && alertStanding()
+    && lastAlert.x >= 0 && lastAlert.y >= 0 && lastAlert.x < plan.w && lastAlert.y < plan.h
+    ? lastAlert : null;
+  const at = last || (b ? { x: b.x, y: b.y } : null)
     || (alertStanding() ? { x: heart()[0], y: heart()[1] } : null);
   if (!at) return say('nothing has gone wrong that needs looking at.');
   lookAtTile(at.x, at.y);
@@ -6044,18 +6089,22 @@ function folkVoice(f) {
   if (f.kind === 'worker' && f.trade === 'guard') return 'soldier';
   return BARK.pick[f.kind] ? f.kind : 'worker';
 }
-function bark(what, ev, where) {
+function bark(what, ev, where, id) {
   let lines, anchor = { sx: ev ? ev.clientX : 0, sy: ev ? ev.clientY : 0 }, sound = 'voice';
+  // The one you clicked answers, not the first of those already picked --
+  // and one a shift-click has just let go of does not answer at all.
+  if (id !== undefined && !sel.ids.includes(id)) return;
+  const one = id !== undefined ? id : sel.ids[0];
   if (sel.kind === 'folk' && plan) {
-    const f = plan.folk[sel.ids[0]], who = folkVoice(f);
-    anchor.folk = sel.ids[0];
+    const f = plan.folk[one], who = folkVoice(f);
+    anchor.folk = one;
     lines = what === 'go' ? (BARK.go[where] || BARK.go[who === 'soldier' ? 'soldier' : 'worker'])
                           : BARK.pick[who];
     sound = who === 'soldier' ? 'voice:soldier' : who === 'idle' ? 'voice:idle' : 'voice';
   } else if (sel.kind === 'beast' && plan) {
-    const b = (plan.beasts || [])[sel.ids[0]];
+    const b = (plan.beasts || [])[one];
     lines = BARK.pick[b && b.kind] || BARK.pick.sheep;
-    anchor.beast = sel.ids[0]; sound = 'voice:beast';
+    anchor.beast = one; sound = 'voice:beast';
   } else if (sel.kind === 'host') {
     lines = what === 'go' ? BARK.go[where === 'foe' ? 'foe' : 'host'] : BARK.pick.host;
     sound = 'voice:soldier';
@@ -6112,7 +6161,8 @@ function herald(kicker, title, sub, sound) {
 /* A new age, a feat, a step on your house's path: said once, the day it
  * happens, and never for a game that was merely loaded. */
 function noteHeralds(was, s) {
-  if (!was || was.here !== s.here || s.day <= was.day || s.day - was.day > 60) return;
+  if (!was || was.game !== s.game || was.here !== s.here
+      || s.day <= was.day || s.day - was.day > 60) return;
   if (was.age && s.age !== was.age) {
     return herald(`${s.town.name} enters`, s.age, 'what the new age allows is on the build list now.', 'fanfare');
   }

@@ -93,6 +93,11 @@ class DayReport:
     migration: float = 0.0
     repaired: float = 0.0
     notes: List[str] = field(default_factory=list)
+    # The yards as they stood when the day began, so "since yesterday" is
+    # the pile's own difference rather than a sum of the flows somebody
+    # remembered to count. None until a day has run since the game was made
+    # or read back, and then there is no yesterday to compare with.
+    opened: Optional[Dict[str, float]] = None
 
 
 @dataclass

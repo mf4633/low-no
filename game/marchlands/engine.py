@@ -476,12 +476,18 @@ class GameState:
         msgs: List[str] = []
         led = Ledger()
 
+        # Taken before anything moves a pile, so the top bar's change is the
+        # whole day's: the building, the mending, the rot, the carts, the fire.
+        opened = {k: dict(s.market.stock)
+                  for k, s in self.world.settlements.items()}
+
         msgs += self.events.tick(self.world, self.day, self.rng, self.progress)
 
         # 1. Settlements work, eat and are taxed.
         for key, s in self.world.settlements.items():
             before = {b.uid: b.complete for b in s.buildings}
             rep = s.tick(self.season, self.rng, self.progress, day=self.day)
+            rep.opened = opened.get(key)
             for b in s.buildings:
                 if b.complete and not before.get(b.uid, True):
                     msgs.append(f"{s.name}: {b.spec.name} finished")

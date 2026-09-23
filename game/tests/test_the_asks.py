@@ -8,7 +8,9 @@ slow; they are the audit, not the unit tests.
 """
 import io
 import json
+import os
 import pathlib
+import tempfile
 import unittest
 
 import marchlands
@@ -28,8 +30,8 @@ def before_head_is_empty(yards):
 
 
 STATIC = pathlib.Path(__file__).resolve().parents[1] / "marchlands" / "static"
-JS = (STATIC / "marchlands.js").read_text()
-HTML = (STATIC / "index.html").read_text()
+JS = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+HTML = (STATIC / "index.html").read_text(encoding="utf-8")
 
 
 def grown(seed=3, days=400):
@@ -258,7 +260,7 @@ class TestTheVersionWhereYouCanSeeIt(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[1]
         hits = []
         for p in list(root.glob("marchlands/*.py")) + list(root.glob("marchlands/static/*")):
-            if marchlands.__version__ in p.read_text():
+            if marchlands.__version__ in p.read_text(encoding="utf-8"):
                 hits.append(p.name)
         self.assertEqual(hits, ["__init__.py"], hits)
 
@@ -661,6 +663,74 @@ class TestItAllStillHoldsTogether(unittest.TestCase):
         Bot(g).run(200)
         self.assertIsNone(g.pending, "the bot left a fight open")
         self.assertGreater(g.day, 150)
+
+
+class TestTheFrameTellsTheTruth(unittest.TestCase):
+    """"fix those" -- what a review of the frame found before it shipped: a
+    resource bar whose change could have the wrong sign, a page that took a
+    loaded save for news, and a command line that ate Windows paths."""
+
+    def _a_day(self, scenario):
+        g = start(scenario, seed=4)
+        Bot(g).run(30)
+        key = next(iter(g.world.settlements))
+        s = g.world.settlements[key]
+        before = dict(s.market.stock)
+        g.tick()
+        return g, key, s, before
+
+    def test_the_bar_moves_by_what_the_pile_really_did(self):
+        # The scenarios where adding up made, used and eaten showed wood or
+        # stone rising on a day they were being spent.
+        for scenario in ("salt_road", "iron_marches", "freebuild", "winter_crown"):
+            g, key, s, before = self._a_day(scenario)
+            now = s.market.stock
+            piles = {p["key"]: p for p in web.snapshot(g, key)["stores"]["piles"]}
+            for store, _label, keys in web.STORES:
+                real = sum(now.get(k, 0.0) - before.get(k, 0.0) for k in keys)
+                self.assertAlmostEqual(piles[store]["moved"], real, delta=0.06,
+                                       msg=f"{scenario} {store}")
+            fed = sum((now.get(k, 0.0) - before.get(k, 0.0)) * web.goods_mod.GOODS[k].nourish
+                      for k in web.goods_mod.RATION_GOODS)
+            self.assertAlmostEqual(piles["food"]["moved"], fed, delta=0.06, msg=scenario)
+
+    def test_a_game_read_back_has_no_yesterday_to_compare_with(self):
+        g, key, s, _before = self._a_day("marchlands")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "a.json")
+            g.save(path)
+            back = GameState.load(path)
+        for p in web.snapshot(back, key)["stores"]["piles"]:
+            self.assertEqual(p["moved"], 0, p["key"])
+
+    def test_a_load_is_a_different_game_and_a_day_is_the_same_one(self):
+        g = start("marchlands", seed=4)
+        key = next(iter(g.world.settlements))
+        first = web.snapshot(g, key)["game"]
+        g.tick()
+        self.assertEqual(web.snapshot(g, key)["game"], first)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "a.json")
+            g.save(path)
+            back = GameState.load(path)
+        self.assertNotEqual(web.snapshot(back, key)["game"], first)
+        # the number is the page's, never the save's
+        self.assertNotIn("_web_game", json.dumps(back.to_dict()))
+        # and the page keys its alarms and its herald on it
+        self.assertIn("was.game !== s.game", JS)
+
+    def test_a_windows_path_is_a_path(self):
+        from marchlands.cli import _words
+        self.assertEqual(_words(r"save C:\Users\me\march.json"),
+                         ["save", r"C:\Users\me\march.json"])
+        # quotes still hold a name together
+        self.assertEqual(_words('post "Eadric the Fair" steward'),
+                         ["post", "Eadric the Fair", "steward"])
+        g = start("marchlands", seed=4)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "saved.json")     # backslashes on Windows
+            Console(g, out=io.StringIO()).do(f"save {path}")
+            self.assertTrue(os.path.exists(path))
 
 
 if __name__ == "__main__":

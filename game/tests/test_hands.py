@@ -152,8 +152,8 @@ class TestControls(unittest.TestCase):
     """The client speaks the same commands, and the keys card says how."""
 
     def setUp(self):
-        self.js = (STATIC / "marchlands.js").read_text()
-        self.html = (STATIC / "index.html").read_text()
+        self.js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+        self.html = (STATIC / "index.html").read_text(encoding="utf-8")
 
     def test_a_right_click_is_the_order(self):
         self.assertIn("addEventListener('contextmenu'", self.js)
@@ -192,7 +192,7 @@ class TestTheyWalkThere(unittest.TestCase):
     """
 
     def setUp(self):
-        self.js = (STATIC / "marchlands.js").read_text()
+        self.js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
 
     def test_the_ground_is_asked_what_it_wants_doing(self):
         # Trees mean the woodcutter, the field means the farm, water means
@@ -236,8 +236,8 @@ class TestIdleHands(unittest.TestCase):
     """
 
     def setUp(self):
-        self.js = (STATIC / "marchlands.js").read_text()
-        self.html = (STATIC / "index.html").read_text()
+        self.js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+        self.html = (STATIC / "index.html").read_text(encoding="utf-8")
 
     def test_the_chip_is_on_the_page_and_wired_to_the_same_order(self):
         self.assertIn('id="idle"', self.html)
@@ -327,8 +327,8 @@ class TestTheThreeRules(unittest.TestCase):
     """
 
     def setUp(self):
-        self.js = (STATIC / "marchlands.js").read_text()
-        self.html = (STATIC / "index.html").read_text()
+        self.js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+        self.html = (STATIC / "index.html").read_text(encoding="utf-8")
 
     def test_a_click_selects_every_kind_of_thing(self):
         # A figure, a beast and a host also answer once picked up (see
@@ -398,8 +398,8 @@ class TestThroughTheirEyes(unittest.TestCase):
     """
 
     def setUp(self):
-        self.js = (STATIC / "marchlands.js").read_text()
-        self.html = (STATIC / "index.html").read_text()
+        self.js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+        self.html = (STATIC / "index.html").read_text(encoding="utf-8")
 
     def test_the_view_is_on_the_page_and_reachable(self):
         for el in ("eyes", "eyes-view", "eyes-who", "eyes-where", "eyes-ahead",

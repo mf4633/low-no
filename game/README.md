@@ -1224,6 +1224,28 @@ rather than in it, so the picture now has the frame:
   `-` step the pace. It used to be "a day passes" too, from a second table,
   so with the picture focused one press did both.
 
+#### What a review found before it shipped
+
+**The change beside each pile could have the wrong sign.** It was worked
+out as made, less used, less eaten, which leaves out the building, the
+mending, the rot and the road: wood showed +10 on a day it fell by 10, and
+stone +8 on a day it fell by 15. The day now writes down the yards as it
+found them, and the bar shows the pile against that, so the number is the
+whole of what happened, whatever happened.
+
+**A load was taken for news.** The page told a new day from a loaded game by
+the day and the place, and a new game followed by an early save of the same
+country got past both: the save's feats were heralded and its siege sounded
+the horn. Every game begun or read back now carries a number of its own,
+never written to the save, and nothing is news across a change of it. The
+same number keeps `Home` from taking you to a fire in a game you have since
+left, and once nothing is wrong any more it says so.
+
+**And a Windows path was not a path.** The command line split like a POSIX
+shell, to which a backslash is an escape, so `save C:\Users\me\march.json`
+quietly saved `C:Usersmemarch.json` wherever the game was started from. It
+still honours quotes; a backslash is only a backslash.
+
 ### Pointing at things
 
 The mouse is held the way every player of this kind of game already holds

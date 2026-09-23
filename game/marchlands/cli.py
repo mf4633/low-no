@@ -60,6 +60,21 @@ def sparkline(values: Sequence[float], width: int = 48) -> str:
     return "".join(BARS[1 + int(7.99 * (v - lo) / (hi - lo))] for v in vals)
 
 
+def _words(line: str) -> list:
+    r"""A command line split the way a shell splits it, less the escapes.
+
+    Quotes still hold a name with a space in it together. A backslash is
+    only a backslash, because the game ships as a Windows exe and to a
+    POSIX splitter `save C:\Users\me\march.json` is `C:Usersmemarch.json`,
+    written quietly to wherever the game was started from.
+    """
+    lex = shlex.shlex(line, posix=True)
+    lex.whitespace_split = True
+    lex.commenters = ""
+    lex.escape = ""
+    return list(lex)
+
+
 class Console:
     def __init__(self, game: GameState, out=sys.stdout) -> None:
         self.game = game
@@ -663,7 +678,7 @@ class Console:
     # ============================================================== commands
     def do(self, line: str) -> None:
         try:
-            parts = shlex.split(line)
+            parts = _words(line)
         except ValueError as exc:
             return self.err(str(exc))
         if not parts:

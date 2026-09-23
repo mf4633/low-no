@@ -200,8 +200,8 @@ class TestTheRide(unittest.TestCase):
 
 class TestTheScreen(unittest.TestCase):
     def test_the_client_fights_it_and_reports_it_as_the_same_command(self):
-        js = (STATIC / "marchlands.js").read_text()
-        html = (STATIC / "index.html").read_text()
+        js = (STATIC / "marchlands.js").read_text(encoding="utf-8")
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
         self.assertIn('id="battle-ride"', html)
         self.assertIn('id="melee-hud"', html)
         self.assertIn("send(`battle ride ${k} ${h}`)", js)
