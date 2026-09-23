@@ -1,13 +1,13 @@
 {
- "at": "2026-09-23T11:19:18.279184Z",
+ "at": "2026-09-23T12:17:37.517523Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 79,
    "price": 20,
-   "p_model": 0.9353,
+   "p_model": 0.9397,
    "p_market": 0.2,
-   "edge_pts": 73.5,
+   "edge_pts": 74.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -19,10 +19,6 @@
      "why": "model and market differ by 74 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
      "code": "GRAVEYARD",
      "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
@@ -31,15 +27,15 @@
   {
    "city": "DEN",
    "ceiling": 75,
-   "price": 59,
-   "p_model": 0.9073,
-   "p_market": 0.59,
-   "edge_pts": 31.7,
+   "price": 51,
+   "p_model": 0.9134,
+   "p_market": 0.51,
+   "edge_pts": 40.3,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 40 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -47,18 +43,18 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "59c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "51c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "DAL",
    "ceiling": 93,
-   "price": 92,
-   "p_model": 0.9765,
-   "p_market": 0.92,
-   "edge_pts": 5.7,
-   "size_lcb": 0.212,
+   "price": 94,
+   "p_model": 0.978,
+   "p_market": 0.94,
+   "edge_pts": 3.8,
+   "size_lcb": 0.1285,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -69,10 +65,10 @@
   {
    "city": "MIA",
    "ceiling": 81,
-   "price": 97,
-   "p_model": 0.9816,
-   "p_market": 0.97,
-   "edge_pts": 1.2,
+   "price": 94,
+   "p_model": 0.9496,
+   "p_market": 0.94,
+   "edge_pts": 1.0,
    "size_lcb": 0.0,
    "signals": [
     {
