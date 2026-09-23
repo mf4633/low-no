@@ -1,13 +1,13 @@
 {
- "at": "2026-09-23T15:14:48.277726Z",
+ "at": "2026-09-23T16:12:15.758104Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 79,
-   "price": 34,
-   "p_model": 0.8916,
-   "p_market": 0.34,
-   "edge_pts": 55.2,
+   "price": 35,
+   "p_model": 0.7677,
+   "p_market": 0.35,
+   "edge_pts": 41.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,49 +16,30 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 55 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 42 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "34c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "35c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "DEN",
    "ceiling": 75,
-   "price": 51,
-   "p_model": 0.6768,
-   "p_market": 0.51,
-   "edge_pts": 16.7,
+   "price": 37,
+   "p_model": 0.4734,
+   "p_market": 0.37,
+   "edge_pts": 10.3,
    "size_lcb": 0.0,
    "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
-    },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "GRAVEYARD",
-     "why": "51c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "EWR",
-   "ceiling": 64,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "37c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
