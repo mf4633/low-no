@@ -1,16 +1,16 @@
-settlements: 959 cached, 12 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 960 cached, 1 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
-om_gfs        9832    32  -0.60  1.68  2.18    69%
-om_best       8076    32  -0.63  1.70  2.21    68%
-nws_grid     10304    32  -0.07  1.81  2.50    76%
-nbm_guide    10347    32  -0.36  1.84  2.58    76%
-om_icon       9683    32  -1.17  2.06  2.63    59%
-om_metno      9568    32  -1.37  2.21  2.83    55%
-om_ecmwf      9815    32  -1.06  2.88  3.76    45%
+om_gfs        9847    32  -0.60  1.69  2.19    69%
+om_best       8091    32  -0.64  1.70  2.22    68%
+nws_grid     10319    32  -0.07  1.81  2.50    76%
+nbm_guide    10362    32  -0.36  1.84  2.58    76%
+om_icon       9697    32  -1.18  2.06  2.63    59%
+om_metno      9582    32  -1.38  2.22  2.83    55%
+om_ecmwf      9830    32  -1.07  2.88  3.77    45%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
 spend: 264 calls, est $3.7620 spent, $1.24 left (~86 calls)
-rung-obs 70892 -> 1169 independent units over 47 days
+rung-obs 70982 -> 1169 independent units over 47 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  67   1     1%   5.9%     0%     8%    -4.4      open
  11-20  55   5     9%  15.9%     4%    20%    -6.8      open
@@ -28,7 +28,7 @@ rung-obs 70892 -> 1169 independent units over 47 days
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 790  16     2%   3.1%     1%    -1.1      776   False
+  1-10 791  16     2%   3.1%     1%    -1.1      777   False
  11-20 176  21    12%  14.5%     8%    -2.6      173   False
  21-30 105  29    28%  25.4%    20%     2.2      104   False
  31-40  81  28    35%  36.0%    25%    -1.4       79   False
@@ -39,9 +39,9 @@ YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_
  81-90  79  57    72%  86.0%    61%   -13.9       76   False
  91-95  58  44    76%  93.9%    63%   -17.9       55   False
  96-98  52  41    79%  98.1%    66%   -19.0       50   False
-yes_spread over 70602 real-ask obs: mean 4.95c, max 100c
+yes_spread over 70692 real-ask obs: mean 4.95c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.49, 'NYC': 1.26, 'BOS': -1.09, 'OKC': -0.97, 'AUS': -0.79, 'ATL': 0.75, 'MIA': -0.64, 'CHI': -0.57, 'MSP': -0.53, 'PHX': -0.47, 'SAT': 0.38, 'PHL': -0.34, 'SAN': -0.31, 'SEA': 0.28, 'DC': 0.22, 'MSY': 0.22, 'TTN': 0.21, 'SFO': 0.2, 'LAS': -0.19, 'EWR': 0.18, 'DEN': -0.09, 'DAL': -0.06, 'HOU': 0.0}
+station guide bias (guide - CLI): {'LAX': -2.49, 'NYC': 1.26, 'BOS': -1.09, 'OKC': -0.97, 'AUS': -0.79, 'ATL': 0.75, 'MIA': -0.67, 'CHI': -0.57, 'MSP': -0.53, 'PHX': -0.47, 'SAT': 0.38, 'PHL': -0.34, 'SAN': -0.31, 'SEA': 0.28, 'DC': 0.22, 'MSY': 0.22, 'TTN': 0.21, 'SFO': 0.2, 'LAS': -0.19, 'EWR': 0.18, 'DEN': -0.09, 'DAL': -0.06, 'HOU': 0.0}
 
                   rule   n   w    hit   LCB  meanP&L
              frozen_G4 216 184    85%   80%    -3.04
@@ -71,7 +71,7 @@ HYPOTHESIS PROGRESS (data bars, not results)
   H5    contested band 81-95c (blocked on H4a) [....................] 51/60 city-day units  +supply only; scoring waits on H4a (22 days since 2026-09-01)
   H6    market prices off the stale print [############........] 122/200 print transitions  +17/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 0/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
-  H8    run_max/temp_now gap (H4a x H7) [########............] 62/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
+  H8    run_max/temp_now gap (H4a x H7) [########............] 63/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
   H15   LAX marine-layer regime not in the price [....................] 0/20 distinct LAX marine-stratum days with a book  +registered 2026-09-12, full text docs/H15.md, classifier lax_regime.py FROZEN the same day on free weather data with no price data in the loop. NO HARNESS YET -- have=0 is a placeholder, not a measured zero. Marine strata are 29% of Sep-Dec days, so 20 of them needs ~70 calendar days from 2026-09-12: bar reached ~2026-11-20, 41 days before the stop. Reads logs/poll_lax/, NOT logs/poll/
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
