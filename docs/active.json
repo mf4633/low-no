@@ -1,5 +1,78 @@
 {
- "at": "2026-09-23T17:20:51.710140Z",
- "tracked": [],
+ "at": "2026-09-23T18:23:05.835425Z",
+ "tracked": [
+  {
+   "city": "SFO",
+   "station": "KSFO",
+   "ticker": "KXHIGHTSFO-26SEP23-T75",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 74,
+   "run_max": 62.6,
+   "gap_to_clear": 11.4,
+   "already_cleared": false,
+   "guide": 79,
+   "pop": 0,
+   "no_ask": 0.71,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-23T18:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:56:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-23T17:22:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 2.4,
+    "q50": 4.4,
+    "q90": 11.8
+   },
+   "projected_max": {
+    "q10": 65.0,
+    "q50": 67.0,
+    "q90": 74.4
+   },
+   "p_exceed_empirical": 0.1098,
+   "emp_n": 80,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
