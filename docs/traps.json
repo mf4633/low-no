@@ -1,22 +1,26 @@
 {
- "at": "2026-09-23T18:23:04.593637Z",
+ "at": "2026-09-23T19:26:29.613638Z",
  "traps": [
   {
-   "city": "DEN",
-   "ceiling": 75,
-   "price": 24,
-   "p_model": 0.3213,
-   "p_market": 0.24,
-   "edge_pts": 8.1,
+   "city": "LAX",
+   "ceiling": 77,
+   "price": 77,
+   "p_model": 0.7881,
+   "p_market": 0.77,
+   "edge_pts": 1.8,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "GRAVEYARD",
-     "why": "24c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "77c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 12:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   }
