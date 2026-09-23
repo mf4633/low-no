@@ -41,12 +41,12 @@ jobs:
       run:
         working-directory: game
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Two, so the release step can see whether this commit is the
           # one that changed the version.
           fetch-depth: 2
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -92,7 +92,7 @@ jobs:
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Marchlands-windows
           path: game/dist/Marchlands.exe
@@ -100,7 +100,7 @@ jobs:
 
       - name: Attach to the release
         if: startsWith(github.ref, 'refs/tags/marchlands-v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: game/dist/Marchlands.exe
           generate_release_notes: true
@@ -154,7 +154,7 @@ jobs:
           github.event_name == 'push' &&
           steps.ver.outputs.bumped == 'true' &&
           steps.already.outputs.out == 'false'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: marchlands-v${{ steps.ver.outputs.version }}
           name: Marchlands ${{ steps.ver.outputs.version }}
