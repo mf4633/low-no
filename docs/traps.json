@@ -1,33 +1,5 @@
 {
- "at": "2026-09-23T20:29:34.358203Z",
- "traps": [
-  {
-   "city": "LAX",
-   "ceiling": 77,
-   "price": 28,
-   "p_model": 0.6369,
-   "p_market": 0.28,
-   "edge_pts": 35.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "28c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 13:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
-    }
-   ]
-  }
- ],
+ "at": "2026-09-23T21:30:01.984478Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
