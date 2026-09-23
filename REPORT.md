@@ -10,6 +10,6 @@ attribution codes:
 
 - **NYC** DEAD_SCAVENGE @ 0.97 ceil 62 guide 65 -> CLI 68 :: **WIN**
 - **DAL** QUALIFIED @ 0.97 ceil 92 guide 96 -> CLI 96 :: **WIN**
-- **MSY** DEAD_SCAVENGE @ 0.93 ceil 89 guide 92 -> CLI None :: **UNGRADED**
+- **MSY** DEAD_SCAVENGE @ 0.93 ceil 89 guide 92 -> CLI 91 :: **WIN**
 
-**2/2 hit** (100%) vs 98.2% breakeven at 0.98
+**3/3 hit** (100%) vs 98.2% breakeven at 0.98
