@@ -100,6 +100,9 @@ class TestHands(unittest.TestCase):
 
     def test_the_back_of_the_queue_gets_nothing(self):
         g, s = self._short_handed()
+        # Within a standing the queue now goes by what the town is short of,
+        # not by what was built last -- so the back is where you put it.
+        s.set_band("inn", "last")
         g.tick()
         last = [b for b in s.buildings if b.key == "inn"][0]
         self.assertEqual(last.staffed, 0)
@@ -117,11 +120,14 @@ class TestHands(unittest.TestCase):
         stand(s, "poleturner", 12)           # far more jobs than there are hands
         s.population = 40.0
         g.tick()
-        worked = sum(b.staffed for b in s.buildings if b.key == "farm")
+        # Whatever the queue put hands on first, sent to the back.
+        key = next(b.key for b in s.buildings
+                   if b.staffed and b.spec.outputs and b.key != "barracks")
+        worked = sum(b.staffed for b in s.buildings if b.key == key)
         self.assertGreater(worked, 0)
-        s.set_band("farm", "last")
+        s.set_band(key, "last")
         g.tick()
-        self.assertLess(sum(b.staffed for b in s.buildings if b.key == "farm"),
+        self.assertLess(sum(b.staffed for b in s.buildings if b.key == key),
                         worked)
 
     def test_a_standing_that_does_not_exist_is_refused(self):

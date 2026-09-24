@@ -66,6 +66,10 @@ class Sort:
     #: Boar charges, the Heron stands behind what he built, and a player who
     #: has met a man once knows what to expect the second time.
     fights: str = "line"
+    #: Whom he goes after when he goes after anybody -- Stronghold's
+    #: TargetChoice: the nearest, the richest, you, or whoever is weakest.
+    #: Knowing a lord's habit is knowing whose wall he will be under.
+    hunts: str = "weakest"
     declares: Tuple[str, ...] = ()     # when he means to move on you
     takes: Tuple[str, ...] = ()        # when he takes a town
     beaten: Tuple[str, ...] = ()       # when you break his host
@@ -78,7 +82,7 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          aggression=1.75, temper=1.5, muster=1.15, thrift=0.75, bought=0.6,
          # Spends on men, not masonry. Thin, unflanked, and climbable.
          stone=0.7, towers=0.45, water=0.2, traps=0.8, layers=0.5, cover=0.5,
-         fights="storm",
+         fights="storm", hunts="closest",
          declares=("I am coming. Do not trouble to write back.",
                    "Your gate is wood and my patience is thinner."),
          takes=("Another. I shall want another after that.",),
@@ -91,7 +95,7 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          # Wall first and wall always: water, depth, and towers that cover.
          # Nothing cheap gets in. He still has to eat.
          stone=1.35, towers=1.3, water=1.8, traps=1.1, layers=1.7, cover=1.4,
-         fights="hold",
+         fights="hold", hunts="closest",
          declares=("I had hoped to be left alone. You have seen to that.",),
          takes=("It is mine now, and it will stay mine.",),
          beaten=("I shall be behind my own wall before you have formed up.",),
@@ -103,7 +107,7 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          # Wide, cheap and nasty: everything in traps, nothing in stone. The
          # gate is the way in, and he has made the gate expensive.
          stone=0.6, towers=0.7, water=0.5, traps=1.9, layers=0.8, cover=0.7,
-         fights="flank",
+         fights="flank", hunts="gold",
          declares=("I have no quarrel with your walls. Your harvest is another "
                    "matter.",),
          takes=("Taken cheaply, which is the only way worth taking anything.",),
@@ -127,7 +131,7 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          # Buys what shows: towers and oil, and no depth at all behind them.
          # Get through the front of it and there is nothing else.
          stone=0.9, towers=1.6, water=0.7, traps=1.5, layers=0.4, cover=1.2,
-         fights="reserve",
+         fights="reserve", hunts="gold",
          declares=("Reluctantly. My factors assure me it is the cheaper course.",),
          takes=("A good acquisition, all things considered.",),
          beaten=("An expensive morning. I shall make it back by Michaelmas.",),
@@ -139,7 +143,7 @@ SORTS: Dict[str, Sort] = {s.key: s for s in [
          # Everything, properly, and the towers actually cover each other.
          # There is no cheap way into the Wolf's seat.
          stone=1.3, towers=1.3, water=1.2, traps=1.2, layers=1.4, cover=1.5,
-         fights="flank",
+         fights="flank", hunts="you",
          declares=("I know what you are worth to within a hundred coins. "
                    "I am coming for it.",),
          takes=("As expected.",),
@@ -161,6 +165,14 @@ CAST: Dict[str, str] = {
     "caer_ithel": "fox",       # out of reach by road, and plays like it
 }
 DEFAULT = "ox"
+
+#: How a lord's hunting habit reads on the court roll.
+HUNTS: Dict[str, str] = {
+    "closest": "goes for whoever is nearest",
+    "gold": "goes where the money is",
+    "you": "has his eye on you above anybody",
+    "weakest": "goes for whoever is weakest",
+}
 
 
 def sort_of(key: str) -> Sort:

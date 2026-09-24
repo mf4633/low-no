@@ -40,6 +40,7 @@ from .kin import SKILLS
 from .league import PLAYER as LEAGUE_PLAYER
 from . import cartography as carto
 from . import chancery
+from . import lords as lordly
 from . import culture as cultures
 from . import keep as keeps
 from . import voices
@@ -707,6 +708,8 @@ def _front_door(console, route: str, body: dict) -> dict:
             console.game.battles_mode = "play"
     except KeyError as exc:
         return {"error": str(exc)}
+    # AoE's "explored" start: the country drawn, the hosts still hidden.
+    console.game.shroud.everything = bool(body.get("revealed"))
     console.here = next(iter(console.game.world.settlements))
     SHOW_FRONT = False
     if CLOCK is not None:
@@ -785,6 +788,7 @@ def _court(game) -> dict:
             "ground": ground.label if ground else "",
             # Trust apart from liking, and the war as he reckons it.
             "trust": round(c.trust_of(key)),
+            "hunts": lordly.HUNTS.get(lordly.sort_of(key).hunts, ""),
             # His reckoning about a war on you, the last time his temper
             # was up: each reason and its weight, and where he marches.
             "reckoning": [{"what": r[0], "by": r[1]} for r in t.reckoning],

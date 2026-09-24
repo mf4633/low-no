@@ -3307,7 +3307,9 @@ class Console:
                              ink.SLATE)
                      + ink.c(ink.pad(chancery.temper(standing), 11), ink.DIM)
                      + (ink.c("grounds: " + ground.label, ink.LEAF)
-                        if ground else ink.c(kind.blurb, ink.DIM)))
+                        if ground else ink.c(kind.blurb + "; "
+                                             + lordkind.HUNTS.get(kind.hunts, ""),
+                                             ink.DIM)))
         mine = sum(host_strength(s.units) for s in g.world.settlements.values())
         mine += sum(host_strength(a.units) for a in g.armies if a.owner == "player")
         self.say("", f"  your own strength {mine:,.0f}, spread over "

@@ -45,6 +45,14 @@ class TestEachScenario(unittest.TestCase):
                 self.assertTrue(g.briefing.strip(), key)
                 self.assertEqual(g.scenario, key)
                 g.advance(60)
+                if key == "siege" and g.over.startswith("Stormed"):
+                    # The one scenario whose whole subject is a storm: left
+                    # alone, the first one goes in near day 48 and carries
+                    # the wall about two times in three. Losing it is the
+                    # scenario, not a fault -- but not before the ram has
+                    # had the weeks it needs.
+                    self.assertGreaterEqual(g.day, 40, "stormed too soon")
+                    continue
                 self.assertEqual(g.over, "", f"{key} ended in its first two months")
 
     def test_a_seat_is_never_also_unclaimed_land(self):

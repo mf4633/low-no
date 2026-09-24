@@ -12,6 +12,7 @@ import os
 import re
 import socket
 import threading
+import pathlib
 import unittest
 import urllib.error
 import urllib.request
@@ -1071,6 +1072,16 @@ class TestTheFrontDoor(unittest.TestCase):
 
     def door(self, route, **body):
         return self.web._front_door(self.console, route, body)
+
+    def test_the_map_can_be_drawn_from_the_start(self):
+        self.door("/new", scenario="marchlands", house="plough", seed=3)
+        self.assertFalse(self.console.game.shroud.everything)
+        self.door("/new", scenario="marchlands", house="plough", seed=3,
+                  revealed=True)
+        self.assertTrue(self.console.game.shroud.everything)
+        html = (pathlib.Path(self.web.__file__).parent / "static" / "index.html"
+                ).read_text(encoding="utf-8")
+        self.assertIn('id="front-revealed"', html)
 
     def test_it_can_start_a_written_game(self):
         out = self.door("/new", scenario="winter_crown", house="abbey")

@@ -1256,6 +1256,7 @@ class GameState:
             s.raided = False
             s.raid_pressure = 0.0
         msgs += self._field_day()
+        msgs += self._relieve_day()
         for a in list(self.armies):
             if a not in self.armies:
                 continue    # a town fell today and its host went with it
@@ -1567,6 +1568,60 @@ class GameState:
         if a.siege_days <= self.SIEGE_PATIENCE or a.siege_power > 0:
             return True           # hunger wants its three weeks; engines work
         return host_strength(a.units) >= self.SIEGE_ODDS * self._inside(a)
+
+    #: Days before word of a siege reaches a lord's other towns, and the
+    #: share of a garrison he will strip to answer it.
+    RELIEF_NEWS = 3
+    RELIEF_SHARE = 0.5
+
+    def _relieve_day(self) -> List[str]:
+        """A lord with more than one town sends men to the one under siege.
+
+        In Warband a lord whose castle is besieged comes back for it; here a
+        lord was never anywhere else, so what comes is half the garrison of
+        whichever other town of his is nearest and not itself ringed. Up
+        against your lines it stands off and you fight it at dawn; against
+        another lord's it walks in, and the odds outside change.
+        """
+        msgs: List[str] = []
+        ringed = {x.at for x in self.armies if x.state == BESIEGING}
+        for b in sorted((x for x in self.armies if x.state == BESIEGING),
+                        key=lambda x: x.uid):
+            town = self.world.towns.get(b.at)
+            if town is None or town.mine or b.siege_days < self.RELIEF_NEWS:
+                continue
+            holder = town.owner or town.key
+            if holder == b.owner or holder not in self.world.towns:
+                continue
+            if any(x.owner == holder and x.home == town.key and x.state == MARCHING
+                   for x in self.armies):
+                continue                     # already on the road
+            sources = sorted(
+                (k for k, t in self.world.towns.items()
+                 if k != town.key and (t.owner or k) == holder and not t.mine
+                 and k not in ringed and k in self.world.coords),
+                key=lambda k: (self.world.distance(k, town.key), k))
+            if not sources:
+                continue
+            src = self.world.towns[sources[0]]
+            send = {k: v * self.RELIEF_SHARE for k, v in src.garrison.items()
+                    if v * self.RELIEF_SHARE >= 0.5}
+            if host_strength(send) < 0.25 * host_strength(b.units):
+                continue                     # not enough to be worth the road
+            for k, n in send.items():
+                src.garrison[k] -= n
+            src.garrison = {k: v for k, v in src.garrison.items() if v >= 0.5}
+            lord = self.world.towns[holder].lord
+            a = Army(uid=self.next_army_uid, name=f"{lord}'s relief", owner=holder,
+                     units=send, at=src.key, home=town.key)
+            self.next_army_uid += 1
+            self.armies.append(a)
+            self._set_march(a, src.key, town.key, send)
+            if b.owner == PLAYER:
+                msgs.append(self.note(
+                    f"Out of {src.name} a relief marches for {town.name} -- "
+                    f"{describe(send)}, {a.days_left:.0f} days out", MOMENTOUS))
+        return msgs
 
     def _siege(self, a: Army) -> List[str]:
         a.siege_days += 1
@@ -2123,7 +2178,8 @@ class GameState:
         other = self.world.towns.get(target)
         if other is not None and other.owner == PLAYER:
             return "it is sworn to you, and thinly held"
-        if town.key in self.court.claims or target in self.court.claims:
+        if (self.court.claim_live(town.key, self.day)
+                or self.court.claim_live(target, self.day)):
             return "an old claim"
         return "it is the nearest he can take"
 
@@ -3977,9 +4033,10 @@ class GameState:
         msgs: List[str] = []
         c = self.court
         c.settle_day()
+        c.settle_opinions(sorted(self.world.towns), self.day)
         for key, v in list(c.score.items()):
             t = self.world.towns.get(key)
-            if t is None or t.mine or v < 50.0 or t.truce_days > 0:
+            if t is None or t.mine or v < self.sues_at(key) or t.truce_days > 0:
                 continue
             if self.day - c.sued.get(key, -9999) < 90:
                 continue
@@ -3991,6 +4048,26 @@ class GameState:
                 f"*** {t.lord} of {t.name} sues for peace. `truce {t.name.lower()}` "
                 f"costs nothing for {self.SUIT_DAYS} days. ***", MOMENTOUS))
         return msgs
+
+    def sues_at(self, key: str) -> float:
+        """The war score at which a lord asks for peace: +50, less a point
+        for every eight days the war has run, down to +25."""
+        return 50.0 - min(25.0, self.court.war_days.get(key, 0) / 8.0)
+
+    def about_to_take(self, key: str) -> str:
+        """A settlement of yours this lord's lines are about to carry, if
+        any. Unciv's AI will not make peace the week it is going to take a
+        city, and neither will he."""
+        for a in self.armies:
+            if a.owner != key or a.state != BESIEGING:
+                continue
+            s = self.world.settlements.get(a.at)
+            if s is None:
+                continue
+            full = s.wall_max(self.progress)
+            if (full > 0 and s.wall_hp < 0.25 * full) or sum(s.units.values()) < 5:
+                return s.name
+        return ""
 
     def answer_call(self, come: bool) -> str:
         """Yes or no to an ally who has called. No is a real option."""
@@ -4004,6 +4081,7 @@ class GameState:
         if come:
             c.write(who, "came_when_called", 45.0, self.day)
             c.shake(who, 10.0)
+            c.refused.pop(who, None)
             # Whoever is marching on them has now given you a reason to
             # march on him, which is the other half of what an ally is for.
             for a in self.armies:
@@ -4013,6 +4091,18 @@ class GameState:
                 t.truce_days = max(t.truce_days, 120)
             return self.note(f"You answer {name}'s call. Whoever is at their "
                              f"gate is now your business too.", MOMENTOUS)
+        # Freeciv's ally asks three times. The first no is a disappointment
+        # and the second a warning; the third ends it, and everybody hears.
+        c.refused[who] = c.refused.get(who, 0) + 1
+        if who in c.allies and c.refused[who] < self.ALLY_PATIENCE:
+            c.write(who, "broke_word", -20.0 * c.refused[who], self.day)
+            c.shake(who, -10.0 * c.refused[who])
+            left = self.ALLY_PATIENCE - c.refused[who]
+            return self.note(
+                f"You do not come when {name} calls. They write that they "
+                f"are disappointed" + (" -- and that they will not ask many "
+                f"more times" if left == 1 else "") + ".", MOMENTOUS)
+        c.refused.pop(who, None)
         if who in c.allies:
             c.allies.remove(who)
         c.write(who, "broke_word", -60.0, self.day)
@@ -4023,6 +4113,8 @@ class GameState:
         return self.note(f"You do not come when {name} calls. The alliance "
                          f"ends, and every lord on the march is told.",
                          MOMENTOUS)
+
+    ALLY_PATIENCE = 3            # calls let go by before the alliance ends
 
     def ally(self, town_key: str) -> str:
         """Swear to come when they are attacked, and they to you."""
@@ -4197,6 +4289,23 @@ class GameState:
         key = t.key
         c = self.court
         terms: List[Tuple[str, float]] = [("his temper is up", 12.0)]
+        # His habit reads you as it reads anybody: a lord who goes for the
+        # nearest goes for you when you are the nearest, and one who goes for
+        # the weakest when your wall is the thinnest on the march.
+        hunts = lordly.sort_of(key).hunts
+        if hunts == "you":
+            terms.append(("he has his eye on you", 4.0))
+        elif hunts == "closest" and target in self.world.coords:
+            mine = self.world.distance(key, target)
+            if all(self.world.distance(key, k) >= mine for k in self.world.towns
+                   if k != key and self.world.towns[k].owner != key
+                   and k in self.world.coords):
+                terms.append(("you are the nearest thing to him", 5.0))
+        elif hunts == "gold":
+            # And the richer you get, the more of a mark you are to him.
+            rich = min(1.0, self.real_worth() / max(1.0, self.goals.net_worth))
+            if rich > 0.25:
+                terms.append(("you are worth robbing", round(10.0 * rich, 1)))
         host = self._muster_enemy(t, pressure, spread=False)
         price = self._host_price(host)
         if t.chest < price:
@@ -4222,7 +4331,8 @@ class GameState:
             terms.append(("somebody is marching on him", -10.0 * beset))
         if c.allies:
             terms.append(("your allies would come", -4.0 * len(c.allies)))
-        view = c.opinion(key, self.day)
+        # What has settled in him, not what he said this morning.
+        view = c.settled_view(key, self.day)
         if view <= -40:
             terms.append(("he hates you", 8.0))
         elif view <= -15:
@@ -4299,12 +4409,28 @@ class GameState:
                 continue
             score = (mine_strength * reach - defence) / max(
                 40.0, self.world.distance(key, other_key))
+            # And his habit: Stronghold's lords each pick a target their own
+            # way, which is what makes one of them predictable and another
+            # a nuisance in a different corner of the map.
+            hunts = lordly.sort_of(key).hunts
+            if hunts == "closest":
+                score /= max(1.0, self.world.distance(key, other_key) / 40.0)
+            elif hunts == "gold":
+                score *= other.prosperity ** 2
+            elif hunts == "you" and other.mine:
+                score *= 1.6
             if score > best_score:
                 best, best_score = other_key, score
         return best
 
+    WAVE_GROWTH = 0.15           # each host at you a sixth bigger, to four
+
     def _send_host(self, town, pressure: float, target: str) -> str:
         host = self._muster_enemy(town, pressure)
+        if target in self.world.settlements:
+            grow = 1.0 + self.WAVE_GROWTH * min(4, town.waves)
+            host = {k: v * grow for k, v in host.items()}
+            town.waves += 1
         # Bought out of his chest, as much of it as he can pay for -- never
         # less than a third of a host, which is a raiding party at worst.
         if town.chest >= 0:
@@ -4488,6 +4614,10 @@ class GameState:
             node = getattr(c, "at", "") or ""
             if node in self.world.towns:
                 self.world.towns[node].observe(self.day)
+        # An ally writes: what he has behind his wall is no secret from you.
+        for key in self.court.allies:
+            if key in self.world.towns:
+                self.world.towns[key].observe(self.day)
         for a in self.armies:
             if a.owner == "player" and a.at in self.world.towns:
                 self.world.towns[a.at].observe(self.day)
@@ -4528,10 +4658,12 @@ class GameState:
         xy = self.world.coords
         for key in self.world.settlements:
             if key in xy:
-                sh.look(*xy[key], sight.TOWN_SIGHT)
+                sh.look(*xy[key], self._sight_from(key, sight.TOWN_SIGHT))
         for key, t in self.world.towns.items():
-            if t.mine and key in xy:
-                sh.look(*xy[key], sight.TOWN_SIGHT)
+            # Your sworn towns, and your allies': an ally shares what his
+            # walls can see, which is half of what an alliance is for.
+            if (t.mine or key in self.court.allies) and key in xy:
+                sh.look(*xy[key], self._sight_from(key, sight.TOWN_SIGHT))
         for c in self.caravans:
             frm, now = self.cart_xy(c)
             if now:
@@ -4545,7 +4677,15 @@ class GameState:
                 continue
             if a.state == MARCHING and a.at in xy:
                 sh.trail(xy[a.at], now, sight.HOST_SIGHT)
-            sh.look(*now, sight.HOST_SIGHT)
+            sh.look(*now, sight.HOST_SIGHT if a.state == MARCHING
+                    else self._sight_from(a.at, sight.HOST_SIGHT))
+
+    def _sight_from(self, node: str, base: float) -> float:
+        """How far a place sees: further from hill country, a twentieth
+        more for every hill round it past the three most places have, up to
+        a quarter."""
+        hills = self._ground_at(node).get("hills", 0) if node else 0
+        return base * (1.0 + 0.05 * min(5, max(0, hills - 3)))
 
     def _sight_hosts(self) -> None:
         """Which of their hosts you can actually see today.
@@ -4766,6 +4906,13 @@ class GameState:
         # And the war itself: a lord you are beating asks less for peace,
         # one who is beating you asks more -- EU4's war score on the price.
         war = max(0.35, min(2.0, 1.0 - self.court.score.get(town_key, 0.0) / 100.0))
+        # And a long war is a war both sides are tired of.
+        war *= max(0.6, 1.0 - self.court.war_days.get(town_key, 0) / 500.0)
+        # And how little he likes you, squared: Freeciv's AI prices a treaty
+        # on the goodwill it is short of, so a lord who merely dislikes you
+        # asks a little over the odds and one who hates you a great deal.
+        short = max(0.0, 25.0 - self.court.settled_view(town_key, self.day)) / 100.0
+        war *= 1.0 + 1.5 * short * short
         return (C.TRUCE_RATE * days * town.muster * town.prosperity * war
                 * self.kin.mult("truce_cost") * lordly.sort_of(town_key).bought)
 
@@ -4787,6 +4934,10 @@ class GameState:
         if self.court.score.get(town_key, 0.0) <= -50.0:
             return (f"{town.lord} is winning this war and knows it. He will "
                     f"talk when that changes.")
+        falling = self.about_to_take(town_key)
+        if falling:
+            return (f"{town.lord}'s men are on the wall at {falling}. He will "
+                    f"talk about peace after he has it.")
         cost = self.truce_cost(town_key, days)
         if self.day - self.court.sued.get(town_key, -9999) <= self.SUIT_DAYS:
             cost = 0.0                  # he asked

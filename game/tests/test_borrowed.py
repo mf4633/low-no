@@ -397,3 +397,204 @@ class TestTheChest(unittest.TestCase):
         key, t = next(iter(g.world.towns.items()))
         t.chest = 1234.0
         self.assertEqual(GameState.from_dict(g.to_dict()).world.towns[key].chest, 1234.0)
+
+
+# ---------------------------------------------------------- how sieges go
+def _sit(g, owner, at, units, days=0):
+    a = Army(uid=g.next_army_uid, name="a host", owner=owner, units=dict(units),
+             at=at, home=owner, state=BESIEGING, siege_days=days)
+    g.next_army_uid += 1
+    g.armies.append(a)
+    return a
+
+
+class TestHowSiegesGo(unittest.TestCase):
+    def test_a_lord_outnumbered_at_the_wall_lifts(self):
+        g = game()
+        k1, k2 = list(g.world.towns)[:2]
+        g.world.towns[k2].garrison = {"spearman": 100.0}
+        a = _sit(g, k1, k2, {"spearman": 120.0}, days=g.SIEGE_PATIENCE + 1)
+        self.assertFalse(g._siege_holds(a), "1.2 to 1 and no engines: he goes home")
+        a.units = {"spearman": 400.0}
+        self.assertTrue(g._siege_holds(a), "4 to 1: hunger will do it")
+        a.siege_days = g.SIEGE_LIMIT + 1
+        self.assertFalse(g._siege_holds(a), "nobody sits for ever")
+
+    def test_engines_at_work_keep_the_lines(self):
+        g = game()
+        k1, k2 = list(g.world.towns)[:2]
+        g.world.towns[k2].garrison = {"spearman": 300.0}
+        a = _sit(g, k1, k2, {"spearman": 50.0, "ram": 2.0},
+                 days=g.SIEGE_PATIENCE + 1)
+        self.assertGreater(a.siege_power, 0)
+        self.assertTrue(g._siege_holds(a))
+
+    def test_the_ladders_grow_likelier_with_the_days(self):
+        from marchlands.castle import choose, Works, ESCALADE
+        w = Works()
+        kw = dict(siege_power=0.0, engineers=0.0, host=200.0, garrison=50.0,
+                  wall=100.0, wall_max=100.0, patient=True)
+        self.assertNotEqual(choose(w, **kw, days=0), ESCALADE)
+        self.assertEqual(choose(w, **kw, days=60), ESCALADE)
+
+    def test_a_lord_sends_to_relieve_his_own_town(self):
+        g = game()
+        k1, k2, k3 = list(g.world.towns)[:3]
+        # k2 holds k3 as well as its own seat, and k1 is sitting at k3.
+        g.world.towns[k3].owner = k2
+        g.world.towns[k2].garrison = {"spearman": 200.0}
+        before = g.world.towns[k2].garrison["spearman"]
+        b = _sit(g, k1, k3, {"spearman": 150.0}, days=g.RELIEF_NEWS)
+        g._relieve_day()
+        relief = [x for x in g.armies if x.owner == k2 and x.home == k3]
+        self.assertEqual(len(relief), 1)
+        self.assertEqual(relief[0].state, MARCHING)
+        self.assertLess(g.world.towns[k2].garrison["spearman"], before)
+        g._relieve_day()
+        self.assertEqual(len([x for x in g.armies if x.owner == k2]), 1,
+                         "one relief at a time")
+        self.assertIsNotNone(b)
+
+
+# ----------------------------------------------------------- whom he hunts
+class TestWhomHeHunts(unittest.TestCase):
+    def test_every_lord_has_a_habit_the_roll_can_name(self):
+        from marchlands import lords
+        for s in lords.SORTS.values():
+            self.assertIn(s.hunts, lords.HUNTS)
+        self.assertEqual(len({s.hunts for s in lords.SORTS.values()}), 4)
+
+    def test_a_gold_hunter_goes_where_the_money_is(self):
+        from marchlands import lords
+        g = game()
+        hunter = next(k for k in g.world.towns if lords.sort_of(k).hunts == "gold")
+        others = [k for k in g.world.towns if k != hunter]
+        for k in others:
+            g.world.towns[k].garrison = {}
+            g.world.towns[k].wall_hp = 0.0
+            g.world.towns[k].prosperity = 0.5
+        far = max(others, key=lambda k: g.world.distance(hunter, k))
+        g.world.towns[far].prosperity = 2.2
+        self.assertEqual(g._prey_for(hunter), far)
+
+    def test_the_court_card_says_it(self):
+        g = game()
+        card = web._court(g)["towns"]
+        self.assertTrue(all(t["hunts"] for t in card.values()))
+
+
+# ------------------------------------------------------ a war grows tired
+class TestATiredWar(unittest.TestCase):
+    def test_a_long_war_is_sued_for_sooner_and_bought_cheaper(self):
+        g = game()
+        key = next(iter(g.world.towns))
+        c = g.court
+        c.reckon(key, 30.0)
+        fresh_bar, fresh_price = g.sues_at(key), g.truce_cost(key, 90)
+        for _ in range(200):
+            c.score[key] = 30.0          # hold the score; let the war run
+            c.settle_day()
+        self.assertEqual(c.war_days[key], 200)
+        self.assertLess(g.sues_at(key), fresh_bar)
+        self.assertLessEqual(g.sues_at(key), 30.0, "a long war sues at +30")
+        self.assertLess(g.truce_cost(key, 90), fresh_price)
+        from marchlands.engine import GameState
+        self.assertEqual(GameState.from_dict(g.to_dict()).court.war_days[key], 200)
+
+    def test_the_war_ending_ends_the_count(self):
+        g = game()
+        key = next(iter(g.world.towns))
+        g.court.reckon(key, 2.0)
+        for _ in range(5):
+            g.court.settle_day()
+        self.assertNotIn(key, g.court.war_days)
+
+    def test_no_peace_the_week_he_takes_your_town(self):
+        g = game()
+        key = next(iter(g.world.towns))
+        s = home(g)
+        g.treasury = 1e7
+        a = _sit(g, key, g._key_of(s), {"spearman": 300.0})
+        s.wall_hp = 0.0
+        said = g.truce(key)
+        self.assertIn("on the wall", said)
+        g.armies.remove(a)
+        self.assertNotIn("on the wall", g.truce(key))
+
+
+# ------------------------------------------------------------- who sees
+class TestWhoSees(unittest.TestCase):
+    def test_an_ally_shares_his_walls_and_his_news(self):
+        g = game()
+        far = max(g.world.towns, key=lambda k: g.world.distance(k, g._key_of(home(g))))
+        x, y = g.world.coords[far]
+        g._scout()
+        self.assertFalse(g.shroud.sees(x, y))
+        g.court.allies.append(far)
+        g._look_around()
+        self.assertTrue(g.shroud.sees(x, y))
+        self.assertEqual(g.world.towns[far].seen_day, g.day)
+
+    def test_high_ground_sees_further(self):
+        g = game()
+        key = next(iter(g.world.towns))
+        flat = dict(g._ground_at(key)); flat["hills"] = 0
+        steep = dict(flat); steep["hills"] = 8
+        g._ground_at = lambda node, d=flat: d
+        low = g._sight_from(key, 50.0)
+        g._ground_at = lambda node, d=steep: d
+        self.assertEqual(low, 50.0)
+        self.assertAlmostEqual(g._sight_from(key, 50.0), 62.5)
+
+    def test_new_ground_fades_in(self):
+        import pathlib
+        js = (pathlib.Path(web.__file__).parent / "static" / "marchlands.js"
+              ).read_text(encoding="utf-8")
+        self.assertIn("shroudWas", js)
+        self.assertIn("SHROUD_FADE", js)
+
+
+# ------------------------------------------------------ what settles in him
+class TestWhatSettles(unittest.TestCase):
+    def test_one_gift_does_not_undo_a_grievance(self):
+        g = game()
+        key = next(iter(g.world.towns))
+        c = g.court
+        c.write(key, "raided_them", -60.0, g.day)
+        for _ in range(60):
+            c.settle_opinions([key], g.day)
+        before = c.settled_view(key, g.day)
+        c.write(key, "gift", 80.0, g.day)
+        c.settle_opinions([key], g.day)
+        self.assertLess(c.settled_view(key, g.day), 0,
+                        "one gift the week before bought a year back")
+        self.assertGreater(c.settled_view(key, g.day), before)
+        from marchlands.engine import GameState
+        back = GameState.from_dict(g.to_dict()).court
+        self.assertAlmostEqual(back.settled[key], c.settled[key])
+
+    def test_a_lord_who_hates_you_prices_peace_dearly(self):
+        g = game()
+        key = next(iter(g.world.towns))
+        base = g.truce_cost(key, 90)
+        g.court.settled[key] = -100.0
+        self.assertGreater(g.truce_cost(key, 90), base * 2)
+
+
+# ---------------------------------------------------------- waves
+class TestEachWaveIsBigger(unittest.TestCase):
+    def test_the_second_host_at_you_outnumbers_the_first(self):
+        from marchlands.military import host_strength
+        g = game()
+        key = next(iter(g.world.towns))
+        t = g.world.towns[key]
+        t.chest = 1e7
+        target = g._key_of(home(g))
+        g._send_host(t, 1.0, target)
+        first = host_strength(g.armies[-1].units)
+        t.chest = 1e7
+        g._send_host(t, 1.0, target)
+        self.assertGreater(host_strength(g.armies[-1].units), first * 1.1)
+        self.assertEqual(t.waves, 2)
+        from marchlands.engine import GameState
+        self.assertEqual(GameState.from_dict(g.to_dict()).world.towns[key].waves, 2)

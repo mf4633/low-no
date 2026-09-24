@@ -282,9 +282,12 @@ class TestAWarWantsAReason(unittest.TestCase):
         self.c.give_ground("dunmere", "raided", 0)
         self.assertIsNone(self.c.ground_for("dunmere", 10_000))
 
-    def test_a_claim_by_marriage_does(self):
+    def test_a_claim_by_marriage_lasts_two_years_as_a_reason(self):
+        # EU4's unpressed claim lapses; the right to inherit does not.
         self.c.claims["vantry"] = 0
-        self.assertIsNotNone(self.c.ground_for("vantry", 10_000))
+        self.assertIsNotNone(self.c.ground_for("vantry", self.c.CLAIM_DAYS))
+        self.assertIsNone(self.c.ground_for("vantry", self.c.CLAIM_DAYS + 1))
+        self.assertIn("vantry", self.c.claims, "the right to inherit stays")
 
     def test_marching_with_one_offends_less_than_marching_without(self):
         def cost(ground):
@@ -397,11 +400,27 @@ class TestFriendsCostSomething(unittest.TestCase):
         self.c.called = ("vantry", self.g.day)
         others = [k for k in self.g.world.towns if k != "vantry"]
         was = {k: self.c.opinion(k, self.g.day) for k in self.g.world.towns}
+        # Freeciv's three asks: disappointed, warned, done.
+        for _ in range(self.g.ALLY_PATIENCE - 1):
+            said = self.g.answer_call(False)
+            self.assertIn("disappointed", said)
+            self.assertIn("vantry", self.c.allies)
+            self.c.called = ("vantry", self.g.day)
+        self.assertIn("not ask many more times", said)
         self.g.answer_call(False)
         self.assertNotIn("vantry", self.c.allies)
         self.assertLess(self.c.opinion("vantry", self.g.day), was["vantry"] - 50)
         for k in others:
             self.assertLess(self.c.opinion(k, self.g.day), was[k], k)
+
+    def test_coming_forgives_the_times_you_did_not(self):
+        self.c.write("vantry", "marriage", 90.0, self.g.day)
+        self.g.ally("vantry")
+        self.c.called = ("vantry", self.g.day)
+        self.g.answer_call(False)
+        self.c.called = ("vantry", self.g.day)
+        self.g.answer_call(True)
+        self.assertNotIn("vantry", self.c.refused)
 
     def test_saying_nothing_is_saying_no(self):
         self.c.write("vantry", "marriage", 90.0, self.g.day)
@@ -409,7 +428,7 @@ class TestFriendsCostSomething(unittest.TestCase):
         self.c.called = ("vantry", self.g.day - self.g.CALL_DAYS - 1)
         self.g.tick()
         self.assertIsNone(self.c.called)
-        self.assertNotIn("vantry", self.c.allies)
+        self.assertEqual(self.c.refused.get("vantry"), 1)
 
 
 class TestAHouseThatEnds(unittest.TestCase):

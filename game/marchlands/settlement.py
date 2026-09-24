@@ -83,14 +83,18 @@ class BuildingInstance:
     def to_dict(self) -> dict:
         return {"uid": self.uid, "key": self.key, "days_left": self.days_left,
                 "enabled": self.enabled, "head": self.head,
-                "dry_days": self.dry_days}
+                "dry_days": self.dry_days,
+                # Who was at work here: the queue gives a man already at a
+                # bench a reason to stay, so a loaded town must know it.
+                "staffed": self.staffed}
 
     @classmethod
     def from_dict(cls, d: dict) -> "BuildingInstance":
         return cls(uid=d["uid"], key=d["key"], days_left=d["days_left"],
                    enabled=d.get("enabled", True),
                    head=float(d.get("head", -1.0)),
-                   dry_days=int(d.get("dry_days", 0)))
+                   dry_days=int(d.get("dry_days", 0)),
+                   staffed=int(d.get("staffed", 0)))
 
 
 @dataclass
@@ -397,7 +401,11 @@ class Settlement:
     def tick(self, season: str, rng: random.Random,
              mods: Progress = NO_PROGRESS, day: int = 0) -> DayReport:
         prev = getattr(self, "report", None)
-        self._made_yesterday = dict(prev.produced) if prev is not None else {}
+        # A report with nothing in it is the blank one a loaded town starts
+        # with; what it made the day it was saved is carried separately.
+        self._made_yesterday = (dict(prev.produced) if prev is not None and prev.produced
+                                else dict(getattr(self, "_made_carry", {})))
+        self._made_carry = {}
         rep = DayReport()
         self.report = rep
         self.update_market_targets()
@@ -1348,6 +1356,14 @@ class Settlement:
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
             "besieged": self.besieged, "priority": dict(self.priority),
             "hardened": self.hardened, "resting": self.resting,
+            # What the hands queue reads between days, which the day's report
+            # (not saved) otherwise carries: a loaded town that forgot what
+            # it made yesterday seated its hands differently the next morning.
+            "made": {k: v for k, v in sorted(
+                (getattr(getattr(self, "report", None), "produced", None)
+                 or getattr(self, "_made_carry", {})).items())},
+            "made_before": dict(sorted(getattr(self, "_made_yesterday", {}).items())),
+            "season_now": getattr(self, "_season_now", ""),
             "pins": {str(k): v for k, v in self.pins.items()},
             "caps": {str(k): v for k, v in self.caps.items()},
             "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
@@ -1393,6 +1409,9 @@ class Settlement:
         s.caps = {int(k): int(v) for k, v in d.get("caps", {}).items()}
         s.hardened = float(d.get("hardened", 0.0))
         s.resting = int(d.get("resting", 0))
+        s._made_carry = {k: float(v) for k, v in d.get("made", {}).items()}
+        s._made_yesterday = {k: float(v) for k, v in d.get("made_before", {}).items()}
+        s._season_now = str(d.get("season_now", ""))
         s.castle = keeps.Castle.from_dict(d.get("castle"))
         s.culture = d.get("culture", "")
         s.shoring = bool(d.get("shoring", False))

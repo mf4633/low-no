@@ -175,6 +175,18 @@ class Chancery:
     called: Optional[Tuple[str, int]] = None
     #: town key -> day the marriage claim was made (claims outlive the person)
     claims: Dict[str, int] = field(default_factory=dict)
+    #: town key -> days the war with him has run, while there is a war score
+    #: at all. EU4's war exhaustion: a long war makes a lord readier to treat
+    #: and cheaper to treat with, whoever is winning it.
+    war_days: Dict[str, int] = field(default_factory=dict)
+    #: town key -> his opinion of you as it has settled in him: Unciv keeps a
+    #: slow average under the day's number so one gift the week before a war
+    #: does not undo a year of grievance, nor one insult a year of trade. It
+    #: is what his decisions read; `opinion` is what he says today.
+    settled: Dict[str, float] = field(default_factory=dict)
+    #: town key -> calls of his you have let go by. Freeciv's ally asks
+    #: three times, each more sharply, before the alliance is over.
+    refused: Dict[str, int] = field(default_factory=dict)
     #: town key -> the day a war with them last began. Its own dict and not a
     #: private key in `grounds`, which is what it was for about ten minutes:
     #: a bookkeeping marker filed among the real reasons is a marker that
@@ -243,6 +255,18 @@ class Chancery:
         # 0.0 rather than sum()'s int 0, so a lord nobody has written anything
         # about returns the same type as one they have.
         return sum((g.value(day) for g in self.ledger.get(key, ())), 0.0)
+
+    #: How fast the settled opinion follows the day's: a tenth a day.
+    SETTLE = 0.1
+
+    def settle_opinions(self, keys: Iterable[str], day: int) -> None:
+        for k in keys:
+            now = self.opinion(k, day)
+            was = self.settled.get(k, now)
+            self.settled[k] = was + (now - was) * self.SETTLE
+
+    def settled_view(self, key: str, day: int) -> float:
+        return self.settled.get(key, self.opinion(key, day))
 
     def goodwill(self, key: str, day: int) -> float:
         """Only what is in your favour -- the number the old `favour` was.
@@ -313,8 +337,18 @@ class Chancery:
             v = v - 1.0 if v > 1.0 else v + 1.0 if v < -1.0 else 0.0
             if v:
                 self.score[k] = v
+                self.war_days[k] = self.war_days.get(k, 0) + 1
             else:
                 del self.score[k]
+                self.war_days.pop(k, None)
+
+    #: How long a claim is a reason to march. EU4 lets an unpressed claim
+    #: lapse after twenty-five years; a game here is three, so two. The
+    #: right to inherit is another thing and does not lapse.
+    CLAIM_DAYS = 2 * 360
+
+    def claim_live(self, key: str, day: int) -> bool:
+        return key in self.claims and day - self.claims[key] <= self.CLAIM_DAYS
 
     # ------------------------------------------------------------- the ground
     def give_ground(self, key: str, ground: str, day: int) -> None:
@@ -331,7 +365,7 @@ class Chancery:
                 live.append(spec)
         if key in self.coalition:
             live.append(GROUNDS["coalition"])
-        if key in self.claims:
+        if self.claim_live(key, day):
             live.append(GROUNDS["claim"])
         if not live:
             return None
@@ -348,8 +382,9 @@ class Chancery:
                 out.append((spec.label, 0))
             elif day - when <= spec.days * keep:
                 out.append((spec.label, int(spec.days * keep - (day - when))))
-        if key in self.claims:
-            out.append((GROUNDS["claim"].label, 0))
+        if self.claim_live(key, day):
+            out.append((GROUNDS["claim"].label,
+                        self.CLAIM_DAYS - (day - self.claims[key])))
         if key in self.coalition:
             out.append((GROUNDS["coalition"].label, 0))
         return out
@@ -389,6 +424,8 @@ class Chancery:
             "taken": sorted(self.taken),
             "trust": dict(self.trust), "score": dict(self.score),
             "sued": dict(self.sued), "aided": dict(self.aided),
+            "war_days": dict(self.war_days),
+            "settled": dict(self.settled), "refused": dict(self.refused),
             "seed": self.seed,
             "rng": list(self.rng.getstate()),
         }
@@ -415,6 +452,9 @@ class Chancery:
         c.score = {k: float(v) for k, v in d.get("score", {}).items()}
         c.sued = {k: int(v) for k, v in d.get("sued", {}).items()}
         c.aided = {k: int(v) for k, v in d.get("aided", {}).items()}
+        c.war_days = {k: int(v) for k, v in d.get("war_days", {}).items()}
+        c.settled = {k: float(v) for k, v in d.get("settled", {}).items()}
+        c.refused = {k: int(v) for k, v in d.get("refused", {}).items()}
         raw = d.get("rng")
         if raw:
             c.rng.setstate((raw[0], tuple(raw[1]), raw[2]))

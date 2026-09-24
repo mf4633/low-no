@@ -88,6 +88,9 @@ class ForeignTown:
     reckoned: float = 0.0
     #: Days his temper has been up without his marching.
     gathering: int = 0
+    #: Hosts he has sent at you. Stronghold's invasions each come bigger
+    #: than the last: a lord who has been thrown back once brings more.
+    waves: int = 0
     garrison: Dict[str, float] = field(default_factory=dict)
     wall_hp: float = 0.0
     wall_max: float = 0.0
@@ -354,6 +357,7 @@ class ForeignTown:
                 "waited": self.waited, "chest": self.chest,
                 "reckoning": [list(r) for r in self.reckoning],
                 "reckoned": self.reckoned, "gathering": self.gathering,
+                "waves": self.waves,
                 "sick": self.sick.to_dict(), "last_sick": self.last_sick}
 
     @classmethod
@@ -373,6 +377,7 @@ class ForeignTown:
         t.reckoning = [list(r) for r in d.get("reckoning", [])]
         t.reckoned = float(d.get("reckoned", 0.0))
         t.gathering = int(d.get("gathering", 0))
+        t.waves = int(d.get("waves", 0))
         t.garrison = dict(d.get("garrison", {}))
         t.seen = dict(d.get("seen", {}))
         t.wall_hp = d.get("wall_hp", 0.0)

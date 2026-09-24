@@ -1987,6 +1987,11 @@ const mapXY = (n, f) => [f.w / 2 + f.dx + (n.x - f.cx) * f.k,
  * nobody has been, a grey wash where somebody was, clear where somebody is.
  */
 let shroudCache = { key: '', img: null };
+// The picture the shroud was before today's changed it, fading off over the
+// new one -- so ground coming into sight lifts out of the fog rather than
+// blinking into view. Only what was seen changes it; panning does not.
+let shroudWas = null;
+const SHROUD_FADE = 700;
 function drawShroud(f, w, h) {
   const sh = world.shroud;
   if (!sh || sh.all) return;
@@ -1998,8 +2003,12 @@ function drawShroud(f, w, h) {
   const i0 = Math.floor(mx(0) / c) - 2, i1 = Math.ceil(mx(w) / c) + 2;
   const j0 = Math.floor(my(h) / c) - 2, j1 = Math.ceil(my(0) / c) + 2;
   const cw = i1 - i0 + 1, ch = j1 - j0 + 1;
-  const key = [i0, j0, cw, ch, sh.explored.length, sh.visible.join(',')].join('|');
+  const seen = [sh.explored.length, sh.visible.join(',')].join('|');
+  const key = [i0, j0, cw, ch, seen].join('|');
   if (shroudCache.key !== key) {
+    if (shroudCache.img && shroudCache.seen !== seen) {
+      shroudWas = { ...shroudCache, at: performance.now() };
+    }
     const off = document.createElement('canvas');
     off.width = cw; off.height = ch;
     const o = off.getContext('2d');
@@ -2019,16 +2028,24 @@ function drawShroud(f, w, h) {
     put(sh.explored, 70);          // seen once: a wash, and theirs are gone
     put(sh.visible, 0);            // in sight today: clear
     o.putImageData(img, 0, 0);
-    shroudCache = { key, img: off };
+    shroudCache = { key, seen, img: off, i0, j1, cw, ch };
   }
   // Cell (i, j) spans map x i*c..(i+1)*c and y j*c..(j+1)*c; row 0 of the
   // small canvas is the northmost row, j1.
-  const [sx, sy] = mapXY({ x: i0 * c, y: (j1 + 1) * c }, f);
-  const sw = cw * c * f.k, shh = ch * c * f.k;
+  const lay = (s, alpha) => {
+    const [sx, sy] = mapXY({ x: s.i0 * c, y: (s.j1 + 1) * c }, f);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(s.img, sx, sy, s.cw * c * f.k, s.ch * c * f.k);
+  };
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.filter = `blur(${Math.max(2, c * f.k * 0.6).toFixed(1)}px)`;
-  ctx.drawImage(shroudCache.img, sx, sy, sw, shh);
+  lay(shroudCache, 1);
+  if (shroudWas) {
+    const t = (performance.now() - shroudWas.at) / SHROUD_FADE;
+    if (t >= 1) shroudWas = null;
+    else lay(shroudWas, 1 - t);
+  }
   ctx.restore();
 }
 
@@ -2618,6 +2635,7 @@ function nodeWrit(n, ev) {
       st.reckoning.map(r => `<li><span>${esc(r.what)}</span>` +
         `<em class="${r.by > 0 ? 'down' : 'up'}">${r.by > 0 ? '+' : ''}${r.by}</em></li>`).join('') +
       '</ul>' : '') +
+    (st.hunts ? `<p class="why">he ${esc(st.hunts)}</p>` : '') +
     `<p class="why">trusts your word ${st.trust} of 100` +
     (st.war ? ` · the war as he reckons it ${st.war > 0 ? '+' : ''}${st.war}` : '') +
     (st.sued ? ' · <b>he has sued for peace</b>' : '') + '</p>' +
@@ -4602,7 +4620,8 @@ async function post(route, body) {
 $('front-go').addEventListener('click', async () => {
   const [kind, name] = pickedWhere.split(':');
   const body = { house: pickedHouse, role: pickedRole,
-                 seed: Math.floor(Math.random() * 99999) };
+                 seed: Math.floor(Math.random() * 99999),
+                 revealed: $('front-revealed').checked };
   body[kind] = name;
   enter(await post('/new', body));
 });

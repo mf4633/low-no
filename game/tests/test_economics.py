@@ -220,7 +220,17 @@ class TestTheAssize(unittest.TestCase):
         home.market.stock["bread"] = max(home.market.stock.get("bread", 0.0),
                                          want * 1.5)
         self.g.decree("bread", self.m.fundamental("bread") * 0.3)
+        # And the carts kept off it for the morning of the proclamation. Bread
+        # at a third of its worth is bread every exporter on the march wants,
+        # and the bot's standing routes carried the whole planted granary off
+        # before anybody could be grateful for it -- true, and the second
+        # half of this test, but not the first.
+        held = [(st, list(st.buy)) for c in self.g.caravans for st in c.route]
+        for st, orders in held:
+            st.buy = [o for o in orders if o.good != "bread"]
         self.g.tick()
+        for st, orders in held:
+            st.buy = orders
         first = dict(self.g.home().mood_factors(self.g.progress))
         self.assertIn("the assize", first,
                       f"a full granary and a binding cap and no gratitude: "
