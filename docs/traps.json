@@ -1,13 +1,13 @@
 {
- "at": "2026-09-24T16:50:19.478843Z",
+ "at": "2026-09-24T17:53:35.465734Z",
  "traps": [
   {
    "city": "PHX",
    "ceiling": 95,
-   "price": 9,
-   "p_model": 0.8734,
-   "p_market": 0.09,
-   "edge_pts": 78.3,
+   "price": 6,
+   "p_model": 0.3033,
+   "p_market": 0.06,
+   "edge_pts": 24.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 78 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -27,55 +27,25 @@
   {
    "city": "AUS",
    "ceiling": 95,
-   "price": 89,
-   "p_model": 0.9926,
-   "p_market": 0.89,
-   "edge_pts": 10.3,
-   "size_lcb": 0.4512,
-   "signals": [
-    {
-     "code": "GRAVEYARD",
-     "why": "89c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "LAX",
-   "ceiling": 77,
-   "price": 82,
-   "p_model": 0.9216,
-   "p_market": 0.82,
-   "edge_pts": 10.2,
+   "price": 83,
+   "p_model": 0.989,
+   "p_market": 0.83,
+   "edge_pts": 15.9,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "83c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "DAL",
-   "ceiling": 92,
-   "price": 77,
-   "p_model": 0.7847,
-   "p_market": 0.77,
-   "edge_pts": 1.5,
-   "size_lcb": 0.0304,
-   "signals": [
-    {
-     "code": "GRAVEYARD",
-     "why": "77c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "PHL",
-   "ceiling": 64,
+   "city": "HOU",
+   "ceiling": 91,
    "price": 99,
    "p_model": 1.0,
    "p_market": 0.99,
@@ -85,21 +55,6 @@
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 71,
-   "price": 95,
-   "p_model": 0.9512,
-   "p_market": 0.95,
-   "edge_pts": 0.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     }
    ]
   }
