@@ -1,0 +1,518 @@
+"""Caravans and cogs: the only way value moves between markets.
+
+A caravan runs a standing route -- a ring of stops, each with sell and buy
+orders -- and repeats it until told otherwise. Distance costs days, days cost
+wages, and every league of road carries a chance of losing the load. Those
+three frictions are what keep prices apart; without them every market in the
+world would be the same market.
+"""
+
+from __future__ import annotations
+
+import random
+from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional, Tuple
+
+from . import config as C
+from . import plague
+from . import rivers as waters
+from .goods import cargo_weight, good
+from .market import Market
+
+IDLE = "idle"
+MOVING = "moving"
+TRADING = "trading"
+
+CART = "cart"
+SHIP = "ship"
+
+
+@dataclass
+class Order:
+    good: str
+    quantity: float          # -1 means "everything you can"
+    limit_price: float = 0.0 # max to pay when buying, min to accept when selling
+
+    def to_dict(self) -> dict:
+        return self.__dict__.copy()
+
+
+@dataclass
+class Stop:
+    node: str
+    sell: List[Order] = field(default_factory=list)
+    buy: List[Order] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {"node": self.node, "sell": [o.to_dict() for o in self.sell],
+                "buy": [o.to_dict() for o in self.buy]}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Stop":
+        return cls(node=d["node"], sell=[Order(**o) for o in d["sell"]],
+                   buy=[Order(**o) for o in d["buy"]])
+
+    def describe(self) -> str:
+        bits = []
+        for o in self.sell:
+            q = "all" if o.quantity < 0 else f"{o.quantity:g}"
+            bits.append(f"sell {q} {o.good}" + (f" @>={o.limit_price:g}" if o.limit_price else ""))
+        for o in self.buy:
+            q = "max" if o.quantity < 0 else f"{o.quantity:g}"
+            bits.append(f"buy {q} {o.good}" + (f" @<={o.limit_price:g}" if o.limit_price else ""))
+        return f"{self.node}: " + ("; ".join(bits) if bits else "call only")
+
+
+@dataclass
+class Caravan:
+    uid: int
+    name: str
+    home: str
+    guards: int = 1
+    cargo: Dict[str, float] = field(default_factory=dict)
+    route: List[Stop] = field(default_factory=list)
+    leg: int = 0
+    state: str = IDLE
+    at: str = ""              # node it is standing in, '' while moving
+    bound_for: str = ""
+    days_left: float = 0.0
+    running: bool = False
+    kind: str = CART
+    capacity: float = C.CARAVAN_BASE_CAPACITY
+    speed: float = C.CARAVAN_BASE_SPEED
+    trip_profit: float = 0.0
+    total_profit: float = 0.0
+    spent: float = 0.0        # coins laid out on the current load
+    dry_stops: int = 0        # consecutive calls where no business was done
+    #: Standing outside a closed ring. Kept on the cart rather than worked out
+    #: each day, so the town saying so is one line when the lines shut and
+    #: one line when they open, not one line every morning of the siege.
+    stalled: bool = False
+    #: The market this cart picked the sickness up at, if it did. Cleared
+    #: when it gets home and hands it over -- see engine._plague_day.
+    carrying_it: str = ""
+    #: What the water is doing to this leg, in words, set when it set off.
+    #: Reporting only -- the days are already in `days_left`.
+    wet: List[str] = field(default_factory=list)
+    log: List[str] = field(default_factory=list)
+
+    # ---------------------------------------------------------------- basics
+    @property
+    def load(self) -> float:
+        return cargo_weight(self.cargo)
+
+    @property
+    def free_space(self) -> float:
+        return max(0.0, self.capacity - self.load)
+
+    @property
+    def sails(self) -> bool:
+        return self.kind == SHIP
+
+    #: What a cart costs while it is standing inside a closed ring, as a
+    #: share of what it costs on the road. Its drovers are in the town and
+    #: its oxen are eating, but nobody is paying tolls, road guards or
+    #: wear -- and it is not a cart you can do anything about, because the
+    #: lines are shut.
+    #:
+    #: Written at the full rate to begin with, and that was a trap with no
+    #: signal attached: a besieged town went on paying twenty coin a day for
+    #: two carts that were physically unable to move, which over a long
+    #: siege was four thousand coin and the reason a garrison that held its
+    #: wall went bankrupt behind it.
+    STALLED_COST = 0.2
+
+    @property
+    def daily_cost(self) -> float:
+        base = C.SHIP_UPKEEP if self.sails else C.CARAVAN_UPKEEP
+        cost = base + C.GUARD_COST * self.guards
+        return cost * (self.STALLED_COST if self.stalled else 1.0)
+
+    def note(self, msg: str) -> None:
+        self.log.append(msg)
+        if len(self.log) > 40:
+            del self.log[:-40]
+
+    def manifest(self, width: int = 0) -> str:
+        """What is in the cart, in at most `width` characters.
+
+        Cut at a comma, never through a load: a status line that ends
+        `15 Salt, 34` has invented a cargo of thirty-four nothings.
+        """
+        bits = [f"{q:.0f} {good(k).name}"
+                for k, q in sorted(self.cargo.items()) if q > 0.05]
+        if not bits:
+            return "empty"
+        if width <= 0:
+            return ", ".join(bits)
+        kept: List[str] = []
+        for i, bit in enumerate(bits):
+            left = len(bits) - i - 1
+            trial = ", ".join(kept + [bit]) + (f", +{left} more" if left else "")
+            if kept and len(trial) > width:
+                break
+            kept.append(bit)
+        left = len(bits) - len(kept)
+        return ", ".join(kept) + (f", +{left} more" if left else "")
+
+    def where(self, name_of: Optional[Callable[[str], str]] = None) -> str:
+        """Where it is, and -- crucially -- whether it is doing anything.
+
+        A cart that has worked its route out stops itself, which is by design.
+        Saying only where it is standing makes a stopped cart look exactly
+        like a working one: same cargo on the line, same profit to date, and
+        no sign at all that it stopped earning a fortnight ago.
+        """
+        name = name_of or (lambda k: k)
+        if self.state == MOVING:
+            return f"{self.days_left:.1f}d from {name(self.bound_for)}"
+        here = name(self.at or self.home)
+        if not self.running:
+            return f"{here} (idle)"
+        return here
+
+    # ------------------------------------------------------------- route ops
+    def set_route(self, stops: List[Stop]) -> None:
+        self.route = stops
+        # Start from where the cart is standing if the route passes through it,
+        # rather than sending it out empty to the far end first.
+        here = self.at or self.home
+        self.leg = next((i for i, s in enumerate(stops) if s.node == here), 0)
+
+    def start(self) -> None:
+        self.running = bool(self.route)
+
+    def halt(self) -> None:
+        self.running = False
+
+
+class TradeEngine:
+    """Moves caravans and settles their deals against the world's markets."""
+
+    def __init__(self, world, rng: random.Random) -> None:
+        self.world = world
+        self.rng = rng
+        # Its own stream, for the reason above: the carrying roll happens on
+        # every visit to every market, so taking it off the trade RNG would
+        # move every price in the game.
+        #
+        # Seeded independently rather than off `rng`, because drawing even
+        # one number out of the world's stream to seed this one shifts
+        # every seeded outcome behind it -- which is the same bug one layer
+        # up, and it cost the siege guard a seed twice in an hour. The
+        # engine hands it a real seed after construction.
+        self.pest = random.Random(20260915)
+        self.season = "spring"      # the engine sets this each day
+        # And these, for the water. A cart and a host crossing the same ford
+        # on the same morning are told the same thing -- see world.water_days.
+        self.day = 0
+        self.seed = 0
+        self.start_month = C.START_MONTH
+        # The water's own stream, for the same reason the sickness has one:
+        # a new subsystem drawing out of an existing one shifts every seeded
+        # outcome behind it. Fourth time in this codebase. The engine hands
+        # it a real seed after construction.
+        self.spate = random.Random(20260916)
+
+    # ------------------------------------------------------------------ day
+    def tick(self, caravans: List[Caravan], treasury: float) -> Tuple[float, List[str]]:
+        """Advance every caravan a day. Returns (new treasury, messages)."""
+        msgs: List[str] = []
+        for c in caravans:
+            treasury -= c.daily_cost
+            self._refresh_stats(c)
+            if c.state == MOVING:
+                treasury, m = self._travel(c, treasury)
+                msgs += m
+            if c.state in (IDLE, TRADING) and c.running:
+                treasury, m = self._at_stop(c, treasury)
+                msgs += m
+        return treasury, msgs
+
+    def _refresh_stats(self, c: Caravan) -> None:
+        home = self.world.settlements.get(c.home)
+        if c.sails:
+            c.capacity = C.SHIP_CAPACITY
+            c.speed = C.SHIP_SPEED
+            return
+        if home:
+            c.capacity = C.CARAVAN_BASE_CAPACITY + home.effect("caravan_capacity")
+            c.speed = C.CARAVAN_BASE_SPEED + home.effect("caravan_speed")
+
+    def _travel(self, c: Caravan, treasury: float) -> Tuple[float, List[str]]:
+        msgs: List[str] = []
+        c.days_left -= 1.0
+        origin = c.at or c.home
+        if c.sails:
+            # The sea does not care how many guards you hired.
+            risk = self.world.storm_risk(origin, c.bound_for, self.season)
+        else:
+            risk = self.world.danger(origin, c.bound_for)
+            risk *= max(0.0, 1.0 - C.GUARD_PROTECTION * c.guards)
+        if self.rng.random() < risk:
+            lost_value = 0.0
+            take = 0.25 + 0.35 * self.rng.random()
+            for k in list(c.cargo):
+                lost = c.cargo[k] * take
+                c.cargo[k] -= lost
+                mk = self.world.market_of(c.bound_for)
+                lost_value += lost * (mk.bid(k) if mk else good(k).base_price)
+            if c.sails:
+                msg = (f"{c.name} met foul weather off "
+                       f"{self.world.node_name(c.bound_for)}: "
+                       f"{lost_value:.0f}c of cargo over the side")
+            else:
+                treasury -= 60.0 * self.rng.random() * c.guards
+                msg = (f"{c.name} was set upon on the road to "
+                       f"{self.world.node_name(c.bound_for)}: "
+                       f"{lost_value:.0f}c of goods gone")
+            c.note(msg)
+            msgs.append(msg)
+        if c.days_left <= 0:
+            c.at = c.bound_for
+            c.bound_for = ""
+            c.state = TRADING
+        return treasury, msgs
+
+    def _spill(self, c: Caravan, a: str, b: str) -> List[str]:
+        """What the drover loses for crossing water he should have waited on.
+
+        A cart does not decide to wait -- the player decides that, by not
+        running the route, or by building the bridge. So the cost of a bad
+        crossing has to be paid by the cart that makes it, or high water is
+        only ever a delay and delay alone is something a standing route
+        absorbs without the player ever looking at it.
+        """
+        msgs: List[str] = []
+        for row in self.world.water_state(a, b, self.day, self.seed,
+                                          self.start_month):
+            odds = waters.SPILL.get(row["state"], 0.0)
+            if odds <= 0.0 or self.spate.random() >= odds:
+                continue
+            take = 0.15 + 0.30 * self.spate.random()
+            lost = 0.0
+            for k in list(c.cargo):
+                gone = c.cargo[k] * take
+                c.cargo[k] -= gone
+                mk = self.world.market_of(b)
+                lost += gone * (mk.bid(k) if mk else good(k).base_price)
+            msg = (f"{c.name} lost {lost:.0f}c in the {row['river']} "
+                   f"getting over it")
+            c.note(msg)
+            msgs.append(msg)
+        return msgs
+
+    def _sick_at(self, node: str):
+        """The sickness in a place, wherever the world keeps it."""
+        place = (self.world.settlements.get(node)
+                 or self.world.towns.get(node))
+        return getattr(place, "sick", None)
+
+    def _shut(self, node: str) -> bool:
+        """Gates somebody has closed. Yours, and only yours.
+
+        Foreign towns were made to shut their own when they fell ill, which
+        sounds right and is self-defeating: a market nobody can trade in is
+        a market nobody can catch anything at, so the sickness could never
+        leave the town it started in. News travels slower than carts, and
+        that is exactly why it spread -- your drovers are in that market a
+        fortnight before anybody in it admits what is wrong.
+        """
+        s = self.world.settlements.get(node)
+        return bool(s is not None and getattr(s, "shut", False))
+
+    def _ringed(self, node: str) -> bool:
+        """Is this one of your towns with an army sitting round it?"""
+        s = self.world.settlements.get(node)
+        return bool(s and s.besieged)
+
+    def _at_stop(self, c: Caravan, treasury: float) -> Tuple[float, List[str]]:
+        """Do the day's business where the cart is standing, then set off."""
+        msgs: List[str] = []
+        if not c.route:
+            c.running = False
+            return treasury, msgs
+        here = c.at or c.home
+        c.at = here
+        # The ring is closed: nothing goes in and nothing comes out. This is
+        # the whole of a siege -- the stores in the town are what the
+        # defender has, and the besieger's work is to outlast them. Without
+        # it a cart hauls the granary out through the lines (which is what
+        # used to happen, and it starved the town the player was defending),
+        # or hauls a fresh one in, which makes a siege impossible to lose.
+        # A shut gate stops a cart exactly as a closed ring does, and that
+        # is the point of shutting it: the sickness travels on traffic, so
+        # the only way to stop the sickness is to stop the traffic. It costs
+        # what it is worth.
+        if self._shut(here) or self._ringed(here):
+            if not c.stalled:
+                c.stalled = True
+                why = ("the gates are shut" if self._shut(here)
+                       else "the lines are closed")
+                msgs.append(f"{c.name} stands idle at "
+                            f"{self.world.node_name(here)} -- {why}")
+            c.state = IDLE
+            return treasury, msgs
+        if c.stalled:
+            c.stalled = False
+            msgs.append(f"{c.name} takes the road again out of "
+                        f"{self.world.node_name(here)}")
+        stop = c.route[c.leg % len(c.route)]
+        if stop.node == here:
+            treasury, m = self._do_business(c, stop, treasury)
+            msgs += m
+            c.leg = (c.leg + 1) % len(c.route)
+        nxt = c.route[c.leg % len(c.route)]
+        if nxt.node == here:
+            c.state = IDLE          # standing orders: it works this stop again tomorrow
+            return treasury, msgs
+        if c.sails and not self.world.can_sail(here, nxt.node):
+            c.running = False
+            msgs.append(f"{c.name} cannot sail to "
+                        f"{self.world.node_name(nxt.node)} -- there is no harbour there")
+            return treasury, msgs
+        dist = (self.world.sea_distance(here, nxt.node) if c.sails
+                else self.world.distance(here, nxt.node))
+        c.bound_for = nxt.node
+        c.days_left = max(1.0, dist / max(c.speed, 1.0))
+        # What the water adds, judged the morning the cart sets off rather
+        # than the morning it reaches the bank. That is a simplification and
+        # it is the right one: departure is when the drover knows anything,
+        # and a ford that changed its mind halfway would be a forecast the
+        # player was shown and then not given.
+        if not c.sails:
+            extra, notes = self.world.water_days(
+                here, nxt.node, self.day, self.seed, self.start_month)
+            c.wet = list(notes)
+            if extra:
+                c.days_left += extra
+                # The state and the price of it in one line. "The Perry is
+                # running high" on its own is scenery; with the day and a
+                # half attached it is a reason to build something.
+                lost = ("a day lost" if extra < 1.5
+                        else f"{extra:.0f} days lost")
+                msgs.append(f"{c.name}: " + "; ".join(notes) +
+                            f" -- {lost} on the road to "
+                            f"{self.world.node_name(nxt.node)}")
+            msgs += self._spill(c, here, nxt.node)
+        c.state = MOVING
+        return treasury, msgs
+
+    def _do_business(self, c: Caravan, stop: Stop, treasury: float) -> Tuple[float, List[str]]:
+        msgs: List[str] = []
+        market: Optional[Market] = self.world.market_of(stop.node)
+        if market is None:
+            return treasury, msgs
+        moved_qty = 0.0
+        mine = self.world.is_mine(stop.node)
+        tariff = self.world.tariff_for(stop.node, None)
+        market.tariff_rate = 0.0 if mine else tariff
+        gross = 0.0
+
+        for o in stop.sell:
+            have = c.cargo.get(o.good, 0.0)
+            qty = have if o.quantity < 0 else min(have, o.quantity)
+            if qty <= 1e-6:
+                continue
+            if mine:
+                # Unloading into your own stores: no coin changes hands.
+                moved_qty += qty
+                market.transfer_in(o.good, qty)
+                c.cargo[o.good] = have - qty
+                c.note(f"unloaded {qty:.0f} {good(o.good).name} at {market.name}")
+                continue
+            fill = market.sell_to(o.good, qty, min_price=o.limit_price or None)
+            if fill.quantity <= 1e-6:
+                continue
+            moved_qty += fill.quantity
+            c.cargo[o.good] = have - fill.quantity
+            proceeds = fill.value - fill.tariff
+            treasury += proceeds
+            gross += proceeds
+            c.note(f"sold {fill.quantity:.0f} {good(o.good).name} at {market.name} "
+                   f"for {proceeds:.0f}c ({fill.avg_price:.2f}/u)")
+
+        for o in stop.buy:
+            space = c.free_space / max(good(o.good).weight, 1e-6)
+            # "Buy 80 wool" means *hold* eighty, not buy eighty more every lap.
+            # Without this a standing order quietly averages down into a hold
+            # full of something nobody on the route will take back.
+            carried = c.cargo.get(o.good, 0.0)
+            qty = space if o.quantity < 0 else min(o.quantity - carried, space)
+            if qty <= 1e-6:
+                continue
+            if mine:
+                # The limit price is your standing order not to strip your own
+                # stores: once the good is dear at home, the cart leaves without it.
+                moved = market.transfer_out(o.good, qty, o.limit_price or None)
+                moved_qty += moved
+                if moved > 1e-6:
+                    c.cargo[o.good] = c.cargo.get(o.good, 0.0) + moved
+                    c.note(f"loaded {moved:.0f} {good(o.good).name} at {market.name}")
+                elif o.limit_price:
+                    c.note(f"{good(o.good).name} too dear at {market.name} to carry off")
+                continue
+            fill = market.buy_from(o.good, qty, max_price=o.limit_price or None,
+                                   budget=max(0.0, treasury))
+            if fill.quantity <= 1e-6:
+                continue
+            moved_qty += fill.quantity
+            c.cargo[o.good] = c.cargo.get(o.good, 0.0) + fill.quantity
+            outlay = fill.value + fill.tariff
+            treasury -= outlay
+            gross -= outlay
+            c.spent += outlay
+            c.note(f"bought {fill.quantity:.0f} {good(o.good).name} at {market.name} "
+                   f"for {outlay:.0f}c ({fill.avg_price:.2f}/u)")
+
+        # A route wears out: once your own trips have closed the gap, the
+        # stops stop being worth the wheels. Trivial business counts as none.
+        # What else the cart is carrying. A visit to a sick market is how
+        # this gets anywhere -- see plague.py -- so it is counted here,
+        # where the business actually happened, rather than anywhere a
+        # cart merely passed by.
+        if moved_qty > 0 and not mine:
+            there = self._sick_at(stop.node)
+            if there is not None and there.here and plague.caught(self.pest):
+                c.carrying_it = stop.node
+                msgs.append(f"{c.name} traded at {market.name}, "
+                            f"and they are ill there")
+        c.dry_stops = 0 if moved_qty > 0.12 * c.capacity else c.dry_stops + 1
+        if c.dry_stops >= 2 * max(1, len(c.route)):
+            c.running = False
+            c.dry_stops = 0
+            msgs.append(f"{c.name}'s route is worked out -- it stands idle "
+                        f"at {market.name}")
+        c.trip_profit += gross
+        c.total_profit += gross
+        if abs(gross) > 1:
+            msgs.append(f"{c.name} at {market.name}: {gross:+.0f}c")
+        # Tidy dust so the manifest stays readable.
+        for k in list(c.cargo):
+            if c.cargo[k] <= 1e-4:
+                del c.cargo[k]
+        return treasury, msgs
+
+
+def caravan_to_dict(c: Caravan) -> dict:
+    d = {k: v for k, v in c.__dict__.items()
+         if k not in ("route", "cargo", "log", "wet")}
+    d["wet"] = list(c.wet)
+    d["route"] = [s.to_dict() for s in c.route]
+    d["cargo"] = dict(c.cargo)
+    d["log"] = list(c.log[-10:])
+    return d
+
+
+def caravan_from_dict(d: dict) -> Caravan:
+    # A copy, because this reads a save and must not eat it: loading the
+    # same dict twice used to give a second game whose carts had no cargo,
+    # no route and no memory -- the first load had popped them out.
+    d = dict(d)
+    route = [Stop.from_dict(s) for s in d.pop("route", [])]
+    cargo = dict(d.pop("cargo", {}))
+    log = list(d.pop("log", []))
+    wet = list(d.pop("wet", []))
+    c = Caravan(**d)
+    c.route, c.cargo, c.log, c.wet = route, cargo, log, wet
+    return c

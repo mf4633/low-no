@@ -1,0 +1,200 @@
+"""Tunable constants. One place, so balance is a diff and not an archaeology dig."""
+
+from __future__ import annotations
+
+# --- calendar ---------------------------------------------------------------
+DAYS_PER_MONTH = 30
+MONTHS_PER_YEAR = 12
+DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR
+START_YEAR = 1247
+START_MONTH = 3            # you take the seat in spring, not in a snowdrift
+
+SEASON_OF_MONTH = {
+    1: "winter", 2: "winter", 3: "spring", 4: "spring", 5: "spring",
+    6: "summer", 7: "summer", 8: "summer", 9: "autumn", 10: "autumn",
+    11: "autumn", 12: "winter",
+}
+# Field yield by season. Winter is the whole reason granaries exist.
+FIELD_YIELD = {"winter": 0.35, "spring": 0.90, "summer": 1.40, "autumn": 1.15}
+# Orchards are a harvest, not a flow.
+ORCHARD_YIELD = {"winter": 0.00, "spring": 0.20, "summer": 1.10, "autumn": 2.30}
+
+# --- livestock --------------------------------------------------------------
+#
+# The yards that keep beasts, and how many a full one keeps. The picture
+# draws these, the pasture's yield is scaled by them, and a raid takes them:
+# one list, so what you can see and what you are paid cannot disagree.
+HERD_FULL = {"sheep_farm": 7, "dairy": 4, "stable": 3}
+#: Head a worked yard breeds back per day. A ewe is not a sack of wheat --
+#: measured against HERD_FULL this is about a season and a half to restock a
+#: pasture from empty, which is what makes a raid worth being angry about
+#: long after the riders have gone.
+HERD_BREEDS = 0.055
+#: And the share of what is standing that a day of raiding drives off. Over
+#: the dozen days a raid tends to last that is most of a flock, and it is
+#: the part of a raid that outlives it.
+HERD_DRIVEN = 0.22
+#: And what a yard you have shut loses a day. Nobody is watching them: they
+#: stray, they are lifted, and the weak ones are not pulled through. Slower
+#: than breeding, so a yard left alone drifts down rather than collapsing --
+#: which keeps the thing worth seeing, that a pasture standing at half its
+#: head is a pasture nobody has been working.
+HERD_STRAYS = 0.022
+#: Below this share of its complement a yard cannot breed back at all --
+#: there is no flock left to breed from, and it has to be restocked by hand.
+#: See GameState.restock: a rule that a flock cannot recover is only fair if
+#: there is a way to pay for one, and the first cut of this had the rule and
+#: not the lever, which is a pasture a raid destroys for good.
+HERD_SEED = 0.12
+#: Coin a head, to buy beasts in. Dear enough that losing a flock hurts and
+#: cheap enough that a raid is a bill rather than the end of a pasture.
+HERD_PRICE = {"sheep_farm": 34.0, "dairy": 62.0, "stable": 110.0}
+
+# --- labour and money -------------------------------------------------------
+WAGE = 2.5                  # coins per employed worker per day
+# Note: every base price in goods.py was set against this number. Move it and
+# you move the margin on every trade in the game at once.
+WORKING_FRACTION = 0.55     # share of population available for jobs
+# Tax is deliberately thin. A population is labour, not a revenue farm: it
+# costs more to feed than it ever pays in coin, and the profit has to come off
+# the back of a cart. Fatten these and the game turns into a tax-slider idler.
+TAX_LEVELS = {              # coins per head per day, and the mood it moves
+    -2: (-0.80, +14.0),     # largesse: you pay them
+    -1: (-0.35, +8.0),
+    0: (0.00, +3.0),
+    1: (0.45, -1.0),
+    2: (0.85, -3.5),
+    3: (1.35, -7.0),
+    4: (2.10, -13.0),
+}
+# What a rate actually collects, as a share of what it asks for.
+#
+# Mankiw's chapter on the costs of taxation, made into a dial: a tax is not a
+# lever on revenue, it is a lever on *behaviour*, and a heavy one changes the
+# thing it is taxing. People work less of the day that is taxed away, they
+# trade over the wall instead of in the market, and the reeve's books get
+# creative. So the take per head falls as the rate climbs, and total revenue
+# has a peak somewhere in the middle rather than at the end.
+#
+# Without this the dial had one usable setting out of seven: cruel collected
+# four times what normal did, and the only thing stopping it being the obvious
+# answer was that the win also wants souls.
+# Nothing leaks until a rate is worth evading, which also keeps the tuned
+# middle of the game exactly where it was: this economy runs thin enough that
+# three per cent off the tax roll compounds into half the net worth over three
+# years, so the middle bands are left alone on purpose.
+TAX_COMPLIANCE = {
+    -2: 1.00, -1: 1.00, 0: 1.00,
+    1: 1.00,            # light: nobody bothers hiding this
+    2: 1.00,            # normal: the rate the books were written for
+    3: 0.76,            # heavy: the first real evasion
+    4: 0.44,            # cruel: more than half of it never reaches you
+}
+TAX_LABELS = {-2: "largesse", -1: "gifts", 0: "none", 1: "light",
+              2: "normal", 3: "heavy", 4: "cruel"}
+
+# --- population -------------------------------------------------------------
+RATION_LEVELS = {           # food units per head per day, and the mood it buys
+    0: (0.00, -18.0),       # none
+    1: (0.10, -6.0),        # half
+    2: (0.20, +0.0),        # normal
+    3: (0.28, +6.0),        # generous
+    4: (0.36, +10.0),       # double
+}
+RATION_LABELS = {0: "none", 1: "half", 2: "normal", 3: "generous", 4: "double"}
+FOOD_VARIETY_BONUS = 3.0    # mood per distinct ration good eaten beyond the first
+ALE_MOOD = 15.0                 # mood at full ale coverage (Stronghold's alehouses)
+FAITH_MOOD = 12.0               # mood at full religious coverage
+LORD_MOOD = 4.0                 # a lord in residence, and the want of one
+COMFORT_RATE = 0.020        # comfort goods per head per day when available
+COMFORT_BONUS = 4.0         # mood per comfort good supplied in full
+LUXURY_RATE = 0.004         # luxuries per head per day
+LUXURY_BONUS = 5.0
+CROWDING_PENALTY = 25.0     # mood lost when housing is exactly at capacity+
+UNPAID_WAGE_PENALTY = 20.0  # mood lost on a day wages could not be met
+
+POPULARITY_START = 55.0
+POPULARITY_INERTIA = 0.25   # how fast mood tracks conditions (per day)
+MIGRATION_RATE = 0.010      # share of headroom that moves per day at full swing
+UNREST_THRESHOLD = 18.0     # below this, work all but stops
+UNREST_PRODUCTIVITY = 0.15  # a riot is not quite a vacuum -- recovery stays possible
+BASE_HOUSING = 25.0         # the old village core, roof included
+
+# Productivity as a function of popularity: 0.60 at 0, 1.00 at 50, 1.40 at 100.
+PRODUCTIVITY_FLOOR = 0.60
+PRODUCTIVITY_SLOPE = 0.008
+
+# --- markets ----------------------------------------------------------------
+PRICE_ADJUST = 0.20         # posted price convergence toward fundamentals per day
+PRICE_FLOOR_MULT = 0.25     # price cannot fall below this multiple of base
+PRICE_CEIL_MULT = 6.00
+SPREAD = 0.10               # round-trip cost of dealing, halved on each side
+MARKET_LOT = 3.0            # trades walk the curve in lots this size
+STOCK_REVERSION = 0.06      # foreign stock drifts back toward target per day
+BASE_STORAGE = 600.0        # units a settlement can hold before spillage
+SPILL_RATE = 0.10           # share of the overflow lost each day
+
+# --- trade ------------------------------------------------------------------
+CARAVAN_BASE_CAPACITY = 150.0   # cart units
+CARAVAN_BASE_SPEED = 32.0       # leagues per day
+CARAVAN_COST = 300.0            # coins to outfit
+CARAVAN_UPKEEP = 4.0            # coins per day, whether it moves or not
+GUARD_COST = 3.0                # coins per guard per day
+GUARD_PROTECTION = 0.22         # share of banditry removed per guard
+SHIP_COST = 900.0               # coins to build and rig a cog
+SHIP_CAPACITY = 420.0           # a hull holds what four carts hold
+SHIP_SPEED = 60.0               # sea leagues per day
+SHIP_UPKEEP = 11.0              # coins per day, crew and caulking
+SEA_DIRECTNESS = 0.80           # sea miles against land miles between two ports
+STORM_RISK = 0.018              # per sailing day in fair season
+STORM_WINTER = 3.0              # and how much worse the winter sea is
+BASE_TARIFF = 0.06              # foreign toll on both sides of a deal
+TRADING_POST_TARIFF_RELIEF = 0.45
+
+# --- military ---------------------------------------------------------------
+LETHALITY = 1.15                # how bloody one round of a battle is
+SIEGE_ATTRITION = 0.16          # share of a round's fire that lands during a siege
+SIEGE_HUNGER = 0.55             # what a besieged town still manages to produce
+RAID_SORTIE = 0.55              # how hard a sortie bites when the garrison comes out
+RAID_LOOT = 0.09                # share of a store a full raid carries off in a day
+RAID_FLIGHT = 0.012             # share of the people driven off the land daily
+RAID_PROSPERITY = 0.035         # prosperity a full day's raid costs a town
+RAID_LOOT_COIN = 260.0          # coin a full day's raid brings home
+RAID_TORCH = 0.10               # odds a day's raid puts a torch to something
+CONVERT_PER_FRIAR = 0.9         # men a friar talks over in a day, unopposed
+CONVERT_CEILING = 0.04          # never more than this share of a garrison a day
+BLOCKADE_HUNGER = 0.80          # and what it manages with the roads cut too
+RAID_BASE_CHANCE = 0.004        # per settlement per day, scaled by year
+RAID_LOOT_FRACTION = 0.18
+HOSTILITY_DRIFT = 0.30          # per day, per town; scales with how rich you look
+HOSTILITY_WAR = 100.0           # at this, a lord marches
+AMBITION_DRIFT = 0.30           # per day, per town, toward its neighbours
+REVOLT_CHANCE = 0.006           # per day, for a vassal you cannot overawe
+GIFT_PER_COIN = 0.012           # hostility a coin of tribute buys off
+TRUCE_RATE = 9.0                # coins per day of bought peace, per muster
+TRIBUTE_BASE = 22.0             # coins per day from a town that has bent the knee
+TRIBUTE_PER_WEALTH = 14.0
+
+# --- victory ----------------------------------------------------------------
+GOAL_NET_WORTH = 120000.0
+GOAL_POPULATION = 450
+GOAL_DAYS = 3 * DAYS_PER_YEAR
+GOAL_TOWNS = 3              # towns sworn to you for a dominion victory
+GOAL_RELICS = 4             # relics held for a reliquary victory
+RELIC_DAYS = 6             # days a host must stand at a shrine to lift one
+RELIC_HOLD_DAYS = 120      # days you must keep them to win by them
+RELIC_COIN = 42.0          # pilgrims' offerings, per relic per day
+BANKRUPTCY_FLOOR = -3000.0
+
+# --- the house ---------------------------------------------------------------
+# A marriage is the only lasting peace in the game: a truce runs out and a
+# gift is forgotten, but a daughter in Ostmark is still there in five years.
+DOWRY_BASE = 1_400.0            # scaled by the town's muster and prosperity
+MARRIAGE_FAVOUR = 70.0          # standing goodwill the match buys outright
+MARRIAGE_COOLING = 35.0         # and how much of his temper it takes off today
+MARRIAGE_TRUCE = 240            # days nobody marches on kin
+
+# --- the mint ----------------------------------------------------------------
+# MV = PY. What a debasement raises today it takes back in prices, and the only
+# question a player ever gets to answer is how badly they need it today.
+MINT_LIMIT = 20_000.0           # the most that can be struck in one order

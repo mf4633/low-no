@@ -1,0 +1,1428 @@
+"""A settlement you own: land, labour, buildings, walls, and the people you feed.
+
+Order of a day, from the settlement's point of view:
+    staff the buildings -> produce -> feed the people -> pay and tax ->
+    spoil and spill -> mend the walls -> take the mood -> let people come or go.
+
+Two things here are load-bearing and easy to miss. Soldiers are drawn from the
+same population that works the fields, so an army is paid for twice. And a
+quarry or a mine works a *seam*: the hill under a settlement holds a finite
+amount of stone and iron, and when it is gone the sheds stand idle for good.
+"""
+
+from __future__ import annotations
+
+import math
+import random
+from dataclasses import dataclass, field
+from typing import ClassVar, Dict, List, Optional, Tuple
+
+from . import config as C
+from .buildings import BUILDINGS, Building, building
+from .fire import Fires, burn, hands_wanted
+from . import culture as cultures
+from . import keep as keeps
+from .goods import ALL_KEYS, COMFORT_GOODS, LUXURY_GOODS, RATION_GOODS, good
+from .market import Market
+from .plague import Sickness
+from . import plague
+from .military import UNITS, describe, host_size, host_strength, host_upkeep
+from .tech import NO_PROGRESS, Progress
+
+
+
+def stepped(share: float) -> float:
+    """Coverage in whole quarters: 0.25, 0.5, 0.75 or 1.0, rounded down."""
+    return math.floor(min(1.0, max(0.0, share)) * 4 + 1e-9) / 4
+
+@dataclass
+class BuildingInstance:
+    uid: int
+    key: str
+    days_left: int = 0          # construction remaining
+    enabled: bool = True
+    staffed: int = 0            # workers actually present today
+    throughput: float = 0.0     # 0..1, what it managed to run at today
+    idle_reason: str = ""
+    #: Head of livestock standing in this yard, for the yards that keep any
+    #: -- see HERDS. Real stock rather than a number for the picture: what a
+    #: pasture makes is what its flock makes, so a flock driven off is a
+    #: pasture that yields nothing until it is bred back up.
+    #:
+    #: -1 means "not stocked yet": a yard that has just been finished fills
+    #: to its complement rather than starting empty, because you bought a
+    #: pasture and not a field.
+    head: float = -1.0
+    #: Days running this shed has stood with an input it has none of. After
+    #: a couple the queue stops seating hands at it -- see `_can_work` -- so
+    #: a mill with no grain is not paying six men to stand at a cold stone.
+    dry_days: int = 0
+    #: This morning's claim on hands, and the words for it -- see
+    #: Settlement.demand. Worked out at seating; not saved.
+    demand: float = 0.0
+    demand_note: str = ""
+
+    @property
+    def spec(self) -> Building:
+        return BUILDINGS[self.key]
+
+    @property
+    def complete(self) -> bool:
+        return self.days_left <= 0
+
+    @property
+    def worked(self) -> bool:
+        """Is somebody at this shed -- the one reading the picture draws from.
+
+        Yesterday's output, or hands seated since: a shed you just pinned
+        hands at is being worked this minute, and the figure walking over
+        to it must not wait for tomorrow's ledger to say so.
+        """
+        return self.complete and self.enabled and (self.throughput > 0.05 or self.staffed > 0)
+
+    def to_dict(self) -> dict:
+        return {"uid": self.uid, "key": self.key, "days_left": self.days_left,
+                "enabled": self.enabled, "head": self.head,
+                "dry_days": self.dry_days,
+                # Who was at work here: the queue gives a man already at a
+                # bench a reason to stay, so a loaded town must know it.
+                "staffed": self.staffed}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "BuildingInstance":
+        return cls(uid=d["uid"], key=d["key"], days_left=d["days_left"],
+                   enabled=d.get("enabled", True),
+                   head=float(d.get("head", -1.0)),
+                   dry_days=int(d.get("dry_days", 0)),
+                   staffed=int(d.get("staffed", 0)))
+
+
+@dataclass
+class DayReport:
+    """Everything that happened in one settlement on one day."""
+    produced: Dict[str, float] = field(default_factory=dict)
+    consumed: Dict[str, float] = field(default_factory=dict)
+    eaten: Dict[str, float] = field(default_factory=dict)
+    spoiled: Dict[str, float] = field(default_factory=dict)
+    wages: float = 0.0
+    upkeep: float = 0.0
+    taxes: float = 0.0
+    unpaid: bool = False
+    hunger: float = 0.0         # share of the ration that went unserved
+    variety: int = 0
+    migration: float = 0.0
+    repaired: float = 0.0
+    notes: List[str] = field(default_factory=list)
+    # The yards as they stood when the day began, so "since yesterday" is
+    # the pile's own difference rather than a sum of the flows somebody
+    # remembered to count. None until a day has run since the game was made
+    # or read back, and then there is no yesterday to compare with.
+    opened: Optional[Dict[str, float]] = None
+
+
+@dataclass
+class Settlement:
+    name: str
+    terrain: Dict[str, int]
+    market: Market
+    population: float = 120.0
+    popularity: float = C.POPULARITY_START
+    ration_level: int = 2
+    tax_level: int = 2
+    buildings: List[BuildingInstance] = field(default_factory=list)
+    units: Dict[str, float] = field(default_factory=dict)   # the garrison
+    wall_hp: float = 0.0
+    deposits: Dict[str, float] = field(default_factory=dict)
+    besieged: bool = False
+    #: Whether the masons are working the breach while it is being made. Off
+    #: by default because it is expensive: see `_mend_walls`.
+    shoring: bool = False
+    #: How many times this town has opened its gate and gone at the works.
+    #: A besieger who has seen it once is watching for it after that, which
+    #: is most of what stops a sortie being a button you press every siege.
+    sorties: int = 0
+    priority: Dict[str, int] = field(default_factory=dict)
+    #: Hands you have put at a shed by name: building uid -> hands. A pin is
+    #: a floor under the queue -- pinned sheds are seated first, newest pin
+    #: first, and the bands share whatever is left. It exists because a
+    #: figure in the picture is eight hands at a shed, and the only honest
+    #: thing "send him over there" can mean is moving eight hands.
+    pins: Dict[int, int] = field(default_factory=dict)
+    #: The other half of "send him over there": the shed he left. A cap is a
+    #: ceiling the queue may not fill past -- building uid -> hands -- set
+    #: when hands are moved off a shed, because without it the queue seats
+    #: the next hands straight back into the gap and the figure you sent
+    #: stays standing where it was while a ghost of it walks away.
+    caps: Dict[int, int] = field(default_factory=dict)
+    #: Hands you walked off their work to stand somewhere, and that the
+    #: queue is therefore not to seat anywhere else. An RTS villager you
+    #: move away from the woodpile stands where you put him until you give
+    #: him something to do; without this the queue sat him down at the next
+    #: shed with a gap and the man you moved vanished from where you put him.
+    resting: int = 0
+    fires: Fires = field(default_factory=Fires)
+    fire_labour: float = 0.0  # hands pulled off work to fight it
+    plague_labour: float = 0.0  # and hands too ill, or busy burying
+    blockaded: bool = False   # the roads are cut: no cart comes or goes
+    #: The walls after a storm thrown back from them -- see ForeignTown.hardened.
+    hardened: float = 0.0
+    raided: bool = False      # somebody is burning the country outside
+    lord_home: bool = False   # your lord keeps his hall here today
+    lord_lost: bool = False   # and nobody at all keeps it
+    steward_mood: float = 0.0  # what whoever governs here is worth, set daily
+    assize_mood: float = 0.0   # cheap bread, or the queue for it: set daily
+    raid_pressure: float = 0.0   # how much of it they got through today
+    raid_heat: float = 0.0       # raiding done here, toward the next roof
+    #: The sickness, if there is one, and the day it will have burnt out.
+    #: See plague.py -- it arrives on a cart that traded somewhere ill.
+    sick: Sickness = field(default_factory=Sickness)
+    #: Your own gates, shut by you. It stops the carts, which stops the
+    #: sickness and stops the income together: that is the decision.
+    shut: bool = False
+    #: The day the last sickness went out, so a hub does not catch it again
+    #: off its own carts the week after burying everybody.
+    last_sick: int = -9999
+    #: Everybody this town has ever buried of the sickness. Kept apart from
+    #: `sick.dead`, which goes when the sickness does.
+    buried: float = 0.0
+    next_uid: int = 1
+    report: DayReport = field(default_factory=DayReport)
+    #: The castle as it was drawn, if anybody drew one. Empty means nobody
+    #: has, and the steward's default ring stands instead -- see `works`.
+    castle: keeps.Castle = field(default_factory=keeps.Castle)
+    #: What this place is built out of. A property of the ground, not of the
+    #: player: see culture.py. Empty means nobody has said, and the renderer
+    #: falls back to the March.
+    culture: str = ""
+
+    _exposed: List[int] = field(default_factory=list)
+    _exposed_mark: tuple = ()
+    #: Yesterday's comfort and luxury, read by this morning's mood. Declared
+    #: rather than sprung into existence mid-tick, because a field that only
+    #: exists after the first day is a field nobody remembers to save.
+    _comfort_score: float = 0.0
+    _luxury_score: float = 0.0
+
+    # ------------------------------------------------------------------ land
+    def slots_used(self, terrain: str) -> int:
+        return sum(1 for b in self.buildings if b.spec.terrain == terrain)
+
+    def slots_free(self, terrain: str) -> int:
+        return max(0, self.terrain.get(terrain, 0) - self.slots_used(terrain))
+
+    # --------------------------------------------------------------- effects
+    def effect(self, name: str) -> float:
+        return sum(b.spec.effects.get(name, 0.0)
+                   for b in self.buildings if b.complete)
+
+    def count(self, key: str) -> int:
+        return sum(1 for b in self.buildings if b.key == key)
+
+    def housing(self, mods: Progress = NO_PROGRESS) -> float:
+        return (C.BASE_HOUSING + self.effect("housing")) * mods.mult("housing")
+
+    def storage(self, mods: Progress = NO_PROGRESS) -> float:
+        return C.BASE_STORAGE + self.effect("storage") + mods.bonus("storage")
+
+    def wall_max(self, mods: Progress = NO_PROGRESS) -> float:
+        return self.effect("wall") * mods.mult("wall")
+
+    # ----------------------------------------------------------- the castle
+    def idiom(self) -> "cultures.Culture":
+        """What this place builds in. Named rather than stored raw so the
+        renderer, the console and the map all read the same answer."""
+        return cultures.culture(self.culture or cultures.DEFAULT)
+
+    def plan(self) -> "keeps.Castle":
+        """The castle as it stands: what you drew, or the steward's ring.
+
+        Nobody is obliged to draw anything. A player who never touches `wall`
+        gets the square his steward would have laid, sized to the wall he has
+        bought and the town he has to fit inside it -- which is exactly the
+        ring this game drew before the wall was a drawing. Drawing one yard
+        yourself takes the pen off him for good.
+        """
+        if self.castle.drawn:
+            keeps.trim(self.buildings, self.castle)
+            return self.castle
+        return keeps.default_castle(
+            self.buildings,
+            want_inside=1 + sum(1 for b in self.buildings
+                                if b.spec.terrain in ("urban", "rampart")
+                                and b.key != "keep"))
+
+    def take_the_pen(self) -> "keeps.Castle":
+        """Start drawing, from whatever is standing.
+
+        The first yard you lay yourself has to begin from the ring the steward
+        laid, or `wall` would be a command that knocks your castle down and
+        puts one stone back. After that it is yours and he stops rearranging
+        it behind you.
+        """
+        if not self.castle.drawn:
+            self.castle = self.plan().copy()
+        self.castle.own = True
+        return self.castle
+
+    def sheltered(self) -> bool:
+        """Whether the keep is actually behind the wall. A ring with a hole in
+        it is a fence."""
+        return keeps.shut(self.plan())
+
+    def yards(self) -> int:
+        return self.plan().yards
+
+    def per_yard(self) -> float:
+        """Men to the yard of wall. The number that decides whether a wall is
+        held or merely owned, and the price of enclosing the whole valley.
+
+        Heads, not strength: a wall-walk is manned by bodies standing on it,
+        and forty spearmen hold a hundred yards exactly as badly as forty
+        knights would. What they are worth once somebody reaches them is the
+        fight's business, not the wall's.
+        """
+        r = self.plan().yards
+        return host_size(self.units) / r if r else 0.0
+
+    def defense(self, mods: Progress = NO_PROGRESS) -> float:
+        works = self.effect("defense") * mods.mult("defense")
+        return works + host_strength(self.units)
+
+    @property
+    def fear(self) -> float:
+        return self.effect("fear")
+
+    @property
+    def caravan_slots(self) -> int:
+        return int(self.effect("caravan_slots"))
+
+    @property
+    def tariff_relief(self) -> float:
+        posts = self.effect("tariff_relief")
+        return 1.0 - (1.0 - C.TRADING_POST_TARIFF_RELIEF) ** posts if posts else 0.0
+
+    @property
+    def spread(self) -> float:
+        return max(0.03, C.SPREAD + self.effect("spread"))
+
+    @property
+    def soldiers(self) -> int:
+        return host_size(self.units)
+
+    @property
+    def workforce(self) -> int:
+        """Soldiers do not reap. Every man under arms is a man out of the fields."""
+        return max(0, int(self.population * C.WORKING_FRACTION) - self.soldiers)
+
+    @property
+    def jobs_offered(self) -> int:
+        return sum(b.spec.jobs for b in self.buildings if b.complete and b.enabled)
+
+    @property
+    def employed(self) -> int:
+        return sum(b.staffed for b in self.buildings)
+
+    def productivity(self, mods: Progress = NO_PROGRESS) -> float:
+        if self.popularity < C.UNREST_THRESHOLD:
+            return C.UNREST_PRODUCTIVITY
+        base = C.PRODUCTIVITY_FLOOR + C.PRODUCTIVITY_SLOPE * self.popularity
+        base += 0.035 * self.fear + mods.bonus("productivity")
+        if self.besieged:
+            base *= C.SIEGE_HUNGER
+        if self.blockaded:
+            base *= C.BLOCKADE_HUNGER
+        if self.raid_pressure:
+            # You cannot reap a field with horsemen in it.
+            base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
+        if self.fire_labour and self.workforce:
+            # The bucket chain is made of the people who were working.
+            base *= max(0.25, 1.0 - self.fire_labour / self.workforce)
+        if self.plague_labour and self.workforce:
+            # And so are the ones too ill to stand and the ones digging.
+            base *= max(0.25, 1.0 - self.plague_labour / self.workforce)
+        return max(0.0, base)
+
+    # ------------------------------------------------------------ build/raze
+    def can_build(self, key: str, mods: Progress = NO_PROGRESS) -> Tuple[bool, str]:
+        spec = building(key)
+        if spec.age > mods.age:
+            from .tech import AGES
+            return False, f"{spec.name} waits on the {AGES[spec.age].name}"
+        if key == "keep" and self.count("keep"):
+            return False, f"{self.name} already has a keep"
+        if self.slots_free(spec.terrain) <= 0:
+            where = {"urban": "room inside", "rampart": "wall line left at"}.get(
+                spec.terrain, f"free {spec.terrain} land at")
+            return False, f"no {where} {self.name}"
+        for k, qty in spec.build_cost.items():
+            if k == "coin":
+                continue
+            if self.market.stock.get(k, 0.0) < qty:
+                return False, (f"{self.name} needs {qty:g} {good(k).name} "
+                               f"(has {self.market.stock.get(k, 0.0):.0f})")
+        return True, ""
+
+    def start_build(self, key: str) -> BuildingInstance:
+        spec = building(key)
+        for k, qty in spec.build_cost.items():
+            if k != "coin":
+                self.market.take(k, qty)
+        inst = BuildingInstance(uid=self.next_uid, key=key, days_left=spec.build_days)
+        self.next_uid += 1
+        self.buildings.append(inst)
+        return inst
+
+    def demolish(self, uid: int) -> Optional[BuildingInstance]:
+        self.pins.pop(uid, None)
+        self.caps.pop(uid, None)
+        for i, b in enumerate(self.buildings):
+            if b.uid == uid:
+                for k, qty in b.spec.build_cost.items():
+                    if k != "coin" and b.complete:
+                        self.market.add(k, qty * 0.4)
+                if b.complete:
+                    self.wall_hp = max(0.0, self.wall_hp - b.spec.effects.get("wall", 0.0))
+                return self.buildings.pop(i)
+        return None
+
+    def find(self, uid: int) -> Optional[BuildingInstance]:
+        return next((b for b in self.buildings if b.uid == uid), None)
+
+    # ---------------------------------------------------------------- a day
+    TARGET_SCALE: ClassVar[Dict[str, float]] = {"food": 0.45, "drink": 0.30, "raw": 0.55, "material": 0.45,
+                    "finished": 0.20, "luxury": 0.06}
+
+    def update_market_targets(self) -> None:
+        """Your own market prices stock against your own town's appetite."""
+        for k in ALL_KEYS:
+            scale = self.TARGET_SCALE.get(good(k).category, 0.3)
+            self.market.target[k] = max(25.0, scale * self.population)
+
+    def tick(self, season: str, rng: random.Random,
+             mods: Progress = NO_PROGRESS, day: int = 0) -> DayReport:
+        prev = getattr(self, "report", None)
+        # A report with nothing in it is the blank one a loaded town starts
+        # with; what it made the day it was saved is carried separately.
+        self._made_yesterday = (dict(prev.produced) if prev is not None and prev.produced
+                                else dict(getattr(self, "_made_carry", {})))
+        self._made_carry = {}
+        rep = DayReport()
+        self.report = rep
+        self.update_market_targets()
+        self.market.spread = self.spread
+        self._season_now = season
+        self.hardened = max(0.0, self.hardened - 2.0)
+        self._advance_construction()
+        self._staff_buildings()
+        self._produce(season, rep, mods)
+        self._feed(rep)
+        self._comforts(rep)
+        self._spoil(rep, mods)
+        self._burn(rep, season, rng)
+        self._sicken(rep, day)
+        self._herds(rep)
+        self._stand_down(rep)
+        self._mend_walls(rep, mods)
+        rep.taxes = self._taxes()
+        rep.wages, rep.upkeep = self._labour_bill()
+        return rep
+
+    def max_garrison(self) -> int:
+        """The most this town can keep under arms.
+
+        One place, because two readers of the same rule that disagree by a
+        percentage point make a treadmill: the bot recruited to its own cap,
+        the town sent the excess back to the fields, and it recruited them
+        again the next morning -- paying for the same men over and over until
+        it could not afford an age or a second settlement.
+        """
+        return int(int(self.population * C.WORKING_FRACTION)
+                   * self.GARRISON_SHARE)
+
+    def _stand_down(self, rep: DayReport) -> None:
+        """Send men back to the fields when there are not the people to
+        keep them under arms.
+
+        A lord does not get to hold a garrison his town cannot feed. They
+        are the same men: past this share there is nobody left to reap, and
+        a town with nobody reaping dies whatever else is true of it.
+
+        Not under siege, though. The argument for sending men back is that
+        the fields need them, and a town with a host camped round it has no
+        fields to go back to -- the country outside the wall is the enemy's.
+        Sending the wall-walk home because the ring has killed people is the
+        exact opposite of what the men are for, and it took the siege
+        scenario from a coin flip to nought in six.
+        """
+        if self.besieged:
+            return
+        over = self.soldiers - self.max_garrison()
+        if over <= 0:
+            return
+        sent = 0.0
+        total = float(self.soldiers)
+        for key in sorted(self.units, key=lambda k: -self.units[k]):
+            if sent >= over:
+                break
+            take = min(self.units[key], over * (self.units[key] / total))
+            self.units[key] -= take
+            sent += take
+        self.units = {k: v for k, v in self.units.items() if v >= 0.5}
+        if sent >= 1:
+            rep.notes.append(
+                f"{self.name}: {sent:.0f} of the garrison go back to the "
+                f"fields -- there are not the people to keep them under arms")
+
+    def _sicken(self, rep: DayReport, day: int) -> None:
+        """A day of the sickness: the dead, and the work nobody did.
+
+        The dead come off the population rather than out of the housing, so
+        a town that loses a third of its people is a town with empty roofs
+        and no hands -- which is what it looked like, and is why the years
+        after were the ones with the wage rises in them.
+        """
+        if not self.sick.here:
+            self.plague_labour = 0.0
+            return
+        if day >= self.sick.until:
+            # Keep the count before the record of it goes. Reading the toll
+            # off `sick.dead` after the sickness had ended reported every
+            # outbreak in the game as having killed nobody.
+            buried = self.sick.dead
+            self.buried += buried
+            self.sick = Sickness()
+            self.last_sick = day
+            self.plague_labour = 0.0
+            rep.notes.append(
+                f"{self.name}: the sickness has gone out. It took "
+                f"{buried:.0f} of them.")
+            return
+        gone = min(self.population, plague.toll(self.population,
+                                                self.housing()))
+        self.population = max(0.0, self.population - gone)
+        # It does not spare the men on the wall. They are drawn from these
+        # same people, so a sickness that took only civilians would leave a
+        # town of nobody defended by a garrison of everybody.
+        if self.soldiers and self.population > 0:
+            share = gone / max(self.population + gone, 1.0)
+            for key in list(self.units):
+                self.units[key] = max(0.0, self.units[key] * (1.0 - share))
+            self.units = {k: v for k, v in self.units.items() if v >= 0.5}
+        self.sick.dead += gone
+        # And the ones still on their feet are burying them.
+        self.plague_labour = plague.IDLE * self.workforce
+
+    def _advance_construction(self) -> None:
+        for b in self.buildings:
+            if not b.complete:
+                b.days_left -= 1
+                if b.complete:
+                    self.wall_hp += b.spec.effects.get("wall", 0.0)
+
+    #: Where a building stands in the queue for hands. The queue is the whole
+    #: game once a town has more jobs than people, which happens early and
+    #: never stops happening -- there is no order that serves everything.
+    BANDS: ClassVar[Dict[str, int]] = {"first": 2, "early": 1, "normal": 0, "late": -1, "last": -2}
+
+    def band(self, key: str) -> int:
+        return self.priority.get(key, 0)
+
+    def set_band(self, key: str, band: str) -> str:
+        if band not in self.BANDS:
+            return f"no such standing: {', '.join(self.BANDS)}"
+        if self.BANDS[band] == 0:
+            self.priority.pop(key, None)
+        else:
+            self.priority[key] = self.BANDS[band]
+        return f"{BUILDINGS[key].name} will be given hands {band}"
+
+    def _staff_buildings(self) -> None:
+        for b in self.buildings:
+            b.throughput = 0.0
+        self._seat_hands()
+
+    def _seat_hands(self) -> None:
+        """Put the day's hands at the sheds. Pins first, then the queue.
+
+        Split from `_staff_buildings` so a pin can be seated the moment it
+        is made -- the figure you sent walks over now, not tomorrow --
+        without zeroing the throughput the morning already worked out.
+        """
+        self.resting = max(0, min(self.resting, self.workforce))
+        pool = self.workforce - self.resting
+        # Who was working where before this seating: the hands already at a
+        # shed keep a claim on it, so the queue does not reshuffle the whole
+        # town every morning over a point of difference.
+        was = {b.uid: b.staffed for b in self.buildings}
+        want = self.demand()
+        for b in self.buildings:
+            b.staffed = 0
+            b.idle_reason = ""
+            b.demand, b.demand_note = self._shed_demand(b, want, was.get(b.uid, 0))
+            if not (b.complete and b.enabled):
+                b.idle_reason = "building" if not b.complete else "closed"
+        # The sheds you named, before anything else. Newest pin first: the
+        # last order you gave is the one you meant.
+        for uid, want in self.pins.items():
+            b = self.find(uid)
+            if b is None or not (b.complete and b.enabled):
+                continue
+            take = min(b.spec.jobs, want, self.caps.get(uid, want), pool)
+            b.staffed = take
+            pool -= take
+        # Hands go out in the order you asked for them, and within a band in
+        # the order the sheds were raised. Whatever is at the back gets what
+        # is left, which is usually nothing.
+        #
+        # Two things the queue used to get wrong. It seated hands at sheds
+        # that could not work -- a mill with no grain, a field in winter, a
+        # pit with nothing left in it -- and paid them to stand there. And
+        # it filled the first of two twin sheds to the last place before the
+        # second got anybody, so three mills short of hands meant one full
+        # mill and two cold ones rather than three turning slowly.
+        queue = []
+        # Within a band, the shed whose goods the town is shortest of goes
+        # first -- 0 A.D.'s rule, wanted over made -- and only then the order
+        # the sheds were raised in.
+        for b in sorted(self.buildings,
+                        key=lambda b: (-self.band(b.key), -b.demand, b.uid)):
+            if not (b.complete and b.enabled):
+                continue
+            why = self._cannot_work(b)
+            if why and b.uid not in self.pins:
+                b.idle_reason = why
+                continue
+            queue.append(b)
+        done = set()
+        for b in queue:
+            if b.uid in done:
+                continue
+            band = self.band(b.key)
+            twins = [x for x in queue if x.key == b.key and self.band(x.key) == band
+                     and x.uid not in done]
+            done.update(x.uid for x in twins)
+            room = {x.uid: max(0, min(x.spec.jobs, self.caps.get(x.uid, x.spec.jobs))
+                               - x.staffed) for x in twins}
+            total = sum(room.values())
+            if total <= pool:
+                give = dict(room)
+            else:
+                # Share the hands out in proportion to the places, and the
+                # odd ones left over to the oldest sheds first.
+                give = {u: int(pool * r / total) if total else 0 for u, r in room.items()}
+                left = pool - sum(give.values())
+                for x in twins:
+                    if left <= 0:
+                        break
+                    if give[x.uid] < room[x.uid]:
+                        give[x.uid] += 1
+                        left -= 1
+            for x in twins:
+                x.staffed += give[x.uid]
+                pool -= give[x.uid]
+                cap = min(x.spec.jobs, self.caps.get(x.uid, x.spec.jobs))
+                if x.uid in self.caps and x.staffed >= cap:
+                    x.idle_reason = "hands sent elsewhere" if not x.staffed else ""
+                elif x.staffed < x.spec.jobs:
+                    x.idle_reason = "short of hands"
+
+    #: What a shed that was worked yesterday is worth over one that was not,
+    #: in the same units as `demand`. Petra will not move a worker for less
+    #: than half again; this is the same reluctance.
+    STAY = 0.25
+
+    def demand(self) -> Dict[str, float]:
+        """How short the town is of each good, as a share of what it wants:
+        0 at its mark, 1 with none at all, below 0 when it has more than it
+        needs. A good nobody made yesterday and the town is short of counts
+        half again -- the empty job goes first, the way the AoE AIs send
+        the next villager to the resource nobody is gathering."""
+        made = getattr(self, "_made_yesterday", {}) or {}
+        out: Dict[str, float] = {}
+        for k in ALL_KEYS:
+            tgt = self.market.target.get(k, 0.0)
+            if tgt <= 0:
+                continue
+            short = (tgt - self.market.stock.get(k, 0.0)) / tgt
+            short = max(-1.0, min(1.0, short))
+            if short > 0 and made.get(k, 0.0) <= 0:
+                short *= 1.5
+            out[k] = short
+        return out
+
+    def _shed_demand(self, b: "BuildingInstance", want: Dict[str, float],
+                     had: int) -> Tuple[float, str]:
+        """A shed's claim on hands: the most-wanted thing it makes, and why."""
+        outs = [k for k in b.spec.outputs if k in want]
+        if not outs:
+            score, note = 0.3, ""
+        else:
+            k = max(outs, key=lambda k: want[k])
+            score = want[k]
+            note = (f"{good(k).name.lower()}: {score:.0%} short" if score > 0
+                    else f"{good(k).name.lower()}: plenty")
+        if had > 0:
+            score += self.STAY
+        return score, note
+
+    #: How many mornings running a shed may find an input missing before the
+    #: queue stops sending hands to it. One is not enough: the grain a mill
+    #: grinds today can be the grain a field brought in today.
+    DRY_DAYS = 2
+
+    def _cannot_work(self, b: "BuildingInstance") -> str:
+        """Why this shed could not work today even with every place filled,
+        or '' if it could. Asked before hands are seated, so the reason is
+        known without paying anybody to find it out."""
+        spec = b.spec
+        if not spec.jobs:
+            return ""
+        season = getattr(self, "_season_now", "")
+        if season and spec.season and self._season_multiplier(spec, season) <= 0:
+            return "out of season"
+        if spec.draws and self.deposits.get(spec.draws, 1.0) <= 0.0:
+            return "the seam is worked out"
+        if C.HERD_FULL.get(b.key, 0) and 0 <= b.head < 1e-6:
+            return "no beasts"
+        if b.dry_days >= self.DRY_DAYS:
+            short = [k for k, need in spec.inputs.items()
+                     if self.market.stock.get(k, 0.0) < need * 0.25]
+            if short:
+                return f"no {good(short[0]).name}"
+            b.dry_days = 0
+        return ""
+
+    def pin_hands(self, uid: int, hands: int) -> str:
+        """Put so many hands at one shed, ahead of the queue; 0 frees them.
+
+        Capped at what the shed can use -- a mill with six places is a mill
+        with six places however many people you point at it -- and seated
+        at once, so the picture answers the order it was given.
+        """
+        b = self.find(uid)
+        if b is None:
+            return "no such building"
+        name = b.spec.name
+        if hands <= 0:
+            capped = self.caps.pop(uid, None) is not None
+            if self.pins.pop(uid, None) is None and not capped:
+                return f"nobody was pinned at the {name}"
+            self._seat_hands()
+            return f"the hands at the {name} go back into the queue"
+        if not b.spec.jobs:
+            return f"the {name} has no work for hands"
+        if not b.complete:
+            return f"the {name} is not built yet"
+        if not b.enabled:
+            return f"the {name} is closed -- open it first"
+        want = min(int(hands), b.spec.jobs)
+        # Asking for hands at a shed is also taking back the order that sent
+        # them away from it.
+        self.caps.pop(uid, None)
+        # Re-insert at the front: the newest order outranks the older pins.
+        self.pins.pop(uid, None)
+        self.pins = {uid: want, **self.pins}
+        self._seat_hands()
+        note = ""
+        if want < hands:
+            note = f" -- all it can use"
+        if b.staffed < want:
+            note += (f"; only {b.staffed} could be found, "
+                     f"{self.name} has {self.workforce} hands in all")
+        return f"{want} hands pinned at the {name}{note}"
+
+    def move_hands(self, uid: int, hands: int,
+                   sources: Optional[Dict[int, int]] = None) -> str:
+        """Send hands to a shed *from* the sheds they were standing at.
+
+        A pin alone says where hands go, not where they come from: the queue
+        takes them off whatever is at the back of it, and the shed whose
+        figure you pointed at is refilled at once. So the figure stays put
+        and only the walk is drawn. This is the whole order -- the hands
+        added at `uid` on top of what it has, and each source held down by
+        what it gave. Hands with no source are the idle ones.
+        """
+        b = self.find(uid)
+        if b is None:
+            return "no such building"
+        name = b.spec.name
+        if not b.spec.jobs:
+            return f"the {name} has no work for hands"
+        if not b.complete:
+            return f"the {name} is not built yet"
+        if not b.enabled:
+            return f"the {name} is closed -- open it first"
+        sources = {s: n for s, n in (sources or {}).items() if s != uid and n > 0}
+        room = b.spec.jobs - b.staffed
+        if room <= 0 or hands <= 0:
+            return f"the {name} already has all {b.spec.jobs} hands it can use"
+        moving = min(int(hands), room)
+        left = moving
+        emptied = []
+        for s, n in sources.items():
+            src = self.find(s)
+            if src is None or left <= 0:
+                continue
+            take = min(n, src.staffed, left)
+            if take <= 0:
+                continue
+            hold = src.staffed - take
+            self.caps[s] = hold
+            if s in self.pins:
+                self.pins[s] = min(self.pins[s], hold)
+                if not self.pins[s]:
+                    del self.pins[s]
+            left -= take
+            if not hold:
+                emptied.append(src)
+        self.caps.pop(uid, None)
+        self.pins.pop(uid, None)
+        self.pins = {uid: b.staffed + moving, **self.pins}
+        # Hands that came from nowhere came from the ones standing about --
+        # first those you had told to stand somewhere.
+        if left > 0:
+            self.resting = max(0, self.resting - left)
+        self._seat_hands()
+        # Today's output is already made; what is left of today is whether
+        # anybody is standing there, and nobody is.
+        for src in emptied:
+            if not src.staffed:
+                src.throughput = 0.0
+        note = f" -- all it had room for" if moving < hands else ""
+        if emptied:
+            note += "; the " + ", the ".join(x.spec.name for x in emptied) + " stands empty"
+        return f"{b.staffed} hands at the {name} now{note}"
+
+    def rest_hands(self, uid: int, hands: int) -> str:
+        """Take hands off a shed to stand about -- the other half of a
+        right-click on open ground. The shed is held down to what is left,
+        as a move holds it, and the hands are kept out of the queue until
+        they are given work again."""
+        b = self.find(uid)
+        if b is None:
+            return "no such building"
+        take = max(0, min(int(hands), b.staffed))
+        if not take:
+            return f"nobody is working at the {b.spec.name}"
+        hold = b.staffed - take
+        self.caps[uid] = hold
+        if uid in self.pins:
+            self.pins[uid] = min(self.pins[uid], hold)
+            if not self.pins[uid]:
+                del self.pins[uid]
+        self.resting += take
+        self._seat_hands()
+        if not b.staffed:
+            b.throughput = 0.0
+        return (f"{take} hands leave the {b.spec.name} and stand where you "
+                f"put them")
+
+    def _season_multiplier(self, spec: Building, season: str) -> float:
+        if spec.season == "field":
+            return C.FIELD_YIELD[season]
+        if spec.season == "orchard":
+            return C.ORCHARD_YIELD[season]
+        return 1.0
+
+    def _tech_multiplier(self, spec: Building, mods: Progress) -> float:
+        if spec.draws:
+            return mods.mult("yield_mine")
+        if spec.season:
+            return mods.mult("yield_field")
+        if spec.category == "industry":
+            return mods.mult("yield_craft")
+        return 1.0
+
+    def _herds(self, rep: DayReport) -> None:
+        """The beasts: bred back when the yard is worked, driven off in a raid.
+
+        The reason this is stock rather than scenery. A raid used to cost
+        exactly as long as it lasted -- output fell while horsemen were in
+        the fields and was back to the day rate the morning they left -- so
+        the one thing everybody knows about a raid, that they went away with
+        your animals, was the one thing it did not do. Now they do, and a
+        pasture yields what its flock yields, so the bill arrives for a
+        season after the riders have gone.
+        """
+        for b in self.buildings:
+            full = C.HERD_FULL.get(b.key, 0)
+            if not full or not b.complete:
+                continue
+            if b.head < 0:
+                b.head = float(full)      # you bought a pasture, not a field
+                continue
+            if self.raided and self.raid_pressure > 0:
+                gone = b.head * C.HERD_DRIVEN * min(1.0, self.raid_pressure)
+                if gone >= 0.05:
+                    b.head = max(0.0, b.head - gone)
+                    rep.notes.append(
+                        f"{self.name}: {gone:.0f} head driven off the "
+                        f"{b.spec.name.lower()}")
+                continue
+            if not b.enabled:
+                # Shut by you. Nobody is watching them, so they stray, they
+                # are lifted, and the weak ones are not pulled through -- a
+                # pasture standing at half its head is one you turned off,
+                # and you can see that from the wall without a number.
+                #
+                # Only when it is shut, not merely short-handed today. Tied
+                # to `staffed` this bled a flock away over a long game: a
+                # town where labour is always short leaves a yard unmanned
+                # on plenty of mornings, and at that rate a pasture nobody
+                # had touched was empty inside two years.
+                b.head = max(0.0, b.head - C.HERD_STRAYS * full)
+                continue
+            if not b.staffed:
+                continue                  # short-handed today; they keep
+            if b.head < full * C.HERD_SEED:
+                continue                  # nothing left to breed from
+            b.head = min(float(full), b.head + C.HERD_BREEDS * full)
+
+    def _produce(self, season: str, rep: DayReport, mods: Progress) -> None:
+        prod = self.productivity(mods)
+        for b in self.buildings:
+            spec = b.spec
+            if not (b.complete and b.enabled) or not (spec.inputs or spec.outputs):
+                continue
+            if self.fires.burning(b.uid):
+                b.idle_reason = "on fire"
+                continue
+            staff_ratio = (b.staffed / spec.jobs) if spec.jobs else 1.0
+            scale = (staff_ratio * prod * self._season_multiplier(spec, season)
+                     * self._tech_multiplier(spec, mods))
+            # A pasture makes what its flock makes.
+            full = C.HERD_FULL.get(b.key, 0)
+            if full:
+                scale *= max(0.0, min(1.0, b.head / full)) if b.head >= 0 else 1.0
+                if scale <= 1e-9:
+                    b.idle_reason = "no beasts"
+            if scale <= 0:
+                if prod <= 0:
+                    b.idle_reason = "unrest"
+                elif spec.season:
+                    b.idle_reason = "out of season"
+                continue
+            if spec.draws and self.deposits.get(spec.draws, 0.0) <= 0.0:
+                b.idle_reason = "the seam is worked out"
+                continue
+            dry = False
+            for k, need in spec.inputs.items():
+                want = need * scale
+                if want > 0:
+                    have = self.market.stock.get(k, 0.0)
+                    if have < want:
+                        scale = min(scale, have / need if need else 0.0)
+                        b.idle_reason = f"no {good(k).name}"
+                        dry = dry or have < need * 0.25
+            b.dry_days = b.dry_days + 1 if dry else 0
+            if scale <= 1e-9:
+                continue
+            for k, need in spec.inputs.items():
+                used = self.market.take(k, need * scale)
+                rep.consumed[k] = rep.consumed.get(k, 0.0) + used
+            for k, out in spec.outputs.items():
+                made = out * scale
+                if spec.draws == k:
+                    left = self.deposits.get(k, 0.0)
+                    made = min(made, left)
+                    # Deep shafts do not add ore; they waste less of it.
+                    self.deposits[k] = max(0.0, left - made / mods.mult("deposit_yield"))
+                    if self.deposits[k] <= 0:
+                        rep.notes.append(f"{self.name}: the {good(k).name.lower()} "
+                                         f"seam is worked out")
+                self.market.add(k, made)
+                rep.produced[k] = rep.produced.get(k, 0.0) + made
+            b.throughput = scale
+
+    def _feed(self, rep: DayReport) -> None:
+        per_head, _mood = C.RATION_LEVELS[self.ration_level]
+        need = per_head * self.population
+        if need <= 0:
+            return
+        # `need` counts rations, not units: a unit of cheese feeds more than a
+        # unit of raw wheat, which is why the bread chain is worth its wages.
+        pool = {k: self.market.stock.get(k, 0.0) for k in RATION_GOODS}
+        on_hand = sum(pool[k] * good(k).nourish for k in pool)
+        if on_hand <= 0:
+            rep.hunger = 1.0
+            return
+        served = 0.0
+        # Eat proportionally to what is on hand, so the perishable pile does not
+        # sit there rotting while the bread runs out.
+        for k, have in pool.items():
+            if have <= 0:
+                continue
+            want_units = need * (have * good(k).nourish / on_hand) / good(k).nourish
+            got = self.market.take(k, min(want_units, have))
+            if got > 0:
+                rep.eaten[k] = got
+                served += got * good(k).nourish
+        shortfall = need - served
+        if shortfall > 1e-6:
+            for k in RATION_GOODS:
+                if shortfall <= 1e-6:
+                    break
+                got = self.market.take(k, shortfall / good(k).nourish)
+                if got > 0:
+                    rep.eaten[k] = rep.eaten.get(k, 0.0) + got
+                    served += got * good(k).nourish
+                    shortfall -= got * good(k).nourish
+        rep.hunger = max(0.0, 1.0 - served / need)
+        rep.variety = sum(1 for k, v in rep.eaten.items()
+                          if v * good(k).nourish > need * 0.08)
+
+    def _comforts(self, rep: DayReport) -> None:
+        self._comfort_score = 0.0
+        for k in COMFORT_GOODS:
+            want = C.COMFORT_RATE * self.population
+            got = self.market.take(k, want)
+            if got > 0:
+                rep.consumed[k] = rep.consumed.get(k, 0.0) + got
+                self._comfort_score += (got / want) if want else 0.0
+        self._luxury_score = 0.0
+        for k in LUXURY_GOODS:
+            want = C.LUXURY_RATE * self.population
+            got = self.market.take(k, want)
+            if got > 0:
+                rep.consumed[k] = rep.consumed.get(k, 0.0) + got
+                self._luxury_score += (got / want) if want else 0.0
+
+    #: Odds on a day that something catches by itself. Ovens, kilns and
+    #: charcoal heaps are what a town burns down around.
+    #: The most of its working people a town can keep under arms. Soldiers
+    #: are drawn from the same population that works the fields -- the note
+    #: at the top of this file -- so a garrison raised for a big town is a
+    #: garrison a small town cannot feed, and past a point it is a garrison
+    #: that leaves nobody in the fields at all.
+    #:
+    #: That is not a corner case, it is a cliff, and it was here long before
+    #: anything that kills people in bulk. A town of 216 souls with 79 under
+    #: arms has 39 hands left; halve the town and the same 79 leaves it
+    #: *zero*. Nothing is produced, the granary empties, hunger pins at 1.00,
+    #: and the place starves to four souls over the following year -- with
+    #: no message anywhere saying that the reason nobody is farming is the
+    #: garrison. Any plague, famine, siege or bad raid finds this the same
+    #: way.
+    GARRISON_SHARE = 0.6
+
+    SPARK_ODDS = 0.00025
+
+    #: How much raiding it takes to put a roof up, counted as days-times-
+    #: pressure. `kindle` has said "used by accident, by raiders, and by
+    #: sieges" since it was written and nothing on the raiding side ever
+    #: called it: a host could work over eighty-eight per cent of your
+    #: country for a fortnight, the game would print "the country is
+    #: burning" every few days, and not one thatch went up. The only way a
+    #: roof ever caught was a hearth spark, which is a coincidence rather
+    #: than a consequence.
+    #:
+    #: Counted rather than rolled, so a fortnight of it burns two or three
+    #: roofs every time instead of none on an unlucky stream.
+    RAID_TORCH = 3.5
+
+    def hearths(self) -> int:
+        return sum(1 for b in self.buildings if b.complete
+                   and b.spec.key in ("bakery", "kiln", "smelter", "brewery",
+                                      "charcoal_burner", "blacksmith",
+                                      "armourer", "sawmill"))
+
+    def outside_the_wall(self) -> List[int]:
+        """The uids of everything standing where the wall does not reach.
+
+        A town does not stop growing when its wall stops, so what will not fit
+        stands in the field -- and a raider who finds a brewery outside the
+        gate does not go looking for one inside it. This is the whole cost of
+        drawing a small castle, and it is the reason `castle` names them.
+        """
+        from .layout import plan_for
+        # Laying the whole town out costs about as much as three game days,
+        # and a fire asks this question at the worst possible moment. The
+        # answer only changes when the buildings or the drawing do, so it is
+        # kept against exactly that.
+        mark = (tuple(b.uid for b in self.buildings if b.complete),
+                tuple(sorted(self.castle.pieces.items())))
+        if self._exposed_mark != mark:
+            plan = plan_for(self)
+            inside = set(plan.inside)
+            # Workshops only. A farm belongs outside, and a length of wall
+            # stands on the wall line, which is outside the ground it shuts
+            # in by definition -- counting either as "left in the field" made
+            # every castle look like a disaster.
+            self._exposed = [b.uid for b in plan.buildings
+                             if b.terrain == "urban"
+                             and (b.x, b.y) not in inside]
+            self._exposed_mark = mark
+        return list(self._exposed)
+
+    def kindle(self, rng: random.Random, n: int = 1, *, exclude_walls: bool = True
+               ) -> List[str]:
+        """Set fire to something. Used by accident, by raiders, and by sieges."""
+        out: List[str] = []
+        options = [b for b in self.buildings
+                   if b.complete and not self.fires.burning(b.uid)
+                   and not (exclude_walls and b.spec.terrain == "rampart")]
+        rng.shuffle(options)
+        # Whatever is standing outside the wall is what catches. Not a rule
+        # bolted on: it is where the man with the torch already is.
+        exposed = set(self.outside_the_wall())
+        options.sort(key=lambda b: 0 if b.uid in exposed else 1)
+        for b in options[:max(0, n)]:
+            if self.fires.light(b.uid):
+                out.append(f"{self.name}: the {b.spec.name} is alight")
+        return out
+
+    def _burn(self, rep: DayReport, season: str, rng: random.Random) -> None:
+        # Something lit by itself, in proportion to how many fires the town
+        # keeps going in order to be worth living in.
+        hearth = self.hearths()
+        if hearth and rng.random() < self.SPARK_ODDS * hearth:
+            rep.notes.extend(self.kindle(rng))
+        # And raiders carry torches, which is the whole of what a raid is
+        # for beyond the stealing.
+        if self.raided and self.raid_pressure > 0:
+            self.raid_heat += self.raid_pressure
+            while self.raid_heat >= self.RAID_TORCH:
+                self.raid_heat -= self.RAID_TORCH
+                rep.notes.extend(self.kindle(rng))
+        elif self.raid_heat:
+            self.raid_heat = max(0.0, self.raid_heat - 0.5)
+        if not self.fires:
+            self.fire_labour = 0.0
+            return
+        # Everyone who can be spared goes at it, and "spared" means taken off
+        # whatever they were doing. That is the real cost of a fire: you pay it
+        # in a day's work whether or not the building is saved.
+        # A town does not fight a fire with its payroll: everyone runs at it,
+        # which is why the response scales with the blaze instead of hitting a
+        # ceiling and falling off a cliff. What it cannot do is find more than
+        # about half of itself, and past that point the fire is winning.
+        # Two different quantities, and conflating them is what turns a fire
+        # into a death spiral. How much water gets thrown is a question about
+        # the whole town -- everybody runs at a fire, not just the payroll. How
+        # much *work* is lost is a question about the workforce, and it has to
+        # be bounded: a town that stops working entirely never recovers, so the
+        # fire takes a bite out of the day rather than the day itself.
+        want = min(hands_wanted(len(self.fires.blazes)), 0.5 * self.population)
+        idle = max(0.0, self.workforce - self.employed)
+        self.fire_labour = min(0.40 * self.workforce, max(0.0, want - idle))
+        standing = [(b.uid, b.spec.build_cost, b.complete) for b in self.buildings]
+        lost, scarred, lines = burn(self.fires, standing, hands=want,
+                                    season=season, rng=rng)
+        for uid, share in scarred.items():
+            b = self.find(uid)
+            if b is not None and b.complete:
+                b.days_left = max(1, int(b.spec.build_days * share))
+                rep.notes.append(f"{self.name}: the {b.spec.name} is saved, "
+                                 f"but wants {b.days_left} days' work")
+        for uid in lost:
+            b = self.find(uid)
+            if b is not None:
+                rep.notes.append(f"{self.name}: the {b.spec.name} burns to the ground")
+                if b.spec.terrain == "rampart":
+                    self.wall_hp = max(0.0, self.wall_hp
+                                       - b.spec.effects.get("wall", 0.0))
+                self.buildings.remove(b)
+        rep.notes.extend(f"{self.name}: {ln}" for ln in lines)
+
+    def _spoil(self, rep: DayReport, mods: Progress) -> None:
+        preserve = (1.0 - min(0.75, self.effect("preserve"))) * mods.mult("spoilage")
+        for k in ALL_KEYS:
+            rate = good(k).spoilage * preserve
+            if rate <= 0:
+                continue
+            lost = self.market.stock[k] * rate
+            if lost > 1e-9:
+                self.market.stock[k] -= lost
+                rep.spoiled[k] = lost
+        cap = self.storage(mods)
+        over = self.market.total_units() - cap
+        if over > 0:
+            total = self.market.total_units()
+            for k in ALL_KEYS:
+                share = self.market.stock[k] / total if total else 0.0
+                lost = over * share * C.SPILL_RATE
+                self.market.stock[k] = max(0.0, self.market.stock[k] - lost)
+                if lost > 1e-6:
+                    rep.spoiled[k] = rep.spoiled.get(k, 0.0) + lost
+            rep.notes.append(f"{self.name}: stores overflowing, {over:.0f} units past capacity")
+
+    #: What a day's masonry does to a wall nobody is shooting at, as a share
+    #: of the whole.
+    MEND_RATE = 0.03
+    #: And under fire. Shoring a breach while a siege train works on it is
+    #: slower, dearer in stone, and costs men -- but it is a *lever*, and
+    #: before it existed a besieged defender had none at all: the wall only
+    #: ever went down, recruiting could not close the gap, and the outcome of
+    #: every siege was decided before the player did anything.
+    SHORE_RATE = 0.017
+    SHORE_STONE = 1.9            # times the peacetime stone, per yard mended
+    #: Men lost per yard of wall actually shored. Charged against the work
+    #: rather than against the day, because a flat daily toll on the garrison
+    #: was a slow execution: 0.4% of seventy-four men a day is fifty-nine of
+    #: them over a siege, so shoring killed the defenders it was meant to
+    #: save and doing nothing beat doing something.
+    SHORE_TOLL = 0.02
+
+    def _mend_walls(self, rep: DayReport, mods: Progress) -> None:
+        top = self.wall_max(mods)
+        if self.wall_hp >= top:
+            self.wall_hp = min(self.wall_hp, top)
+            return
+        if self.besieged and not self.shoring:
+            return
+        under_fire = bool(self.besieged)
+        rate = self.SHORE_RATE if under_fire else self.MEND_RATE
+        per_yard = (9.0 / self.SHORE_STONE) if under_fire else 9.0
+        want = min(top - self.wall_hp, top * rate)
+        stone = self.market.take("stone", want / per_yard)
+        if stone <= 0:
+            if under_fire:
+                rep.notes.append(f"{self.name}: no stone left to shore with")
+            return
+        self.wall_hp = min(top, self.wall_hp + stone * per_yard)
+        rep.repaired = stone * per_yard
+        if under_fire:
+            # Masons on a wall somebody is shooting at -- and only while
+            # there is stone to put up there.
+            lost = min(sum(self.units.values()) * 0.004,
+                       stone * self.SHORE_TOLL)
+            if lost >= 0.5:
+                for key in list(self.units):
+                    self.units[key] = max(0.0, self.units[key]
+                                          - lost * self.units[key]
+                                          / max(1.0, sum(self.units.values())))
+            rep.notes.append(
+                f"{self.name}: {rep.repaired:.0f} of wall shored up under fire")
+
+    def _taxes(self) -> float:
+        """What the reeve brings in, which is not what the rate asks for.
+
+        A tax is a lever on behaviour before it is a lever on revenue. At a
+        heavy rate the day that is taxed away stops being worked, goods go
+        over the wall instead of through the market, and the books get
+        creative -- so the take per head falls as the rate climbs and total
+        revenue peaks somewhere in the middle. A rate you cannot collect is
+        not a rate.
+        """
+        rate, _mood = C.TAX_LEVELS[self.tax_level]
+        if rate <= 0:
+            return rate * self.population          # largesse is always paid
+        return rate * self.population * C.TAX_COMPLIANCE.get(self.tax_level, 1.0)
+
+    def tax_take(self, band: Optional[int] = None) -> float:
+        """What a band would bring in here today, so bands can be compared."""
+        was = self.tax_level
+        if band is not None:
+            self.tax_level = band
+        try:
+            return self._taxes()
+        finally:
+            self.tax_level = was
+
+    def _labour_bill(self) -> Tuple[float, float]:
+        wages = C.WAGE * self.employed
+        upkeep = sum(b.spec.upkeep for b in self.buildings if b.complete)
+        upkeep += host_upkeep(self.units)
+        return wages, upkeep
+
+    def coverage(self, effect: str, needs_running: bool = False) -> float:
+        """What fraction of the town a class of building actually reaches.
+
+        Stronghold's real dial, and the reason a growing town keeps buying the
+        same building again: reach is per house, and the population is not.
+        """
+        reach = 0.0
+        for b in self.buildings:
+            if not b.complete:
+                continue
+            per = b.spec.effects.get(effect, 0.0)
+            if not per:
+                continue
+            if needs_running and b.throughput <= 0:
+                continue        # a dry inn serves nobody
+            reach += per
+        return min(1.0, reach / max(1.0, self.population))
+
+    # ----------------------------------------------------------------- mood
+    def mood_factors(self, mods: Progress = NO_PROGRESS) -> List[Tuple[str, float]]:
+        rep = self.report
+        out: List[Tuple[str, float]] = []
+        _, ration_mood = C.RATION_LEVELS[self.ration_level]
+        out.append(("rations", ration_mood))
+        if rep.hunger > 0.01:
+            out.append(("hunger", -40.0 * rep.hunger))
+        if rep.variety > 1:
+            out.append(("variety", C.FOOD_VARIETY_BONUS * (rep.variety - 1)))
+        _, tax_mood = C.TAX_LEVELS[self.tax_level]
+        out.append(("taxes", tax_mood))
+        if self.sick.here:
+            out.append(("the sickness", plague.MOOD))
+        if self.shut:
+            # Shutting the gates is not free in the town either. Nothing
+            # comes in, and everybody can see that nothing is coming in.
+            out.append(("the gates are shut", -9.0))
+        buildings_mood = 0.0
+        for b in self.buildings:
+            if b.complete:
+                buildings_mood += b.spec.effects.get("mood", 0.0)
+        buildings_mood += mods.bonus("mood")
+        if buildings_mood:
+            out.append(("buildings", buildings_mood))
+        # Ale and a service are not flat cheer: each house reaches so many
+        # souls, so a town that grows past its inns is a town half of which
+        # is drinking nothing. Growth buys you this problem, repeatedly.
+        #
+        # Paid in quarters, the way Stronghold pays it: a town reached a
+        # quarter, a half, three quarters or all the way. A smooth curve gave
+        # every inn the same thin sliver of cheer and nothing to aim at; a
+        # step is a thing you can build one more inn to reach.
+        ale = self.coverage("ale_reach", needs_running=True)
+        if ale >= 0.25:
+            out.append(("ale", C.ALE_MOOD * stepped(ale)))
+        faith = self.coverage("faith_reach")
+        if faith >= 0.25:
+            out.append(("faith", C.FAITH_MOOD * stepped(faith)))
+        if self.fear:
+            out.append(("fear", -2.6 * self.fear))
+        comfort = self._comfort_score
+        if comfort:
+            out.append(("comforts", C.COMFORT_BONUS * comfort))
+        luxury = self._luxury_score
+        if luxury:
+            out.append(("luxuries", C.LUXURY_BONUS * luxury))
+        roofs = self.housing(mods)
+        if roofs < self.population:
+            crowd = min(2.0, (self.population - roofs) / max(roofs, 1.0))
+            out.append(("crowding", -C.CROWDING_PENALTY * (0.4 + crowd)))
+        if rep.unpaid:
+            out.append(("unpaid wages", -C.UNPAID_WAGE_PENALTY))
+        if self.besieged:
+            out.append(("under siege", -8.0))
+        if self.blockaded:
+            out.append(("the roads are cut", -7.0))
+        if self.lord_home:
+            out.append(("the lord in his hall", C.LORD_MOOD))
+        elif self.lord_lost:
+            out.append(("no lord in the hall", -C.LORD_MOOD * 1.5))
+        if abs(self.steward_mood) >= 0.05:
+            out.append(("who governs here", self.steward_mood))
+        if abs(self.assize_mood) >= 0.05:
+            out.append(("the assize" if self.assize_mood > 0 else "queuing for it",
+                        self.assize_mood))
+        if self.fires:
+            out.append(("the town is burning", -9.0 - 9.0 * self.fires.worst()))
+        if self.raided:
+            out.append(("the country is burning", -12.0 * max(0.35, self.raid_pressure)))
+        jobless = self.workforce - self.employed
+        if self.workforce and jobless / self.workforce > 0.35:
+            out.append(("idle hands", -6.0))
+        return out
+
+    def update_mood(self, mods: Progress = NO_PROGRESS) -> None:
+        target = 50.0 + sum(v for _, v in self.mood_factors(mods))
+        target = max(0.0, min(100.0, target))
+        self.popularity += C.POPULARITY_INERTIA * (target - self.popularity)
+        self.popularity = max(0.0, min(100.0, self.popularity))
+
+    def migrate(self, rng: random.Random, mods: Progress = NO_PROGRESS) -> float:
+        pull = (self.popularity - 50.0) / 50.0
+        if pull > 0:
+            headroom = max(0.0, self.housing(mods) - self.population)
+            move = headroom * C.MIGRATION_RATE * pull * 4.0
+        else:
+            move = self.population * C.MIGRATION_RATE * pull * 2.0
+        move *= 0.7 + 0.6 * rng.random()
+        self.population = max(0.0, self.population + move)
+        self.report.migration = move
+        return move
+
+    # --------------------------------------------------------------- display
+    def net_worth(self) -> float:
+        goods_value = self.market.inventory_value()
+        bricks = sum(b.spec.build_cost.get("coin", 0.0) * (0.6 if b.complete else 0.3)
+                     for b in self.buildings)
+        troops = sum(UNITS[k].coin * n * 0.5 for k, n in self.units.items())
+        return goods_value + bricks + troops
+
+    def garrison_line(self) -> str:
+        return describe(self.units)
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name, "terrain": dict(self.terrain),
+            "market": self.market.to_dict(), "population": self.population,
+            "popularity": self.popularity, "ration_level": self.ration_level,
+            "tax_level": self.tax_level, "units": dict(self.units),
+            "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
+            "besieged": self.besieged, "priority": dict(self.priority),
+            "hardened": self.hardened, "resting": self.resting,
+            # What the hands queue reads between days, which the day's report
+            # (not saved) otherwise carries: a loaded town that forgot what
+            # it made yesterday seated its hands differently the next morning.
+            "made": {k: v for k, v in sorted(
+                (getattr(getattr(self, "report", None), "produced", None)
+                 or getattr(self, "_made_carry", {})).items())},
+            "made_before": dict(sorted(getattr(self, "_made_yesterday", {}).items())),
+            "season_now": getattr(self, "_season_now", ""),
+            "pins": {str(k): v for k, v in self.pins.items()},
+            "caps": {str(k): v for k, v in self.caps.items()},
+            "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
+            "buildings": [b.to_dict() for b in self.buildings],
+            "castle": self.castle.to_dict(),
+            "culture": self.culture,
+            # Both are siege state and both were being dropped: a player who
+            # saved under the ring came back with his masons off the breach
+            # and his besieger's memory of the last sortie wiped.
+            "shoring": self.shoring, "sorties": self.sorties,
+            # Carries across days, unlike `raid_pressure` which is worked
+            # out fresh each morning -- so it has to be written down, for
+            # the same reason `shoring` did.
+            "raid_heat": self.raid_heat,
+            "sick": self.sick.to_dict(), "shut": self.shut,
+            "last_sick": self.last_sick, "buried": self.buried,
+            # Yesterday's hands, read by this morning's production before
+            # this morning's fire and sickness write them again. Same class
+            # as `raid_heat` above and dropped for the same reason -- they
+            # look derived. They are not: a loaded game put twelve hands
+            # back on the wheel that the game it came from had on a fire
+            # bucket, and every stock in the town was a tenth of a per cent
+            # out by the next evening. It compounds; it is what the
+            # save-and-go-on-matching test catches.
+            "fire_labour": self.fire_labour,
+            "plague_labour": self.plague_labour,
+            "comfort": self._comfort_score, "luxury": self._luxury_score,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Settlement":
+        s = cls(name=d["name"], terrain=dict(d["terrain"]),
+                market=Market.from_dict(d["market"]),
+                population=d["population"], popularity=d["popularity"],
+                ration_level=d["ration_level"], tax_level=d["tax_level"],
+                units=dict(d.get("units", {})), wall_hp=d.get("wall_hp", 0.0),
+                deposits=dict(d.get("deposits", {})),
+                besieged=d.get("besieged", False), priority=dict(d.get("priority", {})),
+                raided=d.get("raided", False),
+                fires=Fires.from_dict(d.get("fires", {})), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
+        s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
+        s.pins = {int(k): int(v) for k, v in d.get("pins", {}).items()}
+        s.caps = {int(k): int(v) for k, v in d.get("caps", {}).items()}
+        s.hardened = float(d.get("hardened", 0.0))
+        s.resting = int(d.get("resting", 0))
+        s._made_carry = {k: float(v) for k, v in d.get("made", {}).items()}
+        s._made_yesterday = {k: float(v) for k, v in d.get("made_before", {}).items()}
+        s._season_now = str(d.get("season_now", ""))
+        s.castle = keeps.Castle.from_dict(d.get("castle"))
+        s.culture = d.get("culture", "")
+        s.shoring = bool(d.get("shoring", False))
+        s.sorties = int(d.get("sorties", 0))
+        s.raid_heat = float(d.get("raid_heat", 0.0))
+        s.sick = Sickness.from_dict(d.get("sick"))
+        s.shut = bool(d.get("shut", False))
+        s.last_sick = int(d.get("last_sick", -9999))
+        s.buried = float(d.get("buried", 0.0))
+        s.fire_labour = float(d.get("fire_labour", 0.0))
+        s.plague_labour = float(d.get("plague_labour", 0.0))
+        s._comfort_score = float(d.get("comfort", 0.0))
+        s._luxury_score = float(d.get("luxury", 0.0))
+        return s
