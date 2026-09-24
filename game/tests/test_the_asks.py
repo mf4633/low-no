@@ -479,14 +479,14 @@ class TestTheControls(unittest.TestCase):
             self.assertIn(bit, JS, bit)
 
     def test_every_order_the_mouse_gives_is_a_command_you_could_type(self):
-        for line in ("send(`staff ${want.shed.uid} ${hands}`)",
+        for line in ("send(`move ${want.shed.uid} ${moving}`",
                      "send(`march ${h.uid} ${n.key}`)",
                      "send(`post ${first} captain ${h.uid}`)",
                      "send(`split ${h.uid} ${pairs.join(' ')}`)",
                      "send(`join ${h.uid} ${b.dataset.join}`)"):
             self.assertIn(line, JS, line)
         con = Console(start("marchlands", seed=3), out=io.StringIO())
-        for cmd in ("staff", "pin", "split", "detach", "join", "merge"):
+        for cmd in ("staff", "pin", "move", "split", "detach", "join", "merge"):
             self.assertIn(cmd, con.commands() if hasattr(con, "commands") else __import__(
                 "marchlands.cli", fromlist=["COMMANDS"]).COMMANDS, cmd)
 

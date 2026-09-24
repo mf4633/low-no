@@ -1236,6 +1236,24 @@ class Console:
                             "staff <building> <hands|free>")
         self.say("  " + st.pin_hands(uid, hands))
 
+    def cmd_move(self, args: List[str]) -> None:
+        """move <building> <hands> [<from>:<n> ...] -- send hands off one shed to another."""
+        usage = "move <building> <hands> [<from building>:<hands> ...]"
+        uid = self._which(args, usage)
+        if uid is None:
+            return
+        if len(args) < 2:
+            return self.err(usage)
+        try:
+            hands = int(args[1])
+            sources = {}
+            for part in args[2:]:
+                s, _, n = part.partition(":")
+                sources[int(s)] = sources.get(int(s), 0) + int(n)
+        except ValueError:
+            return self.err(usage)
+        self.say("  " + self.settlement().move_hands(uid, hands, sources))
+
     def cmd_work(self, args: List[str]) -> None:
         """Who gets hands first when there are not enough of them."""
         st = self.settlement()
@@ -3618,7 +3636,7 @@ COMMANDS = {
     "info": Console.cmd_info, "build": Console.cmd_build, "raze": Console.cmd_raze,
     "close": Console.cmd_close, "ration": Console.cmd_ration,
     "work": Console.cmd_work, "hands": Console.cmd_work, "tax": Console.cmd_tax,
-    "staff": Console.cmd_staff, "pin": Console.cmd_staff,
+    "staff": Console.cmd_staff, "pin": Console.cmd_staff, "move": Console.cmd_move,
     "split": Console.cmd_split, "detach": Console.cmd_split,
     "join": Console.cmd_join, "merge": Console.cmd_join,
     "garrison": Console.cmd_garrison, "found": Console.cmd_found,

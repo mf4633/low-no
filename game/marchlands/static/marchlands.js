@@ -4800,19 +4800,33 @@ function rightClick(e) {
     return say(`${first} takes a post, not a shed -- click them for the posts, or right-click a host or town on the march.`);
   }
   if (mode === 'march') return say('hands are sent to a shed in the town (T).');
-  const hands = folk.filter(f => f.kind !== 'kin' && f.kind !== 'watch')
-    .reduce((n, f) => n + (f.souls || 0), 0);
-  if (!hands) return say('nobody there with hands to send.');
   // Point at a shed and they go to it; point at the ground and they go to
   // the nearest work to where you pointed, which is what the click means
   // in every game that has villagers. Naming the shed keeps it honest --
   // they walked somewhere, and the line says where.
   const want = workFor(e);
   if (!want) return say('there is no work that way for them to go to.');
+  // A figure at a shed is that shed's crew, so sending it sends the crew --
+  // off the shed it stood at, which the engine then holds down. Without the
+  // `from` the queue refilled the gap at once: the figure never left and
+  // only its walk crossed the town.
+  const going = sel.ids.filter(i => plan.folk[i]
+    && plan.folk[i].kind !== 'kin' && plan.folk[i].kind !== 'watch'
+    && plan.folk[i].work !== want.shed.uid);
+  if (!going.length) return say(`they are already at the ${want.shed.name}.`);
+  const from = new Map();
+  let moving = 0;
+  for (const i of going) {
+    const f = plan.folk[i];
+    const m = f.kind === 'worker' && state && state.margin ? state.margin[f.work] : null;
+    if (m && !from.has(f.work)) { from.set(f.work, m.staffed || f.souls || 0); moving += m.staffed || f.souls || 0; }
+    else if (!m) moving += f.souls || 0;
+  }
+  if (!moving) return say('nobody there with hands to send.');
   if (want.said) say(`off they go ${want.said}.`);
-  setThemWalking(want.shed, sel.ids.filter(i => plan.folk[i]
-    && plan.folk[i].kind !== 'kin' && plan.folk[i].kind !== 'watch'));
-  send(`staff ${want.shed.uid} ${hands}`);
+  setThemWalking(want.shed, going);
+  send(`move ${want.shed.uid} ${moving}` +
+       [...from].map(([uid, n]) => ` ${uid}:${n}`).join(''));
   bark('go', e, want.shed.terrain);
 }
 

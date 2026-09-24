@@ -148,6 +148,76 @@ class TestPins(unittest.TestCase):
         self.assertEqual(rows[uid]["pinned"], 1)
 
 
+class TestMoving(unittest.TestCase):
+    """Right-clicking a figure over to another shed moves it -- the figure,
+    not a ghost of it. The pin alone let the queue refill the shed it left,
+    so the man stood still while his walk crossed the town."""
+
+    def setUp(self):
+        self.g = start("marchlands", seed=3)
+        self.key = next(iter(self.g.world.settlements))
+        self.st = self.g.world.settlements[self.key]
+        short_of_hands(self.st)
+
+    def figure_at(self, uid):
+        return any(f.work == uid and f.kind == "worker"
+                   for f in plan_for(self.st).folk)
+
+    def pair(self):
+        st = self.st
+        dest = starved(st)
+        src = next(b for b in st.buildings if b.uid != dest.uid and b.staffed
+                   and self.figure_at(b.uid))
+        return src, dest
+
+    def test_the_shed_they_left_stands_empty(self):
+        st = self.st
+        src, dest = self.pair()
+        crew = src.staffed
+        total = sum(b.staffed for b in st.buildings)
+        said = st.move_hands(dest.uid, crew, {src.uid: crew})
+        self.assertIn("stands empty", said)
+        self.assertEqual(src.staffed, 0)
+        self.assertGreater(dest.staffed, 0)
+        self.assertEqual(sum(b.staffed for b in st.buildings), total)
+        self.assertFalse(self.figure_at(src.uid), "the figure never left")
+        self.assertTrue(self.figure_at(dest.uid))
+
+    def test_the_queue_does_not_seat_them_back(self):
+        st = self.st
+        src, dest = self.pair()
+        st.move_hands(dest.uid, src.staffed, {src.uid: src.staffed})
+        st._staff_buildings()           # the next morning
+        self.assertEqual(src.staffed, 0)
+        self.assertEqual(src.idle_reason, "hands sent elsewhere")
+
+    def test_asking_for_hands_back_lifts_the_hold(self):
+        st = self.st
+        src, dest = self.pair()
+        st.move_hands(dest.uid, src.staffed, {src.uid: src.staffed})
+        st.pin_hands(src.uid, src.spec.jobs)
+        self.assertNotIn(src.uid, st.caps)
+        self.assertGreater(src.staffed, 0)
+
+    def test_holds_survive_save_and_load(self):
+        st = self.st
+        src, dest = self.pair()
+        st.move_hands(dest.uid, src.staffed, {src.uid: src.staffed})
+        st2 = GameState.from_dict(self.g.to_dict()).world.settlements[self.key]
+        self.assertEqual(st2.caps, st.caps)
+
+    def test_a_full_shed_says_so(self):
+        st = self.st
+        full = next(b for b in st.buildings if b.spec.jobs and b.staffed >= b.spec.jobs)
+        self.assertIn("all", st.move_hands(full.uid, 8))
+
+    def test_the_console_speaks_it(self):
+        src, dest = self.pair()
+        buf = io.StringIO()
+        Console(self.g, out=buf).do(f"move {dest.uid} {src.staffed} {src.uid}:{src.staffed}")
+        self.assertIn("hands at the", buf.getvalue())
+
+
 class TestControls(unittest.TestCase):
     """The client speaks the same commands, and the keys card says how."""
 
@@ -157,7 +227,7 @@ class TestControls(unittest.TestCase):
 
     def test_a_right_click_is_the_order(self):
         self.assertIn("addEventListener('contextmenu'", self.js)
-        for line in ("send(`staff ${want.shed.uid} ${hands}`)", "send(`march ${h.uid} ${n.key}`)",
+        for line in ("send(`move ${want.shed.uid} ${moving}`", "send(`march ${h.uid} ${n.key}`)",
                      "send(`post ${first} captain ${h.uid}`)",
                      "send(`split ${h.uid} ${pairs.join(' ')}`)",
                      "send(`join ${h.uid} ${b.dataset.join}`)"):

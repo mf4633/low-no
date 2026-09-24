@@ -128,6 +128,12 @@ class Settlement:
     #: figure in the picture is eight hands at a shed, and the only honest
     #: thing "send him over there" can mean is moving eight hands.
     pins: Dict[int, int] = field(default_factory=dict)
+    #: The other half of "send him over there": the shed he left. A cap is a
+    #: ceiling the queue may not fill past -- building uid -> hands -- set
+    #: when hands are moved off a shed, because without it the queue seats
+    #: the next hands straight back into the gap and the figure you sent
+    #: stays standing where it was while a ghost of it walks away.
+    caps: Dict[int, int] = field(default_factory=dict)
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
     plague_labour: float = 0.0  # and hands too ill, or busy burying
@@ -340,6 +346,7 @@ class Settlement:
 
     def demolish(self, uid: int) -> Optional[BuildingInstance]:
         self.pins.pop(uid, None)
+        self.caps.pop(uid, None)
         for i, b in enumerate(self.buildings):
             if b.uid == uid:
                 for k, qty in b.spec.build_cost.items():
@@ -517,7 +524,7 @@ class Settlement:
             b = self.find(uid)
             if b is None or not (b.complete and b.enabled):
                 continue
-            take = min(b.spec.jobs, want, pool)
+            take = min(b.spec.jobs, want, self.caps.get(uid, want), pool)
             b.staffed = take
             pool -= take
         # Hands go out in the order you asked for them, and within a band in
@@ -526,10 +533,13 @@ class Settlement:
         for b in sorted(self.buildings, key=lambda b: (-self.band(b.key), b.uid)):
             if not (b.complete and b.enabled):
                 continue
-            take = min(b.spec.jobs - b.staffed, pool)
+            room = min(b.spec.jobs, self.caps.get(b.uid, b.spec.jobs))
+            take = max(0, min(room - b.staffed, pool))
             b.staffed += take
             pool -= take
-            if b.staffed < b.spec.jobs:
+            if b.uid in self.caps and b.staffed >= room:
+                b.idle_reason = "hands sent elsewhere" if not b.staffed else ""
+            elif b.staffed < b.spec.jobs:
                 b.idle_reason = "short of hands"
 
     def pin_hands(self, uid: int, hands: int) -> str:
@@ -544,7 +554,8 @@ class Settlement:
             return "no such building"
         name = b.spec.name
         if hands <= 0:
-            if self.pins.pop(uid, None) is None:
+            capped = self.caps.pop(uid, None) is not None
+            if self.pins.pop(uid, None) is None and not capped:
                 return f"nobody was pinned at the {name}"
             self._seat_hands()
             return f"the hands at the {name} go back into the queue"
@@ -555,6 +566,9 @@ class Settlement:
         if not b.enabled:
             return f"the {name} is closed -- open it first"
         want = min(int(hands), b.spec.jobs)
+        # Asking for hands at a shed is also taking back the order that sent
+        # them away from it.
+        self.caps.pop(uid, None)
         # Re-insert at the front: the newest order outranks the older pins.
         self.pins.pop(uid, None)
         self.pins = {uid: want, **self.pins}
@@ -566,6 +580,64 @@ class Settlement:
             note += (f"; only {b.staffed} could be found, "
                      f"{self.name} has {self.workforce} hands in all")
         return f"{want} hands pinned at the {name}{note}"
+
+    def move_hands(self, uid: int, hands: int,
+                   sources: Optional[Dict[int, int]] = None) -> str:
+        """Send hands to a shed *from* the sheds they were standing at.
+
+        A pin alone says where hands go, not where they come from: the queue
+        takes them off whatever is at the back of it, and the shed whose
+        figure you pointed at is refilled at once. So the figure stays put
+        and only the walk is drawn. This is the whole order -- the hands
+        added at `uid` on top of what it has, and each source held down by
+        what it gave. Hands with no source are the idle ones.
+        """
+        b = self.find(uid)
+        if b is None:
+            return "no such building"
+        name = b.spec.name
+        if not b.spec.jobs:
+            return f"the {name} has no work for hands"
+        if not b.complete:
+            return f"the {name} is not built yet"
+        if not b.enabled:
+            return f"the {name} is closed -- open it first"
+        sources = {s: n for s, n in (sources or {}).items() if s != uid and n > 0}
+        room = b.spec.jobs - b.staffed
+        if room <= 0 or hands <= 0:
+            return f"the {name} already has all {b.spec.jobs} hands it can use"
+        moving = min(int(hands), room)
+        left = moving
+        emptied = []
+        for s, n in sources.items():
+            src = self.find(s)
+            if src is None or left <= 0:
+                continue
+            take = min(n, src.staffed, left)
+            if take <= 0:
+                continue
+            hold = src.staffed - take
+            self.caps[s] = hold
+            if s in self.pins:
+                self.pins[s] = min(self.pins[s], hold)
+                if not self.pins[s]:
+                    del self.pins[s]
+            left -= take
+            if not hold:
+                emptied.append(src)
+        self.caps.pop(uid, None)
+        self.pins.pop(uid, None)
+        self.pins = {uid: b.staffed + moving, **self.pins}
+        self._seat_hands()
+        # Today's output is already made; what is left of today is whether
+        # anybody is standing there, and nobody is.
+        for src in emptied:
+            if not src.staffed:
+                src.throughput = 0.0
+        note = f" -- all it had room for" if moving < hands else ""
+        if emptied:
+            note += "; the " + ", the ".join(x.spec.name for x in emptied) + " stands empty"
+        return f"{b.staffed} hands at the {name} now{note}"
 
     def _season_multiplier(self, spec: Building, season: str) -> float:
         if spec.season == "field":
@@ -1098,6 +1170,7 @@ class Settlement:
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
             "besieged": self.besieged, "priority": dict(self.priority),
             "pins": {str(k): v for k, v in self.pins.items()},
+            "caps": {str(k): v for k, v in self.caps.items()},
             "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
             "buildings": [b.to_dict() for b in self.buildings],
             "castle": self.castle.to_dict(),
@@ -1138,6 +1211,7 @@ class Settlement:
                 fires=Fires.from_dict(d.get("fires", {})), blockaded=d.get("blockaded", False), next_uid=d.get("next_uid", 1))
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         s.pins = {int(k): int(v) for k, v in d.get("pins", {}).items()}
+        s.caps = {int(k): int(v) for k, v in d.get("caps", {}).items()}
         s.castle = keeps.Castle.from_dict(d.get("castle"))
         s.culture = d.get("culture", "")
         s.shoring = bool(d.get("shoring", False))
