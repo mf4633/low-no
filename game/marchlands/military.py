@@ -1433,6 +1433,9 @@ class Army:
     state: str = GARRISON
     home: str = ""
     siege_days: int = 0
+    #: Days this host has been under a lord's banner in the field. The
+    #: first FEUDAL_SERVICE of them are owed to him and cost nothing.
+    served: int = 0
     errand: str = ""              # 'pilgrimage' for a relic party; '' for a host
     #: What the PLAYER last saw of this host, which is not the same as where
     #: it is. Kept on the army for the same reason `Town.seen` is kept on the

@@ -12,6 +12,7 @@ amount of stone and iron, and when it is gone the sheds stand idle for good.
 
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict, List, Optional, Tuple
@@ -28,6 +29,11 @@ from . import plague
 from .military import UNITS, describe, host_size, host_strength, host_upkeep
 from .tech import NO_PROGRESS, Progress
 
+
+
+def stepped(share: float) -> float:
+    """Coverage in whole quarters: 0.25, 0.5, 0.75 or 1.0, rounded down."""
+    return math.floor(min(1.0, max(0.0, share)) * 4 + 1e-9) / 4
 
 @dataclass
 class BuildingInstance:
@@ -47,6 +53,14 @@ class BuildingInstance:
     #: to its complement rather than starting empty, because you bought a
     #: pasture and not a field.
     head: float = -1.0
+    #: Days running this shed has stood with an input it has none of. After
+    #: a couple the queue stops seating hands at it -- see `_can_work` -- so
+    #: a mill with no grain is not paying six men to stand at a cold stone.
+    dry_days: int = 0
+    #: This morning's claim on hands, and the words for it -- see
+    #: Settlement.demand. Worked out at seating; not saved.
+    demand: float = 0.0
+    demand_note: str = ""
 
     @property
     def spec(self) -> Building:
@@ -68,13 +82,15 @@ class BuildingInstance:
 
     def to_dict(self) -> dict:
         return {"uid": self.uid, "key": self.key, "days_left": self.days_left,
-                "enabled": self.enabled, "head": self.head}
+                "enabled": self.enabled, "head": self.head,
+                "dry_days": self.dry_days}
 
     @classmethod
     def from_dict(cls, d: dict) -> "BuildingInstance":
         return cls(uid=d["uid"], key=d["key"], days_left=d["days_left"],
                    enabled=d.get("enabled", True),
-                   head=float(d.get("head", -1.0)))
+                   head=float(d.get("head", -1.0)),
+                   dry_days=int(d.get("dry_days", 0)))
 
 
 @dataclass
@@ -134,10 +150,18 @@ class Settlement:
     #: the next hands straight back into the gap and the figure you sent
     #: stays standing where it was while a ghost of it walks away.
     caps: Dict[int, int] = field(default_factory=dict)
+    #: Hands you walked off their work to stand somewhere, and that the
+    #: queue is therefore not to seat anywhere else. An RTS villager you
+    #: move away from the woodpile stands where you put him until you give
+    #: him something to do; without this the queue sat him down at the next
+    #: shed with a gap and the man you moved vanished from where you put him.
+    resting: int = 0
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
     plague_labour: float = 0.0  # and hands too ill, or busy burying
     blockaded: bool = False   # the roads are cut: no cart comes or goes
+    #: The walls after a storm thrown back from them -- see ForeignTown.hardened.
+    hardened: float = 0.0
     raided: bool = False      # somebody is burning the country outside
     lord_home: bool = False   # your lord keeps his hall here today
     lord_lost: bool = False   # and nobody at all keeps it
@@ -372,10 +396,14 @@ class Settlement:
 
     def tick(self, season: str, rng: random.Random,
              mods: Progress = NO_PROGRESS, day: int = 0) -> DayReport:
+        prev = getattr(self, "report", None)
+        self._made_yesterday = dict(prev.produced) if prev is not None else {}
         rep = DayReport()
         self.report = rep
         self.update_market_targets()
         self.market.spread = self.spread
+        self._season_now = season
+        self.hardened = max(0.0, self.hardened - 2.0)
         self._advance_construction()
         self._staff_buildings()
         self._produce(season, rep, mods)
@@ -512,10 +540,17 @@ class Settlement:
         is made -- the figure you sent walks over now, not tomorrow --
         without zeroing the throughput the morning already worked out.
         """
-        pool = self.workforce
+        self.resting = max(0, min(self.resting, self.workforce))
+        pool = self.workforce - self.resting
+        # Who was working where before this seating: the hands already at a
+        # shed keep a claim on it, so the queue does not reshuffle the whole
+        # town every morning over a point of difference.
+        was = {b.uid: b.staffed for b in self.buildings}
+        want = self.demand()
         for b in self.buildings:
             b.staffed = 0
             b.idle_reason = ""
+            b.demand, b.demand_note = self._shed_demand(b, want, was.get(b.uid, 0))
             if not (b.complete and b.enabled):
                 b.idle_reason = "building" if not b.complete else "closed"
         # The sheds you named, before anything else. Newest pin first: the
@@ -530,17 +565,124 @@ class Settlement:
         # Hands go out in the order you asked for them, and within a band in
         # the order the sheds were raised. Whatever is at the back gets what
         # is left, which is usually nothing.
-        for b in sorted(self.buildings, key=lambda b: (-self.band(b.key), b.uid)):
+        #
+        # Two things the queue used to get wrong. It seated hands at sheds
+        # that could not work -- a mill with no grain, a field in winter, a
+        # pit with nothing left in it -- and paid them to stand there. And
+        # it filled the first of two twin sheds to the last place before the
+        # second got anybody, so three mills short of hands meant one full
+        # mill and two cold ones rather than three turning slowly.
+        queue = []
+        # Within a band, the shed whose goods the town is shortest of goes
+        # first -- 0 A.D.'s rule, wanted over made -- and only then the order
+        # the sheds were raised in.
+        for b in sorted(self.buildings,
+                        key=lambda b: (-self.band(b.key), -b.demand, b.uid)):
             if not (b.complete and b.enabled):
                 continue
-            room = min(b.spec.jobs, self.caps.get(b.uid, b.spec.jobs))
-            take = max(0, min(room - b.staffed, pool))
-            b.staffed += take
-            pool -= take
-            if b.uid in self.caps and b.staffed >= room:
-                b.idle_reason = "hands sent elsewhere" if not b.staffed else ""
-            elif b.staffed < b.spec.jobs:
-                b.idle_reason = "short of hands"
+            why = self._cannot_work(b)
+            if why and b.uid not in self.pins:
+                b.idle_reason = why
+                continue
+            queue.append(b)
+        done = set()
+        for b in queue:
+            if b.uid in done:
+                continue
+            band = self.band(b.key)
+            twins = [x for x in queue if x.key == b.key and self.band(x.key) == band
+                     and x.uid not in done]
+            done.update(x.uid for x in twins)
+            room = {x.uid: max(0, min(x.spec.jobs, self.caps.get(x.uid, x.spec.jobs))
+                               - x.staffed) for x in twins}
+            total = sum(room.values())
+            if total <= pool:
+                give = dict(room)
+            else:
+                # Share the hands out in proportion to the places, and the
+                # odd ones left over to the oldest sheds first.
+                give = {u: int(pool * r / total) if total else 0 for u, r in room.items()}
+                left = pool - sum(give.values())
+                for x in twins:
+                    if left <= 0:
+                        break
+                    if give[x.uid] < room[x.uid]:
+                        give[x.uid] += 1
+                        left -= 1
+            for x in twins:
+                x.staffed += give[x.uid]
+                pool -= give[x.uid]
+                cap = min(x.spec.jobs, self.caps.get(x.uid, x.spec.jobs))
+                if x.uid in self.caps and x.staffed >= cap:
+                    x.idle_reason = "hands sent elsewhere" if not x.staffed else ""
+                elif x.staffed < x.spec.jobs:
+                    x.idle_reason = "short of hands"
+
+    #: What a shed that was worked yesterday is worth over one that was not,
+    #: in the same units as `demand`. Petra will not move a worker for less
+    #: than half again; this is the same reluctance.
+    STAY = 0.25
+
+    def demand(self) -> Dict[str, float]:
+        """How short the town is of each good, as a share of what it wants:
+        0 at its mark, 1 with none at all, below 0 when it has more than it
+        needs. A good nobody made yesterday and the town is short of counts
+        half again -- the empty job goes first, the way the AoE AIs send
+        the next villager to the resource nobody is gathering."""
+        made = getattr(self, "_made_yesterday", {}) or {}
+        out: Dict[str, float] = {}
+        for k in ALL_KEYS:
+            tgt = self.market.target.get(k, 0.0)
+            if tgt <= 0:
+                continue
+            short = (tgt - self.market.stock.get(k, 0.0)) / tgt
+            short = max(-1.0, min(1.0, short))
+            if short > 0 and made.get(k, 0.0) <= 0:
+                short *= 1.5
+            out[k] = short
+        return out
+
+    def _shed_demand(self, b: "BuildingInstance", want: Dict[str, float],
+                     had: int) -> Tuple[float, str]:
+        """A shed's claim on hands: the most-wanted thing it makes, and why."""
+        outs = [k for k in b.spec.outputs if k in want]
+        if not outs:
+            score, note = 0.3, ""
+        else:
+            k = max(outs, key=lambda k: want[k])
+            score = want[k]
+            note = (f"{good(k).name.lower()}: {score:.0%} short" if score > 0
+                    else f"{good(k).name.lower()}: plenty")
+        if had > 0:
+            score += self.STAY
+        return score, note
+
+    #: How many mornings running a shed may find an input missing before the
+    #: queue stops sending hands to it. One is not enough: the grain a mill
+    #: grinds today can be the grain a field brought in today.
+    DRY_DAYS = 2
+
+    def _cannot_work(self, b: "BuildingInstance") -> str:
+        """Why this shed could not work today even with every place filled,
+        or '' if it could. Asked before hands are seated, so the reason is
+        known without paying anybody to find it out."""
+        spec = b.spec
+        if not spec.jobs:
+            return ""
+        season = getattr(self, "_season_now", "")
+        if season and spec.season and self._season_multiplier(spec, season) <= 0:
+            return "out of season"
+        if spec.draws and self.deposits.get(spec.draws, 1.0) <= 0.0:
+            return "the seam is worked out"
+        if C.HERD_FULL.get(b.key, 0) and 0 <= b.head < 1e-6:
+            return "no beasts"
+        if b.dry_days >= self.DRY_DAYS:
+            short = [k for k, need in spec.inputs.items()
+                     if self.market.stock.get(k, 0.0) < need * 0.25]
+            if short:
+                return f"no {good(short[0]).name}"
+            b.dry_days = 0
+        return ""
 
     def pin_hands(self, uid: int, hands: int) -> str:
         """Put so many hands at one shed, ahead of the queue; 0 frees them.
@@ -628,6 +770,10 @@ class Settlement:
         self.caps.pop(uid, None)
         self.pins.pop(uid, None)
         self.pins = {uid: b.staffed + moving, **self.pins}
+        # Hands that came from nowhere came from the ones standing about --
+        # first those you had told to stand somewhere.
+        if left > 0:
+            self.resting = max(0, self.resting - left)
         self._seat_hands()
         # Today's output is already made; what is left of today is whether
         # anybody is standing there, and nobody is.
@@ -638,6 +784,30 @@ class Settlement:
         if emptied:
             note += "; the " + ", the ".join(x.spec.name for x in emptied) + " stands empty"
         return f"{b.staffed} hands at the {name} now{note}"
+
+    def rest_hands(self, uid: int, hands: int) -> str:
+        """Take hands off a shed to stand about -- the other half of a
+        right-click on open ground. The shed is held down to what is left,
+        as a move holds it, and the hands are kept out of the queue until
+        they are given work again."""
+        b = self.find(uid)
+        if b is None:
+            return "no such building"
+        take = max(0, min(int(hands), b.staffed))
+        if not take:
+            return f"nobody is working at the {b.spec.name}"
+        hold = b.staffed - take
+        self.caps[uid] = hold
+        if uid in self.pins:
+            self.pins[uid] = min(self.pins[uid], hold)
+            if not self.pins[uid]:
+                del self.pins[uid]
+        self.resting += take
+        self._seat_hands()
+        if not b.staffed:
+            b.throughput = 0.0
+        return (f"{take} hands leave the {b.spec.name} and stand where you "
+                f"put them")
 
     def _season_multiplier(self, spec: Building, season: str) -> float:
         if spec.season == "field":
@@ -727,6 +897,7 @@ class Settlement:
             if spec.draws and self.deposits.get(spec.draws, 0.0) <= 0.0:
                 b.idle_reason = "the seam is worked out"
                 continue
+            dry = False
             for k, need in spec.inputs.items():
                 want = need * scale
                 if want > 0:
@@ -734,6 +905,8 @@ class Settlement:
                     if have < want:
                         scale = min(scale, have / need if need else 0.0)
                         b.idle_reason = f"no {good(k).name}"
+                        dry = dry or have < need * 0.25
+            b.dry_days = b.dry_days + 1 if dry else 0
             if scale <= 1e-9:
                 continue
             for k, need in spec.inputs.items():
@@ -1090,12 +1263,17 @@ class Settlement:
         # Ale and a service are not flat cheer: each house reaches so many
         # souls, so a town that grows past its inns is a town half of which
         # is drinking nothing. Growth buys you this problem, repeatedly.
+        #
+        # Paid in quarters, the way Stronghold pays it: a town reached a
+        # quarter, a half, three quarters or all the way. A smooth curve gave
+        # every inn the same thin sliver of cheer and nothing to aim at; a
+        # step is a thing you can build one more inn to reach.
         ale = self.coverage("ale_reach", needs_running=True)
-        if ale > 0:
-            out.append(("ale", C.ALE_MOOD * ale))
+        if ale >= 0.25:
+            out.append(("ale", C.ALE_MOOD * stepped(ale)))
         faith = self.coverage("faith_reach")
-        if faith > 0:
-            out.append(("faith", C.FAITH_MOOD * faith))
+        if faith >= 0.25:
+            out.append(("faith", C.FAITH_MOOD * stepped(faith)))
         if self.fear:
             out.append(("fear", -2.6 * self.fear))
         comfort = self._comfort_score
@@ -1169,6 +1347,7 @@ class Settlement:
             "tax_level": self.tax_level, "units": dict(self.units),
             "wall_hp": self.wall_hp, "deposits": dict(self.deposits),
             "besieged": self.besieged, "priority": dict(self.priority),
+            "hardened": self.hardened, "resting": self.resting,
             "pins": {str(k): v for k, v in self.pins.items()},
             "caps": {str(k): v for k, v in self.caps.items()},
             "raided": self.raided, "fires": self.fires.to_dict(), "blockaded": self.blockaded, "next_uid": self.next_uid,
@@ -1212,6 +1391,8 @@ class Settlement:
         s.buildings = [BuildingInstance.from_dict(b) for b in d["buildings"]]
         s.pins = {int(k): int(v) for k, v in d.get("pins", {}).items()}
         s.caps = {int(k): int(v) for k, v in d.get("caps", {}).items()}
+        s.hardened = float(d.get("hardened", 0.0))
+        s.resting = int(d.get("resting", 0))
         s.castle = keeps.Castle.from_dict(d.get("castle"))
         s.culture = d.get("culture", "")
         s.shoring = bool(d.get("shoring", False))

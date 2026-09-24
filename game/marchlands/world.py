@@ -67,6 +67,27 @@ class ForeignTown:
     aggression: float = 1.0       # how fast that ambition builds
     truce_days: int = 0           # days of bought peace left
     favour: float = 0.0           # goodwill your gifts have bought
+    #: How ready the walls are after a storm was thrown back from them: +100
+    #: a repulse, wearing off by two a day. Every point is a little more
+    #: battlement for the next assault -- the men who held once know how.
+    hardened: float = 0.0
+    #: A sworn town's loyalty, 0-100, once it is yours. Below 50 it wavers
+    #: and says so; at 0 it goes. See engine._loyalty_day.
+    loyalty: float = 50.0
+    #: Times running this lord looked for somebody to march on and found
+    #: nobody weak enough. Each one lowers what he will settle for.
+    waited: int = 0
+    #: The lord's chest. He is paid from his country and pays his garrison
+    #: and his hosts out of it; a host is bought, not conjured. -1 until the
+    #: first morning funds it.
+    chest: float = -1.0
+    #: His reckoning about a war on you, term by term, the last time his
+    #: temper was up -- [[label, value], ...] -- and the total. Kept so the
+    #: court can show a player why he did or did not come.
+    reckoning: List[list] = field(default_factory=list)
+    reckoned: float = 0.0
+    #: Days his temper has been up without his marching.
+    gathering: int = 0
     garrison: Dict[str, float] = field(default_factory=dict)
     wall_hp: float = 0.0
     wall_max: float = 0.0
@@ -200,13 +221,15 @@ class ForeignTown:
         scale = self.muster * self.prosperity
         return {"spearman": 11 * scale, "archer": 8 * scale, "man_at_arms": 4 * scale}
 
-    def grow(self, rng: random.Random, besieged: bool = False) -> None:
+    def grow(self, rng: random.Random, besieged: bool = False,
+             day: int = 0) -> None:
         """A year of quiet makes a town richer, higher-walled and better held.
 
         This is the difference between a map that is scenery and a map that is
         playing against you: leave Ostmark alone for three years and Ostmark
         will not be the same problem it was.
         """
+        self.hardened = max(0.0, self.hardened - 2.0)
         if besieged:
             self.prosperity = max(0.4, self.prosperity - 0.004)
             return
@@ -214,8 +237,27 @@ class ForeignTown:
         # Magpie's country compounds in peace, a Boar's is spent on soldiers
         # as fast as it is earned. Leaving Havnhold alone for three years is
         # a worse idea than leaving Dunmere alone for three years.
-        self.prosperity = min(2.2, self.prosperity
-                              + 0.00055 * lordly.sort_of(self.key).thrift)
+        #
+        # Held back by want, not capped by it: a town short of what it needs
+        # grows at half pace on the part of its trade that is not met, and one
+        # made richer than its trade will bear -- more than half again over
+        # it, by a reward or a good year -- slides back toward what it can
+        # carry. Below that, thrift compounds as it always did. Now and then a
+        # year is simply good or bad -- one day in six hundred, a tenth
+        # either way.
+        ideal = self.ideal_prosperity()
+        met = (ideal - 1.0) / 1.2                # 1.0 all met, 0.0 none
+        self.prosperity += (0.00055 * lordly.sort_of(self.key).thrift
+                            * (0.5 + 0.5 * met))
+        bear = ideal + 0.5                       # thrift earns half again
+        if self.prosperity > bear:
+            self.prosperity = max(bear, self.prosperity - 0.001 * (1.0 - met))
+        # Its own dice, keyed on the town and the day, so a good year in
+        # Dunmere does not move the weather.
+        luck = random.Random(f"prosper:{self.key}:{day}")
+        if luck.random() < 1 / 600:
+            self.prosperity += 0.1 if luck.random() < 0.5 else -0.1
+        self.prosperity = max(0.4, min(2.2, self.prosperity))
         self.wall_max = self.wall_base * (1.0 + 0.55 * (self.prosperity - 1.0))
         self.rebuild_walls(0.006)
         want = self.target_garrison()
@@ -227,13 +269,24 @@ class ForeignTown:
             if self.garrison[k] < 0.5:
                 del self.garrison[k]
 
+    def ideal_prosperity(self) -> float:
+        """How rich this town's trade will carry it: 2.2 with every want met,
+        down to 1.0 with none. A want is met when the market holds at least
+        half what it aims to."""
+        wants = self.wants()
+        if not wants:
+            return 2.2
+        short = sum(1 for k in wants
+                    if self.market.stock.get(k, 0.0) < 0.5 * self.market.target.get(k, 0.0))
+        return 2.2 - 1.2 * short / len(wants)
+
     def specialties(self) -> List[str]:
         return [k for k, v in sorted(self.flow.items(), key=lambda kv: -kv[1]) if v > 0]
 
     def wants(self) -> List[str]:
         return [k for k, v in sorted(self.flow.items(), key=lambda kv: kv[1]) if v < 0]
 
-    def tick(self, rng: random.Random) -> None:
+    def tick(self, rng: random.Random, besieged: bool = False) -> None:
         # Restore targets, then re-apply live shocks.
         for k in ALL_KEYS:
             self.market.target[k] = self.base_target.get(k, 0.0)
@@ -245,13 +298,26 @@ class ForeignTown:
                 continue
             flow[s.good] = flow.get(s.good, 0.0) + s.flow_delta
             self.market.target[s.good] = self.market.target.get(s.good, 0.0) * s.target_mult
+        lean = C.STOCK_REVERSION
+        if besieged:
+            # The ring is round the fields as well as the walls: what the
+            # country brought in stops coming, nobody else's carts get
+            # through to lean the market back, and the town inside eats its
+            # granary -- a sixtieth or so of it a day, so a siege of fifty
+            # days finds the bins at a fifth and the garrison starting to go.
+            lean *= 0.3
+            for k in ALL_KEYS:
+                if good(k).nourish > 0:
+                    flow[k] = (min(flow.get(k, 0.0), 0.0)
+                               - 0.015 * self.market.target.get(k, 0.0))
         for k in ALL_KEYS:
             net = flow.get(k, 0.0)
             tgt = self.market.target.get(k, 0.0)
             stock = self.market.stock.get(k, 0.0)
             # Own production/consumption, then the rest of the world leaning back.
             stock += net
-            stock += C.STOCK_REVERSION * (tgt - stock)
+            if not (besieged and good(k).nourish > 0):
+                stock += lean * (tgt - stock)
             stock -= stock * good(k).spoilage * 0.5
             self.market.stock[k] = max(0.0, stock)
         self.market.settle_day()
@@ -284,6 +350,10 @@ class ForeignTown:
                 # taken days later, which is the whole class of bug this
                 # file keeps relearning.
                 "last_pilgrimage": self.last_pilgrimage,
+                "hardened": self.hardened, "loyalty": self.loyalty,
+                "waited": self.waited, "chest": self.chest,
+                "reckoning": [list(r) for r in self.reckoning],
+                "reckoned": self.reckoned, "gathering": self.gathering,
                 "sick": self.sick.to_dict(), "last_sick": self.last_sick}
 
     @classmethod
@@ -296,6 +366,13 @@ class ForeignTown:
         t.lord = d.get("lord", "")
         t.owner = d.get("owner", "")
         t.hostility = d.get("hostility", 0.0)
+        t.hardened = float(d.get("hardened", 0.0))
+        t.loyalty = float(d.get("loyalty", 50.0))
+        t.waited = int(d.get("waited", 0))
+        t.chest = float(d.get("chest", -1.0))
+        t.reckoning = [list(r) for r in d.get("reckoning", [])]
+        t.reckoned = float(d.get("reckoned", 0.0))
+        t.gathering = int(d.get("gathering", 0))
         t.garrison = dict(d.get("garrison", {}))
         t.seen = dict(d.get("seen", {}))
         t.wall_hp = d.get("wall_hp", 0.0)
@@ -390,6 +467,66 @@ class World:
     #: same every time for a given seed, which is the whole contract.
     river_seed: int = 0
     _next_bridge: int = 1
+
+    # ------------------------------------------------------------- the roads
+    def roads(self) -> List[Tuple[str, str]]:
+        """Each trading place joined to its nearest three, which is how roads
+        happen -- the same roads the map draws and the peddlers walk."""
+        # Sorted throughout: a save read back in another order must lay the
+        # same roads, or the peddlers walk a different day.
+        trade = sorted(k for k in self.coords
+                       if k not in self.shrines and k not in self.sites)
+        out, seen = [], set()
+        for a in trade:
+            for b in sorted((b for b in trade if b != a),
+                            key=lambda b: (self.distance(a, b), b))[:3]:
+                pair = tuple(sorted((a, b)))
+                if pair not in seen:
+                    seen.add(pair)
+                    out.append(pair)
+        return sorted(out)
+
+    #: A peddler's share: how much of a cheap town's surplus walks down one
+    #: road to a dearer neighbour in a day, at full margin.
+    PEDDLE_SHARE = 0.01
+    PEDDLE_NERVE = 0.15
+
+    def peddle(self, closed=frozenset()) -> None:
+        """Small traders on the roads between neighbouring towns.
+
+        Warband carries a price list from town to town on its caravans and
+        nudges each place toward the last; here the goods themselves walk,
+        a little at a time, from a town with more than it wants to the
+        neighbour paying more -- so prices close along the roads that join
+        them, and a road cut by a siege is a gap that stays open. Your own
+        settlements are left alone: their markets are your carts' business.
+        """
+        for a, b in self.roads():
+            if a not in self.towns or b not in self.towns or a in closed or b in closed:
+                continue
+            ta, tb = self.towns[a], self.towns[b]
+            for k in ALL_KEYS:
+                if not (ta.market.sells(k) and tb.market.sells(k)):
+                    continue
+                pa, pb = ta.market.price(k), tb.market.price(k)
+                cheap, dear = (ta, tb) if pa < pb else (tb, ta)
+                # A peddler carries what a town makes, not what you sold it:
+                # carting your glut off for you turned every market into a
+                # sink that never filled.
+                if cheap.flow.get(k, 0.0) <= 0:
+                    continue
+                lo, hi = min(pa, pb), max(pa, pb)
+                rel = (hi - lo) / max(lo, 1e-6)
+                if rel < self.PEDDLE_NERVE:
+                    continue
+                spare = cheap.market.stock.get(k, 0.0) - cheap.market.target.get(k, 0.0)
+                if spare <= 0:
+                    continue          # never peddle away what a town is short of
+                qty = spare * self.PEDDLE_SHARE * min(1.0, rel)
+                if qty < 0.05:
+                    continue
+                moved = cheap.market.take(k, qty)
+                dear.market.transfer_in(k, moved)
 
     # ------------------------------------------------------------- geography
     def place(self, key: str, x: float, y: float) -> None:

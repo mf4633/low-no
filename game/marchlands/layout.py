@@ -16,7 +16,7 @@ import random
 import zlib
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from . import config as C
 from .buildings import BUILDINGS
@@ -249,6 +249,10 @@ class Plan:
     #: Every tile the wall actually shuts in, which for anything but a square
     #: is not the same as the precinct's bounding box.
     inside: List[Tuple[int, int]] = field(default_factory=list)
+    #: Where the road leaves the wall: the gate you built, or, in a wall with
+    #: none, the stretch the road runs through -- the way people get in and
+    #: out. The picture's pathfinder walks them through it.
+    door: Optional[Tuple[int, int]] = None
 
     def tile(self, x: int, y: int) -> str:
         if 0 <= x < self.w and 0 <= y < self.h:
@@ -266,7 +270,9 @@ class Plan:
                 "per_figure": SOULS_PER_FIGURE,
                 "per_watch": MEN_PER_FIGURE,
                 "hauls": [h.to_dict() for h in self.hauls],
-                "precinct": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
+                "precinct": {"x0": x0, "y0": y0, "x1": x1, "y1": y1},
+                "door": ({"x": self.door[0], "y": self.door[1]}
+                         if self.door else None)}
 
 
 def _walk(plan: Plan, a: "Placed", b: "Placed") -> List[Tuple[float, float]]:
@@ -382,6 +388,7 @@ def plan_for(settlement, *, size: int = 0, officers=None) -> Plan:
     door = min(gates, key=lambda g: (-g[1], abs(g[0] - mid))) if gates \
         else (mid, y1 + 1)
     gx, gy = door
+    plan.door = (gx, gy)
     step = (0, 1) if gy >= cy else (0, -1)
     if abs(gx - cx) > abs(gy - cy):
         step = (1, 0) if gx >= cx else (-1, 0)

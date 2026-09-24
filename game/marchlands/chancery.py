@@ -191,6 +191,21 @@ class Chancery:
     justified: Dict[str, int] = field(default_factory=dict)
     #: Towns the march has already priced you as the conqueror of.
     taken: set = field(default_factory=set)
+    #: Trust, 0-100, apart from liking. Opinion is whether a lord is fond of
+    #: you; trust is whether he thinks you keep your word -- EU4 keeps them
+    #: apart and so does this. It drifts back toward 50, a call answered is
+    #: +10 and one ignored -20, a truce broken -30, and only an ally is ever
+    #: trusted past 80. An alliance wants 35 to swear and lapses under 30.
+    trust: Dict[str, float] = field(default_factory=dict)
+    #: The war as each lord reckons it, -100 to +100 from your side: a host
+    #: of his broken, a storm thrown back, a town taken, his country burned.
+    #: Wears back toward nothing a point a day. It is what he asks for a
+    #: truce on, and what makes him ask you for one.
+    score: Dict[str, float] = field(default_factory=dict)
+    #: town key -> the day he sued for peace, which makes a truce free a while.
+    sued: Dict[str, int] = field(default_factory=dict)
+    #: ally key -> the day he last sent men to help you.
+    aided: Dict[str, int] = field(default_factory=dict)
 
     #: Its own dice, and the reason is worth writing down for the fourth time.
     #: The kin drew from the world's stream and a birth in the hall moved the
@@ -269,6 +284,38 @@ class Chancery:
                        for w, v in rolled.items()),
                       key=lambda row: -abs(row[1]))
 
+    # --------------------------------------------------- trust and the war
+    TRUST_FLOOR_ALLY = 35.0
+    TRUST_LAPSE = 30.0
+
+    def trust_of(self, key: str) -> float:
+        return self.trust.get(key, 50.0)
+
+    def shake(self, key: str, by: float) -> None:
+        """Move a lord's trust, within 0-100 -- and past 80 only for an ally."""
+        top = 100.0 if key in self.allies else 80.0
+        self.trust[key] = max(0.0, min(top, self.trust_of(key) + by))
+
+    def reckon(self, key: str, by: float) -> None:
+        """Move the war's score with one lord, from your side."""
+        self.score[key] = max(-100.0, min(100.0, self.score.get(key, 0.0) + by))
+
+    def settle_day(self) -> None:
+        """Trust drifts home and the war's score wears off, a day at a time."""
+        for k in list(self.trust):
+            t = self.trust[k]
+            t += (50.0 - t) * 0.01
+            if k not in self.allies:
+                t = min(80.0, t)
+            self.trust[k] = t
+        for k in list(self.score):
+            v = self.score[k]
+            v = v - 1.0 if v > 1.0 else v + 1.0 if v < -1.0 else 0.0
+            if v:
+                self.score[k] = v
+            else:
+                del self.score[k]
+
     # ------------------------------------------------------------- the ground
     def give_ground(self, key: str, ground: str, day: int) -> None:
         if ground in GROUNDS:
@@ -340,6 +387,8 @@ class Chancery:
             "long_memory": self.long_memory,
             "justified": dict(self.justified),
             "taken": sorted(self.taken),
+            "trust": dict(self.trust), "score": dict(self.score),
+            "sued": dict(self.sued), "aided": dict(self.aided),
             "seed": self.seed,
             "rng": list(self.rng.getstate()),
         }
@@ -362,6 +411,10 @@ class Chancery:
         c.long_memory = bool(d.get("long_memory", False))
         c.justified = {k: int(v) for k, v in d.get("justified", {}).items()}
         c.taken = set(d.get("taken", []))
+        c.trust = {k: float(v) for k, v in d.get("trust", {}).items()}
+        c.score = {k: float(v) for k, v in d.get("score", {}).items()}
+        c.sued = {k: int(v) for k, v in d.get("sued", {}).items()}
+        c.aided = {k: int(v) for k, v in d.get("aided", {}).items()}
         raw = d.get("rng")
         if raw:
             c.rng.setstate((raw[0], tuple(raw[1]), raw[2]))

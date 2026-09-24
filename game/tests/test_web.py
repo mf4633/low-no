@@ -423,6 +423,9 @@ class TestTheMarch(unittest.TestCase):
 
     def test_a_town_you_never_visited_says_so(self):
         g, _s = grown(days=200)
+        # The map drawn from the start, so that a town you can see and have
+        # never had anybody in is on it; unexplored country is left off.
+        g.shroud.everything = True
         unseen = [n for n in march(g, "aldworth")["nodes"]
                   if n["kind"] == "town" and n["known"] < 0]
         self.assertTrue(unseen, "the fog is not reaching the map")
@@ -531,6 +534,9 @@ class TestWhatTravelsAndWhatDoesNot(unittest.TestCase):
 
     def test_strength_is_only_known_where_you_have_been(self):
         g, _s = grown(days=200)
+        # The map drawn from the start, so that a town you can see and have
+        # never had anybody in is on it; unexplored country is left off.
+        g.shroud.everything = True
         towns = [n for n in march(g, "aldworth")["nodes"] if n["kind"] == "town"]
         unseen = [n for n in towns if n["known"] < 0]
         self.assertTrue(unseen, "nothing was left unvisited to test with")

@@ -202,10 +202,13 @@ class TestTheDayWaitsOnYou(unittest.TestCase):
             g.battle_step("fight"); rounds += 1
         self.assertTrue(g.pending.battle.over)
         self.assertTrue(g.pending.settled, "the aftermath did not run")
-        # The garrison is the survivors, less anybody under half a man.
+        # The garrison is the survivors, less anybody under half a man -- or
+        # nobody, if the wall was carried and the keep thrown down.
+        held = g.pending.battle.res.winner == "defender"
         self.assertAlmostEqual(
             sum(s.units.values()),
-            sum(v for v in g.pending.battle.defender.units.values() if v >= 0.5),
+            sum(v for v in g.pending.battle.defender.units.values() if v >= 0.5)
+            if held else 0.0,
             places=6)
 
     def test_the_view_says_what_you_may_do(self):

@@ -923,9 +923,17 @@ class Console:
                         f"and you have struck {g.economy.minted:,.0f}c. That is "
                         f"the same sentence twice. `economy`."))
         if a.unemployment > 35 and g.day > 200:
+            # And say what is standing idle for want of something other than
+            # hands, because that is usually the cheaper fix than a new shed.
+            stalled = sorted({b.idle_reason for s in g.world.settlements.values()
+                              for b in s.buildings
+                              if b.idle_reason.startswith("no ")})
+            tail = (f" Meanwhile sheds stand cold for {', '.join(stalled[:2])}."
+                    if stalled else "")
             out.append((52.0, f"{a.unemployment:.0f}% of your hands have "
                         f"nowhere to go. Every one of them eats and none of "
-                        f"them makes anything -- raise workshops, not roofs."))
+                        f"them makes anything -- raise workshops, not roofs."
+                        + tail))
         return out
 
     def _where_name(self, g) -> str:
@@ -1235,6 +1243,22 @@ class Console:
             return self.err(f"{args[1]!r} is not a number of hands -- "
                             "staff <building> <hands|free>")
         self.say("  " + st.pin_hands(uid, hands))
+
+    def cmd_rest(self, args: List[str]) -> None:
+        """rest <building> <hands> -- stand hands off a shed; `rest free` ends it."""
+        st = self.settlement()
+        if args and args[0] in ("free", "all"):
+            n, st.resting = st.resting, 0
+            st._seat_hands()
+            return self.say(f"  {n} hands standing about go back to the queue")
+        uid = self._which(args, "rest <building> <hands> | rest free")
+        if uid is None:
+            return
+        try:
+            hands = int(args[1]) if len(args) > 1 else 1 << 30
+        except ValueError:
+            return self.err("rest <building> <hands> | rest free")
+        self.say("  " + st.rest_hands(uid, hands))
 
     def cmd_move(self, args: List[str]) -> None:
         """move <building> <hands> [<from>:<n> ...] -- send hands off one shed to another."""
@@ -1982,6 +2006,23 @@ class Console:
                           f"{view:+.0f} -- {chancery.temper(view)}"))
         self.say("  " + ink.c(lordkind.reputation(key, g.known(key)[1] >= 0),
                               ink.BONE))
+        self.say("  " + ink.c(ink.pad("his trust in your word", 46), ink.DIM)
+                 + ink.c(f"{c.trust_of(key):>6.0f}", ink.BONE)
+                 + ink.c("   of 100; an alliance wants 35", ink.FAINT))
+        war = c.score.get(key, 0.0)
+        if war:
+            self.say("  " + ink.c(ink.pad("the war, as he reckons it", 46), ink.DIM)
+                     + ink.c(f"{war:>+6.0f}", self._standing_colour(war))
+                     + ink.c("   +50 and he sues; -50 and he will not treat",
+                             ink.FAINT))
+        if t.reckoning:
+            self.say("", ink.c(f"  HIS RECKONING ABOUT A WAR ON YOU  "
+                               f"{t.reckoned:+.0f} (he marches at "
+                               f"{g.DECLARE:.0f})", ink.DIM))
+            for label, value in t.reckoning:
+                self.say("  " + ink.c(ink.pad(label, 46), ink.DIM)
+                         + ink.c(f"{value:>+6.0f}", self._standing_colour(-value)))
+            self.say("")
         rows = c.reasons(key, g.day)
         if not rows:
             self.say("", ink.c("  He has nothing written down about you "
@@ -2088,7 +2129,9 @@ class Console:
             self.say(f"  {ink.c(ink.pad(self._name(f.who), 13), ink.PARCH)}"
                      + ink.c("means to move on ", ink.DIM)
                      + ink.c(self._name(f.target), ink.BLOOD if at_you else ink.INK)
-                     + (ink.c("  -- that is you", ink.BLOOD) if at_you else ""))
+                     + (ink.c("  -- that is you", ink.BLOOD) if at_you else "")
+                     + (ink.c(f"  ({f.reason})", ink.FAINT)
+                        if getattr(f, "reason", "") else ""))
             shown += 1
         if not shown:
             self.say(ink.c("  nobody has said anything. It will not last.", ink.DIM))
@@ -3637,6 +3680,7 @@ COMMANDS = {
     "close": Console.cmd_close, "ration": Console.cmd_ration,
     "work": Console.cmd_work, "hands": Console.cmd_work, "tax": Console.cmd_tax,
     "staff": Console.cmd_staff, "pin": Console.cmd_staff, "move": Console.cmd_move,
+    "rest": Console.cmd_rest,
     "split": Console.cmd_split, "detach": Console.cmd_split,
     "join": Console.cmd_join, "merge": Console.cmd_join,
     "garrison": Console.cmd_garrison, "found": Console.cmd_found,

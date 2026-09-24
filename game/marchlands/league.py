@@ -99,6 +99,9 @@ class Fixture:
     target: str
     declared: int = 0            # the day it was said out loud
     done: bool = False
+    #: Why, in words -- Freeciv tells its allies the reason for a war before
+    #: it starts, and a lord who says why is a lord you can answer.
+    reason: str = ""
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()

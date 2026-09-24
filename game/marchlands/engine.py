@@ -42,7 +42,7 @@ from .military import (Battle, open_battle, BESIEGING, GARRISON, HOLD, LINE, MAR
                        RELIEVING, RETURNING, STORM, describe,
                        UNITS, Army,
                        Side, can_recruit, describe, fight, host_size, host_speed,
-                       host_strength, raid_day, recruit_cost, siege_day, unit)
+                       host_strength, host_upkeep, raid_day, recruit_cost, siege_day, unit)
 from .military import Field, going_of, sky_on, sortie_odds
 from . import cartography as carto
 from . import military
@@ -529,9 +529,12 @@ class GameState:
         for s in self.world.settlements.values():
             s.market.settle_day()
 
-        # 4. The wider world produces, consumes and reprices.
-        for t in self.world.towns.values():
-            t.tick(self.rng)
+        # 4. The wider world produces, consumes and reprices -- and the
+        # peddlers carry a little of it down the roads between neighbours.
+        ringed = {a.at for a in self.armies if a.state == BESIEGING}
+        for key, t in self.world.towns.items():
+            t.tick(self.rng, besieged=key in ringed)
+        self.world.peddle(closed=ringed)
 
         # 5. Caravans move and deal.
         before_trade = self.treasury
@@ -1117,6 +1120,13 @@ class GameState:
         key = town.key
         if self.day - self.court.declared.get(key, -9999) < self.WAR_MEMORY:
             return ""                        # the same quarrel, still running
+        if town.truce_days > 0:
+            # A treaty torn up. Whatever he thinks of you, he now knows what
+            # your seal is worth, and so does everyone he writes to.
+            self.court.shake(key, -30.0)
+            for other in self.world.towns:
+                if other != key and not self.world.towns[other].mine:
+                    self.court.shake(other, -10.0)
         self.court.declared[key] = self.day
         ground = self.court.ground_for(key, self.day)
         if ground is not None:
@@ -1128,8 +1138,11 @@ class GameState:
         for other in others:
             near = self.world.distance(other, key)
             close = max(0.5, min(1.3, 90.0 / max(30.0, near)))
+            there = self.world.towns[other]
+            kin = 1.3 if there.culture and there.culture == town.culture else 0.9
             self.court.write(other, "besieged",
-                             -12.0 * scale * close * lordly.sort_of(other).temper,
+                             -12.0 * scale * close * kin
+                             * lordly.sort_of(other).temper,
                              self.day)
         self.court.write(key, "besieged", -45.0, self.day)
         if ground:
@@ -1244,6 +1257,8 @@ class GameState:
             s.raid_pressure = 0.0
         msgs += self._field_day()
         for a in list(self.armies):
+            if a not in self.armies:
+                continue    # a town fell today and its host went with it
             if a.owner != "player" and self.world.towns[a.owner].mine:
                 msgs.append(f"{a.name} turns for home -- {self.world.node_name(a.owner)} "
                             f"is sworn to you now")
@@ -1416,6 +1431,7 @@ class GameState:
                 self._come_inside(x, node)
             if foe.owner != PLAYER and foe.owner in self.world.towns:
                 self.court.write(foe.owner, "beaten", 22.0, self.day)
+                self.court.reckon(foe.owner, 25.0)
         else:
             # Held or stood off: the relief could not get through. What is
             # left of it slips inside if this is its own gate, and goes home
@@ -1528,9 +1544,37 @@ class GameState:
     SIEGE_PATIENCE = 21          # days a host will sit at a wall it cannot break
     MAX_RIVAL_WARS = 2           # wars between other lords running at once
 
+    #: Warband's two rules for a lord's siege: he stays while he outnumbers
+    #: the men inside by this much, and hunger does his work for him; below
+    #: it, he lifts. And nobody sits for ever.
+    SIEGE_ODDS = 1.75
+    SIEGE_LIMIT = 90
+
+    def _inside(self, a: Army) -> float:
+        """The strength of the men behind the wall this host is sitting at."""
+        town = self.world.towns.get(a.at)
+        if town is not None:
+            return host_strength(town.garrison) + sum(
+                host_strength(x.units) for x in self.armies
+                if x is not a and x.owner == "player" and x.at == a.at and town.mine)
+        s = self.world.settlements.get(a.at)
+        return host_strength(s.units) if s else 0.0
+
+    def _siege_holds(self, a: Army) -> bool:
+        """Whether a lord's host keeps its lines another day."""
+        if a.siege_days > self.SIEGE_LIMIT:
+            return False
+        if a.siege_days <= self.SIEGE_PATIENCE or a.siege_power > 0:
+            return True           # hunger wants its three weeks; engines work
+        return host_strength(a.units) >= self.SIEGE_ODDS * self._inside(a)
+
     def _siege(self, a: Army) -> List[str]:
         a.siege_days += 1
-        if a.siege_power <= 0 and a.siege_days > self.SIEGE_PATIENCE:
+        if a.owner != "player":
+            breaks = not self._siege_holds(a)
+        else:
+            breaks = a.siege_power <= 0 and a.siege_days > self.SIEGE_PATIENCE
+        if breaks:
             # Hunger and boredom break more sieges than arrows do.
             a.siege_days = 0
             where = self.world.node_name(a.at)
@@ -2033,8 +2077,9 @@ class GameState:
                 continue
             target = self._intent_of(t)
             if target:
-                season.fixtures.append(lg.Fixture(who=key, target=target,
-                                                  declared=self.day))
+                season.fixtures.append(lg.Fixture(
+                    who=key, target=target, declared=self.day,
+                    reason=self._intent_reason(t, target)))
         season.prospects = lg.draft_class(self.league.rng, year)
         self.league.season = season
         self._keep_the_table()
@@ -2066,6 +2111,21 @@ class GameState:
             return mine or ""
         near.sort(key=lambda k: self.world.distance(town.key, k))
         return near[0]
+
+    def _intent_reason(self, town, target: str) -> str:
+        """Why he says he is going, in the words he would use."""
+        if target in self.world.settlements:
+            worst = [(label, v) for label, v, _d in self.court.reasons(town.key, self.day)
+                     if v < 0]
+            if worst:
+                return worst[0][0]
+            return "your wealth, and his temper"
+        other = self.world.towns.get(target)
+        if other is not None and other.owner == PLAYER:
+            return "it is sworn to you, and thinly held"
+        if town.key in self.court.claims or target in self.court.claims:
+            return "an old claim"
+        return "it is the nearest he can take"
 
     def _keep_the_table(self) -> None:
         """The standings, recomputed from what is actually true today."""
@@ -2840,6 +2900,16 @@ class GameState:
         # angrier, which is the point of it.
         town.prosperity = max(0.35, town.prosperity - C.RAID_PROSPERITY * worked)
         town.hostility = min(C.HOSTILITY_WAR, town.hostility + 6.0 * worked)
+        if a.owner == "player" and not town.mine:
+            # Written down at last: `raided_them` was in the book and nothing
+            # ever put it there, so burning a lord's country cost you nothing
+            # he would remember past his temper.
+            self.court.write(town.key, "raided_them", -3.0 * worked, self.day)
+            self.court.reckon(town.key, 1.0 * worked)
+            if self.court.ground_for(town.key, self.day) is None:
+                others = [k for k, x in self.world.towns.items()
+                          if not x.mine and k != town.key]
+                self.court.write_all(others, "unjust", -0.6 * worked, self.day)
         if a.owner == "player":
             loot = C.RAID_LOOT_COIN * worked * town.prosperity * town.wealth
             self.treasury += loot
@@ -2874,15 +2944,19 @@ class GameState:
                 defenders[k] = defenders.get(k, 0.0) + n
         # An Ox on his own parapet is a different proposition from a
         # Magpie on his. What he takes, he keeps.
+        # A wall that has thrown one storm back is readier for the next:
+        # Warband's siege hardness, a point of battlement a little under
+        # every seventeen of it, and wearing off by two a day.
         holder = Side(defenders, battlement=8.0 * (
-            1.0 if town.mine else lordly.sort_of(town.key).holds))
+            1.0 if town.mine else lordly.sort_of(town.key).holds)
+            + town.hardened * 0.06)
         works = town.works()
         if not player:
             a.siege.plan = choose(works, siege_power=a.siege_power,
                                   engineers=a.units.get("engineer", 0.0),
                                   host=a.size, garrison=sum(town.garrison.values()),
                                   wall=town.wall_hp, wall_max=town.wall_max,
-                                  patient=a.siege_days > 8)
+                                  patient=a.siege_days > 8, days=a.siege_days)
         wall, _la, _ld, lines = siege_day(besieger, holder, town.wall_hp, self.rng,
                                           town.name, wall_max=town.wall_max,
                                           works=works, state=a.siege,
@@ -2892,6 +2966,9 @@ class GameState:
             town.hostility = C.HOSTILITY_WAR
         if self.day % 5 == 0 and lines and (player or town.mine):
             msgs.append(f"{a.name}: {lines[0]}")
+        msgs += self._starve_town(town, a, holder, player)
+        if not town.mine and holder.alive():
+            msgs += self._sally_at(town, a, holder, besieger, player)
         if storms_now(a.siege.plan, wall, holder.alive()):
             battle = open_battle(besieger, holder, rng=self.rng, place=town.name,
                                  orders=(a.order, lordly.sort_of(town.key).fights),
@@ -2953,22 +3030,28 @@ class GameState:
         elif res.broken_off == "attacker":
             # A storm called off is not a storm thrown back. He is still at
             # the wall, and he has kept most of his men to try again with.
+            town.hardened = min(200.0, town.hardened + 40.0)
             msgs.append(f"{a.name} calls off the storm and draws back to the "
                         f"lines before {town.name}")
         elif player:
             a.state = RETURNING
-            msgs.append(f"{a.name} is thrown back from {town.name}")
+            town.hardened = min(200.0, town.hardened + 100.0)
+            self.court.reckon(town.key, -20.0)
+            msgs.append(f"{a.name} is thrown back from {town.name}, and the "
+                        f"men on its wall have learned how it is done")
             # He was standing where the arrows were. Sometimes that tells.
             if self.lord.riding == a.uid:
                 msgs += self._lord_fell()
             self.march(a.uid, a.home)
         else:
             a.state = RETURNING
+            town.hardened = min(200.0, town.hardened + 100.0)
             if a.owner in self.world.towns:
                 # A letter is easier to sign than to keep. Every host of
                 # theirs you break takes a bite out of the reason it was
                 # written, which is the one way out that is not money.
                 self.court.write(a.owner, "beaten", 22.0, self.day)
+                self.court.reckon(a.owner, 20.0)
                 line = lordly.says(a.owner, "beaten", self.voice)
                 if line:
                     msgs.append(f'    {self.world.towns[a.owner].lord}: '
@@ -2977,6 +3060,52 @@ class GameState:
         town.wall_hp = max(town.wall_hp, town.wall_max * 0.15)
         self._settle_survivors(a, town, holder, stationed)
         return msgs
+
+    def _starve_town(self, town, a: Army, holder: Side, player: bool) -> List[str]:
+        """A garrison that has eaten the town's larder starts to die of it.
+
+        Warband wounds a starving garrison one day in ten; here it thins a
+        little every day the granary stands under a fifth of what the town
+        wants, which is a blockade's whole argument: you do not have to
+        carry the wall if you can wait for the men on it to stop standing.
+        """
+        food = sum(v for k, v in town.market.stock.items() if good(k).nourish > 0)
+        want = sum(v for k, v in town.market.target.items() if good(k).nourish > 0)
+        if want <= 0 or food >= 0.2 * want:
+            return []
+        for k in list(holder.units):
+            holder.units[k] *= 0.975
+        town.garrison = {k: v for k, v in holder.units.items() if v >= 0.5}
+        if self.day % 5 == 0 and (player or town.mine):
+            return [f"{town.name} is starving: the granary is bare and the "
+                    f"garrison thins by the day"]
+        return []
+
+    def _sally_at(self, town, a: Army, holder: Side, besieger: Side,
+                  player: bool) -> List[str]:
+        """A lord's garrison goes out at the lines, now and then.
+
+        Only the player ever sallied; a lord sat behind his wall until it
+        fell. Stronghold's lords keep men for exactly this. A garrison near
+        the besiegers' strength goes out one day in twenty-five or so, after
+        the first few days, hurts the lines and comes back lighter.
+        """
+        if a.siege_days < 4:
+            return []
+        if host_strength(holder.units) < 0.5 * host_strength(besieger.units):
+            return []
+        dice = random.Random(f"{self.seed}:sally:{town.key}:{self.day}")
+        if dice.random() > 0.04 * lordly.sort_of(town.key).holds:
+            return []
+        hurt = {k: v * 0.06 for k, v in a.units.items()}
+        a.units = {k: v - hurt[k] for k, v in a.units.items() if v - hurt[k] >= 0.5}
+        for k in list(holder.units):
+            holder.units[k] *= 0.97
+        town.garrison = {k: v for k, v in holder.units.items() if v >= 0.5}
+        if player:
+            return [f"{town.name}'s garrison sallies against your lines at "
+                    f"dawn -- {describe({k: round(v) for k, v in hurt.items() if v >= 0.5}) or 'a few men'} lost"]
+        return []
 
     def _settle_survivors(self, a: Army, town, holder: Side,
                           stationed: List[Army]) -> None:
@@ -3005,7 +3134,7 @@ class GameState:
         reading = keeps.read(castle)
         holder = Side(s.units, attack_mult=self.progress.mult("attack"),
                       defense_mult=self.progress.mult("defense"),
-                      battlement=6.0 + s.effect("battlement")
+                      battlement=6.0 + s.effect("battlement") + s.hardened * 0.06
                       + (manly.HOME_DEFENCE if at_home else 0.0)
                       + self.kin.bonus("defence")
                       + keeps.manning(reading.density(sum(s.units.values()))))
@@ -3020,7 +3149,7 @@ class GameState:
                                   engineers=a.units.get("engineer", 0.0),
                                   host=a.size, garrison=sum(s.units.values()),
                                   wall=s.wall_hp, wall_max=s.wall_max(self.progress),
-                                  patient=a.siege_days > 8)
+                                  patient=a.siege_days > 8, days=a.siege_days)
         wall, _la, _ld, lines = siege_day(besieger, holder, s.wall_hp, self.rng, s.name,
                                           wall_max=s.wall_max(self.progress),
                                           works=works, state=a.siege,
@@ -3034,6 +3163,17 @@ class GameState:
             msgs.append(f"{s.name} under siege: {lines[0]}")
         s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
         a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
+        # A hungry town is a town whose soldiers are hungry too.
+        if s.report is not None and s.report.hunger > 0.5 and s.units:
+            thin = 0.02 * s.report.hunger
+            s.units = {k: v * (1 - thin) for k, v in s.units.items() if v * (1 - thin) >= 0.5}
+            holder = Side(s.units, attack_mult=holder.attack_mult,
+                          defense_mult=holder.defense_mult,
+                          battlement=holder.battlement)
+            if self.day % 5 == 0:
+                msgs.append(f"{s.name} is starving, and the garrison thins with "
+                            f"the town -- {s.report.hunger:.0%} of the ration "
+                            f"going unserved")
         if storms_now(a.siege.plan, wall, holder.alive()):
             # Your own wall: whatever you told the garrison to do.
             battle = open_battle(besieger, holder, rng=self.rng, place=s.name,
@@ -3075,13 +3215,20 @@ class GameState:
         s.units = {k: v for k, v in holder.units.items() if v >= 0.5}
         a.units = {k: v for k, v in besieger.units.items() if v >= 0.5}
         if res.winner == "attacker":
+            if a.owner in self.world.towns:
+                self.court.reckon(a.owner, -30.0)
             msgs.append(self._sack(s, a))
         elif res.broken_off == "attacker":
+            s.hardened = min(200.0, s.hardened + 40.0)
             msgs.append(f"The storm is called off before {s.name}; the host "
                         f"draws back to its lines")
             a.siege_days = 0
         else:
-            msgs.append(f"The host is broken beneath the walls of {s.name}")
+            s.hardened = min(200.0, s.hardened + 100.0)
+            if a.owner in self.world.towns:
+                self.court.reckon(a.owner, 25.0)
+            msgs.append(f"The host is broken beneath the walls of {s.name}; "
+                        f"the men on it have learned how it is done")
             if a in self.armies:
                 self.armies.remove(a)
             if a.home in self.world.towns:
@@ -3433,9 +3580,22 @@ class GameState:
         for sh in self.world.shrines.values():
             if sh.holder == town.key:
                 sh.holder = taker
+        loser = town.key
         town.owner = "player" if a.owner == "player" else a.owner
         town.hostility = 0.0
         town.ambition = 0.0
+        town.loyalty = 35.0
+        # A lord with no hall has no host. Whatever of his is still in the
+        # field goes over to whoever holds the hall now, or, if that is you,
+        # goes home to farms that are not his any more.
+        for x in list(self.armies):
+            if x is a or x.owner != loser or x.errand:
+                continue
+            if a.owner == "player":
+                self.armies.remove(x)
+            else:
+                x.owner = a.owner
+                x.home = a.owner if a.owner in self.world.towns else x.home
         # A fifth of the host stays behind as a garrison. A town taken and then
         # walked away from is a town somebody else takes next month.
         town.garrison = {}
@@ -3480,10 +3640,14 @@ class GameState:
                 # it hardest; a lord four days' ride away has heard about it
                 # and has other things on his mind.
                 close = max(0.55, min(1.4, 90.0 / max(30.0, near)))
+                # And kin mind more than strangers: a town of their own
+                # people taken is a thing done to them, EU4's culture rule.
+                kin = 1.3 if other.culture and other.culture == town.culture else 0.9
                 self.court.write(key, "took_town",
-                                 -34.0 * lawful * close
+                                 -34.0 * lawful * close * kin
                                  * lordly.sort_of(key).temper,
                                  self.day)
+            self.court.reckon(town.key, 40.0)
             return self.note(
                 f"*** {town.name} bends the knee. Its tolls are yours, and "
                 f"{town.tribute():.0f}c a day with them. ***", MOMENTOUS)
@@ -3514,14 +3678,18 @@ class GameState:
                          if a.owner != "player" and a.bound_for in self.world.towns)
 
         for key, t in self.world.towns.items():
-            t.grow(self.rng, besieged=key in besieged)
+            t.grow(self.rng, besieged=key in besieged, day=self.day)
             if t.truce_days > 0:
                 t.truce_days -= 1
             if t.mine:
+                said = self._loyalty_day(key, t)
+                if said:
+                    msgs.append(said)
                 revolt = self._revolt(key, t)
                 if revolt:
                     msgs.append(revolt)
                 continue
+            self._keep_the_chest(key, t)
             if any(a.owner == key and not a.errand for a in self.armies):
                 continue      # its host is already out
             # A party of spearmen away at a shrine is not "his host": counting
@@ -3535,22 +3703,29 @@ class GameState:
             if t.truce_days <= 0:
                 t.hostility += (C.HOSTILITY_DRIFT * pressure * t.temper
                                 * (0.5 + wealth_factor)
-                                * (0.6 + 0.8 * self.rng.random()))
+                                * (0.6 + 0.8 * self._week_mood(key, "temper")))
                 t.hostility = max(0.0, t.hostility - t.favour * 0.02
                                   - self.kin.bonus("cooling"))
             if t.hostility >= C.HOSTILITY_WAR:
-                msgs.append(self._send_host(t, pressure, self._nearest_of_mine(key)))
+                said = self._reckon_war(key, t, pressure)
+                if said:
+                    msgs.append(said)
                 continue
 
             # -- offence taken at each other --------------------------------
             t.ambition += (C.AMBITION_DRIFT * t.aggression * pressure
-                           * (0.5 + self.rng.random()))
+                           * (0.5 + self._week_mood(key, "ambition")))
             if t.ambition < C.HOSTILITY_WAR or rival_wars >= self.MAX_RIVAL_WARS:
                 continue
-            prey = self._prey_for(key)
+            # Patience, Warband's way: a lord who has gathered his men and
+            # found nobody weak enough settles for a little less each time,
+            # rather than stand his host down and start the year again.
+            prey = self._prey_for(key, 0.8 + 0.05 * min(6, t.waited))
             if prey is None:
                 t.ambition = 60.0
+                t.waited += 1
                 continue
+            t.waited = 0
             t.ambition = 0.0
             rival_wars += 1
             msgs.append(self._send_host(t, pressure, prey))
@@ -3600,6 +3775,7 @@ class GameState:
         self.world.safe_conduct = self.progress.knows("safe_conduct")
         msgs += self._drainage_day()
         msgs += self._coalition_day()
+        msgs += self._peace_day()
         msgs += self._alliance_day()
         msgs += self._succession_abroad()
         return msgs
@@ -3712,11 +3888,14 @@ class GameState:
             if t is None or t.mine:
                 c.allies.remove(key)
                 continue
-            if c.opinion(key, day) <= 0:
+            if c.opinion(key, day) <= 0 or c.trust_of(key) < c.TRUST_LAPSE:
                 c.allies.remove(key)
                 c.write(key, "ally", -10.0, day)
-                msgs.append(self.note(f"{t.lord} of {t.name} lets the "
-                                      f"alliance lapse."))
+                why = ("does not trust your word"
+                       if c.trust_of(key) < c.TRUST_LAPSE else "has cooled")
+                msgs.append(self.note(f"{t.lord} of {t.name} {why} and lets "
+                                      f"the alliance lapse."))
+        msgs += self._aid_day()
         # Somebody marching on an ally is a call, and a call wants an answer.
         if c.called is None:
             for a in self.armies:
@@ -3740,6 +3919,79 @@ class GameState:
             msgs.append(self.answer_call(False))
         return msgs
 
+    #: How long a lord's suit for peace stands, and how long an ally waits
+    #: before sending men again.
+    SUIT_DAYS = 20
+    AID_EVERY = 120
+
+    def _aid_day(self) -> List[str]:
+        """Allies come when you are attacked -- which the alliance always
+        promised and nothing did. A host of theirs marching on or sitting
+        before a town of yours is the call; each ally answers it one day in
+        twelve or so, and sends men under your command, marching from his
+        gate to yours. You feed them: that is what an alliance costs."""
+        msgs: List[str] = []
+        c = self.court
+        pressed = {a.bound_for or a.at for a in self.armies
+                   if a.owner in self.world.towns
+                   and (a.bound_for in self.world.settlements
+                        or (a.at in self.world.settlements
+                            and a.state in (BESIEGING, RAIDING)))}
+        pressed.discard("")
+        if not pressed:
+            return msgs
+        for key in list(c.allies):
+            t = self.world.towns.get(key)
+            if t is None or self.day - c.aided.get(key, -9999) < self.AID_EVERY:
+                continue
+            dice = random.Random(f"{self.seed}:aid:{key}:{self.day}")
+            if dice.random() > 0.08:
+                continue
+            target = min(pressed, key=lambda k: self.world.distance(key, k))
+            units = {k: v * 0.5 for k, v in
+                     self._muster_enemy(t, self.war_pressure(), spread=False).items()
+                     if UNITS.get(k) is None or UNITS[k].unit_class != "siege"}
+            units = {k: v for k, v in units.items() if v >= 1}
+            if not units:
+                continue
+            a = Army(uid=self.next_army_uid, name=f"{t.lord}'s men", owner=PLAYER,
+                     units=units, at=key, home=target)
+            self.next_army_uid += 1
+            self.armies.append(a)
+            self._set_march(a, key, target, units)
+            c.aided[key] = self.day
+            c.shake(key, 5.0)
+            msgs.append(self.note(
+                f"*** {t.lord} of {t.name} keeps his word: {describe(a.units)} "
+                f"march for {self.world.node_name(target)} under your banner. ***",
+                MOMENTOUS))
+        return msgs
+
+    def _peace_day(self) -> List[str]:
+        """A lord losing his war with you says so, and asks for peace.
+
+        EU4's war score, as small as it can be made: when the reckoning
+        with one lord stands at +50 or better and none of his men is on
+        the road to you, he sues -- and a truce with him is free for the
+        next SUIT_DAYS days."""
+        msgs: List[str] = []
+        c = self.court
+        c.settle_day()
+        for key, v in list(c.score.items()):
+            t = self.world.towns.get(key)
+            if t is None or t.mine or v < 50.0 or t.truce_days > 0:
+                continue
+            if self.day - c.sued.get(key, -9999) < 90:
+                continue
+            if any(a.owner == key and a.bound_for in self.world.settlements
+                   for a in self.armies):
+                continue
+            c.sued[key] = self.day
+            msgs.append(self.note(
+                f"*** {t.lord} of {t.name} sues for peace. `truce {t.name.lower()}` "
+                f"costs nothing for {self.SUIT_DAYS} days. ***", MOMENTOUS))
+        return msgs
+
     def answer_call(self, come: bool) -> str:
         """Yes or no to an ally who has called. No is a real option."""
         c = self.court
@@ -3751,6 +4003,7 @@ class GameState:
         name = self.world.node_name(who)
         if come:
             c.write(who, "came_when_called", 45.0, self.day)
+            c.shake(who, 10.0)
             # Whoever is marching on them has now given you a reason to
             # march on him, which is the other half of what an ally is for.
             for a in self.armies:
@@ -3763,6 +4016,7 @@ class GameState:
         if who in c.allies:
             c.allies.remove(who)
         c.write(who, "broke_word", -60.0, self.day)
+        c.shake(who, -20.0)
         others = [k for k, x in self.world.towns.items() if not x.mine and k != who]
         c.write_all(others, "broke_word", -22.0, self.day)
         self.kin.did("open", -0.2)
@@ -3775,6 +4029,10 @@ class GameState:
         t = self.world.towns.get(town_key)
         if t is None:
             return f"there is no {town_key!r} to treat with"
+        if not t.mine and self.court.trust_of(town_key) < self.court.TRUST_FLOOR_ALLY:
+            return (f"{t.lord} likes you well enough, perhaps, but does not "
+                    f"trust your word ({self.court.trust_of(town_key):.0f} of "
+                    f"{self.court.TRUST_FLOOR_ALLY:.0f} needed). Keep it a while.")
         if t.mine:
             return f"{t.name} is sworn to you already"
         shut = self.opened("ally")
@@ -3828,6 +4086,29 @@ class GameState:
                 f"with nobody in the field. ***", MOMENTOUS)]
         return []
 
+    def _loyalty_day(self, key: str, town) -> str:
+        """A sworn town's loyalty, a day at a time -- EU4's liberty desire
+        turned the right way up. It settles toward 70 under a lord who is
+        strong and near; it slides while there is a letter against you on
+        the march (somebody is courting it) and while you are too weak to
+        hold it. Under 50 it wavers and says so; at 0 it goes."""
+        before = town.loyalty
+        mine = sum(host_strength(s.units) for s in self.world.settlements.values())
+        mine += sum(host_strength(a.units) for a in self.armies if a.owner == "player")
+        theirs = host_strength(self._muster_enemy(town, self.war_pressure(),
+                                                  spread=False))
+        drift = 0.08 * (70.0 - town.loyalty) / 70.0
+        if self.court.coalition:
+            drift -= 0.12
+        if mine < 0.45 * theirs:
+            drift -= 0.2
+        town.loyalty = max(0.0, min(100.0, town.loyalty + drift))
+        if before >= 50.0 > town.loyalty:
+            return self.note(f"{town.name} wavers in its oath ({town.loyalty:.0f} "
+                             f"of 100) -- there are letters on the march, and "
+                             f"your hand is not heavy enough.")
+        return ""
+
     def _revolt(self, key: str, town) -> str:
         """A town holds its oath while the hand that took it is still visible.
 
@@ -3838,10 +4119,13 @@ class GameState:
         mine += sum(host_strength(a.units) for a in self.armies if a.owner == "player")
         theirs = host_strength(self._muster_enemy(town, self.war_pressure(),
                                                   spread=False))
-        if mine >= 0.45 * theirs:
-            return ""
-        if self.rng.random() > C.REVOLT_CHANCE:
-            return ""
+        if town.loyalty > 0.0:
+            if mine >= 0.45 * theirs:
+                return ""
+            # A loyal town rides out a thin year; a wavering one does not.
+            odds = C.REVOLT_CHANCE * max(0.0, 1.5 - town.loyalty / 50.0)
+            if self.rng.random() > odds:
+                return ""
         town.owner = ""
         town.hostility = 65.0
         town.garrison = dict(town.target_garrison())
@@ -3852,8 +4136,155 @@ class GameState:
         return min(self.world.settlements,
                    key=lambda k: self.world.distance(key, k))
 
-    def _prey_for(self, key: str) -> Optional[str]:
-        """A weaker neighbour worth marching on -- your vassals included."""
+    # --------------------------------------------------------- the lords' coin
+    def _income_of(self, t) -> float:
+        """What a lord's country pays him a day: a little over what his
+        standing garrison costs, and a share of his town's trade."""
+        return (1.3 * host_upkeep(t.target_garrison())
+                + 0.5 * t.tribute() * lordly.sort_of(t.key).thrift)
+
+    def _host_price(self, host: Dict[str, float]) -> float:
+        return sum(UNITS[k].coin * n for k, n in host.items() if k in UNITS)
+
+    FEUDAL_SERVICE = 40          # days a host serves before it is paid
+
+    def _keep_the_chest(self, key: str, t) -> None:
+        """A lord's day of accounts. Warband gives its lords a week's income
+        less wages and lets a host in debt melt away; this is the same, a
+        day at a time. In debt his garrison drifts off a hundredth a day and
+        his men in the field faster.
+
+        A levy owes its lord forty days in the field at its own cost -- the
+        old feudal service -- and only after that does he pay wages; a host
+        sitting down before a wall lives half off the country round it; and a
+        lord runs a few days behind on wages before anyone walks off. Without
+        these, a siege that had its ram at the gate melted in the lines before
+        it was ever ready to go in: a whole host costs six times what a
+        lord's country pays him a day."""
+        if t.chest < 0 and t.chest == -1.0:
+            t.chest = self._host_price(self._muster_enemy(t, 1.0, spread=False)) + 200.0
+        field = [a for a in self.armies if a.owner == key]
+        income = self._income_of(t)
+        wages = 0.0
+        for a in field:
+            a.served += 1
+            if a.served > self.FEUDAL_SERVICE:
+                wages += host_upkeep(a.units) * (0.5 if a.state == BESIEGING else 1.0)
+        t.chest += income - host_upkeep(t.garrison) - wages
+        # And no deeper than three hosts' worth: what a lord cannot spend on
+        # soldiers goes on the things lords spend money on, and a chest that
+        # grew for ever would be a chest that never said no.
+        cap = 3.0 * self._host_price(self._muster_enemy(t, self.war_pressure(),
+                                                        spread=False))
+        t.chest = min(t.chest, max(cap, 600.0))
+        if t.chest < -3.0 * income:
+            t.garrison = {k: v * 0.99 for k, v in t.garrison.items() if v * 0.99 >= 0.5}
+            for a in field:
+                a.units = {k: v * 0.985 for k, v in a.units.items() if v * 0.985 >= 0.5}
+            t.chest = max(t.chest, -3000.0)
+
+    # ------------------------------------------------- a war on you, weighed
+    #: Unciv's two lines: at PREPARE he is gathering and says so; at DECLARE
+    #: he marches. Below both his temper is up and he holds back.
+    PREPARE = 15.0
+    DECLARE = 20.0
+
+    def _war_terms(self, t, target: str, pressure: float) -> List[Tuple[str, float]]:
+        """Why a lord would or would not march on you, as a list of named
+        reasons with a weight each -- Unciv's motivation-to-attack, Warband's
+        assailability, Freeciv's want against fear. Named, because a lord
+        who can say why is a lord a player can answer."""
+        key = t.key
+        c = self.court
+        terms: List[Tuple[str, float]] = [("his temper is up", 12.0)]
+        host = self._muster_enemy(t, pressure, spread=False)
+        price = self._host_price(host)
+        if t.chest < price:
+            share = max(0.0, t.chest) / max(price, 1.0)
+            terms.append(("his chest will not pay for it", -12.0 * (1.0 - share)))
+            host = {k: v * max(0.35, share) for k, v in host.items()}
+        s = self.world.settlements.get(target)
+        yours = 0.0
+        if s is not None:
+            yours = host_strength(s.units) + s.wall_hp / 12.0
+        yours += sum(host_strength(a.units) for a in self.armies
+                     if a.owner == PLAYER and a.at == target)
+        ratio = host_strength(host) / max(1.0, yours)
+        band = (20.0 if ratio >= 3 else 14.0 if ratio >= 2 else 8.0 if ratio >= 1.5
+                else 3.0 if ratio >= 1 else -6.0 if ratio >= 0.7
+                else -15.0 if ratio >= 0.5 else -30.0)
+        terms.append((f"his host against your wall, {ratio:.1f} to 1", band))
+        far = self.world.distance(key, target) if target in self.world.coords else 0.0
+        if far:
+            terms.append(("the distance", -min(10.0, far / 12.0)))
+        beset = sum(1 for a in self.armies if a.bound_for == key and a.owner != key)
+        if beset:
+            terms.append(("somebody is marching on him", -10.0 * beset))
+        if c.allies:
+            terms.append(("your allies would come", -4.0 * len(c.allies)))
+        view = c.opinion(key, self.day)
+        if view <= -40:
+            terms.append(("he hates you", 8.0))
+        elif view <= -15:
+            terms.append(("he dislikes you", 4.0))
+        elif view >= 40:
+            terms.append(("he thinks well of you", -8.0))
+        elif view >= 15:
+            terms.append(("he likes you", -4.0))
+        off = c.offence(key, self.day)
+        if off:
+            terms.append(("what you have done on this march", min(10.0, off / 6.0)))
+        if key in c.coalition:
+            terms.append(("his name is on the letter", 8.0))
+        war = c.score.get(key, 0.0)
+        if war:
+            terms.append(("how the war has gone", max(-10.0, min(10.0, -war / 10.0))))
+        nature = (t.aggression - 1.0) * 10.0
+        if abs(nature) >= 0.5:
+            terms.append(("his nature", nature))
+        if t.gathering:
+            terms.append(("he has waited", min(15.0, t.gathering / 4.0)))
+        return terms
+
+    def _reckon_war(self, key: str, t, pressure: float) -> str:
+        """His temper is up. Does he march?"""
+        target = self._nearest_of_mine(key)
+        terms = self._war_terms(t, target, pressure)
+        total = sum(v for _l, v in terms)
+        t.reckoning = [[label, round(v, 1)] for label, v in terms]
+        t.reckoned = round(total, 1)
+        t.hostility = min(t.hostility, C.HOSTILITY_WAR)
+        if total >= self.DECLARE:
+            t.gathering = 0
+            return self._send_host(t, pressure, target)
+        t.gathering += 1
+        worst = min(terms, key=lambda r: r[1])
+        who = t.lord if " of " in t.lord else f"{t.lord} of {t.name}"
+        if total >= self.PREPARE:
+            if t.gathering == 1:
+                return self.note(
+                    f"{who} is gathering men against you "
+                    f"({total:.0f}; he marches at {self.DECLARE:.0f}). "
+                    f"`court {key}` for his reasons.", MOMENTOUS)
+            return ""
+        if t.gathering == 1 or t.gathering % 60 == 0:
+            return self.note(f"{who} is angry enough to march, and holds "
+                             f"back -- {worst[0]}.")
+        return ""
+
+    def _week_mood(self, key: str, what: str) -> float:
+        """A lord's humour for the week, 0 to 1. Rerolled every seven days
+        rather than every morning -- Warband rerolls its lords' dice weekly
+        so a man is steadily hot or steadily cool for a while, instead of
+        jittering between the two, and so this does not draw on the world's
+        dice either."""
+        return random.Random(f"{self.seed}:{what}:{key}:{self.day // 7}").random()
+
+    def _prey_for(self, key: str, reach: float = 0.8) -> Optional[str]:
+        """A weaker neighbour worth marching on -- your vassals included.
+
+        `reach` is how strong the neighbour may be against his own muster;
+        it rises as he waits (see `waited`)."""
         me = self.world.towns[key]
         mine_strength = host_strength(self._muster_enemy(me, self.war_pressure(),
                                                          spread=False))
@@ -3864,9 +4295,9 @@ class GameState:
             if self.world.liege_of(other_key) == me.owner and me.owner:
                 continue                      # not your liege-brother
             defence = host_strength(other.garrison) + other.wall_hp / 12.0
-            if defence >= mine_strength * 0.8:
+            if defence >= mine_strength * reach:
                 continue
-            score = (mine_strength - defence) / max(
+            score = (mine_strength * reach - defence) / max(
                 40.0, self.world.distance(key, other_key))
             if score > best_score:
                 best, best_score = other_key, score
@@ -3874,6 +4305,14 @@ class GameState:
 
     def _send_host(self, town, pressure: float, target: str) -> str:
         host = self._muster_enemy(town, pressure)
+        # Bought out of his chest, as much of it as he can pay for -- never
+        # less than a third of a host, which is a raiding party at worst.
+        if town.chest >= 0:
+            price = self._host_price(host)
+            share = max(0.35, min(1.0, town.chest / max(price, 1.0)))
+            if share < 1.0:
+                host = {k: v * share for k, v in host.items() if v * share >= 0.5}
+            town.chest -= price * share
         a = Army(uid=self.next_army_uid, name=f"{town.lord}'s host", owner=town.key,
                  units=host, at=town.key, home=town.key)
         self.next_army_uid += 1
@@ -4003,9 +4442,12 @@ class GameState:
                     t.prosperity += float(value)
             return f"your holdings prosper"
         if kind == "opinion":
+            # Through the book, not onto `favour`: favour is re-read off the
+            # book every morning, so writing to it directly was a reward that
+            # lasted until breakfast.
             for key, t in self.world.towns.items():
                 if not t.mine:
-                    t.favour += float(value)
+                    self.court.write(key, "gift", float(value), self.day)
             return f"every lord thinks better of you"
         if kind == "units":
             seat = self.home()
@@ -4321,7 +4763,10 @@ class GameState:
         # And what sort of man he is. A Magpie would rather be paid than
         # fight and prices himself accordingly; the Wolf takes your coin and
         # calls it tribute.
-        return (C.TRUCE_RATE * days * town.muster * town.prosperity
+        # And the war itself: a lord you are beating asks less for peace,
+        # one who is beating you asks more -- EU4's war score on the price.
+        war = max(0.35, min(2.0, 1.0 - self.court.score.get(town_key, 0.0) / 100.0))
+        return (C.TRUCE_RATE * days * town.muster * town.prosperity * war
                 * self.kin.mult("truce_cost") * lordly.sort_of(town_key).bought)
 
     def truce(self, town_key: str, days: int = 180) -> str:
@@ -4339,7 +4784,12 @@ class GameState:
                     f"of it would cost, and what it would take to let it "
                     f"lapse.")
         days = max(1, int(days))
+        if self.court.score.get(town_key, 0.0) <= -50.0:
+            return (f"{town.lord} is winning this war and knows it. He will "
+                    f"talk when that changes.")
         cost = self.truce_cost(town_key, days)
+        if self.day - self.court.sued.get(town_key, -9999) <= self.SUIT_DAYS:
+            cost = 0.0                  # he asked
         if self.treasury < cost:
             return (f"{days} days of peace with {town.name} costs "
                     f"{cost:,.0f}c; you have {self.treasury:,.0f}c")

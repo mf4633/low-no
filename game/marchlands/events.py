@@ -36,7 +36,14 @@ class RivalCompany:
             towns = [t for t in world.towns.values() if t.market.sells(k)]
             if len(towns) < 2:
                 continue
-            cheap = min(towns, key=lambda t: t.market.ask(k))
+            # Buy only where there is plenty. A house that follows the spread
+            # and nothing else will empty a starving town of its bread because
+            # the bread is cheap -- which is the one market that will not be.
+            stocked = [t for t in towns
+                       if t.market.stock.get(k, 0.0) > 0.8 * t.market.target.get(k, 0.0)]
+            if not stocked:
+                continue
+            cheap = min(stocked, key=lambda t: t.market.ask(k))
             dear = max(towns, key=lambda t: t.market.bid(k))
             if cheap is dear:
                 continue

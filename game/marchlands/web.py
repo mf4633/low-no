@@ -249,6 +249,12 @@ def march(game, here: str, good: str = "bread") -> dict:
                       "field": _field_view(game, key),
                       "walls": round(seen.get("wall_hp", 0.0)) if seen else None,
                       "sees": fog.sees(x, y),
+                      # A sworn town's oath, and a wall that has thrown a
+                      # storm back lately.
+                      "loyalty": (round(w.towns[key].loyalty)
+                                  if key in w.towns and w.towns[key].mine else None),
+                      "hardened": (round(w.towns[key].hardened)
+                                   if key in w.towns else 0),
                       "here": key == here})
     for key, site in w.sites.items():
         if not fog.known(site.x, site.y):
@@ -348,7 +354,8 @@ def march(game, here: str, good: str = "bread") -> dict:
     # The schedule belongs on the map more than anywhere else: an arrow from
     # a lord to the place he has said he is going is the whole of it.
     fixtures = [{"who": f.who, "target": f.target,
-                 "at_you": f.target in w.settlements}
+                 "at_you": f.target in w.settlements,
+                 "reason": getattr(f, "reason", "")}
                 for f in game.league.season.fixtures if not f.done]
     known = {n["key"] for n in nodes}
     runs = [r for r in runs if r["from"] in known and r["to"] in known]
@@ -365,20 +372,12 @@ def march(game, here: str, good: str = "bread") -> dict:
 
 
 def _roads(w, known) -> list:
-    """Each place joined to its nearest few, which is how roads happen --
-    worked out over the whole march, and drawn wherever one end of it is
-    somewhere you know. The shroud covers the rest of the line, so a road
-    runs off into the blank the way it would on a map you were making."""
-    trade = [k for k in w.coords if k not in w.shrines and k not in w.sites]
-    out, drawn = [], set()
-    for a in trade:
-        near = sorted((b for b in trade if b != a),
-                      key=lambda b: w.distance(a, b))[:3]
-        for b in near:
-            pair = tuple(sorted((a, b)))
-            if pair in drawn or not (a in known or b in known):
-                continue
-            drawn.add(pair)
+    """The roads the engine keeps (`World.roads`), drawn wherever one end of
+    one is somewhere you know. The shroud covers the rest of the line, so a
+    road runs off into the blank the way it would on a map you were making."""
+    out = []
+    for a, b in w.roads():
+        if a in known or b in known:
             (ax, ay), (bx, by) = w.coords[a], w.coords[b]
             out.append([ax, ay, bx, by])
     return out
@@ -784,6 +783,14 @@ def _court(game) -> dict:
             "allied": key in c.allies,
             "claim": key in c.claims,
             "ground": ground.label if ground else "",
+            # Trust apart from liking, and the war as he reckons it.
+            "trust": round(c.trust_of(key)),
+            # His reckoning about a war on you, the last time his temper
+            # was up: each reason and its weight, and where he marches.
+            "reckoning": [{"what": r[0], "by": r[1]} for r in t.reckoning],
+            "reckoned": t.reckoned, "declares_at": game.DECLARE,
+            "war": round(c.score.get(key, 0.0)),
+            "sued": day - c.sued.get(key, -9999) <= game.SUIT_DAYS,
             "why": [{"what": w, "by": round(v, 1)}
                     for w, v, _d in c.reasons(key, day)[:4]],
         }
@@ -1088,7 +1095,8 @@ def snapshot(game, here: str = "") -> dict:
                        "me": r.key == LEAGUE_PLAYER}
                       for r in game.league.season.table()],
             "fixtures": [{"who": f.who, "target": f.target,
-                          "at_you": f.target in game.world.settlements}
+                          "at_you": f.target in game.world.settlements,
+                          "reason": getattr(f, "reason", "")}
                          for f in game.league.season.fixtures if not f.done],
             "clock": game.league.season.on_the_clock(),
             "left": len(game.league.season.undrafted()),
@@ -1148,7 +1156,10 @@ def snapshot(game, here: str = "") -> dict:
         "margin": {r.uid: {"net": round(r.net, 2), "wage": C.WAGE,
                            "staffed": r.staffed, "jobs": r.jobs,
                            # Hands you put there by name, ahead of the queue.
-                           "pinned": s.pins.get(r.uid, 0)}
+                           "pinned": s.pins.get(r.uid, 0),
+                           # Why the queue put it where it did.
+                           "demand": next((b.demand_note for b in s.buildings
+                                           if b.uid == r.uid), "")}
                    for r in marginal_hands(s)},
         "settlements": list(game.world.settlements),
         "town": {

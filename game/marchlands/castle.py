@@ -300,7 +300,7 @@ def approach(plan_key: str, works: Works, state: SiegeState, *,
 
 def choose(works: Works, *, siege_power: float, engineers: float,
            host: float, garrison: float, wall: float, wall_max: float,
-           patient: bool = False) -> str:
+           patient: bool = False, days: int = 0) -> str:
     """Pick the plan a competent captain would pick against these works.
 
     Used by the AI lords, and by `hint` when it is asked what to do with a
@@ -332,7 +332,12 @@ def choose(works: Works, *, siege_power: float, engineers: float,
             s = (0.30 + 0.55 * odds - 1.45 * intact * manned
                  - 0.30 * works.towers * manned * watched
                  + 0.55 * min(1.0, works.naked / 8.0) * manned
-                 + 2.20 * (1.0 - manned))   # an empty wall is a tall step, not a siege
+                 + 2.20 * (1.0 - manned)    # an empty wall is a tall step, not a siege
+                 # And a host with no engines grows readier to go at the
+                 # ladders the longer it sits -- Warband's assault odds climb
+                 # with the days of a siege. One with a ram at the gate has
+                 # better things to do than climb.
+                 + (min(1.0, days / 60.0) if siege_power <= 0 else 0.0))
         elif key == SAP:
             s = 1.25 if intact > 0.5 else 0.6
         elif key == INVEST:

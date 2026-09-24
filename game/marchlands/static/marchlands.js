@@ -1118,6 +1118,264 @@ const folkSpots = new Map();
  * only clickable where it was actually drawn. */
 const beastSpots = new Map();
 
+/* ------------------------------------------------------------ the townsfolk
+ * People, not samples. Every figure used to be worked out afresh from each
+ * day's plan -- one to a staffed shed, the rest in the square -- so nobody
+ * had a place of their own: a figure you picked was an index into a list
+ * that was rewritten every morning, a right-click moved a picture of the
+ * walk rather than the man, and "go and stand over there" was not an order
+ * the game could give at all.
+ *
+ * This is the part of 0 A.D.'s UnitAI and OpenRA's Mobile trait the town
+ * needs. Each figure is somebody: an id, a place he is actually standing,
+ * and a route he is walking. When the day's plan comes in, it is matched to
+ * the people already on the ground (reconcileFolk) rather than replacing
+ * them, so the smith who was at the anvil yesterday is the smith at it
+ * today, and the man you sent to the mill is the one who turns up there.
+ * They walk the ground on a real route -- round the walls, through the
+ * gate, along the road where there is one -- found on the town's own tiles
+ * (findPath). And a right-click on open ground is a place to stand, which
+ * they walk to and keep until they are told otherwise.
+ */
+let crowdNext = 1;
+let crowdClock = performance.now();
+const WALK_SPEED = 1.6;              // tiles a second across open ground
+const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+/* What each tile costs to cross. Roads are quick, woods and water slow,
+ * walls and roofs not at all -- a gate is a hole in the wall, which is the
+ * whole of what a gate is. Worked out once a plan. */
+let navFor = null, navGrid = null;
+function nav() {
+  if (navFor === plan && navGrid) return navGrid;
+  const g = [];
+  for (let y = 0; y < plan.h; y++) {
+    const row = [];
+    for (let x = 0; x < plan.w; x++) {
+      const k = plan.tiles[y][x];
+      row.push(k === 'road' ? 0.55 : k === 'yard' ? 0.8 : k === 'water' ? 5
+             : k === 'forest' ? 1.6 : k === 'marsh' ? 2.4 : 1);
+    }
+    g.push(row);
+  }
+  for (const w of plan.walls || [])
+    if (w.kind !== 'gate' && g[w.y] && g[w.y][w.x] !== undefined) g[w.y][w.x] = Infinity;
+  for (const b of plan.buildings || [])
+    if (g[b.y] && g[b.y][b.x] !== undefined) g[b.y][b.x] = Infinity;
+  // The way out, gate or none: where the road leaves the wall.
+  if (plan.door && g[plan.door.y] && g[plan.door.y][plan.door.x] !== undefined)
+    g[plan.door.y][plan.door.x] = 0.55;
+  navFor = plan; navGrid = g;
+  return g;
+}
+function passable(x, y) {
+  const g = nav(), tx = Math.round(x), ty = Math.round(y);
+  return ty >= 0 && ty < plan.h && tx >= 0 && tx < plan.w && isFinite(g[ty][tx]);
+}
+
+/* A* over the tiles, eight ways, never cutting a corner of a wall, and then
+ * pulled straight wherever the straight line is clear and no dearer -- so
+ * a man crosses a green in a line and still keeps to the road through the
+ * gate. Returns the waypoints after `from`, or null if there is no way. */
+function findPath(from, to) {
+  const g = nav(), W = plan.w, H = plan.h;
+  const cl = (v, n) => Math.max(0, Math.min(n - 1, Math.round(v)));
+  const sx = cl(from[0], W), sy = cl(from[1], H), gx = cl(to[0], W), gy = cl(to[1], H);
+  if (sx === gx && sy === gy) return [{ x: to[0], y: to[1] }];
+  const key = (x, y) => y * W + x;
+  const cost = (x, y) => ((x === gx && y === gy) || (x === sx && y === sy)) ? 1 : g[y][x];
+  const best = new Map([[key(sx, sy), 0]]), came = new Map(), shut = new Set();
+  const open = [[Math.hypot(gx - sx, gy - sy) * 0.55, sx, sy]];
+  let found = false;
+  while (open.length) {
+    let mi = 0;
+    for (let i = 1; i < open.length; i++) if (open[i][0] < open[mi][0]) mi = i;
+    const [, x, y] = open.splice(mi, 1)[0];
+    const k0 = key(x, y);
+    if (shut.has(k0)) continue;
+    shut.add(k0);
+    if (x === gx && y === gy) { found = true; break; }
+    const here = best.get(k0);
+    for (const [dx, dy] of DIRS8) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const c = cost(nx, ny);
+      if (!isFinite(c)) continue;
+      if (dx && dy && (!isFinite(cost(x + dx, y)) || !isFinite(cost(x, y + dy)))) continue;
+      const nk = key(nx, ny), nb = here + c * (dx && dy ? 1.414 : 1);
+      if (nb < (best.has(nk) ? best.get(nk) : Infinity)) {
+        best.set(nk, nb); came.set(nk, k0);
+        open.push([nb + Math.hypot(gx - nx, gy - ny) * 0.55, nx, ny]);
+      }
+    }
+  }
+  if (!found) return null;
+  const cells = [];
+  for (let k = key(gx, gy); k !== key(sx, sy); k = came.get(k))
+    cells.push({ x: k % W, y: Math.floor(k / W) });
+  cells.reverse();
+  cells[cells.length - 1] = { x: to[0], y: to[1] };
+  // String-pulling: from each point, skip ahead to the furthest waypoint
+  // the straight line reaches over ground no dearer than open grass.
+  const out = [];
+  let at = { x: from[0], y: from[1] }, i = 0;
+  while (i < cells.length) {
+    let j = cells.length - 1;
+    while (j > i && !clearLine(at, cells[j])) j--;
+    out.push(cells[j]);
+    at = cells[j];
+    i = j + 1;
+  }
+  return out;
+}
+function clearLine(a, b) {
+  const g = nav();
+  const n = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 4));
+  for (let k = 1; k < n; k++) {
+    const x = Math.round(a.x + (b.x - a.x) * k / n), y = Math.round(a.y + (b.y - a.y) * k / n);
+    if (y < 0 || y >= plan.h || x < 0 || x >= plan.w) return false;
+    if (!(g[y][x] <= 1)) return false;
+  }
+  return true;
+}
+
+/* Where somebody new to the picture comes from: out of his own door if he
+ * has one, else in at the gate. Never out of thin air in the middle of
+ * the square -- that is exactly the popping this is here to stop. */
+function spawnAt(f, p) {
+  const roof = (p.buildings || []).find(b => b.uid === f.home);
+  if (roof) return [roof.x + 0.5, roof.y + 0.6];
+  if (p.door) return [p.door.x, p.door.y];
+  return [f.x, f.y];
+}
+
+/* Match today's plan to the people already standing in the town. Same
+ * person first (the steward by name, the man you just sent to that shed,
+ * whoever was already at it), then anybody changing jobs, nearest first;
+ * only then does anyone new walk in. */
+function reconcileFolk(prev, next) {
+  if (!next || !next.folk) return;
+  const old = (prev && prev.folk) ? prev.folk.filter(o => o.id) : [];
+  if (!old.length) {
+    for (const f of next.folk) { f.id = crowdNext++; f.px = f.x; f.py = f.y; }
+    return;
+  }
+  const left = old.slice();
+  const take = pred => { const i = left.findIndex(pred); return i < 0 ? null : left.splice(i, 1)[0]; };
+  const nearest = (f, pred) => {
+    let bi = -1, bd = Infinity;
+    left.forEach((o, i) => {
+      if (!pred(o)) return;
+      const d = Math.hypot(o.px - f.x, o.py - f.y);
+      if (d < bd) { bd = d; bi = i; }
+    });
+    return bi < 0 ? null : left.splice(bi, 1)[0];
+  };
+  const pairs = next.folk.map(f => ({ f, o: null }));
+  const pass = (want, pick) => { for (const e of pairs) if (!e.o && want(e.f)) e.o = pick(e.f); };
+  pass(f => f.kind === 'kin', f => take(o => o.kind === 'kin' && o.who === f.who));
+  pass(f => f.kind === 'worker', f => take(o => o.bound === f.work));
+  pass(f => f.kind === 'worker', f => take(o => o.kind === 'worker' && o.work === f.work && !o.hold && !o.bound));
+  pass(f => f.kind === 'watch', f => nearest(f, o => o.kind === 'watch'));
+  // Anybody you told to stand somewhere keeps his place: he is matched to
+  // one of today's idle before anybody else is.
+  for (const o of old.filter(o => o.hold)) {
+    if (!left.includes(o)) continue;
+    let bi = -1, bd = Infinity;
+    pairs.forEach((e, i) => {
+      if (e.o || e.f.kind !== 'idle') return;
+      const d = Math.hypot(e.f.x - o.px, e.f.y - o.py);
+      if (d < bd) { bd = d; bi = i; }
+    });
+    if (bi >= 0) { pairs[bi].o = o; left.splice(left.indexOf(o), 1); }
+  }
+  pass(f => f.kind === 'idle', f => nearest(f, o => o.kind === 'idle'));
+  pass(f => f.kind === 'idle' || f.kind === 'worker',
+       f => nearest(f, o => o.kind === 'idle' || o.kind === 'worker'));
+  for (const { f, o } of pairs) {
+    if (o) {
+      f.id = o.id; f.px = o.px; f.py = o.py;
+      // A man given work walks to it; a man with none keeps the place you
+      // gave him. A route is kept only if it still leads where he is going.
+      f.hold = f.kind === 'idle' ? (o.hold || null) : null;
+      const same = o.goalKey && o.goalKey === goalKeyOf(f);
+      f.route = same ? o.route : null;
+      f.goalKey = same ? o.goalKey : null;
+    } else {
+      f.id = crowdNext++;
+      [f.px, f.py] = f.kind === 'watch' ? [f.x, f.y] : spawnAt(f, next);
+    }
+  }
+}
+function goalOf(f) { return f.hold || [f.x, f.y]; }
+function goalKeyOf(f) { const g = goalOf(f); return g[0].toFixed(2) + ',' + g[1].toFixed(2); }
+
+/* Everybody takes a step. Called once a frame, before anything is drawn. */
+function stepCrowd(now) {
+  // Capped at a second, not a frame: a tab drawing twice a second must
+  // still walk them at walking pace, and one asleep for a minute must not
+  // teleport them.
+  const dt = Math.min(1, Math.max(0, (now - crowdClock) / 1000));
+  crowdClock = now;
+  if (!plan || !plan.folk) return;
+  for (const f of plan.folk) {
+    if (f.px === undefined) { f.px = f.x; f.py = f.y; }
+    if (f.kind === 'watch') { f.px = f.x; f.py = f.y; f.moving = false; continue; }
+    const key = goalKeyOf(f);
+    if (f.goalKey !== key) {
+      const g = goalOf(f);
+      f.goalKey = key;
+      f.route = Math.hypot(g[0] - f.px, g[1] - f.py) > 0.15 ? (findPath([f.px, f.py], g) || []) : [];
+    }
+    let budget = dt;
+    while (budget > 0 && f.route && f.route.length) {
+      const n = f.route[0];
+      const k = tileKind(f.px, f.py);
+      const speed = WALK_SPEED * (k === 'road' ? 1.35 : k === 'water' ? 0.45
+                                  : k === 'forest' ? 0.7 : 1);
+      const d = Math.hypot(n.x - f.px, n.y - f.py);
+      const can = speed * budget;
+      if (d <= can) { f.px = n.x; f.py = n.y; f.route.shift(); budget -= d / speed; }
+      else { f.px += (n.x - f.px) / d * can; f.py += (n.y - f.py) / d * can; budget = 0; }
+    }
+    f.moving = !!(f.route && f.route.length);
+  }
+}
+
+/* Somewhere to stand, for everybody picked: the spot you pointed at and
+ * the ground round it in a loose knot -- 0 A.D.'s formation at its
+ * plainest -- skipping anything they cannot stand on. */
+function standAt(point, folk) {
+  const spots = [[0, 0]];
+  for (let ring = 1; spots.length < folk.length * 3 && ring < 6; ring++)
+    for (let a = 0; a < 6 * ring; a++) {
+      const th = a / (6 * ring) * Math.PI * 2;
+      spots.push([Math.cos(th) * 0.55 * ring, Math.sin(th) * 0.55 * ring]);
+    }
+  let k = 0, placed = 0;
+  for (const f of folk) {
+    while (k < spots.length && !passable(point[0] + spots[k][0], point[1] + spots[k][1])) k++;
+    if (k >= spots.length) break;
+    const to = [point[0] + spots[k][0], point[1] + spots[k][1]];
+    k++;
+    if (!findPath([f.px, f.py], to)) continue;
+    f.hold = to;
+    placed++;
+  }
+  return placed;
+}
+
+/* A screen point back to the ground, not rounded to a tile: a place to
+ * stand is a place, not a square. */
+function screenToGround(ev) {
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left - r.width / 2 - camera.x) / camera.zoom
+           + (plan.w - plan.h) * TW / 4;
+  const py = (ev.clientY - r.top - r.height / 2 - camera.y) / camera.zoom
+           + (plan.w + plan.h) * TH / 4;
+  return [(px / (TW / 2) + py / (TH / 2)) / 2, (py / (TH / 2) - px / (TW / 2)) / 2];
+}
+
 /* Where each host was drawn, so one can be clicked. Same bargain as the
  * figures in the town: the thing that moved is only clickable where it was
  * actually painted. */
@@ -1181,21 +1439,14 @@ function armsFor(trade, t, i) {
 }
 
 function drawFolk(f, i, t) {
-  let wx = f.x, wy = f.y, bob = 0, stride = 0, swimming = false;
+  let wx = f.px !== undefined ? f.px : f.x, wy = f.py !== undefined ? f.py : f.y;
+  let bob = 0, stride = 0, swimming = false;
   let trade = f.trade || (f.kind === 'watch' ? 'guard' : 'idle');
-  // Sent somewhere a moment ago: on the road to it, not standing in it.
-  // Only a figure that would otherwise be standing there takes the walk --
-  // the town's own road-walkers are already going somewhere, and handing
-  // one of them the trip left the newly-arrived figure popping into the
-  // yard, which is the very thing the walk is here to stop.
-  const afoot = f.path && f.path.length > 1;
-  const trip = (f.kind === 'worker' && !afoot) ? claimTrip(f.work) : null;
-  const shed = trip ? plan.buildings.find(b => b.uid === f.work) : null;
-  if (trip && shed) {
-    const g = Math.min(1, (performance.now() - trip.born) / trip.ms);
-    wx = trip.from[0] + (shed.x - trip.from[0]) * g;
-    wy = trip.from[1] + (shed.y - trip.from[1]) * g;
-    swimming = trip.swim && tileKind(wx, wy) === 'water';
+  // On his way somewhere -- to work, to where you told him to stand, or in
+  // from his door -- on a route round whatever is in the way.
+  const afoot = f.path && f.path.length > 1 && !f.hold;
+  if (f.moving) {
+    swimming = tileKind(wx, wy) === 'water';
     trade = 'walk';
     bob = swimming ? Math.abs(Math.sin(t * 2.2 + i)) * 0.8
                    : Math.abs(Math.sin(t * 3.1 + i)) * 1.6;
@@ -1204,7 +1455,7 @@ function drawFolk(f, i, t) {
     // Up the street and back again, each at their own pace.
     const cycle = (t * 0.06 + i * 0.17) % 2;
     const at = walkAlong(f.path, cycle < 1 ? cycle : 2 - cycle);
-    if (at) { wx = at[0]; wy = at[1]; }
+    if (at) { wx = at[0]; wy = at[1]; f.px = wx; f.py = wy; }
     bob = Math.abs(Math.sin(t * 3.1 + i)) * 1.6;
     stride = Math.sin(t * 5.4 + i * 2.1) * 3.2;
   } else if (f.kind === 'idle') {
@@ -2361,9 +2612,24 @@ function nodeWrit(n, ev) {
     (st.why.length ? `<ul class="why-list">` + st.why.map(w =>
       `<li><span>${esc(w.what)}</span><em class="${w.by > 0 ? 'up' : 'down'}">` +
       `${w.by > 0 ? '+' : ''}${w.by}</em></li>`).join('') + '</ul>' : '') +
+    (st.reckoning && st.reckoning.length ?
+      `<p class="why">his reckoning about a war on you: <b>${st.reckoned}</b> ` +
+      `(he marches at ${st.declares_at})</p><ul class="why-list">` +
+      st.reckoning.map(r => `<li><span>${esc(r.what)}</span>` +
+        `<em class="${r.by > 0 ? 'down' : 'up'}">${r.by > 0 ? '+' : ''}${r.by}</em></li>`).join('') +
+      '</ul>' : '') +
+    `<p class="why">trusts your word ${st.trust} of 100` +
+    (st.war ? ` · the war as he reckons it ${st.war > 0 ? '+' : ''}${st.war}` : '') +
+    (st.sued ? ' · <b>he has sued for peace</b>' : '') + '</p>' +
     `<p class="why">${st.ground
       ? 'a reason to march: ' + esc(st.ground)
       : 'no reason to march anybody would accept'}</p>`;
+  // A sworn town's oath, and a wall that has thrown a storm back lately.
+  // Outside the lord's card: a town sworn to you has no lord to write one.
+  const oath = (n.loyalty != null ? `<p class="why">its oath: ${n.loyalty} of 100` +
+      (n.loyalty < 50 ? ' — <b>wavering</b>' : '') + '</p>' : '') +
+    (n.hardened >= 20 ? `<p class="why">its wall threw a storm back lately, ` +
+      `and the men on it are ready</p>` : '');
   // The country and the sky. It sits with the castle rather than with the
   // prices because it answers the same question the castle does -- what
   // attacking this place would actually be like -- and a man who can read
@@ -2393,7 +2659,7 @@ function nodeWrit(n, ev) {
     </div>` : n.kind === 'site' ? `
     <div class="acts"><button data-do="found ${n.key}">settle it</button></div>` : '';
   openWrit(n.name, skyline + price + (known ? `<p class="why">${known}</p>` : '')
-           + keep + field + standing + acts, ev);
+           + keep + field + standing + oath + acts, ev);
   for (const c of writ.querySelectorAll('canvas.skyline')) {
     c.width = Math.round(c.clientWidth * dpr);
     c.height = Math.round(104 * dpr);
@@ -2440,13 +2706,14 @@ function frame() {
     const things = [];
     folkSpots.clear();
     beastSpots.clear();
-    claimedTrip.clear();
+    stepCrowd(performance.now());
     for (let y = 0; y < plan.h; y++)
       for (let x = 0; x < plan.w; x++)
         if (plan.tiles[y][x] === 'forest') things.push({ d: x + y, x, y, kind: 'wood' });
     for (const b of plan.buildings) things.push({ d: b.x + b.y, kind: 'b', b });
     for (const w2 of plan.walls) things.push({ d: w2.x + w2.y, kind: 'w', w: w2 });
-    plan.folk.forEach((f, i) => things.push({ d: f.x + f.y, kind: 'f', f, i }));
+    plan.folk.forEach((f, i) => things.push({ d: (f.px !== undefined ? f.px + f.py : f.x + f.y),
+                                              kind: 'f', f, i }));
     (plan.beasts || []).forEach((bs, i) =>
       things.push({ d: bs.x + bs.y, kind: 'a', bs, i }));
     const at = {};
@@ -2460,10 +2727,10 @@ function frame() {
     for (const it of things) {
       const [ix, iy] = iso(it.x !== undefined ? it.x : it.b ? it.b.x
                            : it.w ? it.w.x : it.pos ? it.pos.x
-                           : it.bs ? it.bs.x : it.f.x,
+                           : it.bs ? it.bs.x : (it.f.px !== undefined ? it.f.px : it.f.x),
                            it.y !== undefined ? it.y : it.b ? it.b.y
                            : it.w ? it.w.y : it.pos ? it.pos.y
-                           : it.bs ? it.bs.y : it.f.y);
+                           : it.bs ? it.bs.y : (it.f.py !== undefined ? it.f.py : it.f.y));
       if (!onScreen(ix, iy, 120)) continue;
       if (it.kind === 'wood') drawTrees(it.x, it.y);
       else if (it.kind === 'b') drawBuilding(it.b, t);
@@ -3143,7 +3410,9 @@ function meter(el, frac, warnAt, badAt) {
 
 function paint(s) {
   const was = state;
-  state = s; plan = s.plan;
+  state = s;
+  if (s.plan) reconcileFolk(plan, s.plan);
+  plan = s.plan;
   paintSel();   // a new plan: find the same people in it
   paintIdle();
   if (window.Sound) {
@@ -3276,7 +3545,8 @@ function paint(s) {
     const at = (lea.fixtures || []).filter(f => f.at_you);
     const clock = $('clock');
     clock.textContent = at.length
-      ? `${nameOf(at[0].who)} means to move on ${nameOf(at[0].target)}`
+      ? `${nameOf(at[0].who)} means to move on ${nameOf(at[0].target)}` +
+        (at[0].reason ? ` — ${at[0].reason}` : '')
       : (lea.clock === 'player' && lea.left
          ? `you are on the clock — ${lea.left} left in the intake` : '');
     clock.className = at.length ? 'down' : 'dim';
@@ -4747,20 +5017,15 @@ function clearSel() { setSel('', []); }
 /* What a figure *is*, independent of its place in the list. */
 function folkDesc(f, i) {
   if (!f || f.kind === 'watch') return null;
-  // Somebody idle has no shed to be known by: they are the figure they are
-  // today, and tomorrow's idle figures are whoever is idle tomorrow.
-  if (f.kind === 'idle') return { kind: 'idle', i };
-  return { kind: f.kind, trade: f.trade, work: f.work, home: f.home, who: f.who || '' };
+  // Who they are, not where they are in today's list: every figure is
+  // somebody now (see reconcileFolk), and the same somebody tomorrow.
+  return { id: f.id };
 }
 function findFolk(descs) {
   if (!plan) return [];
+  const want = new Set(descs.map(d => d.id));
   const ids = [];
-  plan.folk.forEach((f, i) => {
-    if (descs.some(d => d.kind === 'idle'
-      ? (d.i === i && f.kind === 'idle')
-      : (d.kind === f.kind && d.trade === f.trade && d.work === f.work
-         && (d.kind !== 'kin' || d.who === f.who)))) ids.push(i);
-  });
+  plan.folk.forEach((f, i) => { if (want.has(f.id)) ids.push(i); });
   return ids;
 }
 function selHosts(kind) {
@@ -4863,34 +5128,60 @@ function rightClick(e) {
     return say(`${first} takes a post, not a shed -- click them for the posts, or right-click a host or town on the march.`);
   }
   if (mode === 'march') return say('hands are sent to a shed in the town (T).');
-  // Point at a shed and they go to it; point at the ground and they go to
-  // the nearest work to where you pointed, which is what the click means
-  // in every game that has villagers. Naming the shed keeps it honest --
-  // they walked somewhere, and the line says where.
+  const people = sel.ids.map(i => plan.folk[i])
+    .filter(f => f && f.kind !== 'kin' && f.kind !== 'watch');
+  if (!people.length) return say('nobody there with hands to send.');
+  // What the click means, the way every game with villagers reads it: a
+  // shed, or ground a shed works (the trees, the field), is work; anywhere
+  // else is a place to stand.
   const want = workFor(e);
-  if (!want) return say('there is no work that way for them to go to.');
-  // A figure at a shed is that shed's crew, so sending it sends the crew --
-  // off the shed it stood at, which the engine then holds down. Without the
-  // `from` the queue refilled the gap at once: the figure never left and
-  // only its walk crossed the town.
-  const going = sel.ids.filter(i => plan.folk[i]
-    && plan.folk[i].kind !== 'kin' && plan.folk[i].kind !== 'watch'
-    && plan.folk[i].work !== want.shed.uid);
+  if (!want) return moveThem(e, people);
+  const going = people.filter(f => f.work !== want.shed.uid);
   if (!going.length) return say(`they are already at the ${want.shed.name}.`);
+  // Ask the shed before anybody sets off. "Off they go" and then "it has
+  // all the hands it can use" was two answers to one click, and the figure
+  // stood still through both of them.
+  const m = state && state.margin ? state.margin[want.shed.uid] : null;
+  const room = m ? m.jobs - m.staffed : 0;
+  if (room <= 0) {
+    say(`the ${want.shed.name} has all ${m ? m.jobs : 0} hands it can use -- ` +
+        `they walk over and wait.`);
+    return moveThem(e, people, [want.shed.x, want.shed.y + 0.9]);
+  }
+  // A figure at a shed is that shed's crew, so sending it sends the crew --
+  // off the shed it stood at, which the engine then holds down.
   const from = new Map();
   let moving = 0;
-  for (const i of going) {
-    const f = plan.folk[i];
-    const m = f.kind === 'worker' && state && state.margin ? state.margin[f.work] : null;
-    if (m && !from.has(f.work)) { from.set(f.work, m.staffed || f.souls || 0); moving += m.staffed || f.souls || 0; }
-    else if (!m) moving += f.souls || 0;
+  for (const f of going) {
+    const mm = f.kind === 'worker' && state && state.margin ? state.margin[f.work] : null;
+    if (mm && !from.has(f.work)) { from.set(f.work, mm.staffed || f.souls || 0); moving += mm.staffed || f.souls || 0; }
+    else if (!mm) moving += f.souls || 0;
   }
   if (!moving) return say('nobody there with hands to send.');
-  if (want.said) say(`off they go ${want.said}.`);
-  setThemWalking(want.shed, going);
+  say(`off they go to the ${want.shed.name}` +
+      (moving > room ? ` -- it has room for ${room} of the ${moving}.` : '.'));
+  for (const f of going) { f.bound = want.shed.uid; f.hold = null; }
   send(`move ${want.shed.uid} ${moving}` +
        [...from].map(([uid, n]) => ` ${uid}:${n}`).join(''));
   bark('go', e, want.shed.terrain);
+}
+
+/* Go and stand there. Hands at a shed are taken off it (and it is held
+ * down, as a move would), so a man you walk away from the mill is a man
+ * not working at the mill -- the same bargain as every RTS villager. */
+function moveThem(e, people, at) {
+  const point = at || screenToGround(e);
+  if (!passable(point[0], point[1])) return say('nobody can stand there.');
+  const placed = standAt(point, people);
+  if (!placed) return say('there is no way there from where they are.');
+  const off = new Map();
+  for (const f of people) {
+    if (f.kind !== 'worker' || !f.hold) continue;
+    const mm = state && state.margin ? state.margin[f.work] : null;
+    if (mm && !off.has(f.work)) off.set(f.work, mm.staffed || f.souls || 0);
+  }
+  for (const [uid, n] of off) send(`rest ${uid} ${n}`);
+  bark('go', e, 'ground');
 }
 
 /* Which sheds can take hands at all, and which is nearest to a click.
@@ -4926,8 +5217,11 @@ function workFor(ev) {
     const fit = nearestWork(ev, want);
     if (fit) return { shed: fit, said: `to the ${fit.name}` };
   }
-  const any = nearestWork(ev);
-  return any ? { shed: any, said: `to the ${any.name}, the nearest work` } : null;
+  // Plain ground -- grass, the road, the yard -- asks for nothing to be
+  // done: it is a place to stand, and the order is to walk there. It used
+  // to mean "the nearest work", which is why there was no way at all to
+  // tell a man to go and stand somewhere.
+  return null;
 }
 
 function nearestWork(ev, terrain) {
@@ -4949,16 +5243,6 @@ function nearestWork(ev, terrain) {
 }
 
 /* ------------------------------------------------------------- the walk */
-/* Told to go somewhere, they go: out of the field they were standing in,
- * across the town, into the yard you pointed at, and only then do they
- * take up the work. The books seat the hands the moment you say so -- a
- * day is the unit there -- and this is the seconds of it you watch. It is
- * a transition between two true states, not a lie about either: the shed
- * they are walking to is the shed they belong to from the click onward. */
-const arriving = new Map();     // shed uid -> the walks still going on
-const claimedTrip = new Map();  // and which figure took which, this frame
-const WALK_PER_TILE = 150, WALK_LEAST = 700, WALK_MOST = 4500;
-
 function crossesWater(from, to) {
   for (let i = 1; i < 12; i++) {
     const g = i / 12;
@@ -4968,34 +5252,6 @@ function crossesWater(from, to) {
   return false;
 }
 
-function setThemWalking(shed, idx) {
-  const list = arriving.get(shed.uid) || [];
-  for (const i of idx) {
-    const f = plan.folk[i];
-    if (!f) continue;
-    const from = [f.x, f.y];
-    const far = Math.hypot(shed.x - from[0], shed.y - from[1]);
-    list.push({ from, born: performance.now(),
-                ms: Math.min(WALK_MOST, Math.max(WALK_LEAST, far * WALK_PER_TILE)),
-                swim: crossesWater(from, [shed.x, shed.y]) });
-  }
-  arriving.set(shed.uid, list);
-}
-
-/* One walk to one figure, per frame. The figures at a shed are drawn in a
- * stable order, so the first ones there are the ones still on the road. */
-function claimTrip(uid) {
-  const list = arriving.get(uid);
-  if (!list) return null;
-  const now = performance.now();
-  const live = list.filter(t => now - t.born < t.ms);
-  if (!live.length) { arriving.delete(uid); return null; }
-  if (live.length !== list.length) arriving.set(uid, live);
-  const used = claimedTrip.get(uid) || 0;
-  if (used >= live.length) return null;
-  claimedTrip.set(uid, used + 1);
-  return live[used];
-}
 /* The nearest place on the march, however loosely you pointed at it. A
  * host is sent to a town, not to a patch of moor, so a click between two
  * of them means the nearer one rather than nothing at all. */

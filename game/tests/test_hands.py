@@ -270,18 +270,51 @@ class TestTheyWalkThere(unittest.TestCase):
         self.assertIn("const WORK_ON = { forest: 'forest', field: 'fertile', water: 'coast'", self.js)
         self.assertIn("function workFor", self.js)
         self.assertIn("function tileKind", self.js)
-        # and the fallback is still the nearest work there is
-        self.assertIn("the nearest work", self.js)
+        # and plain ground asks for nothing: it is a place to stand
+        self.assertIn("if (!want) return moveThem(e, people);", self.js)
 
     def test_a_shed_you_have_shut_is_not_work(self):
         self.assertIn("b.enabled !== false", self.js)
 
     def test_the_walk_is_drawn(self):
-        for bit in ("function setThemWalking", "function claimTrip", "function crossesWater",
-                    "const arriving = new Map()", "claimedTrip.clear()"):
+        # People, not samples: a route on the town's own tiles, the same
+        # person matched from one day's plan to the next, a step a frame.
+        for bit in ("function findPath", "function reconcileFolk", "function stepCrowd",
+                    "function standAt", "function moveThem", "stepCrowd(performance.now())",
+                    "if (s.plan) reconcileFolk(plan, s.plan);"):
             self.assertIn(bit, self.js, bit)
-        # the figure that would otherwise stand there is the one that walks
-        self.assertIn("const trip = (f.kind === 'worker' && !afoot) ? claimTrip(f.work) : null", self.js)
+        # the man you sent is the one who turns up there
+        self.assertIn("f => take(o => o.bound === f.work)", self.js)
+        # and the selection follows him by who he is, not his place in a list
+        self.assertIn("return { id: f.id };", self.js)
+        # the old picture-of-a-walk is gone
+        self.assertNotIn("function claimTrip", self.js)
+
+    def test_a_man_walked_off_his_work_stands_where_he_was_put(self):
+        st = start("marchlands", seed=3).world.settlements["aldworth"]
+        st._seat_hands()
+        shed = next(b for b in st.buildings if b.complete and b.staffed)
+        crew = shed.staffed
+        idle = st.workforce - st.employed
+        said = st.rest_hands(shed.uid, crew)
+        self.assertIn("stand where you put them", said)
+        self.assertEqual(shed.staffed, 0)
+        self.assertEqual(st.resting, crew)
+        self.assertEqual(st.workforce - st.employed, idle + crew,
+                         "the queue must not seat him somewhere else")
+        st._staff_buildings()
+        self.assertEqual(shed.staffed, 0)
+        # and sent back to work from standing about, he is no longer resting
+        st.move_hands(shed.uid, crew)
+        self.assertEqual(shed.staffed, crew)
+        self.assertEqual(st.resting, 0)
+
+    def test_the_picture_is_told_where_the_way_out_is(self):
+        from marchlands.layout import plan_for
+        st = start("marchlands", seed=3).world.settlements["aldworth"]
+        d = plan_for(st).to_dict()
+        self.assertIsNotNone(d["door"])
+        self.assertIn("plan.door", self.js)
 
     def test_the_drawing_is_told_whether_a_shed_is_open(self):
         from marchlands.layout import plan_for
@@ -325,8 +358,13 @@ class TestIdleHands(unittest.TestCase):
         g = start("marchlands", seed=5)
         Bot(g).run(150)
         st = g.world.settlements["aldworth"]
-        # Enough sheds for everybody: nobody is drawn standing about.
-        while st.jobs_offered < st.workforce:
+        # Enough sheds for everybody: nobody is drawn standing about. Only
+        # sheds that can work today count -- a field in winter or a mill with
+        # no grain is not a job anybody is sent to (see _cannot_work).
+        def workable():
+            return sum(b.spec.jobs for b in st.buildings
+                       if b.complete and b.enabled and not st._cannot_work(b))
+        while workable() < st.workforce:
             st.population -= 10
         st._seat_hands()
         self.assertFalse([f for f in plan_for(st).folk if f.kind == "idle"],
