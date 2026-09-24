@@ -1,5 +1,5 @@
 {
- "at": "2026-09-24T18:57:15.023986Z",
+ "at": "2026-09-24T20:00:54.092573Z",
  "tracked": [
   {
    "city": "SAN",
@@ -8,70 +8,70 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 77,
-   "run_max": 75.2,
-   "gap_to_clear": 1.8,
+   "run_max": 77.0,
+   "gap_to_clear": 0.0,
    "already_cleared": false,
    "guide": 81,
-   "pop": 4,
-   "no_ask": 0.53,
-   "local_hour": 11,
+   "pop": 2,
+   "no_ask": 0.73,
+   "local_hour": 13,
    "obs_trace": [
     {
-     "ts": "2026-09-24T18:40:00+00:00",
+     "ts": "2026-09-24T19:40:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:35:00+00:00",
+     "ts": "2026-09-24T19:35:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:30:00+00:00",
+     "ts": "2026-09-24T19:30:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:27:00+00:00",
+     "ts": "2026-09-24T19:25:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:25:00+00:00",
+     "ts": "2026-09-24T19:20:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:20:00+00:00",
+     "ts": "2026-09-24T19:15:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:15:00+00:00",
+     "ts": "2026-09-24T19:10:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:10:00+00:00",
+     "ts": "2026-09-24T19:05:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:05:00+00:00",
+     "ts": "2026-09-24T19:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-09-24T18:00:00+00:00",
+     "ts": "2026-09-24T18:55:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": -0.2,
-    "q50": 1.8,
-    "q90": 7.2
+    "q10": -0.8,
+    "q50": 0.2,
+    "q90": 2.4
    },
    "projected_max": {
-    "q10": 75.0,
-    "q50": 77.0,
-    "q90": 82.4
+    "q10": 76.2,
+    "q50": 77.2,
+    "q90": 79.4
    },
-   "p_exceed_empirical": 0.4355,
-   "emp_n": 60,
+   "p_exceed_empirical": 0.6212,
+   "emp_n": 64,
    "convergence_hour": 12,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
+   "past_convergence": true,
+   "note": "day effectively decided"
   }
  ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
