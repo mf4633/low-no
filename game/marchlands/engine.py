@@ -1118,6 +1118,7 @@ class GameState:
         sons in the host and no idea what any of this is for.
         """
         key = town.key
+        self._betray_friend(key)
         if self.day - self.court.declared.get(key, -9999) < self.WAR_MEMORY:
             return ""                        # the same quarrel, still running
         if town.truce_days > 0:
@@ -1593,26 +1594,31 @@ class GameState:
             holder = town.owner or town.key
             if holder == b.owner or holder not in self.world.towns:
                 continue
-            if any(x.owner == holder and x.home == town.key and x.state == MARCHING
+            if any(x.home == town.key and x.state == MARCHING and x.owner != b.owner
                    for x in self.armies):
                 continue                     # already on the road
+            # His own other towns, and those of any lord sworn to him.
+            friends = {holder} | {p for p in self.court.partners(holder)
+                                  if p != b.owner}
             sources = sorted(
                 (k for k, t in self.world.towns.items()
-                 if k != town.key and (t.owner or k) == holder and not t.mine
+                 if k != town.key and (t.owner or k) in friends and not t.mine
                  and k not in ringed and k in self.world.coords),
                 key=lambda k: (self.world.distance(k, town.key), k))
             if not sources:
                 continue
             src = self.world.towns[sources[0]]
-            send = {k: v * self.RELIEF_SHARE for k, v in src.garrison.items()
-                    if v * self.RELIEF_SHARE >= 0.5}
+            # A partner sends less than a lord sends to his own.
+            share = self.RELIEF_SHARE * (1.0 if (src.owner or src.key) == holder else 0.6)
+            send = {k: v * share for k, v in src.garrison.items() if v * share >= 0.5}
             if host_strength(send) < 0.25 * host_strength(b.units):
                 continue                     # not enough to be worth the road
             for k, n in send.items():
                 src.garrison[k] -= n
             src.garrison = {k: v for k, v in src.garrison.items() if v >= 0.5}
-            lord = self.world.towns[holder].lord
-            a = Army(uid=self.next_army_uid, name=f"{lord}'s relief", owner=holder,
+            sender = src.owner or src.key
+            lord = self.world.towns[sender].lord
+            a = Army(uid=self.next_army_uid, name=f"{lord}'s relief", owner=sender,
                      units=send, at=src.key, home=town.key)
             self.next_army_uid += 1
             self.armies.append(a)
@@ -1622,6 +1628,18 @@ class GameState:
                     f"Out of {src.name} a relief marches for {town.name} -- "
                     f"{describe(send)}, {a.days_left:.0f} days out", MOMENTOUS))
         return msgs
+
+    #: Warband's lord does not go through a breach unless he has the men for
+    #: it: half again the strength of whoever is behind it -- until he has
+    #: sat so long that going in is better than going home.
+    STORM_ODDS = 1.5
+    STORM_DESPERATE = 60
+
+    def _dares(self, a: Army, holder) -> bool:
+        """Whether a lord's host goes in today. Yours goes when you say."""
+        if a.owner == PLAYER or a.siege_days > self.STORM_DESPERATE:
+            return True
+        return host_strength(a.units) >= self.STORM_ODDS * host_strength(holder.units)
 
     def _siege(self, a: Army) -> List[str]:
         a.siege_days += 1
@@ -2943,6 +2961,7 @@ class GameState:
         msgs: List[str] = []
         if a.owner == "player":
             self.kin.did("merciful", -0.05)
+            self._betray_friend(town.key)
         raiders = Side(a.units,
                        attack_mult=(self.progress.mult("attack")
                                     * self.kin.mult("attack", a.uid))
@@ -3025,7 +3044,7 @@ class GameState:
         msgs += self._starve_town(town, a, holder, player)
         if not town.mine and holder.alive():
             msgs += self._sally_at(town, a, holder, besieger, player)
-        if storms_now(a.siege.plan, wall, holder.alive()):
+        if storms_now(a.siege.plan, wall, holder.alive()) and self._dares(a, holder):
             battle = open_battle(besieger, holder, rng=self.rng, place=town.name,
                                  orders=(a.order, lordly.sort_of(town.key).fights),
                                  field=self.field_at(town.key), works=works,
@@ -3230,7 +3249,7 @@ class GameState:
                 msgs.append(f"{s.name} is starving, and the garrison thins with "
                             f"the town -- {s.report.hunger:.0%} of the ration "
                             f"going unserved")
-        if storms_now(a.siege.plan, wall, holder.alive()):
+        if storms_now(a.siege.plan, wall, holder.alive()) and self._dares(a, holder):
             # Your own wall: whatever you told the garrison to do.
             battle = open_battle(besieger, holder, rng=self.rng, place=s.name,
                                  orders=(a.order, getattr(s, "order", "") or HOLD),
@@ -3944,7 +3963,7 @@ class GameState:
             if t is None or t.mine:
                 c.allies.remove(key)
                 continue
-            if c.opinion(key, day) <= 0 or c.trust_of(key) < c.TRUST_LAPSE:
+            if c.settled_view(key, day) <= 0 or c.trust_of(key) < c.TRUST_LAPSE:
                 c.allies.remove(key)
                 c.write(key, "ally", -10.0, day)
                 why = ("does not trust your word"
@@ -4034,6 +4053,15 @@ class GameState:
         c = self.court
         c.settle_day()
         c.settle_opinions(sorted(self.world.towns), self.day)
+        msgs += self._pact_day()
+        for key, when in list(c.friends.items()):
+            t = self.world.towns.get(key)
+            if t is None or t.mine or self.day - when > self.FRIEND_DAYS:
+                del c.friends[key]
+                if t is not None and not t.mine:
+                    msgs.append(f"{t.lord} of {t.name}: the declaration of "
+                                f"friendship has run its year. `befriend` to "
+                                f"renew it.")
         for key, v in list(c.score.items()):
             t = self.world.towns.get(key)
             if t is None or t.mine or v < self.sues_at(key) or t.truce_days > 0:
@@ -4048,6 +4076,102 @@ class GameState:
                 f"*** {t.lord} of {t.name} sues for peace. `truce {t.name.lower()}` "
                 f"costs nothing for {self.SUIT_DAYS} days. ***", MOMENTOUS))
         return msgs
+
+    #: Pacts between lords: looked at monthly, lasting two years.
+    PACT_EVERY = 30
+    PACT_YEARS = 2
+    PACT_FEAR = 0.45             # a lord this far under the strongest looks for one
+    PACT_WEIGHT = 0.25           # how much of a partner's garrison deters
+    FRIEND_DAYS = 360
+    FRIEND_VIEW = 15.0
+    FRIEND_TRUST = 40.0
+
+    def _lord_strength(self, key: str) -> float:
+        t = self.world.towns[key]
+        return host_strength(t.garrison) + host_strength(
+            self._muster_enemy(t, 1.0, spread=False))
+
+    def _pact_day(self) -> List[str]:
+        """Two lords who both fear the strongest swear to defend each other.
+
+        Once a month each lord without a pact looks at the strongest lord on
+        the march; if he is well under him, he looks for the nearest other
+        lord who is too, and who is not at war with him, and they swear. A
+        pact ends after two years, or when either house is taken or sworn
+        to you.
+        """
+        msgs: List[str] = []
+        c = self.court
+        towns = self.world.towns
+        for p, when in list(c.pacts.items()):
+            a, b = p.split("|")
+            ta, tb = towns.get(a), towns.get(b)
+            if (ta is None or tb is None or ta.mine or tb.mine
+                    or ta.owner == b or tb.owner == a
+                    or self.day - when > self.PACT_YEARS * C.DAYS_PER_YEAR):
+                del c.pacts[p]
+        if self.day % self.PACT_EVERY:
+            return msgs
+        lords = sorted(k for k, t in towns.items() if not t.mine and not t.owner)
+        if len(lords) < 3:
+            return msgs
+        power = {k: self._lord_strength(k) for k in lords}
+        top = max(lords, key=lambda k: (power[k], k))
+        for k in lords:
+            if k == top or c.partners(k) or power[k] >= self.PACT_FEAR * power[top]:
+                continue
+            fighting = {x.bound_for for x in self.armies if x.owner == k} | {
+                x.owner for x in self.armies if x.bound_for == k or x.at == k}
+            others = sorted(
+                (o for o in lords if o not in (k, top) and not c.partners(o)
+                 and power[o] < self.PACT_FEAR * power[top] and o not in fighting
+                 and o in self.world.coords and k in self.world.coords),
+                key=lambda o: (self.world.distance(k, o), o))
+            if not others:
+                continue
+            dice = random.Random(f"{self.seed}:pact:{self.day}:{k}")
+            if dice.random() > 0.3:
+                continue
+            o = others[0]
+            c.pacts[c.pair(k, o)] = self.day
+            if towns[k].seen_day >= 0 or towns[o].seen_day >= 0:
+                msgs.append(f"{towns[k].lord} of {towns[k].name} and "
+                            f"{towns[o].lord} of {towns[o].name} swear to "
+                            f"defend each other against {towns[top].name}")
+        return msgs
+
+    def befriend(self, town_key: str) -> str:
+        """Declare friendship: less than an alliance, and cheaper to keep."""
+        t = self.world.towns.get(town_key)
+        if t is None:
+            return f"there is no {town_key!r} to treat with"
+        if t.mine:
+            return f"{t.name} is sworn to you already"
+        c = self.court
+        if town_key in c.coalition:
+            return f"{t.lord} has put his name to the letter against you"
+        view, trust = c.settled_view(town_key, self.day), c.trust_of(town_key)
+        if view < self.FRIEND_VIEW or trust < self.FRIEND_TRUST:
+            return (f"{t.lord} of {t.name} will not call you a friend: he thinks "
+                    f"{view:+.0f} of you and trusts your word {trust:.0f}; it "
+                    f"wants {self.FRIEND_VIEW:+.0f} and {self.FRIEND_TRUST:.0f}")
+        c.friends[town_key] = self.day
+        c.shake(town_key, 5.0)
+        return self.note(f"{t.lord} of {t.name} declares friendship with you for "
+                         f"a year. He will not march on you while it holds; "
+                         f"marching on him ends it, and the march hears.",
+                         MOMENTOUS)
+
+    def _betray_friend(self, key: str) -> None:
+        c = self.court
+        if key not in c.friends:
+            return
+        del c.friends[key]
+        c.shake(key, -40.0)
+        c.write(key, "broke_word", -30.0, self.day)
+        for other, t in self.world.towns.items():
+            if other != key and not t.mine:
+                c.shake(other, -15.0)
 
     def sues_at(self, key: str) -> float:
         """The war score at which a lord asks for peace: +50, less a point
@@ -4133,7 +4257,7 @@ class GameState:
         c = self.court
         if town_key in c.allies:
             return f"you are allied with {t.name} already"
-        view = c.opinion(town_key, self.day)
+        view = c.settled_view(town_key, self.day)
         if view < court.WARM:
             return (f"{t.lord} of {t.name} thinks of you as "
                     f"{court.temper(view)} ({view:+.0f}); he will not swear to "
@@ -4331,6 +4455,8 @@ class GameState:
             terms.append(("somebody is marching on him", -10.0 * beset))
         if c.allies:
             terms.append(("your allies would come", -4.0 * len(c.allies)))
+        if key in c.friends:
+            terms.append(("he has declared friendship with you", -12.0))
         # What has settled in him, not what he said this morning.
         view = c.settled_view(key, self.day)
         if view <= -40:
@@ -4405,6 +4531,11 @@ class GameState:
             if self.world.liege_of(other_key) == me.owner and me.owner:
                 continue                      # not your liege-brother
             defence = host_strength(other.garrison) + other.wall_hp / 12.0
+            # And a share of whoever is sworn to come for him.
+            holder = other.owner or other_key
+            defence += self.PACT_WEIGHT * sum(host_strength(self.world.towns[p].garrison)
+                                 for p in self.court.partners(holder)
+                                 if p != key and p in self.world.towns)
             if defence >= mine_strength * reach:
                 continue
             score = (mine_strength * reach - defence) / max(
@@ -4997,12 +5128,17 @@ class GameState:
         mine = sum(host_strength(s.units) for s in self.world.settlements.values())
         mine += sum(host_strength(a.units) for a in self.armies if a.owner == "player")
         theirs = host_strength(self.likely_host(town_key)) + town.wall_hp / 10.0
-        if mine < theirs * 1.5:
+        # Freeciv's greed: what he gives, and how hard you must lean to get
+        # it, goes on the goodwill he is short of -- squared, so a lord who
+        # merely dislikes you haggles and one who hates you makes you prove it.
+        short = max(0.0, 25.0 - self.court.settled_view(town_key, self.day)) / 100.0
+        greed = 1.0 + short * short
+        if mine < theirs * 1.5 * greed:
             town.hostility = min(C.HOSTILITY_WAR, town.hostility + 30.0)
             return (f"{town.lord} of {town.name} laughs at you and calls his "
                     f"levies (his strength {theirs:.0f} against your {mine:.0f})")
         paid = 220.0 * town.wealth * town.prosperity * (1.0 + self.rng.random())
-        paid = min(paid, 4000.0)
+        paid = min(paid, 4000.0) / greed
         self.treasury += paid
         town.hostility = min(C.HOSTILITY_WAR, town.hostility + 12.0)
         town.prosperity = max(0.4, town.prosperity - 0.04)

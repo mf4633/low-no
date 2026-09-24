@@ -340,7 +340,8 @@ class TestTheBattleYouPlay(unittest.TestCase):
         st.wall_hp = 0.0
         st.market.stock["charcoal"] = 40.0
         lord = next(k for k in g.world.towns)
-        ring = Army(uid=700, name="Ring", owner=lord, units={"spearman": 200.0},
+        # Enough men to go in: a lord does not storm under half again.
+        ring = Army(uid=700, name="Ring", owner=lord, units={"spearman": 400.0},
                     at=key, home=lord, state=BESIEGING)
         g.armies.append(ring)
         g._siege_settlement(ring, st)

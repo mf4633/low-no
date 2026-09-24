@@ -598,3 +598,111 @@ class TestEachWaveIsBigger(unittest.TestCase):
         self.assertEqual(t.waves, 2)
         from marchlands.engine import GameState
         self.assertEqual(GameState.from_dict(g.to_dict()).world.towns[key].waves, 2)
+
+
+# ------------------------------------------------- pacts and friendship
+class TestPactsAndFriends(unittest.TestCase):
+    def _weak_pair(self, g):
+        """Make one lord overwhelming and find two who fear him."""
+        keys = sorted(g.world.towns)
+        top = keys[0]
+        g.world.towns[top].garrison = {"spearman": 5000.0}
+        return top
+
+    def test_two_lords_who_fear_the_strongest_swear(self):
+        g = game()
+        top = self._weak_pair(g)
+        g.day = 0
+        for d in range(0, 30 * 12, 30):
+            g.day = d
+            g._pact_day()
+        c = g.court
+        self.assertTrue(c.pacts, "nobody swore in a year")
+        for p in c.pacts:
+            self.assertNotIn(top, p.split("|"))
+        from marchlands.engine import GameState
+        self.assertEqual(GameState.from_dict(g.to_dict()).court.pacts, c.pacts)
+
+    def test_a_pact_lapses(self):
+        g = game()
+        a, b = sorted(g.world.towns)[1:3]
+        g.court.pacts[g.court.pair(a, b)] = 0
+        g.day = g.PACT_YEARS * 360 + 1
+        g._pact_day()
+        self.assertFalse(g.court.pacts)
+
+    def test_a_partner_sends_relief(self):
+        g = game()
+        k1, k2, k3 = sorted(g.world.towns)[:3]
+        g.court.pacts[g.court.pair(k2, k3)] = g.day
+        g.world.towns[k3].garrison = {"spearman": 300.0}
+        _sit(g, k1, k2, {"spearman": 150.0}, days=g.RELIEF_NEWS)
+        g._relieve_day()
+        relief = [x for x in g.armies if x.owner == k3 and x.home == k2]
+        self.assertEqual(len(relief), 1)
+
+    def test_a_pact_deters(self):
+        g = game()
+        k1, k2, k3 = sorted(g.world.towns)[:3]
+        for k in g.world.towns:
+            if k != k1:
+                g.world.towns[k].garrison = {"spearman": 2000.0}
+                g.world.towns[k].wall_hp = 0.0
+        g.world.towns[k2].garrison = {}
+        self.assertEqual(g._prey_for(k1), k2)
+        g.court.pacts[g.court.pair(k2, k3)] = g.day
+        self.assertNotEqual(g._prey_for(k1), k2)
+
+    def test_friendship_wants_goodwill_and_trust(self):
+        g = game()
+        key = sorted(g.world.towns)[0]
+        self.assertIn("will not call you a friend", g.befriend(key))
+        g.court.settled[key] = 30.0
+        g.court.trust[key] = 60.0
+        self.assertIn("declares friendship", g.befriend(key))
+        self.assertIn(key, g.court.friends)
+        terms = dict(g._war_terms(g.world.towns[key], g._key_of(home(g)), 1.0))
+        self.assertIn("he has declared friendship with you", terms)
+
+    def test_marching_on_a_friend_is_told_everywhere(self):
+        g = game()
+        key, other = sorted(g.world.towns)[:2]
+        g.court.friends[key] = g.day
+        was = g.court.trust_of(other)
+        g._declare(g.world.towns[key])
+        self.assertNotIn(key, g.court.friends)
+        self.assertLess(g.court.trust_of(other), was)
+
+    def test_the_card_shows_friends_and_pacts(self):
+        g = game()
+        k2, k3 = sorted(g.world.towns)[1:3]
+        g.court.pacts[g.court.pair(k2, k3)] = g.day
+        card = web._court(g)["towns"]
+        self.assertTrue(card[k2]["pact"])
+        self.assertFalse(card[k2]["friend"])
+
+
+class TestTheBreachWaitsForMen(unittest.TestCase):
+    def test_a_lord_does_not_go_in_outnumbered(self):
+        from marchlands.military import Side
+        g = game()
+        k1, k2 = sorted(g.world.towns)[:2]
+        a = _sit(g, k1, k2, {"spearman": 100.0}, days=10)
+        self.assertFalse(g._dares(a, Side({"spearman": 90.0})))
+        self.assertTrue(g._dares(a, Side({"spearman": 50.0})))
+        a.siege_days = g.STORM_DESPERATE + 1
+        self.assertTrue(g._dares(a, Side({"spearman": 90.0})))
+
+
+class TestGreed(unittest.TestCase):
+    def test_a_lord_who_hates_you_pays_less_and_later(self):
+        g = game()
+        key = sorted(g.world.towns)[0]
+        for s in g.world.settlements.values():
+            s.units = {"knight": 3000.0}
+        g.court.settled[key] = 50.0
+        g.rng.seed(1); fond = g.treasury; g.demand(key); fond = g.treasury - fond
+        g.court.settled[key] = -100.0
+        g.rng.seed(1); cold = g.treasury; g.demand(key); cold = g.treasury - cold
+        self.assertGreater(fond, 0)
+        self.assertLess(cold, fond)

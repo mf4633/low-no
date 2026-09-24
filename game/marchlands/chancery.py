@@ -187,6 +187,16 @@ class Chancery:
     #: town key -> calls of his you have let go by. Freeciv's ally asks
     #: three times, each more sharply, before the alliance is over.
     refused: Dict[str, int] = field(default_factory=dict)
+    #: Defensive pacts between lords, keyed by the sorted pair of town keys
+    #: ("a|b"), and the day each was sworn. Civ's small neighbours band
+    #: together against the big one; here two lords who both fear the
+    #: strongest on the march swear to march for each other's walls.
+    pacts: Dict[str, int] = field(default_factory=dict)
+    #: town key -> the day he declared friendship with you. Civ's
+    #: declaration of friendship: short of an alliance, nobody is sworn to
+    #: march, but a friend does not march on you, and a friend betrayed
+    #: tells everybody.
+    friends: Dict[str, int] = field(default_factory=dict)
     #: town key -> the day a war with them last began. Its own dict and not a
     #: private key in `grounds`, which is what it was for about ten minutes:
     #: a bookkeeping marker filed among the real reasons is a marker that
@@ -267,6 +277,19 @@ class Chancery:
 
     def settled_view(self, key: str, day: int) -> float:
         return self.settled.get(key, self.opinion(key, day))
+
+    @staticmethod
+    def pair(a: str, b: str) -> str:
+        return "|".join(sorted((a, b)))
+
+    def partners(self, key: str) -> List[str]:
+        """The lords sworn to march for this one's walls."""
+        out = []
+        for p in sorted(self.pacts):
+            a, b = p.split("|")
+            if key in (a, b):
+                out.append(b if a == key else a)
+        return out
 
     def goodwill(self, key: str, day: int) -> float:
         """Only what is in your favour -- the number the old `favour` was.
@@ -426,6 +449,7 @@ class Chancery:
             "sued": dict(self.sued), "aided": dict(self.aided),
             "war_days": dict(self.war_days),
             "settled": dict(self.settled), "refused": dict(self.refused),
+            "pacts": dict(self.pacts), "friends": dict(self.friends),
             "seed": self.seed,
             "rng": list(self.rng.getstate()),
         }
@@ -455,6 +479,8 @@ class Chancery:
         c.war_days = {k: int(v) for k, v in d.get("war_days", {}).items()}
         c.settled = {k: float(v) for k, v in d.get("settled", {}).items()}
         c.refused = {k: int(v) for k, v in d.get("refused", {}).items()}
+        c.pacts = {k: int(v) for k, v in d.get("pacts", {}).items()}
+        c.friends = {k: int(v) for k, v in d.get("friends", {}).items()}
         raw = d.get("rng")
         if raw:
             c.rng.setstate((raw[0], tuple(raw[1]), raw[2]))

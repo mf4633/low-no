@@ -795,6 +795,8 @@ def _court(game) -> dict:
             "reckoned": t.reckoned, "declares_at": game.DECLARE,
             "war": round(c.score.get(key, 0.0)),
             "sued": day - c.sued.get(key, -9999) <= game.SUIT_DAYS,
+            "friend": key in c.friends,
+            "pact": [game.world.node_name(p) for p in c.partners(key)],
             "why": [{"what": w, "by": round(v, 1)}
                     for w, v, _d in c.reasons(key, day)[:4]],
         }

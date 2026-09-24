@@ -2638,7 +2638,10 @@ function nodeWrit(n, ev) {
     (st.hunts ? `<p class="why">he ${esc(st.hunts)}</p>` : '') +
     `<p class="why">trusts your word ${st.trust} of 100` +
     (st.war ? ` · the war as he reckons it ${st.war > 0 ? '+' : ''}${st.war}` : '') +
-    (st.sued ? ' · <b>he has sued for peace</b>' : '') + '</p>' +
+    (st.sued ? ' · <b>he has sued for peace</b>' : '') +
+    (st.friend ? ' · <b>your declared friend</b>' : '') + '</p>' +
+    (st.pact && st.pact.length ? `<p class="why">sworn to defend ` +
+      `${st.pact.map(esc).join(', ')}, and they him</p>` : '') +
     `<p class="why">${st.ground
       ? 'a reason to march: ' + esc(st.ground)
       : 'no reason to march anybody would accept'}</p>`;

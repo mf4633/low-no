@@ -2078,6 +2078,15 @@ class Console:
             return self.err(f"no town called {args[0]!r}")
         self.say("  " + self.game.ally(key))
 
+    def cmd_befriend(self, args: List[str]) -> None:
+        """Declare friendship with a lord: no oath to march, and no war."""
+        if not args:
+            return self.err("befriend <town>")
+        key = self._resolve_town(args[0])
+        if key is None:
+            return self.err(f"no town called {args[0]!r}")
+        self.say("  " + self.game.befriend(key))
+
     def cmd_call(self, args: List[str]) -> None:
         """Answer an ally who has called you to his war. No is a real answer."""
         g = self.game
@@ -3664,6 +3673,7 @@ def _parse_stop(world, tokens: List[str]) -> Stop:
 COMMANDS = {
     "court": Console.cmd_court, "standing": Console.cmd_court,
     "ally": Console.cmd_ally, "alliance": Console.cmd_ally,
+    "befriend": Console.cmd_befriend, "friend": Console.cmd_befriend,
     "call": Console.cmd_call,
     "castle": Console.cmd_castle, "keep": Console.cmd_castle,
     "wall": Console.cmd_wall, "tower": Console.cmd_tower,
