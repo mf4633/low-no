@@ -32,6 +32,7 @@ from . import chancery as court
 from . import culture as cultures
 from . import keep as keeps
 from . import rivers as waters
+from . import sight
 from .kin import POSTS, Kin, found as found_kin
 from . import league as lg
 from .league import League, PLAYER
@@ -257,6 +258,8 @@ class GameState:
     #: house has been playing the identical campaign with different
     #: multipliers; this is what makes the Hansa's game a Hansa's game.
     missions: missions_mod.Roll = field(default_factory=missions_mod.Roll)
+    #: What of the march you have seen, and what you can see today.
+    shroud: sight.Shroud = field(default_factory=sight.Shroud)
     #: What you are, as distinct from who you are -- see roles.py. Every game
     #: has opened from the same position; this is the one you opened from.
     role: str = "lord"
@@ -853,6 +856,7 @@ class GameState:
             origin, target, self.day, self.seed, self.start_month)
         a.bound_for = target
         a.days_left = days + extra
+        a.leg_days = a.days_left
         a.state = MARCHING
         notes += self._bridge_toll(a, origin, target)
         return "; ".join(notes)
@@ -4034,6 +4038,7 @@ class GameState:
         about. A host of yours standing somewhere sees it too, and a town sworn
         to you reports every day.
         """
+        self._scout()
         for t in self.world.towns.values():
             if t.mine:
                 t.observe(self.day)
@@ -4045,6 +4050,60 @@ class GameState:
             if a.owner == "player" and a.at in self.world.towns:
                 self.world.towns[a.at].observe(self.day)
         self._sight_hosts()
+
+    def host_xy(self, a) -> Optional[Tuple[float, float]]:
+        """Where a host is on the map this morning, between towns if need be."""
+        xy = self.world.coords
+        if a.state == MARCHING and a.bound_for and a.at in xy and a.bound_for in xy:
+            total = a.leg_days if a.leg_days > 0 else a.days_left + 1.0
+            done = max(0.0, min(1.0, 1.0 - a.days_left / max(total, 1e-9)))
+            (x0, y0), (x1, y1) = xy[a.at], xy[a.bound_for]
+            return (x0 + (x1 - x0) * done, y0 + (y1 - y0) * done)
+        where = a.at or a.bound_for
+        return xy.get(where)
+
+    def cart_xy(self, c) -> Tuple[Optional[Tuple[float, float]],
+                                  Optional[Tuple[float, float]]]:
+        """Where a cart set out from on this leg, and where it is now."""
+        xy = self.world.coords
+        frm = c.at or (c.route[c.leg - 1].node if c.route and c.leg else c.home)
+        if frm not in xy:
+            return None, None
+        if not c.bound_for or c.bound_for not in xy:
+            return xy[frm], xy[frm]
+        total = max(1.0, self.world.distance(frm, c.bound_for) / max(c.speed, 1.0))
+        done = max(0.0, min(1.0, 1.0 - c.days_left / total))
+        (x0, y0), (x1, y1) = xy[frm], xy[c.bound_for]
+        return xy[frm], (x0 + (x1 - x0) * done, y0 + (y1 - y0) * done)
+
+    def _scout(self) -> None:
+        """Clear the shroud round everybody of yours, and say what is in
+        sight today. Your towns see round their walls; a cart or a host has
+        seen the whole road it has come along this leg, and sees round where
+        it stands now."""
+        sh = self.shroud
+        sh.morning()
+        xy = self.world.coords
+        for key in self.world.settlements:
+            if key in xy:
+                sh.look(*xy[key], sight.TOWN_SIGHT)
+        for key, t in self.world.towns.items():
+            if t.mine and key in xy:
+                sh.look(*xy[key], sight.TOWN_SIGHT)
+        for c in self.caravans:
+            frm, now = self.cart_xy(c)
+            if now:
+                sh.trail(frm, now, sight.CART_SIGHT)
+                sh.look(*now, sight.CART_SIGHT)
+        for a in self.armies:
+            if a.owner != "player":
+                continue
+            now = self.host_xy(a)
+            if not now:
+                continue
+            if a.state == MARCHING and a.at in xy:
+                sh.trail(xy[a.at], now, sight.HOST_SIGHT)
+            sh.look(*now, sight.HOST_SIGHT)
 
     def _sight_hosts(self) -> None:
         """Which of their hosts you can actually see today.
@@ -4066,6 +4125,11 @@ class GameState:
                 continue
             close = (a.at in mine or a.bound_for in mine or a.at in standing
                      or (a.state in (BESIEGING, RAIDING) and a.at in mine))
+            # Or simply in sight: inside the ring round a town, a cart or a
+            # host of yours, wherever on the road it has got to.
+            if not close:
+                where = self.host_xy(a)
+                close = bool(where) and self.shroud.sees(*where)
             if close:
                 a.seen_day = self.day
                 a.seen_at = a.at or a.bound_for
@@ -4603,6 +4667,7 @@ class GameState:
             "estates": self.estates.to_dict(),
             "feats": self.feats.to_dict(),
             "missions": self.missions.to_dict(),
+            "shroud": self.shroud.to_dict(),
             "role": self.role,
             "liege": self.liege,
             "tallies": {"hosts": self._hosts_raised, "won": self._battles_won,
@@ -4668,6 +4733,7 @@ class GameState:
         g.estates = estates_mod.Estates.from_dict(d.get("estates") or {})
         g.feats = feats_mod.Book.from_dict(d.get("feats") or {})
         g.missions = missions_mod.Roll.from_dict(d.get("missions") or {})
+        g.shroud = sight.Shroud.from_dict(d.get("shroud"))
         g.role = str(d.get("role") or "lord")
         g.liege = str(d.get("liege") or "")
         tall = d.get("tallies") or {}

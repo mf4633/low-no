@@ -202,8 +202,15 @@ def march(game, here: str, good: str = "bread") -> dict:
     apart in price than the distance between them can justify.
     """
     w = game.world
+    fog = game.shroud
+    if not fog.visible:
+        game._scout()           # a new game, or one just loaded
     nodes = []
     for key, (x, y) in w.coords.items():
+        # Country nobody of yours has had in sight is not on your map: not
+        # the town, not its price, not its name.
+        if not fog.known(x, y):
+            continue
         if key in w.settlements:
             s = w.settlements[key]
             kind, name, who = "mine", s.name, "you"
@@ -241,8 +248,11 @@ def march(game, here: str, good: str = "bread") -> dict:
                       # Where a battle here would be fought, and under what.
                       "field": _field_view(game, key),
                       "walls": round(seen.get("wall_hp", 0.0)) if seen else None,
+                      "sees": fog.sees(x, y),
                       "here": key == here})
     for key, site in w.sites.items():
+        if not fog.known(site.x, site.y):
+            continue
         nodes.append({"key": key, "name": site.name, "x": site.x, "y": site.y,
                       "kind": "site", "who": "", "port": False,
                       "price": 0.0, "stock": 0, "known": 0, "here": False})
@@ -252,7 +262,9 @@ def march(game, here: str, good: str = "bread") -> dict:
         frm = c.at or (c.route[c.leg - 1].node if c.route and c.leg else c.home)
         to = c.bound_for or c.at or c.home
         total = max(1.0, w.distance(frm, to) / max(c.speed, 1.0)) if frm and to else 1.0
+        _frm, pos = game.cart_xy(c)
         carts.append({
+            "xy": list(pos) if pos else None,
             "uid": c.uid, "name": c.name, "kind": c.kind,
             "from": frm, "to": to,
             "done": 0.0 if not c.bound_for else
@@ -285,7 +297,12 @@ def march(game, here: str, good: str = "bread") -> dict:
             who = next((p for p in game.kin.living()
                         if p.post == "captain" and p.target == str(a.uid)), None)
             led = who.name if who else None
+        # Where it is drawn, from the engine that decides whether you can
+        # see it -- a host between two towns, one of them still in the blank,
+        # has nowhere else to be put.
+        pos = game.host_xy(a) if fresh else w.coords.get(a.seen_at)
         hosts.append({
+            "xy": list(pos) if pos else None,
             "uid": a.uid, "name": a.name if mine else _their_host_name(game, a),
             "mine": mine, "at": at, "from": frm, "to": to,
             "done": 0.0 if not frm else max(0.0, min(1.0, 1.0 - a.days_left / total)),
@@ -333,8 +350,47 @@ def march(game, here: str, good: str = "bread") -> dict:
     fixtures = [{"who": f.who, "target": f.target,
                  "at_you": f.target in w.settlements}
                 for f in game.league.season.fixtures if not f.done]
+    known = {n["key"] for n in nodes}
+    runs = [r for r in runs if r["from"] in known and r["to"] in known]
+    fixtures = [f for f in fixtures if f["who"] in known and f["target"] in known]
     return {"good": good, "nodes": nodes, "carts": carts, "runs": runs,
-            "hosts": hosts, "fixtures": fixtures}
+            "hosts": hosts, "fixtures": fixtures,
+            "roads": _roads(w, known), "shroud": _shroud_view(fog),
+            # The edges of the parchment, so the map holds still while the
+            # blank fills in. Where the corners are is not a secret.
+            "bounds": [min(x for x, _ in w.coords.values()),
+                       min(y for _, y in w.coords.values()),
+                       max(x for x, _ in w.coords.values()),
+                       max(y for _, y in w.coords.values())]}
+
+
+def _roads(w, known) -> list:
+    """Each place joined to its nearest few, which is how roads happen --
+    worked out over the whole march, and drawn wherever one end of it is
+    somewhere you know. The shroud covers the rest of the line, so a road
+    runs off into the blank the way it would on a map you were making."""
+    trade = [k for k in w.coords if k not in w.shrines and k not in w.sites]
+    out, drawn = [], set()
+    for a in trade:
+        near = sorted((b for b in trade if b != a),
+                      key=lambda b: w.distance(a, b))[:3]
+        for b in near:
+            pair = tuple(sorted((a, b)))
+            if pair in drawn or not (a in known or b in known):
+                continue
+            drawn.add(pair)
+            (ax, ay), (bx, by) = w.coords[a], w.coords[b]
+            out.append([ax, ay, bx, by])
+    return out
+
+
+def _shroud_view(sh) -> dict:
+    """The shroud as the page paints it: the cells explored and the cells
+    in sight, each a flat list of i, j pairs."""
+    from .sight import CELL
+    flat = lambda cells: [v for c in sorted(cells) for v in c]
+    return {"cell": CELL, "all": sh.everything,
+            "explored": flat(sh.explored), "visible": flat(sh.visible)}
 
 
 def options(game, here: str = "") -> dict:

@@ -1389,7 +1389,12 @@ class TestHostsOnTheMap(unittest.TestCase):
             {"spearman": 60, "archer": 30})
         self.g.raise_host(self.here, {"spearman": 30, "archer": 15})
         self.mine = self.g.armies[-1]
-        self.foe = next(k for k, t in self.g.world.towns.items() if not t.mine)
+        # A rival's town out of sight: one inside the ring round your walls
+        # or a cart of yours is watched, and a host standing in it is seen.
+        self.g._look_around()
+        xy = self.g.world.coords
+        self.foe = next(k for k, t in self.g.world.towns.items()
+                        if not t.mine and not self.g.shroud.sees(*xy[k]))
 
     def hosts(self):
         from marchlands.web import march as march_map

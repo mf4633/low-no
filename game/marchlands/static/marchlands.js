@@ -1711,7 +1711,10 @@ function drawWeather(w, h, t) {
 let world = null, mode = 'town', good = 'bread', mapCam = null;
 
 function mapFit(w, h) {
-  const xs = world.nodes.map(n => n.x), ys = world.nodes.map(n => n.y);
+  // Fitted to the whole march, not to the part of it you know: a map that
+  // re-zoomed every time a town came out of the blank would never hold still.
+  const xs = world.bounds ? [world.bounds[0], world.bounds[2]] : world.nodes.map(n => n.x);
+  const ys = world.bounds ? [world.bounds[1], world.bounds[3]] : world.nodes.map(n => n.y);
   const x0 = Math.min(...xs), x1 = Math.max(...xs);
   const y0 = Math.min(...ys), y1 = Math.max(...ys);
   const pad = 96;
@@ -1723,6 +1726,60 @@ function mapFit(w, h) {
 }
 const mapXY = (n, f) => [f.w / 2 + f.dx + (n.x - f.cx) * f.k,
                          f.h / 2 + f.dy - (n.y - f.cy) * f.k];
+
+/* The shroud: what of the march you have never seen, and what you have seen
+ * but have nobody looking at today.
+ *
+ * Painted the way 0 A.D. paints its line of sight -- one pixel a cell on a
+ * small canvas, stretched over the map with smoothing on and a blur, so the
+ * edge of what you know is a soft coast rather than a staircase. Blank where
+ * nobody has been, a grey wash where somebody was, clear where somebody is.
+ */
+let shroudCache = { key: '', img: null };
+function drawShroud(f, w, h) {
+  const sh = world.shroud;
+  if (!sh || sh.all) return;
+  const c = sh.cell;
+  // The screen's corners in map units, so the canvas covers what is shown
+  // and everything outside the grid is simply unexplored.
+  const mx = px => (px - f.w / 2 - f.dx) / f.k + f.cx;
+  const my = py => f.cy - (py - f.h / 2 - f.dy) / f.k;
+  const i0 = Math.floor(mx(0) / c) - 2, i1 = Math.ceil(mx(w) / c) + 2;
+  const j0 = Math.floor(my(h) / c) - 2, j1 = Math.ceil(my(0) / c) + 2;
+  const cw = i1 - i0 + 1, ch = j1 - j0 + 1;
+  const key = [i0, j0, cw, ch, sh.explored.length, sh.visible.join(',')].join('|');
+  if (shroudCache.key !== key) {
+    const off = document.createElement('canvas');
+    off.width = cw; off.height = ch;
+    const o = off.getContext('2d');
+    const img = o.createImageData(cw, ch);
+    const put = (flat, alpha) => {
+      for (let k = 0; k + 1 < flat.length; k += 2) {
+        const x = flat[k] - i0, y = j1 - flat[k + 1];   // north is up
+        if (x < 0 || y < 0 || x >= cw || y >= ch) continue;
+        img.data[(y * cw + x) * 4 + 3] = alpha;
+      }
+    };
+    // Parchment brown throughout; only how much of it there is differs.
+    for (let p = 0; p < cw * ch; p++) {
+      img.data[p * 4] = 150; img.data[p * 4 + 1] = 128; img.data[p * 4 + 2] = 92;
+      img.data[p * 4 + 3] = 255;
+    }
+    put(sh.explored, 70);          // seen once: a wash, and theirs are gone
+    put(sh.visible, 0);            // in sight today: clear
+    o.putImageData(img, 0, 0);
+    shroudCache = { key, img: off };
+  }
+  // Cell (i, j) spans map x i*c..(i+1)*c and y j*c..(j+1)*c; row 0 of the
+  // small canvas is the northmost row, j1.
+  const [sx, sy] = mapXY({ x: i0 * c, y: (j1 + 1) * c }, f);
+  const sw = cw * c * f.k, shh = ch * c * f.k;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.filter = `blur(${Math.max(2, c * f.k * 0.6).toFixed(1)}px)`;
+  ctx.drawImage(shroudCache.img, sx, sy, sw, shh);
+  ctx.restore();
+}
 
 function priceBand(nodes) {
   const vs = nodes.filter(n => n.price > 0).map(n => n.price).sort((a, b) => a - b);
@@ -1765,21 +1822,15 @@ function drawMarch(w, h, t) {
   };
 
   // Roads: each place joined to its nearest few, which is how roads happen.
-  const trade = world.nodes.filter(n => n.kind !== 'shrine' && n.kind !== 'site');
+  // The engine works them out over the whole march -- the page only knows
+  // the towns you have seen, and the nearest three of *those* are not the
+  // roads -- and sends the ones with an end you know. The shroud covers the
+  // rest of the line.
   ctx.strokeStyle = 'rgba(92,70,40,.34)';
   ctx.lineWidth = 1.6; ctx.setLineDash([7, 5]);
-  const drawn = new Set();
-  for (const a of trade) {
-    const near = trade.filter(b => b !== a)
-      .sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))
-      .slice(0, 3);
-    for (const b of near) {
-      const id = [a.key, b.key].sort().join('|');
-      if (drawn.has(id)) continue;
-      drawn.add(id);
-      const [ax, ay] = mapXY(a, f), [bx, by2] = mapXY(b, f);
-      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by2); ctx.stroke();
-    }
+  for (const [ax0, ay0, bx0, by0] of (world.roads || [])) {
+    const [ax, ay] = mapXY({ x: ax0, y: ay0 }, f), [bx, by2] = mapXY({ x: bx0, y: by0 }, f);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by2); ctx.stroke();
   }
   ctx.setLineDash([]);
 
@@ -1844,13 +1895,20 @@ function drawMarch(w, h, t) {
     ctx.restore();
   }
 
+  drawShroud(f, w, h);
+
   // Carts, where they have actually got to this morning.
   for (const c of world.carts) {
-    const a = by[c.from], b = by[c.to];
-    if (!a) continue;
-    const [ax, ay] = mapXY(a, f);
-    const [bx, by2] = b ? mapXY(b, f) : [ax, ay];
-    const x = ax + (bx - ax) * c.done, y = ay + (by2 - ay) * c.done;
+    let x, y;
+    if (c.xy) {
+      [x, y] = mapXY({ x: c.xy[0], y: c.xy[1] }, f);
+    } else {
+      const a = by[c.from], b = by[c.to];
+      if (!a) continue;
+      const [ax, ay] = mapXY(a, f);
+      const [bx, by2] = b ? mapXY(b, f) : [ax, ay];
+      x = ax + (bx - ax) * c.done; y = ay + (by2 - ay) * c.done;
+    }
     const bob = c.moving ? Math.sin(t * 4 + c.uid) * 1.2 : 0;
     ctx.fillStyle = 'rgba(60,44,22,.28)';
     ctx.beginPath(); ctx.ellipse(x, y + 5, 8, 3, 0, 0, 7); ctx.fill();
@@ -1888,12 +1946,17 @@ function drawMarch(w, h, t) {
    * fog of war. */
   hostSpots.clear();
   for (const h of (world.hosts || [])) {
-    const a = by[h.at] || by[h.from];
-    if (!a) continue;
-    const [ax, ay] = mapXY(a, f);
-    const b = h.to ? by[h.to] : null;
-    const [bx, by2] = b ? mapXY(b, f) : [ax, ay];
-    const x = ax + (bx - ax) * h.done, y = ay + (by2 - ay) * h.done - 9;
+    let x, y;
+    if (h.xy) {
+      [x, y] = mapXY({ x: h.xy[0], y: h.xy[1] }, f); y -= 9;
+    } else {
+      const a = by[h.at] || by[h.from];
+      if (!a) continue;
+      const [ax, ay] = mapXY(a, f);
+      const b = h.to ? by[h.to] : null;
+      const [bx, by2] = b ? mapXY(b, f) : [ax, ay];
+      x = ax + (bx - ax) * h.done; y = ay + (by2 - ay) * h.done - 9;
+    }
     hostSpots.set(h.uid, [x, y, h]);
     const ghost = h.state === 'remembered';
     const ink = h.mine ? '#c9a227' : (ghost ? 'rgba(150,120,110,.5)' : '#96221c');

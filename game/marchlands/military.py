@@ -1427,6 +1427,9 @@ class Army:
     at: str = ""
     bound_for: str = ""
     days_left: float = 0.0
+    #: How long the whole of this leg is, set when the host takes the road,
+    #: so where it has got to between two towns is a fact rather than a guess.
+    leg_days: float = 0.0
     state: str = GARRISON
     home: str = ""
     siege_days: int = 0
