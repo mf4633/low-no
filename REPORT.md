@@ -8,11 +8,11 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **EWR** QUALIFIED @ 0.97 ceil 65 guide 69 -> CLI None :: **UNGRADED**
+- **EWR** QUALIFIED @ 0.97 ceil 65 guide 69 -> CLI 68 :: **WIN**
 - **DAL** QUALIFIED @ 0.72 ceil 92 guide 96 -> CLI 94 :: **WIN**
-- **AUS** QUALIFIED @ 0.83 ceil 95 guide 99 -> CLI None :: **UNGRADED**
+- **AUS** QUALIFIED @ 0.83 ceil 95 guide 99 -> CLI 98 :: **WIN**
 - **LAX** QUALIFIED @ 0.77 ceil 77 guide 82 -> CLI 78 :: **WIN**
 - **SFO** QUALIFIED @ 0.96 ceil 71 guide 76 -> CLI 77 :: **WIN**
 - **SAN** QUALIFIED @ 0.73 ceil 77 guide 81 -> CLI 77 :: **BOUNDARY**
 
-**3/4 hit** (75%) vs 98.2% breakeven at 0.98
+**5/6 hit** (83%) vs 98.2% breakeven at 0.98
