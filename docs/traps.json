@@ -1,13 +1,13 @@
 {
- "at": "2026-09-25T14:22:17.460561Z",
+ "at": "2026-09-25T15:24:21.879680Z",
  "traps": [
   {
    "city": "LAX",
    "ceiling": 80,
-   "price": 14,
-   "p_model": 0.3702,
-   "p_market": 0.14,
-   "edge_pts": 23.0,
+   "price": 11,
+   "p_model": 0.2234,
+   "p_market": 0.11,
+   "edge_pts": 11.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,12 +15,23 @@
      "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 23 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    }
+   ]
+  },
+  {
+   "city": "DAL",
+   "ceiling": 93,
+   "price": 13,
+   "p_model": 0.1403,
+   "p_market": 0.13,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
