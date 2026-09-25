@@ -1,26 +1,22 @@
 {
- "at": "2026-09-25T17:33:52.001365Z",
+ "at": "2026-09-25T18:36:11.276064Z",
  "traps": [
   {
-   "city": "SAN",
-   "ceiling": 81,
-   "price": 44,
-   "p_model": 0.446,
-   "p_market": 0.44,
-   "edge_pts": 0.6,
+   "city": "LAX",
+   "ceiling": 80,
+   "price": 9,
+   "p_model": 0.2112,
+   "p_market": 0.09,
+   "edge_pts": 12.1,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
