@@ -1,13 +1,13 @@
 {
- "at": "2026-09-25T15:24:21.879680Z",
+ "at": "2026-09-25T16:23:13.636772Z",
  "traps": [
   {
    "city": "LAX",
    "ceiling": 80,
    "price": 11,
-   "p_model": 0.2234,
+   "p_model": 0.1217,
    "p_market": 0.11,
-   "edge_pts": 11.3,
+   "edge_pts": 1.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -17,21 +17,6 @@
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    }
-   ]
-  },
-  {
-   "city": "DAL",
-   "ceiling": 93,
-   "price": 13,
-   "p_model": 0.1403,
-   "p_market": 0.13,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
