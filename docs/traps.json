@@ -1,13 +1,13 @@
 {
- "at": "2026-09-25T12:21:49.752292Z",
+ "at": "2026-09-25T13:21:00.201835Z",
  "traps": [
   {
    "city": "DAL",
    "ceiling": 93,
-   "price": 17,
-   "p_model": 0.6286,
-   "p_market": 0.17,
-   "edge_pts": 45.9,
+   "price": 13,
+   "p_model": 0.3798,
+   "p_market": 0.13,
+   "edge_pts": 25.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,22 +16,26 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 25 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "LAX",
    "ceiling": 80,
-   "price": 14,
-   "p_model": 0.2761,
-   "p_market": 0.14,
-   "edge_pts": 13.6,
+   "price": 12,
+   "p_model": 0.3678,
+   "p_market": 0.12,
+   "edge_pts": 24.8,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 25 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
