@@ -3,10 +3,10 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 1740,
-  "brier_base": 0.1138,
-  "brier_shape": 0.1158,
-  "improvement_pct": -1.78
+  "n": 1782,
+  "brier_base": 0.1155,
+  "brier_shape": 0.1174,
+  "improvement_pct": -1.62
  },
  "H4b": {
   "id": "H4b",
@@ -39,7 +39,7 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 0,
+  "pooled_n": 30,
   "hourly": {
    "n": 0,
    "brier_base": null,
@@ -47,23 +47,23 @@
    "improved": null
   },
   "control": {
-   "n": 0,
-   "brier_base": null,
-   "brier_shape": null,
-   "improved": null
+   "n": 30,
+   "brier_base": 0.1142,
+   "brier_shape": 0.1146,
+   "improved": false
   },
   "ready": false,
   "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=0"
+  "reason": "need 50 scored decisions per stratum; have hourly=0, control=30"
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 806,
-   "stalled_off": 485,
-   "climbing_on": 931,
+   "stalled_on": 807,
+   "stalled_off": 487,
+   "climbing_on": 932,
    "climbing_off": 65
   },
   "need_per_group": 150,
@@ -74,21 +74,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 416,
-   "mean": -0.00168,
+   "n": 417,
+   "mean": -0.00167,
    "ci": [
-    -0.0063,
-    0.00295
+    -0.00629,
+    0.00294
    ]
   },
   "tail": {
-   "n": 782,
-   "mean": -0.00388,
+   "n": 783,
+   "mean": -0.00387,
    "ci": [
-    -0.00639,
+    -0.00638,
     -0.00136
    ]
   }
  },
- "generated": "2026-09-25T07:45:10.283235Z"
+ "generated": "2026-09-25T09:50:25.229517Z"
 }
