@@ -1,22 +1,75 @@
 {
- "at": "2026-09-25T18:36:11.276064Z",
+ "at": "2026-09-25T19:38:54.516370Z",
  "traps": [
+  {
+   "city": "ATL",
+   "ceiling": 75,
+   "price": 86,
+   "p_model": 1.0,
+   "p_market": 0.86,
+   "edge_pts": 14.0,
+   "size_lcb": 0.1579,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "86c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
   {
    "city": "LAX",
    "ceiling": 80,
-   "price": 9,
-   "p_model": 0.2112,
-   "p_market": 0.09,
-   "edge_pts": 12.1,
+   "price": 5,
+   "p_model": 0.1087,
+   "p_market": 0.05,
+   "edge_pts": 5.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 12:00 is past this station's measured convergence hour (12:00) with the running max still 3.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "DAL",
+   "ceiling": 93,
+   "price": 8,
+   "p_model": 0.1146,
+   "p_market": 0.08,
+   "edge_pts": 3.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
+    }
+   ]
+  },
+  {
+   "city": "DEN",
+   "ceiling": 71,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
     {
      "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
