@@ -1,5 +1,78 @@
 {
- "at": "2026-09-25T16:23:13.638564Z",
- "tracked": [],
+ "at": "2026-09-25T16:31:10.887535Z",
+ "tracked": [
+  {
+   "city": "HOU",
+   "station": "KHOU",
+   "ticker": "KXHIGHTHOU-26SEP25-T90",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 89,
+   "run_max": 82.4,
+   "gap_to_clear": 6.6,
+   "already_cleared": false,
+   "guide": 93,
+   "pop": 0,
+   "no_ask": 0.95,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-09-25T16:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T16:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T16:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:53:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-25T15:30:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 1.4,
+    "q50": 5.4,
+    "q90": 8.2
+   },
+   "projected_max": {
+    "q10": 83.8,
+    "q50": 87.8,
+    "q90": 90.6
+   },
+   "p_exceed_empirical": 0.2946,
+   "emp_n": 110,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
