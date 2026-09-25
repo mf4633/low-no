@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-09-25T03:22:02.050917Z",
+ "generated": "2026-09-25T05:18:35.790117Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 48,
+  "logged_days": 49,
   "first_day": "2026-08-07",
-  "last_day": "2026-09-23",
-  "rung_observations": 73190,
-  "independent_units": 1206,
+  "last_day": "2026-09-24",
+  "rung_observations": 74054,
+  "independent_units": 1234,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -74,8 +74,8 @@
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 983,
-  "settlements_verified": 803,
+  "settlements_cached": 992,
+  "settlements_verified": 812,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -85,6 +85,8 @@
   "no_bands_retired": [
    "31-40",
    "71-80",
+   "81-90",
+   "91-95",
    "96-98"
   ],
   "nothing_proven": true
@@ -95,12 +97,12 @@
    "name": "shape validation (held-out)",
    "status": "open",
    "bar": {
-    "have": 48,
+    "have": 49,
     "need": 28,
     "unit": "logged days",
     "ready": true,
     "also": {
-     "have": 1590,
+     "have": 1698,
      "need": 50,
      "unit": "held-out scored decisions"
     }
