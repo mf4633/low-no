@@ -1,5 +1,78 @@
 {
- "at": "2026-09-26T20:56:14.943060Z",
- "tracked": [],
+ "at": "2026-09-26T21:58:51.815832Z",
+ "tracked": [
+  {
+   "city": "AUS",
+   "station": "KAUS",
+   "ticker": "KXHIGHAUS-26SEP26-T94",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 93,
+   "run_max": 93.2,
+   "gap_to_clear": -0.2,
+   "already_cleared": true,
+   "guide": 97,
+   "pop": 0,
+   "no_ask": 0.76,
+   "local_hour": 16,
+   "obs_trace": [
+    {
+     "ts": "2026-09-26T21:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T21:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T20:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-09-26T20:53:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -0.6,
+    "q50": 0.6,
+    "q90": 1.6
+   },
+   "projected_max": {
+    "q10": 92.6,
+    "q50": 93.8,
+    "q90": 94.8
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 16,
+   "past_convergence": true,
+   "note": "day effectively decided"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
