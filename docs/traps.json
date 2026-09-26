@@ -1,13 +1,36 @@
 {
- "at": "2026-09-26T21:58:50.916777Z",
+ "at": "2026-09-26T22:05:36.948698Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 61,
-   "price": 9,
-   "p_model": 0.7539,
-   "p_market": 0.09,
-   "edge_pts": 66.4,
+   "price": 8,
+   "p_model": 0.7267,
+   "p_market": 0.08,
+   "edge_pts": 64.7,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 65 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 61,
+   "price": 8,
+   "p_model": 0.5835,
+   "p_market": 0.08,
+   "edge_pts": 50.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 66 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 50 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -29,48 +52,21 @@
    ]
   },
   {
-   "city": "MSP",
-   "ceiling": 61,
-   "price": 9,
-   "p_model": 0.6816,
-   "p_market": 0.09,
-   "edge_pts": 59.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 59 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
    "city": "AUS",
    "ceiling": 93,
-   "price": 76,
+   "price": 61,
    "p_model": 1.0,
-   "p_market": 0.76,
-   "edge_pts": 24.0,
+   "p_market": 0.61,
+   "edge_pts": 39.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 39 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "76c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "61c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
