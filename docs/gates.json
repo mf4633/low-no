@@ -3,10 +3,10 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 1902,
-  "brier_base": 0.1134,
-  "brier_shape": 0.1159,
-  "improvement_pct": -2.2
+  "n": 2139,
+  "brier_base": 0.1095,
+  "brier_shape": 0.1125,
+  "improvement_pct": -2.76
  },
  "H4b": {
   "id": "H4b",
@@ -39,7 +39,7 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 99,
+  "pooled_n": 333,
   "hourly": {
    "n": 0,
    "brier_base": null,
@@ -47,24 +47,24 @@
    "improved": null
   },
   "control": {
-   "n": 99,
-   "brier_base": 0.0701,
-   "brier_shape": 0.0723,
-   "improved": false
+   "n": 333,
+   "brier_base": 0.1133,
+   "brier_shape": 0.1118,
+   "improved": true
   },
   "ready": false,
   "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=99"
+  "reason": "need 50 scored decisions per stratum; have hourly=0, control=333"
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 851,
-   "stalled_off": 504,
-   "climbing_on": 984,
-   "climbing_off": 67
+   "stalled_on": 867,
+   "stalled_off": 518,
+   "climbing_on": 1003,
+   "climbing_off": 68
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -74,21 +74,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 429,
-   "mean": -0.00138,
+   "n": 436,
+   "mean": -0.00102,
    "ci": [
-    -0.00592,
-    0.00316
+    -0.00559,
+    0.00355
    ]
   },
   "tail": {
-   "n": 812,
-   "mean": -0.00388,
+   "n": 822,
+   "mean": -0.00396,
    "ci": [
-    -0.00632,
-    -0.00144
+    -0.00638,
+    -0.00154
    ]
   }
  },
- "generated": "2026-09-27T05:19:17.803099Z"
+ "generated": "2026-09-27T08:07:40.329498Z"
 }
