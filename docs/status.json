@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-09-27T03:19:35.495387Z",
+ "generated": "2026-09-27T05:18:49.586729Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 50,
+  "logged_days": 51,
   "first_day": "2026-08-07",
-  "last_day": "2026-09-25",
-  "rung_observations": 77606,
-  "independent_units": 1281,
+  "last_day": "2026-09-26",
+  "rung_observations": 78470,
+  "independent_units": 1294,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -76,8 +76,8 @@
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1029,
-  "settlements_verified": 849,
+  "settlements_cached": 1038,
+  "settlements_verified": 858,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -86,6 +86,7 @@
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
    "31-40",
+   "41-50",
    "71-80",
    "96-98"
   ],
@@ -97,12 +98,12 @@
    "name": "shape validation (held-out)",
    "status": "open",
    "bar": {
-    "have": 50,
+    "have": 51,
     "need": 28,
     "unit": "logged days",
     "ready": true,
     "also": {
-     "have": 1866,
+     "have": 1902,
      "need": 50,
      "unit": "held-out scored decisions"
     }
@@ -165,7 +166,7 @@
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 33,
+    "have": 99,
     "need": 50,
     "unit": "scored (control)",
     "ready": false,
@@ -182,7 +183,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 66,
+    "have": 67,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -288,7 +289,7 @@
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 33,
+    "have": 99,
     "need": 50,
     "unit": "scored (control)",
     "ready": false,
@@ -305,7 +306,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 66,
+    "have": 67,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
