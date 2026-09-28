@@ -121,10 +121,14 @@ class WallMixin:
     def _under_arms(self) -> Dict[str, float]:
         """Men under arms by the town they came from: the garrison, and
         every host of yours whose home it is."""
-        roll = {k: float(s.soldiers) for k, s in self.world.settlements.items()}
+        # Exact, not host_size's whole men: a siege's arrows take a
+        # hundredth of a man a day, and rounding the roll turned the day
+        # 3.0 became 2.99 into a man buried whole.
+        roll = {k: float(sum(s.units.values()))
+                for k, s in self.world.settlements.items()}
         for a in self.armies:
             if a.owner == PLAYER and a.home in roll:
-                roll[a.home] += host_size(a.units)
+                roll[a.home] += float(sum(a.units.values()))
         return roll
 
     def _muster_roll(self, key: str = "") -> None:
@@ -168,7 +172,8 @@ class WallMixin:
                 for k in now if k in was}
         total = sum(lost.values())
         short = {k: v for k, v in lost.items() if v > 0}
-        if total < 0.5 or not short:
+        # Every sliver comes off the population; only whole men get a line.
+        if total <= 1e-9 or not short:
             return []
         scale = total / sum(short.values())
         msgs: List[str] = []
@@ -1734,7 +1739,12 @@ class WallMixin:
         # A hungry town is a town whose soldiers are hungry too.
         if s.report is not None and s.report.hunger > 0.5 and s.units:
             thin = 0.02 * s.report.hunger
+            had = sum(s.units.values())
             s.units = {k: v * (1 - thin) for k, v in s.units.items() if v * (1 - thin) >= 0.5}
+            # They thin *with* the town: the hunger is already taking them
+            # off the population by the road out, so the roll must not bury
+            # them a second time as men killed at the wall.
+            self._roll_moved(self._key_of(s), sum(s.units.values()) - had)
             holder = Side(s.units, attack_mult=holder.attack_mult,
                           defense_mult=holder.defense_mult,
                           battlement=holder.battlement)

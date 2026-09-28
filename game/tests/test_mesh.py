@@ -142,6 +142,28 @@ class TestTheHostIsAPayroll(unittest.TestCase):
         self.assertGreater(s.population, pop - 3.0)
         self.assertFalse(any("buries" in m for m in said))
 
+    def test_a_sliver_is_not_a_man(self):
+        """A siege's arrows take a hundredth of a man a day. Rounding the
+        roll to whole men buried a whole man the day 60.0 became 59.99."""
+        g, s = self.g, self.s
+        s.units = {"spearman": 60.0}
+        g._roll = g._under_arms()
+        pop = s.population
+        s.units["spearman"] = 59.99
+        g._count_the_fallen({})
+        self.assertAlmostEqual(s.population, pop - 0.01, places=3)
+
+    def test_a_starving_garrison_is_not_buried_twice(self):
+        """Men who thin with a hungry town leave by the town's own road;
+        the roll does not bury them again as killed at the wall."""
+        g, s = self.g, self.s
+        g._roll = g._under_arms()
+        pop = s.population
+        s.units["spearman"] -= 6.0
+        g._roll_moved(self.key, -6.0)
+        g._count_the_fallen({})
+        self.assertAlmostEqual(s.population, pop, places=6)
+
     def test_a_parked_captain_learns_nothing(self):
         g = self.g
         a, _ = g.raise_host(self.key, {"spearman": 50})
