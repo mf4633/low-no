@@ -1,13 +1,13 @@
 {
- "at": "2026-09-28T20:12:43.542744Z",
+ "at": "2026-09-28T21:15:40.096639Z",
  "traps": [
   {
    "city": "DEN",
    "ceiling": 72,
-   "price": 14,
-   "p_model": 0.93,
-   "p_market": 0.14,
-   "edge_pts": 79.0,
+   "price": 4,
+   "p_model": 0.8012,
+   "p_market": 0.04,
+   "edge_pts": 76.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 79 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 76 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -27,10 +27,10 @@
   {
    "city": "BOS",
    "ceiling": 58,
-   "price": 19,
-   "p_model": 0.5688,
-   "p_market": 0.19,
-   "edge_pts": 37.9,
+   "price": 12,
+   "p_model": 0.5226,
+   "p_market": 0.12,
+   "edge_pts": 40.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 38 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 40 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -47,36 +47,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 0.1F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "NYC",
-   "ceiling": 63,
-   "price": 3,
-   "p_model": 0.1012,
-   "p_market": 0.03,
-   "edge_pts": 7.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 2.0F short. The climb window has closed."
+     "why": "local hour 17:00 is past this station's measured convergence hour (12:00) with the running max still 0.1F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "PHX",
    "ceiling": 82,
-   "price": 98,
+   "price": 99,
    "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
    "size_lcb": 0.0,
    "signals": [
     {
