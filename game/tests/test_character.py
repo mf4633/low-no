@@ -10,6 +10,8 @@ import io
 import pathlib
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands import lords, voices
 from marchlands.cli import Console
@@ -314,12 +316,14 @@ class TestFreebuild(unittest.TestCase):
         g = start("freebuild", seed=5)
         self.assertIn("Freebuild", g.briefing)
 
+    @slow
     def test_nobody_comes(self):
         g, _ = grown(days=1000, key="freebuild")
         self.assertEqual(g.over, "")
         wars = [m for m in g.battles if "WAR:" in m]
         self.assertFalse(wars, f"somebody came: {wars[:2]}")
 
+    @slow
     def test_and_nothing_ends(self):
         g, _ = grown(days=1000, key="freebuild")
         self.assertEqual(g.over, "")
@@ -335,6 +339,7 @@ class TestFreebuild(unittest.TestCase):
         self.assertGreater(g.home().employed, 0)
         self.assertTrue(any(b.complete for b in g.home().buildings))
 
+    @slow
     def test_the_march_still_quarrels_among_itself(self):
         """Merchants, not pacifists. A dead march is not a peaceful one, it is
         a diorama."""

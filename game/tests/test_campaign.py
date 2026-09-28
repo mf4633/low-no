@@ -11,6 +11,8 @@ import os
 import tempfile
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands.campaign import (CHAPTERS, RIVAL, Carry, Run, carry_from,
                                  chapter_at, won_chapter)
@@ -89,6 +91,7 @@ class TestTheGameWritesItDown(unittest.TestCase):
         for e in theirs:
             self.assertEqual(e.weight, ROUTINE)
 
+    @slow
     def test_the_ending_is_the_last_line_of_it(self):
         g = start("marchlands", seed=3)
         Bot(g).run(C.GOAL_DAYS + 5)
@@ -277,6 +280,7 @@ class TestPlayingIt(unittest.TestCase):
         self.assertIn("END OF CHAPTER", text)
         self.assertEqual(run.chapter, 1)
 
+    @slow
     def test_the_whole_thing_can_be_played_through(self):
         run = Run(seed=5)
         for _ in range(len(CHAPTERS)):

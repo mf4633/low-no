@@ -11,6 +11,8 @@ import json
 import random
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands import lord as lordly
 from marchlands.cli import Console
@@ -379,6 +381,7 @@ class TestRelics(unittest.TestCase):
                             for a in g.armies),
                         "a lord with men at a shrine could not raise a host")
 
+    @slow
     def test_the_lords_go_for_them_too(self):
         g = game(seed=3)
         Bot(g).run(900)

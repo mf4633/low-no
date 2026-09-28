@@ -12,6 +12,8 @@ from __future__ import annotations
 import random
 import unittest
 
+from _slow import slow
+
 from marchlands import plague
 from marchlands.engine import GameState
 from marchlands.scenarios import start
@@ -77,6 +79,7 @@ class TestHowFarItCarries(unittest.TestCase):
         self.assertAlmostEqual(plague.nearness(plague.CARRY), 1 / math.e,
                                places=6)
 
+    @slow
     def test_a_sickness_next_door_arrives_sooner_than_one_far_off(self):
         """The whole point, measured rather than asserted from the formula.
 
@@ -395,6 +398,7 @@ class TestItSurvivesASave(unittest.TestCase):
 
 
 class TestItIsWorthHaving(unittest.TestCase):
+    @slow
     def test_doing_nothing_about_it_costs_a_town(self):
         """Measured over a long game rather than asserted.
 

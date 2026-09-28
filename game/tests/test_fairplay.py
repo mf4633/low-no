@@ -8,6 +8,8 @@ of these was a real finding before it was a test.
 import io
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands.cli import Console
 from marchlands.scenario import new_game
@@ -49,6 +51,7 @@ class TestYouCannotPrintTheWin(unittest.TestCase):
     lunch: the goal moving before a single price had noticed.
     """
 
+    @slow
     def test_a_rich_house_is_poorer_for_striking_coin(self):
         """The shape debasement has in life: worth most to somebody with
         nothing to lose, a straight loss to somebody with holdings, because a

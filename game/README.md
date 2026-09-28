@@ -14,7 +14,8 @@ python3 -m marchlands                          # or one scenario on its own
 python3 -m marchlands --list                   # chapters, scenarios and houses
 python3 -m marchlands --scenario salt_road --house hansa
 python3 -m marchlands --sim 1080               # run it headless and print a report
-python3 -m unittest discover -s tests          # 902 tests, ~22min
+python3 -m unittest discover -s tests          # the fast run, a couple of minutes
+MARCHLANDS_SLOW=1 python3 -m unittest discover -s tests   # plus the long battery
 ```
 
 In game, **`view`** draws your town and **`watch`** lets you sit and watch it

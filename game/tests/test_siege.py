@@ -17,6 +17,8 @@ from __future__ import annotations
 import random
 import unittest
 
+from _slow import slow
+
 from marchlands.military import Army, BESIEGING, Side, fight
 from marchlands.scenarios import start
 from marchlands.trade import Order, Stop
@@ -360,12 +362,15 @@ class TestItIsDecidedByThePlayer(unittest.TestCase):
         self.assertGreater(idle, 0, "unwinnable is not hard")
         self.assertLess(idle, 6, "doing nothing should not simply win")
 
+    @slow
     def test_going_early_wins_it(self):
         self.assertGreater(self.play(sally_on=5), self.play())
 
+    @slow
     def test_and_going_late_does_not(self):
         self.assertLessEqual(self.play(sally_on=60), self.play(sally_on=5))
 
+    @slow
     def test_how_strong_the_sortie_is_is_written_down(self):
         """A record, because "early beats never" stopped being enough.
 

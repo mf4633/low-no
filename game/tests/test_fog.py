@@ -9,6 +9,8 @@ import json
 import random
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands.cli import Console
 from marchlands.fire import Fires, burn, hands_wanted, timber_share
@@ -173,6 +175,7 @@ class TestATownOnFire(unittest.TestCase):
         g.tick()
         self.assertEqual(s.fire_labour, 0.0)
 
+    @slow
     def test_an_ordinary_game_does_not_burn_down(self):
         """Accidents must be memorable, not routine."""
         for seed in (3, 7, 11):

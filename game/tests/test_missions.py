@@ -14,6 +14,8 @@ import os
 import tempfile
 import unittest
 
+from _slow import slow
+
 from marchlands import missions as mi
 from marchlands.feats import Standing
 from marchlands.missions import Roll, tree
@@ -190,6 +192,7 @@ class TestTheRewardIsActuallyPaid(unittest.TestCase):
         self.assertIn("neighbour", g.missions.to_dict())
         self.assertTrue(g.court.claims)
 
+    @slow
     def test_the_tree_opens_as_a_game_is_played(self):
         """A mission nobody can reach is a mission that is not in the game.
 
@@ -220,6 +223,7 @@ class TestTheRewardIsActuallyPaid(unittest.TestCase):
 
 
 class TestTwoHousesPlayTwoGames(unittest.TestCase):
+    @slow
     def test_the_same_seed_opens_different_missions(self):
         seen = {}
         for house in ("plough", "hansa"):

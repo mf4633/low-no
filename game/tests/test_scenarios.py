@@ -4,6 +4,8 @@ import os
 import tempfile
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands.engine import GameState
 from marchlands.scenarios import (CAMPAIGN, OUTSIDE_CAMPAIGN, SCENARIOS,
@@ -136,6 +138,7 @@ class TestBalance(unittest.TestCase):
     #: the assertion that means something there instead.
     NOT_FOR_THE_BOT = {"siege"}
 
+    @slow
     def test_the_bot_lasts_the_distance_everywhere(self):
         for key in SCENARIOS:
             if key in self.NOT_FOR_THE_BOT:
@@ -189,6 +192,7 @@ class TestBalance(unittest.TestCase):
             endings.append(g.over or "held")
         self.assertGreaterEqual(held, 5, f"the siege is unholdable: {endings}")
 
+    @slow
     def test_none_of_them_is_a_walkover(self):
         won = []
         for key in SCENARIOS:

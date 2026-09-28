@@ -8,6 +8,8 @@ save, and -- the one that matters -- whether it is worth having at all.
 import json
 import unittest
 
+from _slow import slow
+
 from marchlands import rivers as waters
 from marchlands.engine import GameState
 from marchlands.military import FAIR, FROST, RAIN, sky_on
@@ -572,6 +574,7 @@ class TestTheAutoplayerUsesIt(unittest.TestCase):
             c.running = False
         self.assertIsNone(g.worst_unbridged())
 
+    @slow
     def test_the_bot_puts_one_up(self):
         from marchlands.sim import Bot
         g = start("marchlands", seed=5)

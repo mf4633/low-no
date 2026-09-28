@@ -14,6 +14,8 @@ import socket
 import threading
 import pathlib
 import unittest
+
+from _slow import slow
 import urllib.error
 import urllib.request
 from io import StringIO
@@ -344,6 +346,7 @@ class TestWhatIsBeingCarried(unittest.TestCase):
         seen = [(h.frm, h.to, h.good) for h in plan_for(s).hauls]
         self.assertEqual(len(seen), len(set(seen)))
 
+    @slow
     def test_a_town_with_forty_chains_is_not_forty_carriers(self):
         _g, s = grown(days=900)
         self.assertLessEqual(len(plan_for(s).hauls), 14)

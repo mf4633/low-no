@@ -6,6 +6,8 @@ import os
 import tempfile
 import unittest
 
+from _slow import slow
+
 from marchlands import config as C
 from marchlands.engine import GameState
 from marchlands.goods import ALL_KEYS
@@ -166,6 +168,7 @@ class TestSaves(unittest.TestCase):
 
 
 class TestLongRun(unittest.TestCase):
+    @slow
     def test_three_years_stay_finite_and_sane(self):
         g = new_game(seed=11)
         bot = Bot(g)
@@ -183,6 +186,7 @@ class TestLongRun(unittest.TestCase):
                 self.assertGreaterEqual(t.market.stock[k], -1e-9)
                 self.assertTrue(math.isfinite(t.market.price(k)))
 
+    @slow
     def test_the_naive_bot_survives_most_starts(self):
         """Balance guard: a plain policy should usually last the distance."""
         survived = 0
@@ -192,6 +196,7 @@ class TestLongRun(unittest.TestCase):
             survived += "Ruined" not in g.over and "Ended" not in g.over
         self.assertGreaterEqual(survived, 4, "the opening is too punishing")
 
+    @slow
     def test_the_naive_bot_climbs_at_least_one_age(self):
         """Balance guard: the age costs must be payable by an ordinary town."""
         ages = []
@@ -202,6 +207,7 @@ class TestLongRun(unittest.TestCase):
         self.assertGreaterEqual(min(ages), 2, "the second age is out of reach")
         self.assertGreaterEqual(max(ages), 3, "the third age is out of reach")
 
+    @slow
     def test_the_naive_bot_learns_and_settles(self):
         """Balance guard: research and expansion must both be affordable."""
         g = new_game(seed=11)
@@ -216,6 +222,7 @@ class TestLongRun(unittest.TestCase):
     #: about two minutes and actually measures the thing.
     BALANCE_SEEDS = (3, 5, 7, 17, 11, 23, 29, 31, 41, 47, 53, 59)
 
+    @slow
     def test_the_goal_is_reachable_but_not_assured(self):
         """The balance guard that matters.
 

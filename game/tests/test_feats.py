@@ -18,6 +18,8 @@ import tempfile
 import statistics
 import unittest
 
+from _slow import slow
+
 from marchlands import feats as fe
 from marchlands.feats import Book, Standing
 from marchlands.scenarios import start
@@ -82,6 +84,7 @@ class TestEarningThem(unittest.TestCase):
         self.assertNotIn("nonesuch", b.to_dict())
 
 
+@slow
 class TestAgainstARealGame(unittest.TestCase):
     """The figures have to come off the game's own books, so this plays one."""
 
