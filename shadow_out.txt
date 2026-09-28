@@ -9,7 +9,7 @@ om_metno     11278    37  -1.34  2.17  2.76    55%
 om_ecmwf     11569    37  -1.05  2.88  3.77    46%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 311 calls, est $4.4318 spent, $0.57 left (~39 calls)
+spend: 312 calls, est $4.4460 spent, $0.55 left (~38 calls)
 rung-obs 81884 -> 1350 independent units over 52 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  79   1     1%   6.0%     0%     7%    -4.7      open
@@ -57,9 +57,9 @@ station guide bias (guide - CLI): {'LAX': -2.21, 'NYC': 1.27, 'OKC': -1.19, 'BOS
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 3 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 4 day(s): {'2026-08-06': 1, '2026-08-26': 6, '2026-08-27': 5, '2026-09-28': 2} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
-PREREG_yes10_hotbias3: 0/60 units toward promotion review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)
+PREREG_yes10_hotbias3: CLOSED -- REFUTED 2026-08-27, n=0 (no station clears +3F bias; CANDIDATE.md YES Pilot v1). Not accruing.
 
 PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
   HYPOTHESIS REFUTED 2026-08-27: hot-bias premise was a CLI parser artifact. Measured rate 3.1% vs breakeven 2.6% (LCB 1.5%). No station clears the bias gate, so the pilot correctly trades nothing. NO SEED. See CANDIDATE.md.
@@ -68,7 +68,7 @@ PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 
 HYPOTHESIS PROGRESS (data bars, not results)
   H4a   shape validation (held-out) [####################] 52/28 logged days  +days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores
   H4b   market lag on curve_dev    [####################] 968/200 events  +32/20 distinct days
-  H5    contested band 81-95c (blocked on H4a) [....................] 58/60 city-day units  +supply only; scoring waits on H4a (27 days since 2026-09-01)
+  H5    contested band 81-95c (blocked on H4a) [....................] 58/60 city-day units  +supply only; scoring waits on H4a (28 days since 2026-09-01)
   H6    market prices off the stale print [###############.....] 150/200 print transitions  +21/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
   H7    shape on temperature (stratified) [....................] 357/50 scored (control)  +the hourly pair is the binding leg; a verdict needs both strata, pooled is context
   H8    run_max/temp_now gap (H4a x H7) [#########...........] 69/150 samples in 'climbing_off'  +fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop
