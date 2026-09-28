@@ -3733,7 +3733,10 @@ COMMANDS = {
     "missions": Console.cmd_missions, "roll": Console.cmd_missions,
     "order": Console.cmd_order, "orders": Console.cmd_order,
     "ground": Console.cmd_ground, "weather": Console.cmd_ground,
-    "gate": Console.cmd_sortie_odds, "odds": Console.cmd_sortie_odds,
+    # Not "gate": that is the gatehouse you lay in the wall, and a second
+    # "gate" here silently replaced it -- the drawbar's gate tool asked the
+    # sortie odds of a coordinate. tests/test_verbs.py keeps the keys unique.
+    "odds": Console.cmd_sortie_odds,
     "gates": Console.cmd_gates, "quarantine": Console.cmd_gates,
     "battle": Console.cmd_battle, "fight": Console.cmd_battle,
     "storm": Console.cmd_battle,
