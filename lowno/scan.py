@@ -18,7 +18,13 @@ def scan_once():
         try:
             tz = zoneinfo.ZoneInfo(c["tz"])
             now_l = dt.datetime.now(tz)
-            obs = sources.latest_obs(c["station"])
+            # Whole climate day: local-standard midnight, minus an hour of slack
+            # (_obs_local_date below does the exact cut).
+            _mid = dt.datetime.combine(today, dt.time(0), tz)
+            _lst_mid = dt.datetime.combine(today, dt.time(0), dt.timezone(
+                _mid.utcoffset() - (_mid.dst() or dt.timedelta(0))))
+            obs = sources.latest_obs(c["station"],
+                                     since=_lst_mid - dt.timedelta(hours=1))
             # api.weather.gov timestamps are UTC. The old filter compared the UTC
             # date prefix to the LOCAL date string, so 00:00-07:00Z obs (= prior
             # local evening on the West Coast, incl. yesterday's ~17:00 near-peak)

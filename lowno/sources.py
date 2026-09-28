@@ -16,11 +16,21 @@ def _get(url, timeout=6):
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode())
 
-def latest_obs(station):
+def latest_obs(station, since=None):
     """Returns dict: tempF, running notes, obs time, raw props. api.weather.gov
     /stations/{id}/observations gives recent set; we compute today's running max
-    from all obs with local-date == today, including 6-hr max groups when present."""
-    j = _get(f"https://api.weather.gov/stations/{station}/observations?limit=60")
+    from all obs with local-date == today, including 6-hr max groups when present.
+
+    since: aware datetime; fetch everything from then on (newest first). Without
+    it the call is the last 60 obs, which at a 5-minute station is ~5 hours:
+    KDEN at 13:10Z reached back only to 08:40Z against a 07:00Z climate-day
+    start, so the morning silently fell out of run_max by mid-afternoon."""
+    if since is None:
+        j = _get(f"https://api.weather.gov/stations/{station}/observations?limit=60")
+    else:
+        start = since.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        j = _get(f"https://api.weather.gov/stations/{station}/observations"
+                 f"?start={start}&limit=500", timeout=15)
     out = []
     for f in j.get("features", []):
         p = f["properties"]

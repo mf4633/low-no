@@ -2113,3 +2113,14 @@ LADDER + 69 PASS). No flag fired. Those rows are identifiable as `at` before
 04:00Z on their own date, and their prices were sampled ~20h before the market
 day; any first-qualifying-cycle measurement on those three days sees them.
 Not rewritten. Now pinned to the ET trading date, the same way `score_run.py` does it.
+
+**4. `run_max` saw only the last 60 observations** (`sources.latest_obs`). At a
+5-minute station that is ~5 hours, so the start of the climate day fell out of
+the window by mid-morning and the whole morning by afternoon. Live proof on
+2026-09-28: the 13:19Z KDEN scan logged run_max 64.4F; the station's max since
+07:00Z (MST midnight) was 66.2F, set before 08:40Z. The error is always COOL
+(a missed reading can only lower a max), so it inflates `settle - run_max`
+climbs in the empirical cells and weakens the settlement quarantine's lower
+bound. The 2026-09-23 review estimated 75 affected station-days; not
+re-counted here. The scan now fetches from local-standard midnight (minus 1h
+slack) with `start=`. Same population boundary as item 1: `lst_fix_since`.
