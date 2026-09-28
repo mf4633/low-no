@@ -3,21 +3,21 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 2139,
-  "brier_base": 0.1094,
-  "brier_shape": 0.1124,
-  "improvement_pct": -2.71
+  "n": 2238,
+  "brier_base": 0.1093,
+  "brier_shape": 0.1123,
+  "improvement_pct": -2.74
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 941,
-  "days": 31,
-  "lag_corr": -0.02,
+  "events": 968,
+  "days": 32,
+  "lag_corr": -0.021,
   "lag_ci": [
    -0.084,
-   0.044
+   0.042
   ]
  },
  "H5": {
@@ -31,15 +31,15 @@
   "id": "H6",
   "ready": false,
   "passed": false,
-  "events": 133,
+  "events": 150,
   "need_events": 200,
-  "days": 20,
+  "days": 21,
   "need_days": 20,
   "reason": "data bar not met"
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 333,
+  "pooled_n": 357,
   "hourly": {
    "n": 0,
    "brier_base": null,
@@ -47,24 +47,24 @@
    "improved": null
   },
   "control": {
-   "n": 333,
-   "brier_base": 0.1132,
-   "brier_shape": 0.1117,
+   "n": 357,
+   "brier_base": 0.1104,
+   "brier_shape": 0.1087,
    "improved": true
   },
   "ready": false,
   "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=333"
+  "reason": "need 50 scored decisions per stratum; have hourly=0, control=357"
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 870,
-   "stalled_off": 518,
-   "climbing_on": 1004,
-   "climbing_off": 68
+   "stalled_on": 903,
+   "stalled_off": 539,
+   "climbing_on": 1039,
+   "climbing_off": 69
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -74,21 +74,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 436,
-   "mean": -0.00102,
+   "n": 441,
+   "mean": -0.00088,
    "ci": [
-    -0.00559,
-    0.00355
+    -0.00546,
+    0.00371
    ]
   },
   "tail": {
-   "n": 823,
+   "n": 844,
    "mean": -0.00395,
    "ci": [
-    -0.00637,
-    -0.00154
+    -0.00635,
+    -0.00155
    ]
   }
  },
- "generated": "2026-09-27T13:05:48.428481Z"
+ "generated": "2026-09-28T08:40:29.096472Z"
 }

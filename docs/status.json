@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-09-27T13:05:20.031109Z",
+ "generated": "2026-09-28T08:40:00.134990Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 51,
+  "logged_days": 52,
   "first_day": "2026-08-07",
-  "last_day": "2026-09-26",
-  "rung_observations": 79814,
-  "independent_units": 1318,
+  "last_day": "2026-09-27",
+  "rung_observations": 81884,
+  "independent_units": 1350,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -72,13 +72,13 @@
    "2026-09-24": 13,
    "2026-09-25": 13,
    "2026-09-26": 13,
-   "2026-09-27": 2
+   "2026-09-27": 13
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1052,
-  "settlements_verified": 872,
+  "settlements_cached": 1075,
+  "settlements_verified": 895,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -87,6 +87,7 @@
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
    "31-40",
+   "41-50",
    "71-80",
    "96-98"
   ],
@@ -98,12 +99,12 @@
    "name": "shape validation (held-out)",
    "status": "open",
    "bar": {
-    "have": 51,
+    "have": 52,
     "need": 28,
     "unit": "logged days",
     "ready": true,
     "also": {
-     "have": 2139,
+     "have": 2238,
      "need": 50,
      "unit": "held-out scored decisions"
     }
@@ -115,24 +116,24 @@
    "name": "market lag on curve_dev",
    "status": "open",
    "bar": {
-    "have": 941,
+    "have": 968,
     "need": 200,
     "unit": "events",
     "ready": true,
     "also": {
-     "have": 31,
+     "have": 32,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "31/20 distinct days"
+   "note": "32/20 distinct days"
   },
   {
    "id": "H5",
    "name": "contested band 81-95c (blocked on H4a)",
    "status": "open",
    "bar": {
-    "have": 57,
+    "have": 58,
     "need": 60,
     "unit": "city-day units",
     "ready": false,
@@ -149,24 +150,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 133,
+    "have": 150,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 20,
+     "have": 21,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "20/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "21/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 333,
+    "have": 357,
     "need": 50,
     "unit": "scored (control)",
     "ready": false,
@@ -183,7 +184,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 68,
+    "have": 69,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -255,7 +256,7 @@
    "name": "contested band 81-95c (blocked on H4a)",
    "status": "open",
    "bar": {
-    "have": 57,
+    "have": 58,
     "need": 60,
     "unit": "city-day units",
     "ready": false,
@@ -272,24 +273,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 133,
+    "have": 150,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 20,
+     "have": 21,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "20/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "21/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 333,
+    "have": 357,
     "need": 50,
     "unit": "scored (control)",
     "ready": false,
@@ -306,7 +307,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 68,
+    "have": 69,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
