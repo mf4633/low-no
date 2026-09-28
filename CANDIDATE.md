@@ -2102,3 +2102,14 @@ on the local date. About 9% of station-days since 2026-08-22 were inflated (MIA
 worst, not western-only). Only `skill.py` reads it, so no hypothesis tally is
 affected, but **the `nws_grid` row in the skill table is biased hot before
 2026-09-29**, and its near-zero pooled bias should not be read as calibration.
+
+**3. Scan date came from the runner's UTC clock** (`scan.py`). `date.today()`
+on the UTC runner is tomorrow after 8pm EDT (CLAUDE.md #5). The loop's 23:40Z
+`DAY_END` stops later cycles but cycle 1 always runs, so a cron fire GitHub
+delivered after 00:00Z scanned TOMORROW's ladder with zero same-day obs and filed
+it under tomorrow. It happened 5 times, all before the 2026-08-31 loop rework:
+2026-08-07 (10 PASS rows), 2026-08-27 (23 LADDER + 23 PASS), 2026-08-30 (69
+LADDER + 69 PASS). No flag fired. Those rows are identifiable as `at` before
+04:00Z on their own date, and their prices were sampled ~20h before the market
+day; any first-qualifying-cycle measurement on those three days sees them.
+Not rewritten. Now pinned to the ET trading date, the same way `score_run.py` does it.

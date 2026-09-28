@@ -7,7 +7,12 @@ from . import sources, gate, advisor, prob
 from . import hourly_nowcast
 
 def scan_once():
-    today = dt.date.today()
+    # ET trading date, never date.today(): on the UTC runner that is tomorrow
+    # after 8pm ET (CLAUDE.md #5), which scans tomorrow's ladder against zero
+    # obs and files it under the wrong day. The loop's 23:40Z DAY_END guard
+    # only stops LATER cycles -- cycle 1 always runs, so a cron fire GitHub
+    # delivers after 00:00Z hit this (2026-08-07/27/30, 5 cycles).
+    today = dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date()
     results = []
     for key, c in CITIES.items():
         try:
