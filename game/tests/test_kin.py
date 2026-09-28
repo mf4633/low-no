@@ -210,10 +210,12 @@ class TestMarriage(unittest.TestCase):
     def test_it_costs_a_dowry_and_cools_a_lord(self):
         town = self.g.world.towns["dunmere"]
         town.hostility = 60.0
-        purse, before = self.g.treasury, town.hostility
+        # The one number the court and the war engine both read.
+        ill = lambda: self.g.court.ill_will("dunmere", self.g.day, town.hostility)
+        purse, before = self.g.treasury, ill()
         self.g.wed(self.who.name, "dunmere")
         self.assertLess(self.g.treasury, purse)
-        self.assertLess(town.hostility, before)
+        self.assertLess(ill(), before)
         self.assertGreater(town.truce_days, 0)
 
     def test_it_cannot_be_bought_twice(self):

@@ -165,7 +165,7 @@ class CourtMixin:
         # you. Reading a flat nought as "hostility is at least ambition" put
         # every lord on the march down as marching on your gate in the first
         # spring, which is a schedule that tells you nothing.
-        if mine and town.hostility >= max(35.0, town.ambition):
+        if mine and town.ill_will >= max(35.0, town.ambition):
             return mine
         near = [k for k in self.world.towns
                 if k != town.key and not self.world.towns[k].mine]
@@ -316,12 +316,15 @@ class CourtMixin:
                 continue      # a man does not march on somebody he has sworn to
             # -- offence taken at you ---------------------------------------
             if t.truce_days <= 0:
+                # Only the restless line moves here. What is in his favour is
+                # already in the number -- see `ill_will` -- and cooling the
+                # timer by it as well counted every gift twice.
                 t.hostility += (C.HOSTILITY_DRIFT * pressure * t.temper
                                 * (0.5 + wealth_factor)
                                 * (0.6 + 0.8 * self._week_mood(key, "temper")))
-                t.hostility = max(0.0, t.hostility - t.favour * 0.02
-                                  - self.kin.bonus("cooling"))
-            if t.hostility >= C.HOSTILITY_WAR:
+                t.hostility = max(0.0, t.hostility - self.kin.bonus("cooling"))
+            t.ill_will = self.court.ill_will(key, self.day, t.hostility)
+            if t.truce_days <= 0 and t.ill_will >= C.HOSTILITY_WAR:
                 said = self._reckon_war(key, t, pressure)
                 if said:
                     msgs.append(said)
@@ -380,6 +383,7 @@ class CourtMixin:
             # stops being a screen and starts being money. See
             # World.toll_mood.
             t.regard = c.opinion(key, day)
+            t.ill_will = c.ill_will(key, day, t.hostility)
             t.signed = key in c.coalition
             t.sworn_friend = key in c.allies
         # What the chancery's institutions actually do, applied once a day
@@ -1148,16 +1152,69 @@ class CourtMixin:
             return f"you have {self.treasury:,.0f}c"
         self.treasury -= coin
         self._outlay += coin
-        before = town.hostility
-        town.hostility = max(0.0, town.hostility - coin * C.GIFT_PER_COIN)
-        # "a gift is forgotten as the favour decays" is what `wed` has said
-        # about this since it was written, and until the ledger existed there
-        # was nowhere for it to decay: `favour` only ever went up. It does now.
-        self.court.write(town_key, "gift", coin * 0.01, self.day)
+        self._reread(town_key)            # fresh, not this morning's
+        before = town.ill_will
+        toll_was = self.world.tariff_for(town_key, None)
+        # Into the book, once. It used to come off the timer as well, so a
+        # gift counted twice while the screen said it counted once. And it
+        # wears off, as "a gift is forgotten" has always said it would.
+        self.court.write(town_key, "gift", coin * C.GIFT_PER_COIN, self.day)
+        self._reread(town_key)
         self.kin.did("open", 0.10)
         self.kin.teach("charm", 6.0, self.day, post="envoy")
         return (f"{coin:,.0f}c goes to {town.lord} of {town.name}; "
-                f"his temper cools from {before:.0f} to {town.hostility:.0f}")
+                f"his ill-will cools from {before:.0f} to {town.ill_will:.0f}"
+                + self._payback(town_key, coin, toll_was))
+
+    def _reread(self, town_key: str) -> None:
+        """Read one lord off the book now, not tomorrow morning.
+
+        Whatever you just did -- a gift, a marriage, a demand -- is in the
+        book, and his toll and his ill-will are read off the book. Leaving
+        them for the morning made every verb in the court a day late, which
+        is a day in which the screen and the road disagreed.
+        """
+        t = self.world.towns.get(town_key)
+        if t is None:
+            return
+        c = self.court
+        t.favour = c.goodwill(town_key, self.day)
+        t.regard = c.opinion(town_key, self.day)
+        t.ill_will = c.ill_will(town_key, self.day, t.hostility)
+
+    def _payback(self, town_key: str, coin: float, toll_was: float) -> str:
+        """What a gift is worth on the road, in the steward's words.
+
+        The toll it takes off is a saving on what your carts actually pay
+        at his post; the goodwill it bought wears off, so the saving falls
+        with it to nothing. If that never adds up to the coin, say so: the
+        gift bought a friend, not a return.
+        """
+        t = self.world.towns[town_key]
+        toll_now = self.world.tariff_for(town_key, None)
+        if toll_was <= 0:
+            return ""
+        cut = f" -- his toll {toll_was * 100:.1f}% -> {toll_now * 100:.1f}%"
+        if t.tolls_paid < 0.05:
+            return cut + "; none of your carts pay it, so this is goodwill, not coin"
+        per_day = t.tolls_paid * max(0.0, 1.0 - toll_now / toll_was)
+        spec = court.WHYS["gift"]
+        life = (coin * C.GIFT_PER_COIN) / spec.decay if spec.decay else 1e9
+        back = self._days_to_repay(coin, per_day, life)
+        return (cut + f", +{per_day:.1f}c/day on what your carts pay him; "
+                + (f"pays back in {back:.0f} days" if back is not None
+                   else f"never pays back in tolls (worth "
+                        f"{per_day * life / 2:,.0f}c before it wears off)"))
+
+    @staticmethod
+    def _days_to_repay(coin: float, per_day: float, life: float) -> Optional[float]:
+        """Days until a saving that starts at `per_day` and falls to nothing
+        over `life` days has returned `coin`, or None if it never does."""
+        if per_day <= 0 or per_day * life / 2.0 < coin:
+            return None
+        # per_day * (t - t^2 / (2 life)) = coin, the smaller root.
+        disc = 1.0 - 2.0 * coin / (per_day * life)
+        return life * (1.0 - max(0.0, disc) ** 0.5)
 
     def truce_cost(self, town_key: str, days: int) -> float:
         town = self.world.towns[town_key]
@@ -1266,12 +1323,17 @@ class CourtMixin:
         short = max(0.0, 25.0 - self.court.settled_view(town_key, self.day)) / 100.0
         greed = 1.0 + short * short
         if mine < theirs * 1.5 * greed:
-            town.hostility = min(C.HOSTILITY_WAR, town.hostility + 30.0)
+            self.court.write(town_key, "demanded", -30.0, self.day)
+            self._reread(town_key)
             return (f"{town.lord} of {town.name} laughs at you and calls his "
                     f"levies (his strength {theirs:.0f} against your {mine:.0f})")
         paid = 220.0 * town.wealth * town.prosperity * (1.0 + self.rng.random())
         paid = min(paid, 4000.0) / greed
         self.treasury += paid
-        town.hostility = min(C.HOSTILITY_WAR, town.hostility + 12.0)
+        # Booked, like every coin: a tribute the day's ledger cannot explain
+        # is the lie the ledger test exists to catch.
+        self._plunder += paid
+        self.court.write(town_key, "demanded", -12.0, self.day)
+        self._reread(town_key)
         town.prosperity = max(0.4, town.prosperity - 0.04)
         return (f"{town.lord} of {town.name} pays {paid:,.0f}c and remembers it")

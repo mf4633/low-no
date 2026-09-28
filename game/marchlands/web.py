@@ -781,6 +781,10 @@ def _court(game) -> dict:
             "name": t.name, "lord": t.lord,
             "opinion": round(view, 1), "temper": chancery.temper(view),
             "offence": round(c.offence(key, day), 1),
+            # The one number the war engine reads, and the same reasons
+            # the console lists under it, the restless line included.
+            "ill_will": round(c.ill_will(key, day, t.hostility), 1),
+            "war_at": C.HOSTILITY_WAR,
             "culture": chancery and t.culture or t.culture,
             "signed": key in c.coalition,
             "allied": key in c.allies,
@@ -798,7 +802,8 @@ def _court(game) -> dict:
             "friend": key in c.friends,
             "pact": [game.world.node_name(p) for p in c.partners(key)],
             "why": [{"what": w, "by": round(v, 1)}
-                    for w, v, _d in c.reasons(key, day)[:4]],
+                    for w, v, _d in c.reasons(
+                        key, day, restless=0.0 if t.truce_days else t.hostility)[:4]],
         }
     called = c.called
     return {

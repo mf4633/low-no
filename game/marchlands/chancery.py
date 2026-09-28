@@ -18,10 +18,14 @@ rarely the peace screen. It is four things, and none of them is a war:
   word is worth less to everyone on the march.
 
 This game had one number per lord called `hostility`, which went up on a timer
-and down when you paid. Everything above is built on top of it rather than in
-place of it: the timer is still the timer, and what changes is that the number
-now has *reasons* attached, that the reasons are visible, and that they add up
-across the march instead of only pointing at you one lord at a time.
+and down when you paid, and for a while it ran beside this ledger: the court
+screen said a lord thought well of you while a second number, ticking on its
+own, walked him to war. There is one number now. `ill_will` is what the war
+engine reads and what every screen shows, and it is made of reasons -- the
+dated ones in the book, and one standing line for the timer, `restless`, which
+is the part of a lord's temper that is only time, your wealth and his nature.
+A gift, a marriage or a town taken moves the book, and so moves the number the
+same day; nothing reaches the timer except time, war and a truce.
 
 The whole module is a ledger and a set of readings over it. It owns no dice
 except its own -- see `Chancery.rng`, and the note on it, which is the third
@@ -88,6 +92,11 @@ WHYS: Dict[str, Why] = {w.key: w for w in [
         aggressive=True, awe=True),
     Why("neighbourly", "you have traded here for years", 0.0),
 ]}
+
+#: The standing line of a lord's ill-will that is not in the book: time, your
+#: wealth, his nature. It rises while nothing else is happening and is spent
+#: when he marches; see `Chancery.ill_will`.
+RESTLESS = "the march is restless, and you are getting rich"
 
 #: Below this, a lord will not treat with you at all; above it he will ally.
 COLD = -30.0
@@ -316,20 +325,34 @@ class Chancery:
         return max(0.0, -sum(g.value(day) for g in self.ledger.get(key, ())
                              if WHYS[g.why].aggressive))
 
-    def reasons(self, key: str, day: int) -> List[Tuple[str, float, float]]:
+    def ill_will(self, key: str, day: int, restless: float = 0.0) -> float:
+        """The one number: how near this lord is to marching on you.
+
+        His restlessness less everything in the book, so a gift or a marriage
+        holds him back exactly as far as the court screen says it does, and a
+        town taken brings him on exactly as far. 100 is where he starts
+        reckoning a war (C.HOSTILITY_WAR); nought is a man with no reason.
+        """
+        return max(0.0, restless - self.opinion(key, day))
+
+    def reasons(self, key: str, day: int,
+                restless: float = 0.0) -> List[Tuple[str, float, float]]:
         """The itemised list, biggest first: (label, value, per-day decay).
 
         This is the whole point of keeping a ledger instead of a number. A
-        player who can read why can do something about it.
+        player who can read why can do something about it. `restless`, when
+        given, is listed as the standing line it is: it does not wear off,
+        and a decay of -1 says so to the screen.
         """
         rolled: Dict[str, float] = {}
         for g in self.ledger.get(key, ()):
             v = g.value(day)
             if v:
                 rolled[g.why] = rolled.get(g.why, 0.0) + v
-        return sorted(((WHYS[w].label, v, WHYS[w].decay)
-                       for w, v in rolled.items()),
-                      key=lambda row: -abs(row[1]))
+        rows = [(WHYS[w].label, v, WHYS[w].decay) for w, v in rolled.items()]
+        if restless >= 0.5:
+            rows.append((RESTLESS, -restless, -1.0))
+        return sorted(rows, key=lambda row: -abs(row[1]))
 
     # --------------------------------------------------- trust and the war
     TRUST_FLOOR_ALLY = 35.0

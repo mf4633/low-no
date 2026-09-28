@@ -398,6 +398,12 @@ class TradeEngine:
         c.state = MOVING
         return treasury, msgs
 
+    def _tolled(self, node: str, coin: float) -> None:
+        """Count a toll against the lord who charged it."""
+        t = self.world.towns.get(node)
+        if t is not None and coin > 0:
+            t.tolls_today += coin
+
     def _do_business(self, c: Caravan, stop: Stop, treasury: float) -> Tuple[float, List[str]]:
         msgs: List[str] = []
         market: Optional[Market] = self.world.market_of(stop.node)
@@ -427,6 +433,7 @@ class TradeEngine:
             moved_qty += fill.quantity
             c.cargo[o.good] = have - fill.quantity
             proceeds = fill.value - fill.tariff
+            self._tolled(stop.node, fill.tariff)
             treasury += proceeds
             gross += proceeds
             c.note(f"sold {fill.quantity:.0f} {good(o.good).name} at {market.name} "
@@ -459,6 +466,7 @@ class TradeEngine:
             moved_qty += fill.quantity
             c.cargo[o.good] = c.cargo.get(o.good, 0.0) + fill.quantity
             outlay = fill.value + fill.tariff
+            self._tolled(stop.node, fill.tariff)
             treasury -= outlay
             gross -= outlay
             c.spent += outlay

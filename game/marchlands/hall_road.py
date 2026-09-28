@@ -188,6 +188,12 @@ class RoadMixin:
             self.treasury += toll
         return msgs
 
+    def _close_tolls(self) -> None:
+        """Fold the day's tolls into each lord's running mean."""
+        for t in self.world.towns.values():
+            t.tolls_paid += (t.tolls_today - t.tolls_paid) / 30.0
+            t.tolls_today = 0.0
+
     def toll_on(self, br: waters.Bridge) -> float:
         """What the country's own traffic pays to cross.
 

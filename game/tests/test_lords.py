@@ -95,9 +95,10 @@ class TestDiplomacy(unittest.TestCase):
 
     def test_a_gift_cools_a_temper_and_costs_coin(self):
         before_coin = self.g.treasury
+        before = self.g.court.ill_will("ostmark", self.g.day, self.town.hostility)
         msg = self.g.gift("ostmark", 2000)
         self.assertIn("cools", msg)
-        self.assertLess(self.town.hostility, 90.0)
+        self.assertLess(self.town.ill_will, before)
         self.assertAlmostEqual(self.g.treasury, before_coin - 2000, places=4)
 
     def test_you_cannot_gift_what_you_do_not_have(self):
@@ -127,9 +128,10 @@ class TestDiplomacy(unittest.TestCase):
     def test_a_demand_is_remembered(self):
         g = self.g
         g.world.settlements["aldworth"].units = {"knight": 80, "man_at_arms": 80}
-        before = g.world.towns["dunmere"].hostility
+        t = g.world.towns["dunmere"]
+        before = g.court.ill_will("dunmere", g.day, t.hostility)
         g.demand("dunmere")
-        self.assertGreater(g.world.towns["dunmere"].hostility, before)
+        self.assertGreater(t.ill_will, before)
 
 
 class TestOaths(unittest.TestCase):

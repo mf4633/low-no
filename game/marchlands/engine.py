@@ -339,6 +339,7 @@ class GameState(AccountsMixin, RoadMixin, WallMixin, CourtMixin, HouseMixin):
         self.trade_engine.start_month = self.start_month
         caravan_cost = sum(c.daily_cost for c in self.caravans)
         self.treasury, tmsgs = self.trade_engine.tick(self.caravans, self.treasury)
+        self._close_tolls()
         led.caravans = caravan_cost
         led.trade = (self.treasury - before_trade) + caravan_cost
         # Whoever has the carts. On a day the road paid, it paid a little more;

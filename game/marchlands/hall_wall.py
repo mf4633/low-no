@@ -1382,7 +1382,6 @@ class WallMixin:
         # A raid does not take a town; it makes the town poorer and the lord
         # angrier, which is the point of it.
         town.prosperity = max(0.35, town.prosperity - C.RAID_PROSPERITY * worked)
-        town.hostility = min(C.HOSTILITY_WAR, town.hostility + 6.0 * worked)
         if a.owner == "player" and not town.mine:
             # Written down at last: `raided_them` was in the book and nothing
             # ever put it there, so burning a lord's country cost you nothing
@@ -2117,7 +2116,6 @@ class WallMixin:
             for key, other in self.world.towns.items():
                 if other.mine:
                     continue
-                other.hostility = min(C.HOSTILITY_WAR, other.hostility + 18.0)
                 near = self.world.distance(key, town.key)
                 # Distances on this march run 30 to 190. A neighbour takes
                 # it hardest; a lord four days' ride away has heard about it

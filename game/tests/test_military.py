@@ -219,11 +219,13 @@ class TestCampaign(unittest.TestCase):
         a = self.army_of(spearman=20, archer=16, man_at_arms=14, engineer=6, ram=4)
         g.march(a.uid, "dunmere")
         for _ in range(60):
-            before = {k: g.world.towns[k].hostility for k in others}
+            before = {k: g.court.ill_will(k, g.day, g.world.towns[k].hostility)
+                      for k in others}
             g.tick()
             if g.world.towns["dunmere"].mine:
                 break
-        after = {k: g.world.towns[k].hostility for k in others}
+        after = {k: g.court.ill_will(k, g.day, g.world.towns[k].hostility)
+                 for k in others}
         jumps = [after[k] - before[k] for k in others]
         self.assertGreater(max(jumps), 15.0)
 

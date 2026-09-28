@@ -2004,6 +2004,13 @@ class Console:
         view = c.opinion(key, g.day)
         self.say(ink.head(f"{t.lord.upper()} OF {t.name.upper()}",
                           f"{view:+.0f} -- {chancery.temper(view)}"))
+        # The one number, and what it is made of, straight underneath: the
+        # reasons below add up to it, the timer included.
+        ill = c.ill_will(key, g.day, t.hostility)
+        self.say("  " + ink.c(ink.pad("his ill-will toward you", 46), ink.DIM)
+                 + ink.c(f"{ill:>6.0f}", self._standing_colour(-ill))
+                 + ink.c(f"   of {C.HOSTILITY_WAR:.0f}; at {C.HOSTILITY_WAR:.0f} "
+                         f"he reckons a war", ink.FAINT))
         self.say("  " + ink.c(lordkind.reputation(key, g.known(key)[1] >= 0),
                               ink.BONE))
         self.say("  " + ink.c(ink.pad("his trust in your word", 46), ink.DIM)
@@ -2023,7 +2030,7 @@ class Console:
                 self.say("  " + ink.c(ink.pad(label, 46), ink.DIM)
                          + ink.c(f"{value:>+6.0f}", self._standing_colour(-value)))
             self.say("")
-        rows = c.reasons(key, g.day)
+        rows = c.reasons(key, g.day, restless=0.0 if t.truce_days else t.hostility)
         if not rows:
             self.say("", ink.c("  He has nothing written down about you "
                                "either way.", ink.DIM))
@@ -2031,6 +2038,7 @@ class Console:
             self.say("  " + ink.c(ink.pad(label, 46), ink.DIM)
                      + ink.c(f"{value:>+6.0f}", self._standing_colour(value))
                      + ink.c("  forever" if not decay
+                             else "  rises until he marches" if decay < 0
                              else f"   wears off in {abs(value) / decay:,.0f} days",
                              ink.FAINT))
         self.say("")
@@ -3142,14 +3150,14 @@ class Console:
             self.say("  of yours      " + (", ".join(p.name for p in free)
                                            if free else "nobody unmarried"))
             for key, t in sorted(g.world.towns.items(),
-                                 key=lambda kv: -kv[1].hostility)[:6]:
+                                 key=lambda kv: -kv[1].ill_will)[:6]:
                 if t.mine:
                     continue
                 tied = any(p.alive and p.married_to == key for p in g.kin.people)
                 note = (ink.c("kin already", ink.LEAF) if tied
                         else f"{g.dowry(key):,.0f}c")
                 self.say(f"  {ink.pad(t.name, 13)} {ink.pad(t.lord, 24)}"
-                         f" temper {t.hostility:>3.0f}   {note}")
+                         f" ill-will {t.ill_will:>3.0f}   {note}")
             return self.say("", ink.c("  marry <name> <town>", ink.DIM))
         if len(args) < 2:
             return self.err("marry <name> <town>")
@@ -3602,7 +3610,7 @@ def _node_colour(game, key: str) -> int:
         return ink.LEAF
     if game.world.is_port(key):
         return ink.SEA
-    return ink.BLOOD if town.hostility > 70 else ink.INK
+    return ink.BLOOD if town.ill_will > 70 else ink.INK
 
 
 def _wrap(text: str, n: int) -> List[str]:

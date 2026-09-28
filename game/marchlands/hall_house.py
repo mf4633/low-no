@@ -349,10 +349,12 @@ class HouseMixin:
         # that house ends without an heir, what it holds can come to yours
         # without a single man in the field -- see `_succession_abroad`.
         self.court.claims[town_key] = self.day
-        town.hostility = max(0.0, town.hostility - C.MARRIAGE_COOLING)
+        # The marriage is in the book above; taking it off the timer too
+        # counted it twice. The truce is the part that is not goodwill.
         town.truce_days = max(town.truce_days, C.MARRIAGE_TRUCE)
+        self._reread(town_key)
         self.kin.did("open", 0.15)
         self.kin.teach("charm", 20.0, self.day, post="envoy")
         return self.note(f"{said} {cost:,.0f}c goes with her, and "
-                         f"{town.lord}'s temper falls to {town.hostility:.0f}.",
+                         f"{town.lord}'s ill-will falls to {town.ill_will:.0f}.",
                          MOMENTOUS)

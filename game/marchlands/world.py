@@ -62,7 +62,14 @@ class ForeignTown:
     # --- the lord and his stones -------------------------------------------
     lord: str = ""                # who holds it
     owner: str = ""               # '' free, 'player', or another town's key
-    hostility: float = 0.0        # 0-100 toward you; at 100 a host marches
+    #: The restless line of his ill-will: the part that is only time. Not a
+    #: readout -- `ill_will` is, and this is one of its reasons. Kept under
+    #: its old name because every scenario and save sets it.
+    hostility: float = 0.0
+    #: The one number: restless less everything in the chancery's book,
+    #: re-read by the court each morning and whenever you move the book.
+    #: At 100 he reckons a war on you.
+    ill_will: float = 0.0
     ambition: float = 0.0         # 0-100 toward its neighbours
     aggression: float = 1.0       # how fast that ambition builds
     truce_days: int = 0           # days of bought peace left
@@ -122,6 +129,12 @@ class ForeignTown:
     regard: float = 0.0
     signed: bool = False          # has put his name to the letter against you
     sworn_friend: bool = False    # allied to you
+    #: What your carts pay at his post, coin a day: a thirty-day running
+    #: mean, and `tolls_today` is today's until the day closes it. It is what
+    #: lets a gift say what it is worth -- a toll cut on a road you do not
+    #: use is goodwill, not coin, and the steward should say which.
+    tolls_paid: float = 0.0
+    tolls_today: float = 0.0
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
     last_pilgrimage: int = -999   # day this lord last sent men to a shrine
@@ -205,7 +218,7 @@ class ForeignTown:
             "wall_max": self.wall_max,
             "muster": self.muster,
             "prosperity": self.prosperity,
-            "hostility": self.hostility,
+            "hostility": self.ill_will,
         }
 
     def faith(self) -> float:
@@ -334,6 +347,8 @@ class ForeignTown:
                 "lord": self.lord, "owner": self.owner, "hostility": self.hostility,
                 "ambition": self.ambition, "aggression": self.aggression,
                 "truce_days": self.truce_days, "favour": self.favour,
+                "ill_will": self.ill_will,
+                "tolls_paid": round(self.tolls_paid, 3),
                 "garrison": dict(self.garrison), "wall_hp": self.wall_hp,
                 "wall_max": self.wall_max, "wall_base": self.wall_base,
                 "seen": dict(self.seen), "seen_day": self.seen_day,
@@ -370,6 +385,7 @@ class ForeignTown:
         t.lord = d.get("lord", "")
         t.owner = d.get("owner", "")
         t.hostility = d.get("hostility", 0.0)
+        t.ill_will = float(d.get("ill_will", t.hostility))
         t.hardened = float(d.get("hardened", 0.0))
         t.loyalty = float(d.get("loyalty", 50.0))
         t.waited = int(d.get("waited", 0))
@@ -393,7 +409,7 @@ class ForeignTown:
         t.sworn_friend = bool(d.get("sworn_friend", False))
         for name in ("ambition", "aggression", "truce_days", "favour", "muster",
                      "temper", "prosperity", "wall_base", "harbour",
-                     "last_pilgrimage", "seen_day"):
+                     "last_pilgrimage", "seen_day", "tolls_paid"):
             if name in d:
                 setattr(t, name, d[name])
         return t

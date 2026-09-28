@@ -603,7 +603,7 @@ class Bot:
         # player: it runs carts everywhere, so its intelligence is usually
         # fresh, which is the point of tying the two together.
         worst = max((host_strength(g.believed_host(k))
-                     * (0.15 + 0.85 * (t.hostility / C.HOSTILITY_WAR) ** 1.5)
+                     * (0.15 + 0.85 * min(1.0, t.ill_will / C.HOSTILITY_WAR) ** 1.5)
                      for k, t in g.world.towns.items() if not t.mine), default=0.0)
         threat = max(0.55 * worst,
                      0.9 * sum(host_strength(a.units) for a in coming))

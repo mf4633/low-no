@@ -102,7 +102,7 @@ POSTS: Dict[str, Post] = {p.key: p for p in [
     Post("master", "engineering", "town", "has the works at {t}",
          "building and wall repair there, and your siege engines everywhere"),
     Post("envoy", "charm", "", "sits with the other lords",
-         "peace is cheaper and hostility cools faster"),
+         "peace is cheaper and a lord's restlessness cools faster"),
 ]}
 
 #: The head of the house is not posted; what he is doing decides what he learns.
