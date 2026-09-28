@@ -279,5 +279,29 @@ class TestTheRoadIsTheDiplomaticMap(unittest.TestCase):
         self.assertGreater(g.ledger.offerings, g.relic_income())
 
 
+class TestTheLastThreeChaptersUseAllThree(unittest.TestCase):
+    """The Count, the heir and the letter, in the same year -- chapters four
+    to six are about all three, and before the Count wrote his letters the
+    letter only came if you went conquering, which they never ask."""
+
+    def test_the_count_writes_the_letter_in_the_first_year(self):
+        from marchlands.campaign import RIVAL, chapter_at
+        for idx in (3, 4, 5):
+            g = chapter_at(idx).start(seed=7)
+            for _ in range(7):
+                g.tick()
+            self.assertIn(RIVAL, g.court.coalition, f"chapter {idx + 1}")
+            self.assertGreaterEqual(len(g.court.coalition),
+                                    court.COALITION_NAMES)
+
+    def test_and_it_lapses_if_nobody_proves_him_right(self):
+        from marchlands.campaign import chapter_at
+        g = chapter_at(3).start(seed=7)
+        g.tick()
+        spec = court.WHYS["slandered"]
+        days = (55.0 - court.COALITION_LAPSE) / spec.decay
+        self.assertLess(days, 360, "the Count's word outlives the year")
+
+
 if __name__ == "__main__":
     unittest.main()

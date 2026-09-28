@@ -76,6 +76,12 @@ WHYS: Dict[str, Why] = {w.key: w for w in [
     Why("besieged", "you sat down in front of their walls", 0.115,
         aggressive=True),
     Why("demanded", "you demanded tribute of them", 0.090),
+    # The Count's letters: a grievance written for them by somebody else.
+    # Aggressive, because what it asks is that they sign; quick to wear,
+    # because a man who has only been told you are dangerous forgets it
+    # inside a season unless you prove the letter right.
+    Why("slandered", "the Count has been writing to them about you", 0.12,
+        aggressive=True),
     Why("broke_word", "you did not come when you were called", 0.020,
         aggressive=True),
     Why("inherited", "a house ended and you took what it held", 0.045,

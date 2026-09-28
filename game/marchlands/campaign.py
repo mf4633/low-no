@@ -150,6 +150,27 @@ def _quiet_march(g: GameState, temper: float = 0.55) -> None:
         t.ambition *= temper
 
 
+def _the_counts_letters(g: GameState, weight: float, names: int = 2) -> None:
+    """Marchand writes to the lords nearest you, and signs with them.
+
+    The last three chapters are about a man, a house and a letter, and until
+    this the letter only came if you went conquering -- which the fourth and
+    fifth chapters never ask you to do. So he writes it. It is a dated,
+    decaying reason like any other (`slandered`), on him and the lords he
+    wrote to: it puts a letter on the table in the first year, and it lapses
+    in about half a year unless you give them cause to keep their names on
+    it. What it costs you is the same as any letter -- tolls, and a march
+    that moves together -- and the ways out are the same three.
+    """
+    seat = next(iter(g.world.settlements), "")
+    near = sorted((k for k, t in g.world.towns.items()
+                   if k != RIVAL and not t.mine and k in g.world.coords),
+                  key=lambda k: g.world.distance(seat, k)
+                  if seat in g.world.coords else 0.0)[:names]
+    for key in [RIVAL] + near:
+        g.court.write(key, "slandered", -weight, g.day)
+
+
 def _one(g: GameState) -> None:
     _quiet_march(g, 0.40)
     g.goals = Goals(net_worth=22_000.0, population=230, towns=99,
@@ -187,6 +208,7 @@ def _four(g: GameState) -> None:
         if key != RIVAL:
             t.hostility *= 0.35
             t.aggression *= 0.5
+    _the_counts_letters(g, 55.0)
     g.goals = Goals(net_worth=1e12, population=10, towns=99,
                     days=int(2 * C.DAYS_PER_YEAR), wonder=False,
                     paths=("endure",))
@@ -197,6 +219,7 @@ def _five(g: GameState) -> None:
     count.hostility = 70.0
     count.ambition = 90.0
     g.SHRINE_RACE_ODDS = 0.03          # he is going for them in earnest
+    _the_counts_letters(g, 50.0)
     g.goals = Goals(net_worth=1e12, population=10, towns=99, relics=3,
                     relic_days=90, days=int(2 * C.DAYS_PER_YEAR), wonder=False,
                     paths=("reliquary",))
@@ -208,6 +231,7 @@ def _six(g: GameState) -> None:
     count.muster *= 1.5
     count.wall_base *= 1.2
     count.hostility = C.HOSTILITY_WAR
+    _the_counts_letters(g, 55.0)
     g.goals = Goals(net_worth=150_000.0, population=460, towns=1,
                     days=int(3 * C.DAYS_PER_YEAR),
                     paths=("dominion", "wealth", "bells"))
