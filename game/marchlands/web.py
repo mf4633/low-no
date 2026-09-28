@@ -784,6 +784,10 @@ def _court(game) -> dict:
             # The one number the war engine reads, and the same reasons
             # the console lists under it, the restless line included.
             "ill_will": round(c.ill_will(key, day, t.hostility), 1),
+            # What his post charges your carts, and what he will not pass:
+            # the road tab's reading of the court.
+            "toll": round(game.world.tariff_for(key, None) * 100, 1),
+            "refuses": list(t.refuses),
             "war_at": C.HOSTILITY_WAR,
             "culture": chancery and t.culture or t.culture,
             "signed": key in c.coalition,
@@ -806,9 +810,18 @@ def _court(game) -> dict:
                         key, day, restless=0.0 if t.truce_days else t.hostility)[:4]],
         }
     called = c.called
+    # How near the letter is, as one bar: the angriest lord who has not
+    # signed, against the bar -- and who would sign if you took one more
+    # town. EU4's aggressive expansion, drawn the way the inn's reach is.
+    unsigned = [k for k in towns if k not in c.coalition]
+    worst = max((c.offence(k, day) for k in unsigned), default=0.0)
     return {
         "towns": towns,
         "coalition": list(c.coalition),
+        "nearest": round(worst, 1),
+        "after_next": [game.world.node_name(k)
+                       for k in game.coalition_after_next()],
+        "names": chancery.COALITION_NAMES,
         "bar": chancery.COALITION_BAR,
         "price": round(c.coalition_price(day)),
         "called": {"town": called[0],
@@ -1127,6 +1140,9 @@ def snapshot(game, here: str = "") -> dict:
                  "age": p.age(game.day),
                  "head": p.uid == game.kin.head,
                  "doing": p.doing(game.world.node_name),
+                 # Posted and learning nothing -- a captain whose host is
+                 # parked in garrison. The House tab says so in amber.
+                 "idle": game.kin.idle.get(p.uid, ""),
                  "skill": _best_skill(p)}
                 for p in sorted(game.kin.living(),
                                 key=lambda q: (q.uid != game.kin.head, q.born))],
@@ -1178,6 +1194,13 @@ def snapshot(game, here: str = "") -> dict:
             "population": round(s.population, 1),
             "housing": round(s.housing(game.progress), 1),
             "popularity": round(s.popularity, 1),
+            # Stronghold's two reaches, as fractions of the town: what the
+            # inns and the chapels actually serve. A town grown past its inn
+            # is half a town drinking nothing, and the panel says so as a
+            # bar, the same grain as mood and the wall.
+            "coverage": {"ale": round(s.coverage("ale_reach", needs_running=True), 3),
+                         "faith": round(s.coverage("faith_reach"), 3)},
+            "afield": s.afield,
             "workforce": round(s.workforce, 1),
             "employed": round(s.employed, 1),
             "soldiers": s.soldiers,

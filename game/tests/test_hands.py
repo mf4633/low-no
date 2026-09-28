@@ -243,7 +243,7 @@ class TestControls(unittest.TestCase):
 
     def test_the_keys_card_teaches_the_mouse(self):
         for words in ("right-click", "double-click", "shift-click", "<kbd>.</kbd>",
-                      "right-drag / arrows"):
+                      "middle-drag / alt-drag / arrows"):
             self.assertIn(words, self.html)
 
 

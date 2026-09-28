@@ -94,6 +94,35 @@ class TestWhatStopsTheClock(unittest.TestCase):
         self.assertIn("hungry", said)
         self.assertIn("revolt", said)
 
+    def test_prose_never_stops_it(self):
+        """Momentous is not dangerous. A day full of ***-lines -- a season,
+        a feat, an age, a harvest -- with nothing changed in the state is a
+        day the clock runs straight through."""
+        c, _console = clock(["*** The 1247 season opens. ***",
+                             "*** A feat: The Hammer ***",
+                             "*** The Age of Stone begins ***",
+                             "the harvest is in at Aldworth",
+                             "Vantry is rebuilding after fire"])
+        for _ in range(4):
+            c.speed = 3
+            c.step()
+            self.assertEqual(c.speed, 3, c.stopped_for)
+        self.assertEqual(c.stopped_for, "")
+
+    def test_it_says_what_kind_of_thing_stopped_it(self):
+        c, _console = clock(["a quiet day"])
+        c.speed = 3
+        c.step()
+        import marchlands.clock as clockmod
+        was = clockmod.watch
+        clockmod.watch = lambda _g: {"coalition": "3 lords have signed"}
+        try:
+            c.speed = 3
+            c.step()
+        finally:
+            clockmod.watch = was
+        self.assertEqual(c.state()["stopped_kind"], "coalition")
+
     def test_it_stops_on_the_day_a_thing_becomes_true_and_not_after(self):
         # A siege that stops the clock once is a warning. A siege that stops
         # it every morning is a reason to stop using the clock.

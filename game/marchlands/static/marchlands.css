@@ -792,6 +792,24 @@ body.march #scale { display: none; }
 body.march #pace button { color: #6b5c3e; background: rgba(235,224,194,.75);
                           border-color: rgba(120,96,58,.35); }
 /* Why it stopped, said where you are looking rather than in the log. */
+/* A line that says what a key means in the place you are, set in the halt
+   banner's type: the fight's Space, the eyes' turn-only. */
+.keyline {
+  margin: 8px 0 4px; padding: 5px 12px; font-size: 12.5px; letter-spacing: .04em;
+  color: #f0d9a0; background: rgba(86,26,20,.94);
+  border: 1px solid rgba(201,162,39,.45); border-radius: 3px; text-align: center;
+}
+
+#log li.steward { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 6px; }
+#log li.steward button {
+  font: 11.5px/1 inherit; padding: 4px 8px; cursor: pointer;
+  color: #14110d; background: var(--gold); border: 0; border-radius: 2px;
+}
+
+#tabs { margin: -4px -6px 4px; gap: 1px; }
+#tabs button { flex: 1; padding: 5px 2px; font-size: 9.5px; letter-spacing: .05em; }
+#panel section.offtab { display: none !important; }
+
 #halt {
   position: fixed; left: 50%; top: 58px; transform: translateX(-50%); z-index: 13;
   padding: 7px 15px; font-size: 12.5px; letter-spacing: .04em;

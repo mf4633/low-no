@@ -2698,7 +2698,7 @@ function nodeWrit(n, ev) {
  * all. Nothing looked broken, because the continuous clock goes on turning
  * the days by itself, and a button that silently does nothing looks exactly
  * like a button you did not quite click. */
-for (const btn of document.querySelectorAll('#advance button')) {
+for (const btn of document.querySelectorAll('#advance button[data-do]')) {
   btn.addEventListener('click', () => send(btn.dataset.do));
 }
 
@@ -2944,7 +2944,10 @@ function nextFrame() {
 let commands = [], palHot = 0, shown = [];
 
 async function loadCommands() {
-  try { commands = await (await fetch('/commands')).json(); }
+  try {
+    commands = await (await fetch('/commands')).json();
+    COMMAND_WORDS = new Set(commands.flatMap(c => [c.name, ...(c.aliases || [])]));
+  }
   catch (e) { commands = []; }
 }
 
@@ -3073,6 +3076,10 @@ const typing = () => {
 const KEYS = {
   w: 'next 7', m: 'next 30', h: 'hint',
 };
+/* The three cameras. A fourth is not wanted, and neither is another letter
+ * until the keys card has a row to spare for it: every collision so far has
+ * been a key the card promised one thing for and the handler did another. */
+const VIEW_KEYS = { t: 'town', r: 'march', c: 'castle' };
 document.addEventListener('keydown', e => {
   const meta = e.metaKey || e.ctrlKey;
   // The build list is open: a letter builds what it is written against,
@@ -3121,7 +3128,12 @@ document.addEventListener('keydown', e => {
     openSelection(); e.preventDefault(); return;
   }
   if ((e.key === 'b' || e.key === 'B') && !typing()) {
-    startPlacing(); e.preventDefault(); return;
+    // One placement verb. In the town it opens the build list; on the wall
+    // it picks the next thing to lay, because that is what placing stone
+    // means there -- and opening the town's writ from the wall view was two
+    // "I am placing things" modes answering one key differently.
+    if (drawing()) nextLay(); else startPlacing();
+    e.preventDefault(); return;
   }
   if ((e.key === 'f' || e.key === 'F') && !typing()) {
     eyesOpen(); e.preventDefault(); return;
@@ -3174,9 +3186,12 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); return;
   }
   if (typing()) return;
-  if (e.key === 't' || e.key === 'T') { setMode('town'); return; }
-  if (e.key === 'r' || e.key === 'R') { setMode('march'); return; }
-  if (e.key === 'w' || e.key === 'W') { setMode(drawing() ? 'town' : 'castle'); return; }
+  // Views are T, R and C; time is W and M. W used to be the wall as well,
+  // caught here before KEYS could read it as a week -- so the keys card said
+  // "W: a week" and the clock never moved. One letter, one meaning, and
+  // tests/test_keys.py holds every <kbd> on the card to it.
+  const view = VIEW_KEYS[e.key.toLowerCase()];
+  if (view) { setMode(view === 'castle' && drawing() ? 'town' : view); return; }
   const line = KEYS[e.key.toLowerCase()] || '';
   if (line) { send(line); e.preventDefault(); }
 });
@@ -3235,12 +3250,18 @@ function runBetween(a, b) {
               Math.round(a[1] + (b[1] - a[1]) * i / n)]);
   return out;
 }
+function pickLay(name) {
+  lay = name;
+  for (const o of document.querySelectorAll('#drawbar [data-lay]'))
+    o.setAttribute('aria-pressed', String(o.dataset.lay === name));
+}
+function nextLay() {
+  const tools = [...document.querySelectorAll('#drawbar [data-lay]')].map(b => b.dataset.lay);
+  pickLay(tools[(tools.indexOf(lay) + 1) % tools.length]);
+  say(`B: ${lay} — drag along the ground to lay it.`);
+}
 for (const btn of document.querySelectorAll('#drawbar [data-lay]')) {
-  btn.addEventListener('click', () => {
-    lay = btn.dataset.lay;
-    for (const o of document.querySelectorAll('#drawbar [data-lay]'))
-      o.setAttribute('aria-pressed', String(o === btn));
-  });
+  btn.addEventListener('click', () => pickLay(btn.dataset.lay));
 }
 
 /* The mouse, the way every player of this kind of game already holds it:
@@ -3264,6 +3285,12 @@ canvas.addEventListener('pointerdown', e => {
     box = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY, shift: e.shiftKey };
     return;
   }
+  // The right button gives orders and nothing else. It used to move the
+  // view as well, and a right-click with a twitch in it became a pan -- the
+  // villagers you meant to send stood where they were, or worse, the next
+  // clean click sent them somewhere you had only been looking. The view is
+  // on the middle button, alt-drag and the arrows.
+  if (e.button === 2) return;
   drag = { x: e.clientX, y: e.clientY };
 });
 window.addEventListener('pointerup', e => {
@@ -3283,6 +3310,9 @@ window.addEventListener('pointerup', e => {
   // A left drag is a box. It used to be the camera, which is now on the
   // other buttons, because a box is what a left drag means everywhere else.
   if (b && moved > 5) return boxSelect(b);
+  // An order is an order however steady the hand: no drag hangs off the
+  // right button any more, so there is nothing to tell it apart from.
+  if (was.button === 2 && e.target === canvas) return rightClick(e);
   // A click is a press that did not turn into a drag. Without this the writ
   // opens every time you finish moving the camera.
   const quick = performance.now() - was.t < 600;
@@ -3292,7 +3322,39 @@ window.addEventListener('pointerup', e => {
   if (was.button !== 0) return;
   leftClick(e, was.shift);
 });
+/* Two fingers move and pinch the view; one finger is the mouse's left
+ * button. Tracked apart from the mouse so a second finger landing cancels
+ * whatever the first had started -- a box, a stroke, a press. */
+const fingers = new Map();
+let pinch = null;
+function fingerSpan() {
+  const [a, b] = [...fingers.values()];
+  return { cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+}
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (fingers.size === 2) { box = null; pressed = null; stroke = null; drag = null; pinch = fingerSpan(); }
+}, true);
 window.addEventListener('pointermove', e => {
+  if (!fingers.has(e.pointerId)) return;
+  fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!pinch || fingers.size < 2) return;
+  const now = fingerSpan();
+  camera.x += now.cx - pinch.cx; camera.y += now.cy - pinch.cy;
+  camera.zoom = Math.max(0.45, Math.min(2.4, camera.zoom * now.d / pinch.d));
+  pinch = now;
+}, true);
+for (const ev of ['pointerup', 'pointercancel']) {
+  window.addEventListener(ev, e => {
+    fingers.delete(e.pointerId);
+    if (fingers.size < 2 && pinch) { pinch = null; pressed = null; box = null; }
+  }, true);
+}
+canvas.style.touchAction = 'none';
+
+window.addEventListener('pointermove', e => {
+  if (pinch) return;
   if (stroke) { stroke.to = screenToTile(e); return; }
   if (box) { box.x1 = e.clientX; box.y1 = e.clientY; return; }
   if (!drag) return;
@@ -3316,6 +3378,8 @@ function leftClick(e, shift) {
     }
     const h = hostAt(e);
     if (h) { select(h.mine ? 'host' : 'theirs', h.uid, shift); return bark('pick', e); }
+    if (n && e.pointerType === 'touch' && sel.ids.length && sel.kind === 'host')
+      return rightClick(e);
     if (n) return select('place', n.key, shift);
     return clearSel();
   }
@@ -3339,7 +3403,10 @@ function leftClick(e, shift) {
   const b = buildingAt(e);
   if (b) return select('building', b.uid, shift);
   // Bare ground: let them be. It used to throw a build menu at you, which
-  // is a panel arriving because you clicked nothing in particular.
+  // is a panel arriving because you clicked nothing in particular. On a
+  // touch screen there is no second button, so a tap on the ground with
+  // somebody picked up is the order.
+  if (e.pointerType === 'touch' && sel.ids.length) return rightClick(e);
   return clearSel();
 }
 
@@ -3423,9 +3490,11 @@ function show(id, text) {
   el.textContent = text;
 }
 
-function meter(el, frac, warnAt, badAt) {
-  el.classList.toggle('warn', frac < warnAt);
-  el.classList.toggle('bad', frac < badAt);
+function meter(el, frac, warnAt, badAt, high = false) {
+  // `high`: a meter where full is the danger -- the letter filling toward
+  // its bar -- rather than empty.
+  el.classList.toggle('warn', high ? frac >= warnAt : frac < warnAt);
+  el.classList.toggle('bad', high ? frac >= badAt : frac < badAt);
   el.firstElementChild.style.width = Math.max(0, Math.min(100, frac * 100)) + '%';
 }
 
@@ -3490,6 +3559,40 @@ function paint(s) {
       `(${plan.per_watch} men each)` + (out ? ` · ${out} with no work` : '');
   }
   meter($('moodbar'), s.town.popularity / 100, 0.45, 0.25);
+  // Coverage, the same grain as mood: the share of the town an inn and a
+  // chapel actually reach. Past what they serve, half the town drinks
+  // nothing -- and the letter below is the same pressure on the march.
+  const cov = s.town.coverage || {};
+  meter($('alebar'), cov.ale || 0, 0.5, 0.25);
+  meter($('faithbar'), cov.faith || 0, 0.5, 0.25);
+  show('afield', s.town.afield ? `${num(s.town.afield)} with a host` : 'nobody');
+  const cr = s.castle;
+  $('wallread').textContent = cr
+    ? `${cr.yards} yards · ${cr.shut ? `${cr.inside} plots inside` : 'the ring is open'}`
+      + ` · ${cr.per_yard} men to the yard` : '';
+  const lt = s.court || {};
+  if (lt.bar) {
+    meter($('letterbar'), Math.min(1, (lt.nearest || 0) / lt.bar), 0.6, 0.85, true);
+    const next = lt.after_next || [];
+    $('letter-near').textContent = (lt.coalition || []).length
+      ? `${lt.coalition.length} have signed.`
+      : next.length >= (lt.names || 3)
+        ? `one more town taken and ${next.length} sign: ${next.join(', ')}`
+        : `the angriest unsigned lord is at ${Math.round(lt.nearest || 0)} of ${lt.bar}`;
+    $('tolls').innerHTML = Object.values(lt.towns || {})
+      .sort((a, b) => b.toll - a.toll)
+      .map(t => `<li><label>${esc(t.name)}</label><span class="${t.ill_will >= 70 ? 'down' : ''}">` +
+                `${t.toll}%</span>` +
+                (t.refuses && t.refuses.length
+                  ? `<em class="down"> will not pass ${t.refuses.map(esc).join(', ')}</em>` : '') +
+                `</li>`).join('');
+  }
+  // A new head of the same house in the same game -- not a new game, whose
+  // lord is somebody else's on day one and no succession at all.
+  if (was && was.kin && s.kin && was.game === s.game && s.day >= was.day) {
+    const head = k => (k.find(p => p.head) || {}).name;
+    if (head(was.kin) && head(s.kin) !== head(was.kin)) setTab('house');
+  }
   show('hands', `${num(s.town.employed)} of ${num(s.town.workforce)}`);
   meter($('wallbar'), s.town.wall_max ? s.town.wall_hp / s.town.wall_max : 0, 0.6, 0.3);
   show('soldiers', num(s.town.soldiers));
@@ -4181,6 +4284,36 @@ function say(text, cls) {
   log.scrollTop = log.scrollHeight;
 }
 
+/* The steward points, and the pointing is a button. Every `command` in his
+ * advice that is complete as written -- no <placeholder> left to fill -- is
+ * offered under it as something to press. A steward who cannot be clicked
+ * is a tooltip; with these the hint is the tutorial. */
+function stewardButtons(text) {
+  const seen = new Set();
+  const cmds = [];
+  for (const m of text.matchAll(/`([^`]+)`/g)) {
+    const c = m[1].trim();
+    if (!c || /[<\[]/.test(c) || seen.has(c)) continue;
+    if (!COMMAND_WORDS.has(c.split(/\s+/)[0])) continue;
+    seen.add(c); cmds.push(c);
+    if (cmds.length >= 4) break;
+  }
+  if (!cmds.length) return;
+  const li = document.createElement('li');
+  li.className = 'steward';
+  for (const c of cmds) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = c; b.title = 'do it';
+    b.addEventListener('click', () => send(c));
+    li.appendChild(b);
+  }
+  $('log').appendChild(li);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+/* Filled from /commands once the palette has them, so a button is only
+ * ever offered for a verb the console will actually take. */
+let COMMAND_WORDS = new Set();
+
 async function send(line) {
   say('> ' + line, 'you');
   const r = await fetch('/do', { method: 'POST',
@@ -4188,6 +4321,7 @@ async function send(line) {
     body: JSON.stringify({ line }) });
   const data = await r.json();
   if (data.said) say(data.said, 'said');
+  if (data.said && /^(hint|h)\b/.test(line.trim())) stewardButtons(data.said);
   if (data.state) paint(data.state);
   if (mode === 'march') loadMarch(); else loadOptions();
   // A typed `next` moves the day too, and the clock's stream knows about it.
@@ -4228,8 +4362,29 @@ function frameTown() {
   camera.y = (NARROW() ? -50 : -40) - (my + oy) * camera.zoom;
 }
 
+/* The panel's five pages. `setTab` is what a click does; `followTab` is
+ * what the game does -- turning to the page that answers what just happened
+ * -- and it leaves alone a page the player chose until something new does. */
+let tab = 'town';
+function setTab(name) {
+  tab = name;
+  $('panel').dataset.tab = name;
+  for (const b of document.querySelectorAll('#tabs [data-tab]'))
+    b.setAttribute('aria-pressed', String(b.dataset.tab === name));
+  for (const s of document.querySelectorAll('#panel section[data-tab]'))
+    s.classList.toggle('offtab', s.dataset.tab !== name);
+}
+const HALT_TAB = { siege: 'wall', raid: 'wall', blockade: 'wall', battle: 'wall',
+                   fire: 'town', hunger: 'town', unpaid: 'town', unrest: 'town',
+                   war: 'court', coalition: 'court', called: 'court', held: 'court' };
+const VIEW_TAB = { town: 'town', march: 'road', castle: 'wall' };
+for (const b of document.querySelectorAll('#tabs [data-tab]'))
+  b.addEventListener('click', () => setTab(b.dataset.tab));
+setTab('town');                 // before the first paint, not after a view
+
 function setMode(next) {
   mode = next;
+  if (VIEW_TAB[next]) setTab(VIEW_TAB[next]);
   for (const [id, m] of [['v-town', 'town'], ['v-march', 'march'],
                          ['v-castle', 'castle']])
     $(id).setAttribute('aria-pressed', String(mode === m));
@@ -4253,6 +4408,7 @@ $('ear').addEventListener('click', () => {
   if (on) say('The town has a sound now. It follows what is happening in it.');
 });
 $('v-town').addEventListener('click', () => setMode('town'));
+$('v-act').addEventListener('click', () => openPalette(''));
 $('v-march').addEventListener('click', () => setMode('march'));
 $('v-castle').addEventListener('click', () =>
   setMode(mode === 'castle' ? 'town' : 'castle'));
@@ -4307,6 +4463,10 @@ function paintDrawbar(s) {
   bits.push(`<b>${c.per_yard}</b> men to the yard`);
   if (c.outside) bits.push(`<span class="bad">${c.outside} outside</span>`);
   if (c.depth > 1) bits.push(`<b>${c.depth}</b> walls deep`);
+  // What the wall actually encloses, where you are drawing it -- not in the
+  // chronicle. A ring of seventy yards that holds sixteen plots is the thing
+  // to see before the stone is paid for.
+  if (c.shut) bits.push(`<b>${c.inside}</b> plots enclosed`);
   $('drawread').innerHTML = bits.join(' &middot; ');
 }
 
@@ -4603,9 +4763,22 @@ function pickWhere(key) {
 /* Swapping in a new game means the baked ground is a picture of somewhere
  * else, so it has to go. Forgetting this leaves the old country's fields
  * underneath the new country's town. */
+/* The keys card, once: the first time anybody begins a game in this browser,
+ * and never again. After that the steward's buttons are the tutorial. */
+function firstRun() {
+  let seen = true;
+  try { seen = !!localStorage.getItem('marchlands.keys-seen'); } catch (e) { seen = true; }
+  if (seen) return;
+  try { localStorage.setItem('marchlands.keys-seen', '1'); } catch (e) { /* private window */ }
+  $('keys').hidden = false;
+  $('line').blur();
+}
+
 function enter(out) {
   if (out.error) { say(out.error); return false; }
   closeFront();
+  setTab('town');
+  firstRun();
   ground = null;
   paint(out.state);
   frameTown();
@@ -4945,6 +5118,7 @@ function applyClock(c) {
     // The reason is the plain sentence the state gives -- "Aldworth is
     // besieged". The day's own line goes underneath it when there is one.
     halt.textContent = c.stopped_for;
+    if (!wasHalted && HALT_TAB[c.stopped_kind]) setTab(HALT_TAB[c.stopped_kind]);
     halt.title = c.stopped_at || c.stopped_for;
     // The horn has already said it if it was men at the gate.
     if (!wasHalted && performance.now() - hornAt > 3000) Sound.mark('alarm');
@@ -5602,6 +5776,7 @@ function startMelee(v) {
             kills: 0, hits: 0, cap: r.cap || 1, down: r.down || 3, taken: r.hits || 0,
             valour: r.valour || 0, keys: {}, swing: 0, flash: 0, done: false };
   $('melee-hud').hidden = false; $('battle-acts').hidden = true;
+  $('battle-space').textContent = 'Space — strike · arrows or WASD — move';
   if (window.Sound) Sound.mark('horn');           // he rides in: the charge
   c.classList.add('melee');
   paintMeleeHud();
@@ -5663,6 +5838,7 @@ function endMelee() {
   const k = m.kills, h = m.hits;
   melee = null;
   $('melee-hud').hidden = true; $('battle-acts').hidden = false;
+  $('battle-space').textContent = 'Space — fight a round';
   $('battle-field').classList.remove('melee');
   send(`battle ride ${k} ${h}`);
 }

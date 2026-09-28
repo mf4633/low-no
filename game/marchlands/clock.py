@@ -142,6 +142,9 @@ class Clock:
         self.said: List[Tuple[int, str]] = []
         self.stopped_for = ""                 # why it paused itself, if it did
         self.stopped_at = ""                  # and the line that did it
+        #: ...and what kind of fact it was -- "siege", "war", "coalition" --
+        #: so the page can turn to the panel that answers it.
+        self.stopped_kind = ""
         #: What was true of the march yesterday, so that only a *change* can
         #: stop the clock. Filled on the first step rather than at
         #: construction, because a game that opens besieged should not be
@@ -157,7 +160,7 @@ class Clock:
     def set_speed(self, speed: int) -> dict:
         self.speed = speed if speed in SPEEDS else 0
         if self.speed:
-            self.stopped_for = self.stopped_at = ""
+            self.stopped_for = self.stopped_at = self.stopped_kind = ""
             self.start()
         return self.state()
 
@@ -165,7 +168,8 @@ class Clock:
         return {"speed": self.speed, "seq": self.seq,
                 "pace": PACE.get(self.speed, 0.0),
                 "stopped_for": self.stopped_for,
-                "stopped_at": self.stopped_at}
+                "stopped_at": self.stopped_at,
+                "stopped_kind": self.stopped_kind}
 
     # --------------------------------------------------------- what was said
     def since(self, seq: int) -> List[str]:
@@ -257,6 +261,7 @@ class Clock:
             key, words = fresh[0]
             self.speed = 0
             self.stopped_for = words
+            self.stopped_kind = key.split(":", 1)[0]
             # And the day's own words for it, if the day said anything about
             # that place. Matched on the name, which is distinctive, and not
             # on the first words of the reason -- the reason begins "Aldworth

@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="app">
-  <canvas id="view" tabindex="0" aria-label="the town, drawn. Click a roof to act on it, box figures and right-click a shed to send them there, right-drag to move the view, scroll to zoom."></canvas>
+  <canvas id="view" tabindex="0" aria-label="the town, drawn. Click a roof to act on it, box figures and right-click a shed to send them there, middle-drag or alt-drag to move the view, scroll to zoom."></canvas>
 
   <header id="bar">
     <span id="place">—</span>
@@ -46,56 +46,82 @@
     <span id="purse">—</span>
   </header>
 
-  <aside id="panel">
-    <section id="trade" hidden>
+  <aside id="panel" data-tab="town">
+    <!-- One page per parent. Each tab is what one of the four games would
+         show you, and it follows the view you are in and the last thing
+         that stopped the clock -- click one to look elsewhere. -->
+    <nav id="tabs" class="views" role="tablist" aria-label="the panel">
+      <button type="button" role="tab" data-tab="town" aria-pressed="true">town</button>
+      <button type="button" role="tab" data-tab="wall" aria-pressed="false">wall</button>
+      <button type="button" role="tab" data-tab="road" aria-pressed="false">road</button>
+      <button type="button" role="tab" data-tab="court" aria-pressed="false">court</button>
+      <button type="button" role="tab" data-tab="house" aria-pressed="false">house</button>
+    </nav>
+    <section id="trade" data-tab="road" hidden>
       <h2>the best runs today</h2>
       <ul id="runs"></ul>
       <h2>your carts</h2>
       <ul id="carts"></ul>
     </section>
-    <section id="letter" hidden>
+    <section id="roads" data-tab="road">
+      <h2>the tolls on you</h2>
+      <ul id="tolls"></ul>
+    </section>
+    <section id="nearletter" data-tab="court">
+      <h2>the letter</h2>
+      <div class="row"><label>offence</label><span id="letterbar" class="meter"><i></i></span></div>
+      <p id="letter-near" class="dim"></p>
+    </section>
+    <section id="letter" data-tab="court" hidden>
       <h2>the letter against you</h2>
       <ul id="signed"></ul>
       <p id="letter-out" class="dim"></p>
     </section>
-    <section id="league" hidden>
+    <section id="league" data-tab="court" hidden>
       <h2>the table</h2>
       <ul id="standings"></ul>
       <p id="clock" class="dim" hidden></p>
     </section>
-    <section>
+    <section data-tab="town">
       <h2>the town</h2>
       <div class="row"><label>souls</label><span id="souls">—</span></div>
       <div class="row"><label>mood</label><span id="moodbar" class="meter"><i></i></span></div>
       <div class="row"><label>hands</label><span id="hands">—</span></div>
+      <div class="row"><label>inns</label><span id="alebar" class="meter"><i></i></span></div>
+      <div class="row"><label>chapels</label><span id="faithbar" class="meter"><i></i></span></div>
+    </section>
+    <section data-tab="wall">
+      <h2>the wall</h2>
       <div class="row"><label>wall</label><span id="wallbar" class="meter"><i></i></span></div>
       <div class="row"><label>soldiers</label><span id="soldiers">—</span></div>
+      <div class="row"><label>away</label><span id="afield">—</span></div>
+      <p id="wallread" class="dim"></p>
     </section>
-    <section>
+    <section data-tab="town">
       <h2>what moves the mood</h2>
       <ul id="mood"></ul>
     </section>
-    <section>
+    <section data-tab="town">
       <h2>the day's ledger</h2>
       <ul id="ledger"></ul>
     </section>
-    <section id="roll-box" hidden>
+    <section id="roll-box" data-tab="house" hidden>
       <h2>the roll <span id="roll-count" class="dim"></span></h2>
       <ul id="roll"></ul>
     </section>
-    <section id="feats-box" hidden>
+    <section id="feats-box" data-tab="house" hidden>
       <h2>feats <span id="feats-count" class="dim"></span></h2>
       <ul id="feats"></ul>
     </section>
-    <section id="estates-box">
+    <section id="estates-box" data-tab="court">
       <h2>the estates</h2>
       <ul id="estates"></ul>
     </section>
-    <section id="racing" hidden>
+    <section id="racing" data-tab="town" hidden>
       <h2>the race, at this rate</h2>
       <ul id="race"></ul>
     </section>
-    <section id="housekeeping">
+    <section id="housekeeping" data-tab="house">
       <h2>the house</h2>
       <ul id="kinlist"></ul>
       <p id="repute" class="dim" hidden></p>
@@ -230,24 +256,25 @@
         <dt><kbd>+</kbd> / <kbd>−</kbd></dt><dd>faster / slower</dd>
         <dt><kbd>W</kbd></dt><dd>a week</dd>
         <dt><kbd>M</kbd></dt><dd>a month</dd>
-        <dt><kbd>T</kbd> / <kbd>R</kbd></dt><dd>the town / the march</dd>
+        <dt><kbd>T</kbd> / <kbd>R</kbd> / <kbd>C</kbd></dt><dd>the town / the march / the wall</dd>
         <dt>click</dt><dd>pick up whatever you point at — villager, beast, shed, host, town</dd>
         <dt>click the ground</dt><dd>let them be</dd>
         <dt>drag</dt><dd>box a group of figures, or of your hosts</dd>
         <dt>shift-click</dt><dd>add one to the group</dd>
         <dt>double-click</dt><dd>everybody of that trade, or every host there</dd>
-        <dt>right-click</dt><dd>send them there — they walk over and take up what that ground needs: the trees, the field, the water</dd>
+        <dt>right-click</dt><dd>send them there — they walk over and take up what that ground needs: the trees, the field, the water. It never moves the view.</dd>
         <dt><kbd>i</kbd></dt><dd>everything about whatever is picked up</dd>
-        <dt><kbd>B</kbd> / double-click</dt><dd>build: pick the plot, then the building — or its letter</dd>
+        <dt><kbd>B</kbd> / double-click</dt><dd>build: pick the plot, then the building — or its letter. On the wall, <kbd>B</kbd> picks the next thing to lay</dd>
         <dt><kbd>P</kbd></dt><dd>the scribe's book: popularity, rations, tax</dd>
         <dt><kbd>Home</kbd></dt><dd>look at the last thing that went wrong</dd>
-        <dt><kbd>F</kbd></dt><dd>stand where the chosen one stands and look out</dd>
+        <dt><kbd>F</kbd></dt><dd>stand where the chosen one stands and look out — turn only, no walking</dd>
         <dt><kbd>⌃1</kbd>…<kbd>⌃9</kbd> / <kbd>1</kbd>…<kbd>9</kbd></dt><dd>remember a group / call it up (twice to look)</dd>
         <dt><kbd>.</kbd></dt><dd>the next pair of idle hands (or the idle button)</dd>
-        <dt>right-drag / arrows</dt><dd>move the view</dd>
+        <dt>middle-drag / alt-drag / arrows</dt><dd>move the view (arrows are for the town; on the march, drag)</dd>
+        <dt>touch</dt><dd>tap to pick · tap the ground to send them · two fingers to move and pinch</dd>
         <dt><kbd>H</kbd></dt><dd>what now?</dd>
         <dt><kbd>/</kbd></dt><dd>type a command</dd>
-        <dt><kbd>?</kbd></dt><dd>this</dd>
+        <dt><kbd>?</kbd></dt><dd>this — even with the cursor in the prompt</dd>
         <dt><kbd>esc</kbd></dt><dd>close whatever is open</dd>
       </dl>
       <p class="dim">The keys work when the prompt does not have the cursor.
@@ -284,7 +311,7 @@
         <button id="eyes-right" type="button" title="look right (→)">look ▶</button>
         <button id="eyes-close" type="button" class="go">back to the town</button>
       </div>
-      <p class="dim">arrows or A/D to turn · drag to look · esc to stand back</p>
+      <p class="keyline">turn only — you cannot walk here · arrows or A/D · Esc to leave</p>
     </div>
   </div>
 
@@ -331,6 +358,11 @@
     <button type="button" data-do="next 7">a week</button>
     <button type="button" data-do="next 30">a month</button>
     <button type="button" data-do="hint">what now?</button>
+    <!-- Every verb, searchable: the palette is the browser's way to act and
+         the prompt the power user's. Here, beside the steward, rather than
+         in the header, which is full at 1280 (see test_web's ratchet). -->
+    <button id="v-act" type="button"
+            title="every command, searchable (Ctrl+K / ⌘K)">act…</button>
   </div>
   <div id="alarm" hidden></div>
 
@@ -423,6 +455,10 @@
         <ul id="battle-mods" aria-label="what you are fighting under"></ul>
         <ul id="battle-log" aria-label="the fight so far"></ul>
       </div>
+      <!-- Space means something else here, and the first fight is the
+           moment a player finds out -- so it is said in the halt banner's
+           own type, not in a footnote. -->
+      <p id="battle-space" class="keyline">Space — fight a round</p>
       <div id="battle-acts" class="acts">
         <button id="battle-fight" type="button" class="go">Fight a round <kbd>space</kbd></button>
         <button id="battle-ride" type="button" class="go ride">Ride at their head</button>
