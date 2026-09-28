@@ -472,10 +472,12 @@ def main():
     try:
         from lowno import pilots
         gates = {}
-        # H5 has no pilot; it is listed so its refusal is visible next to the
-        # ones that can activate, rather than silently absent.
+        # H4a and H4b are CLOSED (2026-09-28) but still run here, like H9, so
+        # their numbers stay on the record. pilots.RETIRED keeps both pilots
+        # dark whatever these verdicts say. H5 is closed and dropped: it could
+        # only score after an H4a pass, so it has no verdict to record.
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
-                         ("band_eval", "H5"), ("h6_eval", "H6"),
+                         ("h6_eval", "H6"),
                          ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
                          ("settle_conv_eval", "H9")):
             try:
@@ -500,6 +502,7 @@ def main():
         for r in res:
             g = r["gate"]
             state = ("ACTIVE" if r["active"] else
+                     "RETIRED" if r.get("status") == "RETIRED" else
                      ("ready, FAILED test" if g["ready"] else "dormant"))
             line = (f"  {r['id']} <- {r['hypothesis']}  {state:22} "
                     f"${r.get('bankroll', 0):.2f} {r.get('n_trades', 0)} trades")
@@ -514,8 +517,6 @@ def main():
 
 
 
-# H5 was registered 2026-08-31; only later days count as evidence for it.
-H5_SINCE = "2026-09-01"
 
 STATUS_SCHEMA = "lowno.status/1"
 
@@ -604,37 +605,6 @@ def _hypothesis_progress(obs):
     what the tests are for, and a progress meter that leaks an outcome invites
     exactly the peeking the registrations exist to prevent.
     """
-    import glob as _g
-    days = sorted(os.path.basename(p)[:-6] for p in _g.glob("logs/2*.jsonl")) \
-        if False else sorted({o["day"] for o in obs})
-
-    # H4a: out-of-sample shape validation needs a half-split where each half
-    # earns cells at n>=12 per (city, hour, bucket); measured to need ~28 days.
-    #
-    # THE DAY COUNT IS NOT THE OPERATIVE GATE, and left alone it lies. The
-    # registered bar is 28 logged days and it stays 28 -- but activation gates
-    # on shape_eval.verdict() reaching MIN_SCORED held-out decisions, and the
-    # day count reaches 28 first. Without an explicit `ready`, _status falls
-    # back to have >= need, drops H4a out of `blocking`, and status.json
-    # reports "a test is ready" while gates.json still says n=0/50. That is the
-    # H4b meter bug of 414df64 with the hypotheses swapped. So: `ready` comes
-    # from the test, and the real blocker rides along as a second leg. The
-    # registered 28-day bar is UNCHANGED; MIN_SCORED was registered 2026-08-27
-    # in the same breath, so surfacing it adds no requirement.
-    #
-    # COUNTS ONLY. `ready` and `n` are taken from the verdict; `passed` and the
-    # Brier values are deliberately never read here.
-    n_days = len(days)
-    h4a_scored, h4a_ready, h4a_need = 0, False, 50
-    try:
-        import shape_eval as _se
-        _v = _se.verdict()
-        h4a_scored = int(_v.get("n") or 0)
-        h4a_ready = bool(_v.get("ready"))
-        h4a_need = int(_v.get("need") or _se.MIN_SCORED)
-    except Exception:
-        h4a_ready = False       # unknown counts as not-there, never as progress
-
     # H7: shape on temperature tendency. STRATIFIED -- the verdict needs
     # MIN_SCORED in EACH stratum, so the bar fills to its shortest leg. The
     # hourly pair (2 stations, nowcast from 2026-09-01) is the binding one.
@@ -683,83 +653,11 @@ def _hypothesis_progress(obs):
     except Exception:
         h6_ready = False
 
-    # H4b: EVENTS as curve_lag defines them -- a material |d(curve_dev)| on a
-    # valid cycle gap with a real bottom-rung price -- not "cycles that logged
-    # a curve_dev". Counting raw telemetry rows here read 984/200 while the
-    # gate read 52/200, so the meter showed a full bar on an unmet bar. A
-    # progress number that disagrees with its own test is worse than none.
-    # Delegating to the test keeps them from drifting apart again.
-    ev_need, day_need = 200, 20
-    try:
-        import curve_lag as _cl
-        _ev = _cl._events(_cl.series())
-        ev, ev_days = len(_ev), {e["day"] for e in _ev}
-        ev_need, day_need = _cl.MIN_EVENTS, _cl.MIN_DAYS
-    except Exception:
-        # Unknown counts as not-there. Never let a failed count read as progress.
-        ev, ev_days = 0, set()
-
-    # H5: SUPPLY of the contested-band instrument on post-registration days.
-    # Counts city-days carrying a real 81-95c bottom-rung ask inside the peak
-    # window -- the universe the registered rule draws from, not the units it
-    # would take, because the entry condition needs validated shape cells and
-    # H4a has not passed. Same filter the eventual test uses, as far as it can
-    # go without the cells: a meter that reads a different slice than its test
-    # is the mistake this file has now made three times.
-    h5_units, h5_days = set(), 0
-    for path in sorted(_g.glob("logs/2*.jsonl")):
-        day = os.path.basename(path)[:-6]
-        if day < H5_SINCE:
-            continue
-        h5_days += 1
-        for line in open(path):
-            try:
-                r = json.loads(line)
-            except Exception:
-                continue
-            d = r.get("detail")
-            city = r.get("city")
-            if not isinstance(d, dict) or d.get("world") or city not in CITIES:
-                continue
-            try:
-                lt = (dt.datetime.fromisoformat(r["at"])
-                      .replace(tzinfo=dt.timezone.utc)
-                      .astimezone(zoneinfo.ZoneInfo(CITIES[city]["tz"])))
-            except Exception:
-                continue
-            if not (13 <= lt.hour <= 16):
-                continue
-            for g in (d.get("rungs") or []):
-                if g.get("fl") is not None or g.get("cap") is None:
-                    continue
-                na = g.get("na")
-                if na is not None and 81 <= na <= 95:
-                    h5_units.add((day, city))
-
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
         generated=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
         hypotheses=[
-            dict(id="H4a", name="shape validation (held-out)",
-                 have=n_days, need=28, unit="logged days",
-                 also=dict(have=h4a_scored, need=h4a_need,
-                           unit="held-out scored decisions"),
-                 ready=h4a_ready,
-                 note="days is not the gate -- cells must reach n>=12 inside "
-                      "the peak window before a decision scores"),
-            dict(id="H4b", name="market lag on curve_dev",
-                 have=ev, need=ev_need, unit="events",
-                 also=dict(have=len(ev_days), need=day_need,
-                           unit="distinct days"),
-                 ready=bool(ev >= ev_need and len(ev_days) >= day_need),
-                 note=f"{len(ev_days)}/{day_need} distinct days"),
-            dict(id="H5", name="contested band 81-95c (blocked on H4a)",
-                 have=len(h5_units), need=60, unit="city-day units",
-                 also=dict(have=0, need=1, unit="H4a passed"),
-                 ready=False,
-                 note=f"supply only; scoring waits on H4a ({h5_days} days since "
-                      f"{H5_SINCE})"),
             dict(id="H6", name="market prices off the stale print",
                  have=h6_ev, need=h6_need_ev, unit="print transitions",
                  also=dict(have=h6_days, need=h6_need_d,
@@ -800,6 +698,16 @@ def _hypothesis_progress(obs):
             dict(id="H9", name="round vs floor (NOT SUPPORTED 2026-09-02)",
                  have=0, need=0, unit="closed",
                  note="+0.5 correction stands; boundary diff -0.0004, n=157"),
+            dict(id="H4a", name="shape validation (FAILED, closed 2026-09-28)",
+                 have=0, need=0, unit="closed",
+                 note="held-out Brier -2.7% vs base, n=2238; passed n=69-114 "
+                      "9/5-9/7 then went negative and stayed there"),
+            dict(id="H4b", name="market lag on curve_dev (FAILED, closed 2026-09-28)",
+                 have=0, need=0, unit="closed",
+                 note="lag corr -0.021, 968 events / 32 days"),
+            dict(id="H5", name="contested band 81-95c (closed 2026-09-28)",
+                 have=0, need=0, unit="closed",
+                 note="could only score after an H4a pass; H4a failed"),
         ])
 
 

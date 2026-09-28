@@ -2124,3 +2124,45 @@ climbs in the empirical cells and weakens the settlement quarantine's lower
 bound. The 2026-09-23 review estimated 75 affected station-days; not
 re-counted here. The scan now fetches from local-standard midnight (minus 1h
 slack) with `start=`. Same population boundary as item 1: `lst_fix_since`.
+
+# H4a, H4b, H5 CLOSED (2026-09-28)
+
+Both pilot hypotheses met their data bars and FAILED their registered tests.
+H5 was gated on an H4a pass, so it closes with them. Numbers from
+`docs/gates.json` on the 2026-09-28 nightly:
+
+    H4a  shape validation (held-out)  n=2238  Brier shape 0.1123 vs base 0.1093  -2.74%   FAILED
+    H4b  market lag on curve_dev      968 events / 32 days   lag corr -0.021          FAILED
+    H5   contested band 81-95c        never scorable: requires H4a PASSED             CLOSED
+
+**H4a passed first, briefly, and that is on the record here because it was not
+recorded anywhere else.** The registered test first ran on the 2026-09-05
+nightly at n=69 and returned +2.87%, so PILOT-A activated exactly as the
+autonomous rule says. It stayed positive through n=114 (+0.90%, 2026-09-07
+05:20Z), then went negative on the next run (-1.54%) and has not been positive
+since: -1.3% to -6.2% across every nightly from n=114 to n=2238. PILOT-A
+took one replayed paper unit while active ($100 -> $95). The pilot then went
+dark by itself, because activation was recomputed from each night's verdict.
+
+That recomputation is itself a flaw worth naming. The pilot rules defined an
+activation trigger and quit lines, not a deactivation-on-verdict-flip. A pass
+at n=69 that becomes a fail at n=114 is the early-peek problem the
+registrations exist to prevent, just running in the other direction. The
+verdict at n=2238 is unambiguous either way. The lesson is for any future
+pilot: fix the n at which the test is read ONCE, or require the pass to
+persist, before it activates anything.
+
+H4b met its bar on 2026-09-16 and has never passed.
+
+**What closes:** H4a, H4b, H5, PILOT-A, PILOT-B. `lowno/pilots.py` `RETIRED`
+keeps both pilots dark whatever later verdicts say. The anti-gaming rule
+applies: re-slicing these days does not reopen them. H4a and H4b verdicts
+still run into `gates.json` nightly, as H9's does, so the numbers stay visible.
+
+**What stays open:** H6, H7, H8, H15. None has a pilot, so none can promote
+anything before the 2026-12-31 stop. They are information claims only.
+Collection continues for them.
+
+**Consequence for the stopping rule:** with both pilots retired, nothing that
+remains can put a trader on paper before 12/31. The stop date may be
+shortened at any time. This entry does not shorten it; that is Michael's call.

@@ -20,6 +20,14 @@ KELLY_MULT, CAP_FRAC = 0.5, 0.05
 QUIT_DOWN, QUIT_UP = 40.0, 5000.0
 FEE_RATE = 0.07
 
+# Closed 2026-09-28 (CANDIDATE.md "H4a, H4b, H5 CLOSED"). A retired pilot stays
+# dark even if its nightly verdict flips back to a pass: H4a's did exactly that
+# once, 2026-09-05..07 at n=69-114, before settling negative at n>2000.
+RETIRED = {
+    "PILOT-A": "RETIRED 2026-09-28: H4a failed, held-out Brier -2.7% n=2238",
+    "PILOT-B": "RETIRED 2026-09-28: H4b failed, lag corr -0.021 n=968",
+}
+
 
 def _fee(p):
     return math.ceil(FEE_RATE * 100 * (p / 100) * (1 - p / 100))
@@ -151,12 +159,16 @@ def run_all(obs, gates, events=None):
              lambda: pilot_b(obs, events))]
     for pid, hyp, name, fn in spec:
         g = gates.get(hyp) or {}
-        active = bool(g.get("passed"))
+        active = bool(g.get("passed")) and pid not in RETIRED
         rec = dict(id=pid, hypothesis=hyp, name=name, active=active,
                    gate=dict(ready=bool(g.get("ready")),
                              passed=bool(g.get("passed")),
-                             reason=g.get("reason") or g.get("error")))
-        if active:
+                             reason=RETIRED.get(pid) or g.get("reason")
+                             or g.get("error")))
+        if pid in RETIRED:
+            rec.update(dict(status="RETIRED", bankroll=BANKROLL0,
+                            n_trades=0, wins=0, rows=[]))
+        elif active:
             try:
                 rec.update(fn())
             except Exception as e:
