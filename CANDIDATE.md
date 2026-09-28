@@ -2070,3 +2070,35 @@ hourly print, so "the market's implied distribution for the upcoming :51" is
 not a measurable object.
 
 Harnesses: `edge_test.py`, `edge_div.py`.
+
+# CORRECTION -- climate-day boundary and the NWS grid forecaster  (2026-09-28)
+
+Two scan-side bugs, both found 2026-09-19 and fixed in the working tree that
+day, but not committed until 2026-09-28. Neither touches `GATE`.
+
+**1. Running max bucketed by daylight time, not standard time** (`scan.py`).
+The CLI climate day runs midnight to midnight LOCAL STANDARD time all year.
+`_obs_local_date` bucketed obs through the DST-aware zone, so during DST the
+prior CLI day's last hour (00:00-01:00 daylight time) counted toward today's
+`run_max`. KNYC 2026-09-19 took a 69.08F from 04:51Z (23:51 EST on the 18th)
+and flagged the <=68 rung DEAD_SCAVENGE. That is a false-certainty NO flag,
+the worst error type this strategy can make. It applies to every CONUS station
+while DST is in effect. The 2026-09-23 read-only review counted 4 false
+DEAD_SCAVENGE rows at NYC on 2026-09-19 (they won, by luck) and 25 NYC days
+with an inflated early-hour `run_max`. Other stations were not counted.
+
+Consequence: early-hour `run_max` before the fix is suspect whenever the day's
+max-so-far came from the prior evening. That feeds H4a, H7 and H8 early-hour
+inputs and the empirical climb cells. **Registered inputs are NOT rewritten.**
+The ledger carries `lst_fix_since = 2026-09-29` (first full day on the fixed
+code); treat rows on either side as different populations, the same way
+`cap_fix_since` is handled.
+
+**2. `nws_grid` picked a stub period from the prior evening** (`forecasts.py`).
+Matching `maxTemperature` periods on the UTC start date and taking the max also
+caught a leftover period starting 00:00Z (KDEN 2026-09-19: `T00:00Z/PT3H` = 84F
+against the real `T14:00Z/PT13H` = 76F). Now takes the period covering 20:00Z
+on the local date. About 9% of station-days since 2026-08-22 were inflated (MIA
+worst, not western-only). Only `skill.py` reads it, so no hypothesis tally is
+affected, but **the `nws_grid` row in the skill table is biased hot before
+2026-09-29**, and its near-zero pooled bias should not be read as calibration.

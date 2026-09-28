@@ -6,7 +6,7 @@ a scan, and a None is honest where a fabricated number is not.
 
 Scored nightly against CLI settlement by lowno.skill.
 """
-import json, urllib.request, datetime as dt, zoneinfo
+import json, re, urllib.request, datetime as dt, zoneinfo
 
 
 def _get(url, timeout=25):
@@ -28,16 +28,31 @@ def nws_gridpoint_max(lat, lon, local_date):
         grid = pts["properties"]["forecastGridData"]
         g = _get(grid)
         vals = g["properties"]["maxTemperature"]["values"]
-        best = None
+        # Matching on the UTC start date and taking the max also caught a stub
+        # period left over from the PRIOR local evening (KDEN 2026-09-19:
+        # "2026-09-19T00:00Z/PT3H" = 84F vs the real "T14:00Z/PT13H" = 76F).
+        # Take the period that covers the local afternoon instead: 20:00Z on
+        # local_date is 13:00-16:00 local across CONUS.
+        anchor = dt.datetime.fromisoformat(local_date + "T20:00:00+00:00")
         for v in vals:
-            when = v["validTime"].split("/")[0]
-            if when[:10] == local_date:
+            start_s, dur_s = v["validTime"].split("/")
+            start = dt.datetime.fromisoformat(start_s)
+            if start <= anchor < start + _iso_duration(dur_s):
                 f = _c_to_f(v.get("value"))
-                if f is not None and (best is None or f > best):
-                    best = f
-        return round(best, 1) if best is not None else None
+                return round(f, 1) if f is not None else None
+        return None
     except Exception:
         return None
+
+
+def _iso_duration(s):
+    """NWS validTime durations: P1D, PT13H, P1DT6H, PT30M. Anything else raises,
+    and the caller's except turns that into None rather than a wrong period."""
+    m = re.fullmatch(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", s)
+    if not m or s in ("P", "PT"):
+        raise ValueError(f"unparsed ISO duration {s!r}")
+    d, h, mi, se = (int(x or 0) for x in m.groups())
+    return dt.timedelta(days=d, hours=h, minutes=mi, seconds=se)
 
 
 def open_meteo_max(lat, lon, local_date, model="best_match"):

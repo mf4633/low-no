@@ -89,6 +89,11 @@ def main():
     # graded flags flip (margins were 2F+), but empirical cells built before the
     # fix are a DIFFERENT population and must not be pooled with post-fix cells.
     led["cap_fix_since"] = "2026-08-24"
+    # Standard-time climate day boundary: before this date, scans during DST
+    # let the prior CLI day's last hour (00:00-01:00 local daylight time) into
+    # the running max. Early-hour run_max before the stamp can be inflated;
+    # registered inputs are not rewritten (see CANDIDATE.md, 2026-09-28).
+    led["lst_fix_since"] = "2026-09-29"
     json.dump(led, open("docs/ledger.json", "w"), indent=1)
     open("REPORT.md", "w").write(score.report(last_graded, last_settles))
     print(open("REPORT.md").read())

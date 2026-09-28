@@ -19,8 +19,14 @@ def scan_once():
             # local evening on the West Coast, incl. yesterday's ~17:00 near-peak)
             # matched "today". Convert to station-local time and pin to the
             # MARKET day (the ticker date), not the wall clock.
+            # The CLI climate day runs midnight-to-midnight LOCAL STANDARD time
+            # all year. Bucketing by the DST-aware zone let the prior day's last
+            # hour (00:00-01:00 daylight time) into today's running max: KNYC
+            # 2026-09-19 took a 69.08 from 04:51Z (23:51 EST on the 18th) and
+            # flagged <=68 DEAD_SCAVENGE. Subtract the DST offset to get LST.
             def _obs_local_date(ts):
-                return dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))                          .astimezone(tz).date().isoformat()
+                t = dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(tz)
+                return (t - (t.dst() or dt.timedelta(0))).date().isoformat()
             obs_today = [o for o in obs if _obs_local_date(o["ts"]) == today.isoformat()]
             rmax = gate.running_max_f(obs_today)
             wx = obs_today[0]["wx"] if obs_today else ""
