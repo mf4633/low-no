@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from . import config as C
 
@@ -239,6 +239,10 @@ class Kin:
     #: balance measurement the first time, without changing a single rule.
     seed: int = 0
 
+    #: uid -> why a posted person is learning nothing today. Read by the
+    #: kin screen; rebuilt by the day, so not saved.
+    idle: Dict[int, str] = field(default_factory=dict, compare=False)
+
     def __post_init__(self) -> None:
         self.rng = random.Random(self.seed or 1)
 
@@ -338,7 +342,8 @@ class Kin:
     # -------------------------------------------------------------- the day
     _today: int = 0
 
-    def day(self, day: int, *, head_doing: str) -> List[str]:
+    def day(self, day: int, *, head_doing: str,
+            afield: Optional[Iterable[str]] = None) -> List[str]:
         """Learning, births, coming of age, and the winters that carry people off.
 
         Everything here is slow on purpose. A house should change over a
@@ -354,6 +359,18 @@ class Kin:
             if p.uid == self.head:
                 p.learn(HEAD_SKILL.get(head_doing, "stewardship"), 1.0, day)
                 p.learn("charm", 0.25, day)          # a lord is always being watched
+            elif p.post == "captain" and afield is not None:
+                # Tactics are learned in the field. A captain whose host is
+                # standing in a garrison, or is gone, learns nothing -- which
+                # is how an heir who was given two hundred men "for later"
+                # comes to the seat no better at war than the day he got them.
+                if p.target in afield:
+                    p.learn("tactics", 1.0, day)
+                    self.idle.pop(p.uid, None)
+                else:
+                    self.idle[p.uid] = ("learning nothing: the host is "
+                                        "in garrison" if p.target else
+                                        "learning nothing: no host")
             elif p.post in POSTS:
                 p.learn(POSTS[p.post].skill, 1.0, day)
             # 2. Coming of age.

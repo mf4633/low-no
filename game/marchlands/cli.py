@@ -2492,6 +2492,9 @@ class Console:
                      f"{p.age(g.day):>3}  "
                      f"{ink.c(ink.pad(self._kin_word(p, lord), 13), ink.DIM)} "
                      f"{ink.pad(doing, 26)} {skill}")
+        for p in living:
+            if p.uid in k.idle:
+                self.say(ink.c(f"  {p.name}: {k.idle[p.uid]}", ink.AMBER))
         words = lord.reputation()
         self.say("", "  they call him " + (ink.c(", ".join(words), ink.BONE)
                                            if words else
@@ -3235,10 +3238,11 @@ class Console:
         self.say("  " + self.game.march(a.uid, a.home))
 
     def cmd_standdown(self, args: List[str]) -> None:
-        """Disband a host back into the garrison it came from."""
-        uid = self._which(args, "standdown <host>")
+        """Disband a host: into the garrison, or `square` to send them home to work."""
+        uid = self._which(args, "standdown <host> [square]")
         if uid is not None:
-            self.say("  " + self.game.disband_host(uid))
+            home = any(a.lower() in ("square", "home", "work") for a in args[1:])
+            self.say("  " + self.game.disband_host(uid, to_square=home))
 
     def cmd_war(self, args: List[str]) -> None:
         """The state of the march, as far as anyone of yours has seen it."""

@@ -16,7 +16,7 @@ from .chronicle import MOMENTOUS
 from .goods import good
 from . import lord as manly
 from .kin import POSTS
-from .military import BESIEGING
+from .military import BESIEGING, GARRISON
 from .tech import AGES, TECHS
 
 
@@ -167,12 +167,17 @@ class HouseMixin:
         # learned today. A lord who never leaves the hall is a good steward
         # and an unproven soldier, and the campaign will say so.
         riding = self.army(self.lord.riding) if self.lord.riding else None
+        # A host in garrison is a host at home: riding with it is the hall.
+        if riding is not None and riding.state == GARRISON:
+            riding = None
         doing = ("siege" if riding is not None and riding.state == BESIEGING
                  else "field" if riding is not None else "hall")
+        afield = {str(a.uid) for a in self.armies
+                  if a.owner == "player" and a.state != GARRISON}
         before = self.kin.head
         # A birth, a death and a succession are the three things a chronicle is
         # for. The house says them; this is where they get written down.
-        for line in self.kin.day(self.day, head_doing=doing):
+        for line in self.kin.day(self.day, head_doing=doing, afield=afield):
             msgs.append(self.note(line, MOMENTOUS) if line.startswith("***")
                         else line)
         if self.kin.head != before and self.lord.alive:

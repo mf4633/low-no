@@ -83,5 +83,80 @@ class TestOneNumber(unittest.TestCase):
         self.assertIn("rises until he marches", text)
 
 
+class TestTheHostIsAPayroll(unittest.TestCase):
+    """Every man in the field is a hand missing from a shed at home."""
+
+    def setUp(self):
+        self.g = new_game(seed=5)
+        self.key = next(iter(self.g.world.settlements))
+        self.s = self.g.world.settlements[self.key]
+        self.s.population = max(self.s.population, 400.0)
+        self.s.units = {"spearman": 60.0}
+        self.g.tick()                     # a day, so the roll has been called
+
+    def test_raising_a_levy_keeps_its_men_off_the_sheds(self):
+        s = self.s
+        worked = s.workforce
+        a, _why = self.g.raise_host(self.key, {"spearman": 50})
+        # Out of the garrison and into the field: still not at a shed.
+        self.assertEqual(s.workforce, worked)
+        self.assertEqual(s.afield, 50)
+        self.g.tick()
+        self.assertEqual(s.afield, 50, "the host was forgotten overnight")
+
+    def test_recruiting_empties_jobs_the_same_morning(self):
+        s = self.s
+        s.market.add("spears", 200)
+        self.g.treasury = 50_000
+        employed = s.employed
+        self.g.recruit(self.key, "spearman", 40)
+        self.assertLess(s.employed, employed + 1)
+        self.assertLessEqual(s.employed, s.workforce)
+
+    def test_standing_down_to_the_square_gives_the_hands_back(self):
+        s = self.s
+        a, _ = self.g.raise_host(self.key, {"spearman": 50})
+        before = s.workforce
+        said = self.g.disband_host(a.uid, to_square=True)
+        self.assertIn("square", said)
+        self.assertEqual(s.workforce, before + 50)
+        self.assertEqual(s.units.get("spearman", 0.0), 10.0,
+                         "they went to the garrison")
+
+    def test_the_dead_are_missed_at_home(self):
+        g, s = self.g, self.s
+        a, _ = g.raise_host(self.key, {"spearman": 50})
+        pop = s.population
+        a.units["spearman"] -= 20.0       # a bad day somewhere
+        said = g.tick()
+        self.assertAlmostEqual(s.population, pop - 20.0, delta=3.0)
+        self.assertTrue(any("buries" in m for m in said))
+
+    def test_a_host_that_stands_down_is_not_mourned(self):
+        g, s = self.g, self.s
+        a, _ = g.raise_host(self.key, {"spearman": 50})
+        g.tick()
+        pop = s.population
+        g.disband_host(a.uid)
+        said = g.tick()
+        self.assertGreater(s.population, pop - 3.0)
+        self.assertFalse(any("buries" in m for m in said))
+
+    def test_a_parked_captain_learns_nothing(self):
+        g = self.g
+        a, _ = g.raise_host(self.key, {"spearman": 50})
+        kid = next(p for p in g.kin.living() if p.uid != g.kin.head)
+        kid.post, kid.target = "captain", str(a.uid)
+        before = kid.xp.get("tactics", 0.0)
+        for _ in range(20):
+            g.tick()
+        self.assertEqual(kid.xp.get("tactics", 0.0), before,
+                         "two hundred men kept for later taught the heir war")
+        self.assertIn(kid.uid, g.kin.idle)
+        a.state = "marching"
+        g.kin.day(g.day, head_doing="hall", afield={str(a.uid)})
+        self.assertGreater(kid.xp.get("tactics", 0.0), before)
+
+
 if __name__ == "__main__":
     unittest.main()

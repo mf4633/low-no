@@ -136,6 +136,9 @@ class GameState(AccountsMixin, RoadMixin, WallMixin, CourtMixin, HouseMixin):
         self.rng = random.Random(self.seed)
         self.trade_engine = TradeEngine(self.world, self.rng)
         self._outlay = 0.0        # coin spent between ticks, for the ledger
+        #: Men under arms by home town at the close of the last day; None
+        #: until a day has closed, so a loaded game counts nobody as dead.
+        self._roll: Optional[Dict[str, float]] = None
         self.accounts = Accounts(day=self.day)
         self._war_outlay = 0.0
         self._plunder = 0.0
@@ -281,7 +284,10 @@ class GameState(AccountsMixin, RoadMixin, WallMixin, CourtMixin, HouseMixin):
 
         msgs += self.events.tick(self.world, self.day, self.rng, self.progress)
 
-        # 1. Settlements work, eat and are taxed.
+        # 1. Settlements work, eat and are taxed -- with the men away at war
+        # counted out of the hands before anybody is seated.
+        self._muster_roll()
+        pre_work = self._under_arms()
         for key, s in self.world.settlements.items():
             before = {b.uid: b.complete for b in s.buildings}
             rep = s.tick(self.season, self.rng, self.progress, day=self.day)
@@ -295,6 +301,11 @@ class GameState(AccountsMixin, RoadMixin, WallMixin, CourtMixin, HouseMixin):
             led.wages += rep.wages
             led.upkeep += rep.upkeep
             msgs += rep.notes
+        # What the towns lost under arms by themselves -- the sick, the men
+        # shoring a wall under fire. Already off the population; the roll
+        # must not bury them twice.
+        post_work = self._under_arms()
+        buried_at_home = {k: pre_work[k] - post_work.get(k, 0.0) for k in pre_work}
         # Your hosts, not the ones marching on you -- and a host bigger than
         # your holdings can reasonably keep costs more per man than the last.
         # Not a ceiling: a ceiling is a rule a player fights, a rising cost is
@@ -371,6 +382,10 @@ class GameState(AccountsMixin, RoadMixin, WallMixin, CourtMixin, HouseMixin):
         # worth. Prices walk toward what the money supply says they must be;
         # a legal maximum bites or does not; and the day is then measured.
         msgs += self._economy_day()
+
+        # The roll is called after the war and before the mood, so a town
+        # mourns the day it buries its men.
+        msgs += self._count_the_fallen(buried_at_home)
 
         # 10. Mood and migration settle last, on the day as it actually went.
         for s in self.world.settlements.values():

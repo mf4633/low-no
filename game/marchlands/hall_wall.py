@@ -13,7 +13,7 @@ from dataclasses import replace
 from typing import Dict, List, Optional, Tuple
 
 from . import config as C
-from .chronicle import MOMENTOUS, ROUTINE
+from .chronicle import MOMENTOUS, NOTABLE, ROUTINE
 from .castle import INVEST, Works, choose, storms_now
 from . import feats as feats_mod
 from .goods import ALL_KEYS, RATION_GOODS, good
@@ -69,6 +69,8 @@ class WallMixin:
         # either way, which is the part that makes their loyalty matter.
         came = max(1, int(round(count * self.estates.mult("muster"))))
         s.units[unit_key] = s.units.get(unit_key, 0.0) + came
+        self._roll_moved(settlement_key, host_size({unit_key: came}))
+        self._muster_roll(settlement_key)
         if came < count:
             return (f"{came} {u.name} muster at {s.name} ({coin:,.0f}c) -- "
                     f"you paid for {count}; the knights spared what they chose")
@@ -115,6 +117,72 @@ class WallMixin:
             mood=max((s.popularity for s in seats), default=0.0),
             took_by_storm=self._stormed, lost_towns=self._towns_lost)
 
+    # ------------------------------------------------------ the muster roll
+    def _under_arms(self) -> Dict[str, float]:
+        """Men under arms by the town they came from: the garrison, and
+        every host of yours whose home it is."""
+        roll = {k: float(s.soldiers) for k, s in self.world.settlements.items()}
+        for a in self.armies:
+            if a.owner == PLAYER and a.home in roll:
+                roll[a.home] += host_size(a.units)
+        return roll
+
+    def _muster_roll(self, key: str = "") -> None:
+        """Count the men away with hosts against the towns they left, and --
+        given a town -- put that town's hands back at the sheds now.
+
+        Raising a levy empties jobs the same morning, and standing it down
+        fills them the same morning: the figure you sent to war is not at
+        the mill when you look, and not at the mill tomorrow either.
+        """
+        away = {k: 0 for k in self.world.settlements}
+        for a in self.armies:
+            if a.owner == PLAYER and a.home in away:
+                away[a.home] += host_size(a.units)
+        for k, s in self.world.settlements.items():
+            s.afield = away[k]
+        s = self.world.settlements.get(key)
+        if s is not None:
+            s._seat_hands()
+
+    def _roll_moved(self, key: str, men: float) -> None:
+        """Men put on or struck off the roll by an order, not by a blade."""
+        if self._roll is not None and key in self._roll:
+            self._roll[key] += men
+
+    def _count_the_fallen(self, internal: Dict[str, float]) -> List[str]:
+        """The day's dead, taken off the towns that sent them.
+
+        Whoever is on yesterday's roll and not today's -- less what the town
+        already buried itself (a sickness takes the man and the soldier at
+        once) and less what an order moved -- fell. Measured as the whole
+        march's loss, so a host that walked into another of your towns'
+        garrisons is a move and not a death, and laid on the towns that are
+        short by it. They were somebody's hands, and now they are nobody's.
+        """
+        now = self._under_arms()
+        was, self._roll = self._roll, now
+        if was is None:
+            return []
+        lost = {k: was[k] - internal.get(k, 0.0) - now[k]
+                for k in now if k in was}
+        total = sum(lost.values())
+        short = {k: v for k, v in lost.items() if v > 0}
+        if total < 0.5 or not short:
+            return []
+        scale = total / sum(short.values())
+        msgs: List[str] = []
+        for k, v in short.items():
+            dead = v * scale
+            s = self.world.settlements[k]
+            s.population = max(0.0, s.population - dead)
+            if dead >= 0.5:
+                weight = NOTABLE if dead >= 10 else ROUTINE
+                msgs.append(self.note(
+                    f"{s.name} buries {dead:.0f} of the men it sent to war",
+                    weight))
+        return msgs
+
     def raise_host(self, settlement_key: str, units: Dict[str, int],
                    name: str = "") -> Tuple[Optional[Army], str]:
         s = self.world.settlements.get(settlement_key)
@@ -137,6 +205,7 @@ class WallMixin:
         self.next_army_uid += 1
         self.armies.append(a)
         self._hosts_raised += 1
+        self._muster_roll(settlement_key)
         # It marches out of the granary it was raised in, as full as the
         # granary allows. A host that had to be told to take food would
         # starve the first time somebody forgot, which is a memory test
@@ -285,7 +354,13 @@ class WallMixin:
         a.log.append(f"{b.name} joined: {describe(b.units)}")
         return f"{b.name} joins {a.name} at {self.world.node_name(a.at)}: {describe(a.units)}"
 
-    def disband_host(self, uid: int) -> str:
+    def disband_host(self, uid: int, to_square: bool = False) -> str:
+        """Stand a host down: into the garrison, or -- `to_square` -- home.
+
+        Into the garrison they are still soldiers, still paid and still not
+        working. Home, they are hands on the square again by the next
+        seating, and whatever is short of hands has them.
+        """
         a = self.army(uid)
         if not a:
             return f"no host {uid}"
@@ -294,9 +369,20 @@ class WallMixin:
         s = self.world.settlements.get(a.at)
         if not s:
             return f"{a.name} must be in one of your settlements to stand down"
+        self.armies.remove(a)
+        if to_square:
+            men = host_size(a.units)
+            self._roll_moved(a.home, -men)
+            self._muster_roll(a.at)
+            return (f"{a.name} is paid off at {s.name}: {men} men go back to "
+                    f"the square, and to whatever is short of hands")
         for k, n in a.units.items():
             s.units[k] = s.units.get(k, 0.0) + n
-        self.armies.remove(a)
+        # Garrison and host are both off the roll of workers, but a host
+        # from elsewhere standing down here is now this town's to feed.
+        self._roll_moved(a.home, -host_size(a.units))
+        self._roll_moved(a.at, host_size(a.units))
+        self._muster_roll(a.at)
         return f"{a.name} stands down into the garrison of {s.name}"
 
     def _military_day(self) -> List[str]:

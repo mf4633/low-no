@@ -160,6 +160,12 @@ class Settlement:
     #: him something to do; without this the queue sat him down at the next
     #: shed with a gap and the man you moved vanished from where you put him.
     resting: int = 0
+    #: Men of this town who are out with a host. They are not in `units` --
+    #: the garrison -- but they are not in the fields either: every man in
+    #: the field is a hand missing from a shed at home. Counted each morning
+    #: by the game state (see WallMixin._muster_roll); not saved, because it
+    #: is read off the hosts rather than kept beside them.
+    afield: int = 0
     fires: Fires = field(default_factory=Fires)
     fire_labour: float = 0.0  # hands pulled off work to fight it
     plague_labour: float = 0.0  # and hands too ill, or busy burying
@@ -311,8 +317,10 @@ class Settlement:
 
     @property
     def workforce(self) -> int:
-        """Soldiers do not reap. Every man under arms is a man out of the fields."""
-        return max(0, int(self.population * C.WORKING_FRACTION) - self.soldiers)
+        """Soldiers do not reap. Every man under arms is a man out of the
+        fields -- on the wall or away with a host, it is the same hand gone."""
+        return max(0, int(self.population * C.WORKING_FRACTION)
+                   - self.soldiers - self.afield)
 
     @property
     def jobs_offered(self) -> int:
