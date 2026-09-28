@@ -427,6 +427,10 @@ class TradeEngine:
                 c.cargo[o.good] = have - qty
                 c.note(f"unloaded {qty:.0f} {good(o.good).name} at {market.name}")
                 continue
+            if self.world.refuses(stop.node, o.good):
+                c.note(f"{market.name} will not take {good(o.good).name} "
+                       f"of yours -- its lord has signed against you")
+                continue
             fill = market.sell_to(o.good, qty, min_price=o.limit_price or None)
             if fill.quantity <= 1e-6:
                 continue
@@ -458,6 +462,10 @@ class TradeEngine:
                     c.note(f"loaded {moved:.0f} {good(o.good).name} at {market.name}")
                 elif o.limit_price:
                     c.note(f"{good(o.good).name} too dear at {market.name} to carry off")
+                continue
+            if self.world.refuses(stop.node, o.good):
+                c.note(f"{market.name} will not sell you {good(o.good).name} "
+                       f"-- its lord has signed against you")
                 continue
             fill = market.buy_from(o.good, qty, max_price=o.limit_price or None,
                                    budget=max(0.0, treasury))

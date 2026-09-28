@@ -338,6 +338,33 @@ class AccountsMixin:
         housed = any(s.count("cathedral") for s in self.world.settlements.values())
         return C.RELIC_COIN * held * (1.6 if housed else 1.0)
 
+    #: Pilgrims a day, per relic held; each wants a loaf and a cup.
+    PILGRIMS = 14
+
+    def _pilgrims_day(self) -> float:
+        """The pilgrims eat. What they buy at your seat's market is coin in
+        the same column as what they leave at the shrine -- offerings -- and
+        what they eat is gone from the stores.
+
+        So a relic is not a number on a scroll: it is a road with people on
+        it who want bread and ale, from a town that has to bake and brew for
+        them. A shrine held by a town with an empty market brings in the
+        gift and not the trade.
+        """
+        held = self.relics_held()
+        if not held or not self.world.settlements:
+            return 0.0
+        seat = self.home()
+        if seat is None:
+            return 0.0
+        m = seat.market
+        coin = 0.0
+        for key in ("bread", "ale"):
+            want = held * self.PILGRIMS
+            got = m.take(key, min(want, m.stock.get(key, 0.0)))
+            coin += got * m.bid(key)
+        return coin
+
     # --------------------------------------------------------- the lords' coin
     def _income_of(self, t) -> float:
         """What a lord's country pays him a day: a little over what his

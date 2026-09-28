@@ -325,7 +325,7 @@ class GameState(AccountsMixin, RoadMixin, WallMixin, CourtMixin, HouseMixin):
                 s.report.unpaid = True
             msgs.append("THE COFFERS ARE EMPTY -- wages went unpaid today")
         led.tribute = sum(t.tribute() for t in self.world.towns.values() if t.mine)
-        led.offerings = self.relic_income()
+        led.offerings = self.relic_income() + self._pilgrims_day()
         if self.treasury > 0:
             led.interest = self.treasury * self.progress.bonus("interest")
         self.treasury += (led.taxes + led.tribute + led.offerings + led.interest

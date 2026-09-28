@@ -216,5 +216,68 @@ class TestTheLetterIsAHoleInTheRing(unittest.TestCase):
         self.assertGreaterEqual(len(g.court.coalition), court.COALITION_NAMES)
 
 
+class TestTheRoadIsTheDiplomaticMap(unittest.TestCase):
+    """Opinion is a customs rate, and a letter is an embargo."""
+
+    def setUp(self):
+        self.g = chartered(new_game(seed=5))
+        self.t = self.g.world.towns["ostmark"]
+
+    def test_a_gift_moves_the_toll_the_same_day_and_says_its_payback(self):
+        g, t = self.g, self.t
+        t.tolls_paid = 40.0               # a road your carts do use
+        before = g.world.tariff_for("ostmark", None)
+        said = g.gift("ostmark", 800)
+        self.assertLess(g.world.tariff_for("ostmark", None), before)
+        self.assertIn("c/day", said)
+        self.assertRegex(said, r"pays back in \d+ days|never pays back")
+
+    def test_a_gift_on_a_road_nobody_uses_is_goodwill(self):
+        said = self.g.gift("ostmark", 800)
+        self.assertIn("goodwill, not coin", said)
+
+    def test_the_payback_arithmetic(self):
+        days = self.g._days_to_repay(100.0, 2.0, 200.0)
+        # 2c a day falling to nothing over 200 days is 200c in all; half of
+        # it is back when 2t - t*t/200 = 100, at t = 58.6.
+        self.assertAlmostEqual(days, 58.58, places=1)
+        self.assertIsNone(self.g._days_to_repay(500.0, 2.0, 200.0))
+
+    def test_a_signed_lord_stops_named_goods(self):
+        from marchlands.advisor import scan
+        g, t = self.g, self.t
+        home = next(iter(g.world.settlements))
+
+        def through_him():
+            out = set()
+            for o in scan(g.world, home, day=g.day, seed=g.seed, top=30,
+                          budget=10_000):
+                for leg in (o.out, o.back):
+                    if leg is not None and "ostmark" in (o.frm, o.to):
+                        out |= set(leg.cargo)
+            return out
+        was = through_him()
+        g.court.coalition = ["ostmark", "dunmere", "vantry"]
+        g._chancery_day()
+        self.assertTrue(t.refuses, "a signatory refused nothing")
+        stopped = t.refuses[0]
+        self.assertIn(stopped, was, "nothing to stop: the test proves nothing")
+        self.assertTrue(g.world.refuses("ostmark", stopped))
+        self.assertNotIn(stopped, through_him(),
+                         "the route-finder still sends it through his post")
+
+    def test_pilgrims_buy_at_your_market_into_offerings(self):
+        g = self.g
+        sh = next(iter(g.world.shrines.values()))
+        sh.holder = "player"
+        seat = g.home()
+        seat.market.add("bread", 300)
+        seat.market.add("ale", 300)
+        bread = seat.market.stock["bread"]
+        g.tick()
+        self.assertLess(seat.market.stock.get("bread", 0.0), bread)
+        self.assertGreater(g.ledger.offerings, g.relic_income())
+
+
 if __name__ == "__main__":
     unittest.main()

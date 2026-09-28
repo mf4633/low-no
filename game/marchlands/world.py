@@ -135,6 +135,11 @@ class ForeignTown:
     #: use is goodwill, not coin, and the steward should say which.
     tolls_paid: float = 0.0
     tolls_today: float = 0.0
+    #: Goods this lord will not trade with you at all -- not sold to your
+    #: carts, not bought from them. A lord who has signed the letter does
+    #: not merely dislike you; he stops your salt. Set by the court each
+    #: morning (CourtMixin._chancery_day), so not saved.
+    refuses: Tuple[str, ...] = ()
     prosperity: float = 1.0       # grows in peace, falls when stormed
     harbour: bool = False         # ships may call here
     last_pilgrimage: int = -999   # day this lord last sent men to a shrine
@@ -749,6 +754,13 @@ class World:
         if self.safe_conduct and mult > 1.0:
             mult = 1.0 + (mult - 1.0) * 0.45
         return mult
+
+    def refuses(self, node: str, key: str) -> bool:
+        """Will the lord at `node` not trade `key` with you? The route-finder,
+        the carts and the court screen all ask here, so a refusal is one fact
+        and not three."""
+        t = self.towns.get(node)
+        return t is not None and not t.mine and key in t.refuses
 
     def tariff_for(self, node: str, home: Optional[Settlement]) -> float:
         """Toll charged at `node`, after any relief your trading posts bought."""

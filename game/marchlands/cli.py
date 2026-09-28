@@ -2061,6 +2061,11 @@ class Console:
                      + ink.c("none. Marching anyway costs the mood at home "
                              "and offends every other lord twice over.",
                              ink.AMBER))
+        if t.refuses:
+            self.say("  " + ink.c(ink.pad("he will not trade you", 18), ink.DIM)
+                     + ink.c(", ".join(good(k).name for k in t.refuses),
+                             ink.BLOOD)
+                     + ink.c("  -- the carts and `scan` go round him", ink.DIM))
         toll = g.world.tariff_for(key, None)
         mood = g.world.toll_mood(key)
         self.say("  " + ink.c(ink.pad("his toll on you", 18), ink.DIM)
@@ -3189,6 +3194,11 @@ class Console:
         if g.relic_income():
             self.say("", f"  offerings  {ink.coin(g.relic_income())} a day"
                          + ink.c("  (a cathedral is worth half again)", ink.DIM))
+            fed = g.ledger.offerings - g.relic_income()
+            self.say(f"  pilgrims   {g.relics_held() * g.PILGRIMS} a day want a "
+                     f"loaf and a cup at your market"
+                     + (f"; yesterday they spent {ink.coin(fed)}" if fed > 0.5
+                        else ink.c(" -- and found nothing to buy", ink.AMBER)))
         if "reliquary" in g.goals.paths:
             terms = (f"Hold {g.goals.relics} of them for {g.goals.relic_days} "
                      f"days and the march is yours ({g.relic_days} so far).")

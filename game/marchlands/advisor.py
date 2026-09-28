@@ -237,6 +237,8 @@ def scan(world, home: str, capacity: float = C.CARAVAN_BASE_CAPACITY,
             for k in ALL_KEYS:
                 if not (ma.sells(k) and mb.sells(k)):
                     continue
+                if world.refuses(a, k) or world.refuses(b, k):
+                    continue            # this hall will not pass it
                 w = good(k).weight
                 gap = max(gap, (mb.bid(k) - ma.ask(k)) / w,
                           (ma.bid(k) - mb.ask(k)) / w)
@@ -256,11 +258,15 @@ def scan(world, home: str, capacity: float = C.CARAVAN_BASE_CAPACITY,
         # *taken* from your own stores still cost you what you could have
         # sold them for, so the buy side of a home leg is priced normally.
         a_home, b_home = a in world.settlements, b in world.settlements
+        barred = tuple(k for k in ALL_KEYS
+                       if world.refuses(a, k) or world.refuses(b, k))
         leg_out = None if b_home else _best_manifest(
-            ma, mb, capacity, budget, ta, tb, from_home=a_home, steps=steps)
+            ma, mb, capacity, budget, ta, tb, from_home=a_home, steps=steps,
+            exclude=barred)
         leg_back = None if a_home else _best_manifest(
             mb, ma, capacity, budget, tb, ta, steps=steps,
-            exclude=tuple(leg_out.cargo) if leg_out else (), from_home=b_home)
+            exclude=barred + (tuple(leg_out.cargo) if leg_out else ()),
+            from_home=b_home)
         if not leg_out and not leg_back:
             continue
         dist = world.sea_distance(a, b) if sails else world.distance(a, b)

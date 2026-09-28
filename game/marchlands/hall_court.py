@@ -386,6 +386,11 @@ class CourtMixin:
             t.ill_will = c.ill_will(key, day, t.hostility)
             t.signed = key in c.coalition
             t.sworn_friend = key in c.allies
+            # A signatory stops what he has most of: the goods his country
+            # makes and yours comes to his post to buy. Not a generic
+            # "hostile" -- a named embargo, which a player can route round.
+            t.refuses = (tuple(t.specialties()[:self.EMBARGO_GOODS])
+                         if t.signed and not t.mine else ())
         # What the chancery's institutions actually do, applied once a day
         # where everything else about the march is. Each of these is a
         # mechanic rather than a percentage -- see tech.py on why that is the
@@ -1185,6 +1190,9 @@ class CourtMixin:
             if c.offence(key, self.day) + more >= court.COALITION_BAR:
                 out.append(key)
         return sorted(out, key=lambda k: -c.offence(k, self.day))
+
+    #: How many of his own goods a signatory stops.
+    EMBARGO_GOODS = 2
 
     def _reread(self, town_key: str) -> None:
         """Read one lord off the book now, not tomorrow morning.
