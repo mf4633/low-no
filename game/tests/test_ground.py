@@ -194,7 +194,8 @@ class TestTheDialsComeOffAgain(unittest.TestCase):
 
 class TestABattleInPlay(unittest.TestCase):
     def test_a_real_assault_is_fought_somewhere(self):
-        from marchlands import engine as E
+        # The fights are started from the wall's slice of the game state.
+        from marchlands import hall_wall as E
         seen = []
         # Two doors into a battle: `fight` settles a field or a sally in one
         # call, `open_battle` is the storm the player may sit in on. Either
