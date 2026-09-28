@@ -408,21 +408,13 @@ def main():
               f"first-qualifying-cycle entries on these days sample later prices")
 
     pr = next((v for v in variants if v["rule"] == "PREREG_yes10_hotbias3"), None)
+    # REFUTED 2026-08-27 (CANDIDATE.md, YES Pilot v1): no station clears the
+    # +3F bias gate once the CLI parser defect was fixed, so n stays 0 and the
+    # "toward promotion review" line promised a verdict that could never come.
+    # Still scored and printed so the refutation stays visible; never promoted.
     if pr is not None:
-        if pr["n"] < 60:
-            print(f"\nPREREG_yes10_hotbias3: {pr['n']}/60 units toward promotion "
-                  f"review (criteria + quit lines: CANDIDATE.md, YES Pilot v1)")
-        else:
-            mp = pr["mean_price"]
-            fee = math.ceil(0.07 * 100 * (mp / 100) * (1 - mp / 100))
-            be = mp / (100 - fee)
-            ra = pr["n_real_ask"] / pr["n"]
-            met = pr["lcb"] > be and ra >= 0.90
-            print(f"\nPREREG_yes10_hotbias3: n={pr['n']} hit={pr['hit']:.1%} "
-                  f"LCB={pr['lcb']:.1%} vs breakeven={be:.1%} real_ask={ra:.0%} -> "
-                  + ("PROMOTION CRITERIA 1-3 MET: re-probe liquidity (criterion 4), "
-                     "then review CANDIDATE.md YES Pilot v1 before ANY seed"
-                     if met else "not proven; keep accruing"))
+        print(f"\nPREREG_yes10_hotbias3: CLOSED -- REFUTED 2026-08-27, n={pr['n']} "
+              f"(no station clears +3F bias; CANDIDATE.md YES Pilot v1). Not accruing.")
 
     # PAPER $100 pilot: deterministic nightly replay of the YES Pilot v1 rules
     # (CANDIDATE.md) against the fixed 6.8% hypothesis. Paper only, no orders.
