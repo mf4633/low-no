@@ -790,11 +790,15 @@ class Console:
                               f"none will treat alone. `court` has the three "
                               f"ways out."))
         else:
-            close = [k for k, t in g.world.towns.items() if not t.mine
-                     and c.offence(k, g.day) >= chancery.COALITION_BAR * 0.7]
-            if len(close) >= chancery.COALITION_NAMES:
-                out.append((60.0, f"{len(close)} lords are close to signing "
-                                  f"against you. Another town taken does it. "
+            # Stronghold's inn and EU4's letter are the same pressure: a town
+            # grown past what its inn serves and a march grown past what its
+            # lords will bear. The first is a hole in the ring; so is this,
+            # and it ranks with it (see _castle_hints).
+            tips = g.coalition_after_next()
+            if len(tips) >= chancery.COALITION_NAMES:
+                names = ", ".join(g.world.node_name(k) for k in tips[:4])
+                out.append((74.0, f"One more town taken and {len(tips)} lords "
+                                  f"sign one letter against you ({names}). "
                                   f"`court` says how close, and it costs "
                                   f"nothing to wait."))
         warm = [k for k, t in g.world.towns.items()

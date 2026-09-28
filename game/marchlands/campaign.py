@@ -49,12 +49,16 @@ class Carry:
     #: started, with the same children in it, doing what you had them doing.
     kin: Optional[Kin] = None
     days: int = 0                 # how long the house has been running
+    #: Who sat the hall when the chapter just finished began. A lord who
+    #: died in it is a different chapter to open, and the briefing says so.
+    seated: str = ""
 
     def to_dict(self) -> dict:
         return {"purse": self.purse, "techs": list(self.techs),
                 "lord_name": self.lord_name, "heirs": self.heirs,
                 "renown": self.renown, "chronicle": self.chronicle.to_dict(),
                 "outcomes": list(self.outcomes), "days": self.days,
+                "seated": self.seated,
                 "kin": self.kin.to_dict() if self.kin else None}
 
     @classmethod
@@ -67,6 +71,7 @@ class Carry:
                    chronicle=Chronicle.from_dict(d.get("chronicle", {})),
                    outcomes=tuple(d.get("outcomes", ())),
                    days=d.get("days", 0),
+                   seated=d.get("seated", ""),
                    kin=Kin.from_dict(d["kin"]) if d.get("kin") else None)
 
 
@@ -107,6 +112,12 @@ class Chapter:
                     p.died -= carry.days
             g.kin.seat = g.lord.seat
             g.kin.riding = 0
+            # Who held what, before the posts are taken away: the skill a
+            # posting grew is the part of the last chapter that arrives.
+            from .kin import POSTS
+            postings = [(p.name, p.post, POSTS[p.post].skill)
+                        for p in g.kin.people
+                        if p.alive and p.post in POSTS]
             for p in g.kin.people:
                 # Hosts and posts do not survive a chapter; the people do.
                 if p.post != "head":
@@ -122,6 +133,11 @@ class Chapter:
             g.chronicle = carry.chronicle
         self.dress(g)
         g.briefing = self.briefing
+        if carry.kin is not None and carry.kin.people:
+            hall = g.kin.hall_briefing(g.day, postings, was=carry.seated)
+            if hall:
+                g.briefing = hall + "\n\n" + self.briefing
+        g.seated = g.kin.lord.name if g.kin.lord is not None else g.lord.name
         return g
 
 
@@ -340,13 +356,19 @@ def carry_from(g: GameState, carry: Carry, won: bool) -> Carry:
     return Carry(
         purse=purse,
         techs=tuple(sorted(set(carry.techs) | set(g.progress.researched))),
-        lord_name=g.lord.name,
+        # The title bar's name, which a chapter may have changed -- unless
+        # he is dead. A lord who fell on the last day is buried in the kin
+        # before the morning renames the bar, and carrying the bar's name
+        # then crowned his daughter with it.
+        lord_name=(g.kin.lord.name if g.kin.lord is not None
+                   and not g.lord.alive else g.lord.name),
         heirs=max(0, g.lord.heirs),
         renown=renown,
         chronicle=g.chronicle,
         outcomes=carry.outcomes + (f"{g.chapter}:{'won' if won else 'lost'}",),
         kin=g.kin,
         days=carry.days + g.day,
+        seated=getattr(g, "seated", ""),
     )
 
 

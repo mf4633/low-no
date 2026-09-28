@@ -544,6 +544,36 @@ class Kin:
         if lord is not None:
             lord.shift(key, by)
 
+    def hall_briefing(self, day: int, postings: List[Tuple[str, str, str]],
+                      was: str = "") -> str:
+        """Who sits the hall this chapter, and what the last one made of them.
+
+        The person is the save file: a chapter's opening is not "you have
+        2,000c" but "the girl with trade 4 and no tactics has the seat",
+        because that is what decides how the next two years go. `postings`
+        is (name, post, skill) for everybody who held a post last chapter;
+        `was` is who sat the hall when it began, if that was somebody else.
+        """
+        lord = self.lord
+        if lord is None:
+            return ""
+        best = sorted(SKILLS, key=lambda sk: -lord.xp.get(sk, 0.0))
+        good = [f"{sk} {lord.level(sk)}" for sk in best[:2] if lord.level(sk) > 0]
+        weak = [sk for sk in ("tactics", "stewardship") if lord.level(sk) == 0]
+        head = (f"{was} is dead. {lord.name} sits the hall"
+                if was and was != lord.name else f"{lord.name} sits the hall")
+        line = head + (f" -- {', '.join(good)}" if good else " -- untried at anything")
+        if weak:
+            line += f", and no {' or '.join(weak)}"
+        out = [line + "."]
+        for name, post, skill in postings:
+            p = self.by_name(name)
+            if p is None or not p.alive or p.level(skill) <= 0:
+                continue
+            out.append(f"{name}, {post} last chapter, comes with "
+                       f"{skill} {p.level(skill)}.")
+        return " ".join(out)
+
     def teach(self, skill: str, amount: float, day: int,
               post: str = "", target: str = "") -> None:
         """A deed, rather than a day, taught somebody something."""

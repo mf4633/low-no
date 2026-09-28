@@ -1166,6 +1166,26 @@ class CourtMixin:
                 f"his ill-will cools from {before:.0f} to {town.ill_will:.0f}"
                 + self._payback(town_key, coin, toll_was))
 
+    def coalition_after_next(self) -> List[str]:
+        """The lords who would be over the coalition bar if you took one more
+        town -- the nearest one to your seat, at the weight a conquest is
+        written at. What the steward and the court screen warn about before
+        the letter is written rather than after."""
+        c = self.court
+        target = self._nearest_foreign()
+        out = []
+        for key, t in self.world.towns.items():
+            if t.mine:
+                continue
+            near = (self.world.distance(key, target)
+                    if target and target in self.world.coords
+                    and key in self.world.coords else 90.0)
+            close = max(0.55, min(1.4, 90.0 / max(30.0, near)))
+            more = 34.0 * close * lordly.sort_of(key).temper
+            if c.offence(key, self.day) + more >= court.COALITION_BAR:
+                out.append(key)
+        return sorted(out, key=lambda k: -c.offence(k, self.day))
+
     def _reread(self, town_key: str) -> None:
         """Read one lord off the book now, not tomorrow morning.
 

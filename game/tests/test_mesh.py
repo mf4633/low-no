@@ -158,5 +158,63 @@ class TestTheHostIsAPayroll(unittest.TestCase):
         self.assertGreater(kid.xp.get("tactics", 0.0), before)
 
 
+class TestSuccessionIsTheCampaign(unittest.TestCase):
+    """The person is the save file: a chapter opens on who sits the hall."""
+
+    def test_the_next_chapter_opens_on_the_heir_and_what_she_learned(self):
+        from marchlands.campaign import Carry, carry_from, chapter_at
+        g = chapter_at(3).start(seed=7)
+        lord = g.kin.lord
+        kid = next(p for p in g.kin.living()
+                   if p.uid != g.kin.head and not p.inlaw
+                   and lord.uid in (p.father, p.mother))
+        kid.born = min(kid.born, g.day - 20 * int(C.DAYS_PER_YEAR))
+        kid.post, kid.target = "factor", ""
+        kid.xp["trade"] = 4000.0
+        kid.xp["tactics"] = 0.0
+        # The lord dies in chapter four. That is not the end of anything.
+        g.kin.bury(lord, g.day)
+        g.lord.alive = False              # as the fight that killed him does
+        g.over = "Time called."
+        carry = carry_from(g, Carry(seated=g.seated), won=False)
+        nxt = chapter_at(4).start(seed=7, carry=carry)
+        self.assertEqual(nxt.kin.lord.uid, kid.uid)
+        opening = nxt.briefing.split("\n\n")[0]
+        self.assertIn(f"{lord.name} is dead", opening)
+        self.assertIn(f"{kid.name} sits the hall", opening)
+        self.assertIn("trade", opening)
+        self.assertIn("no tactics", opening)
+
+
+class TestTheLetterIsAHoleInTheRing(unittest.TestCase):
+    """A town grown past its inn and a march grown past what it will bear
+    are the same pressure, and the steward ranks them the same."""
+
+    def setUp(self):
+        self.g = chartered(new_game(seed=5))
+        home = next(iter(self.g.world.settlements))
+        self.g.world.settlements[home].units = {"spearman": 200.0}
+        self.a, _ = self.g.raise_host(home, {"spearman": 100})
+
+    def test_the_second_town_warns_before_the_letter_is_written(self):
+        from marchlands.cli import Console
+        import io
+        g = self.g
+        g._take_town(g.world.towns["dunmere"], self.a)
+        g.tick()
+        self.assertFalse(g.court.coalition)
+        tips = g.coalition_after_next()
+        self.assertGreaterEqual(len(tips), court.COALITION_NAMES)
+        con = Console(g, out=io.StringIO())
+        ranked = dict((text[:40], rank) for rank, text in con._court_hints())
+        self.assertIn(74.0, ranked.values(),
+                      "the letter did not rank with a hole in the ring")
+        # ...and it was right: the next town writes it.
+        g._take_town(g.world.towns["vantry"], self.a)
+        for _ in range(3):
+            g.tick()
+        self.assertGreaterEqual(len(g.court.coalition), court.COALITION_NAMES)
+
+
 if __name__ == "__main__":
     unittest.main()
