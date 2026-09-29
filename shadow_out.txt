@@ -1,16 +1,16 @@
-settlements: 1097 cached, 22 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
+settlements: 1098 cached, 1 new, 0 repaired, 0 quarantined, 180 unconfirmable (older than the 7-day CLI window)
 forecaster       n  days   bias   mae  rmse   <=2F
-om_gfs       11807    38  -0.60  1.67  2.18    69%
-om_best       9722    38  -0.62  1.69  2.21    69%
-nws_grid     12373    38  -0.01  1.80  2.48    76%
-nbm_guide    12414    38  -0.29  1.84  2.56    76%
-om_icon      11646    38  -1.13  2.01  2.58    60%
-om_metno     11491    38  -1.33  2.16  2.75    55%
-om_ecmwf     11797    38  -1.04  2.87  3.76    46%
+om_gfs       11817    38  -0.60  1.67  2.18    69%
+om_best       9733    38  -0.63  1.69  2.21    69%
+nws_grid     12384    38  -0.01  1.80  2.48    76%
+nbm_guide    12425    38  -0.29  1.84  2.56    76%
+om_icon      11657    38  -1.13  2.01  2.58    60%
+om_metno     11501    38  -1.33  2.17  2.75    55%
+om_ecmwf     11808    38  -1.04  2.87  3.76    46%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
 spend: 321 calls, est $4.5743 spent, $0.43 left (~29 calls)
-rung-obs 83336 -> 1385 independent units over 53 days
+rung-obs 83402 -> 1385 independent units over 53 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10  82   1     1%   6.0%     0%     7%    -4.7      open
  11-20  67   6     9%  15.8%     4%    18%    -6.8      open
@@ -28,7 +28,7 @@ rung-obs 83336 -> 1385 independent units over 53 days
 
 YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_ask, spread-blind and optimistic)
   band   n   w    hit   need    LCB     pnl real_ask  proven
-  1-10 914  17     2%   3.2%     1%    -1.3      900   False
+  1-10 915  17     2%   3.2%     1%    -1.3      901   False
  11-20 202  22    11%  14.5%     7%    -3.5      199   False
  21-30 120  33    28%  25.4%    20%     2.1      119   False
  31-40  96  35    36%  36.1%    28%     0.3       94   False
@@ -39,9 +39,9 @@ YES bands (real_ask = units priced from a logged yes_ask; the rest are 100 - no_
  81-90  94  70    74%  86.1%    65%   -11.7       91   False
  91-95  71  57    80%  94.0%    70%   -13.6       68   False
  96-98  64  53    83%  98.1%    72%   -15.1       62   False
-yes_spread over 83046 real-ask obs: mean 4.53c, max 100c
+yes_spread over 83112 real-ask obs: mean 4.53c, max 100c
 
-station guide bias (guide - CLI): {'LAX': -2.13, 'NYC': 1.29, 'OKC': -1.24, 'BOS': -1.03, 'MIA': -0.77, 'ATL': 0.74, 'AUS': -0.55, 'MSP': -0.55, 'CHI': -0.51, 'PHL': -0.51, 'EWR': 0.32, 'MSY': 0.26, 'DEN': 0.19, 'LAS': -0.18, 'SFO': 0.17, 'SAT': 0.16, 'TTN': 0.15, 'PHX': -0.13, 'SEA': 0.13, 'DAL': -0.13, 'SAN': 0.11, 'DC': 0.05, 'HOU': 0.05}
+station guide bias (guide - CLI): {'LAX': -2.13, 'NYC': 1.29, 'OKC': -1.24, 'BOS': -1.03, 'MIA': -0.8, 'ATL': 0.74, 'AUS': -0.55, 'MSP': -0.55, 'CHI': -0.51, 'PHL': -0.51, 'EWR': 0.32, 'MSY': 0.26, 'DEN': 0.19, 'LAS': -0.18, 'SFO': 0.17, 'SAT': 0.16, 'TTN': 0.15, 'PHX': -0.13, 'SEA': 0.13, 'DAL': -0.13, 'SAN': 0.11, 'DC': 0.05, 'HOU': 0.05}
 
                   rule   n   w    hit   LCB  meanP&L
              frozen_G4 255 216    85%   80%     -2.9
