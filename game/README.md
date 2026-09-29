@@ -1785,7 +1785,11 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `records.py` | the small records every hall names: goals, the day's ledger, the pending battle |
 | `hall_accounts.py` | the books: net worth, what came in and went out, the mint and the assize |
 | `hall_road.py` | bridges and tolls, carts and ships, what your people can see of the march |
-| `hall_wall.py` | hosts raised and fed, marches, sieges, storms, raids, and riding at their head |
+| `hall_wall.py` | the war's day, and the ground every fight reads; the four below are its parts |
+| `hall_host.py` | raising men, the muster roll, splitting and joining hosts, marching, feeding them |
+| `hall_field.py` | hosts meeting in open country, raids, the shrine race, battle orders |
+| `hall_siege.py` | a host at the gate: relief, storms, starving out, sallies, fire, the sack |
+| `hall_ride.py` | the battle the day stops for, and the lord riding at their head |
 | `hall_court.py` | the other lords' turn, letters, alliances, pacts, coalitions, truces, gifts, the league table |
 | `hall_house.py` | the lord and his line: study, posts, marriages, estates and missions |
 | `scenario.py` | the map's pieces, and the default seat |

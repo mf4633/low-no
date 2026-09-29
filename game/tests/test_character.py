@@ -135,7 +135,7 @@ class TestTheSortIsRealAndNotALabel(unittest.TestCase):
     def test_an_ox_is_harder_to_shift_off_his_own_parapet(self):
         self.assertGreater(lords.sort_of("ostmark").holds,
                            lords.sort_of("havnhold").holds)
-        src = pathlib.Path("marchlands/hall_wall.py").read_text(encoding="utf-8")
+        src = pathlib.Path("marchlands/hall_siege.py").read_text(encoding="utf-8")
         self.assertIn("lordly.sort_of(town.key).holds", src,
                       "holds is declared and never read")
 
