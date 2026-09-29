@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-09-28T15:33:33.706962Z",
+ "generated": "2026-09-29T08:25:06.086277Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 52,
+  "logged_days": 53,
   "first_day": "2026-08-07",
-  "last_day": "2026-09-27",
-  "rung_observations": 81884,
-  "independent_units": 1350,
+  "last_day": "2026-09-28",
+  "rung_observations": 83336,
+  "independent_units": 1385,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -73,13 +73,13 @@
    "2026-09-25": 13,
    "2026-09-26": 13,
    "2026-09-27": 13,
-   "2026-09-28": 2
+   "2026-09-28": 10
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1075,
-  "settlements_verified": 895,
+  "settlements_cached": 1097,
+  "settlements_verified": 917,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -96,79 +96,28 @@
  },
  "hypotheses": [
   {
-   "id": "H4a",
-   "name": "shape validation (held-out)",
-   "status": "open",
-   "bar": {
-    "have": 52,
-    "need": 28,
-    "unit": "logged days",
-    "ready": true,
-    "also": {
-     "have": 2238,
-     "need": 50,
-     "unit": "held-out scored decisions"
-    }
-   },
-   "note": "days is not the gate -- cells must reach n>=12 inside the peak window before a decision scores"
-  },
-  {
-   "id": "H4b",
-   "name": "market lag on curve_dev",
-   "status": "open",
-   "bar": {
-    "have": 968,
-    "need": 200,
-    "unit": "events",
-    "ready": true,
-    "also": {
-     "have": 32,
-     "need": 20,
-     "unit": "distinct days"
-    }
-   },
-   "note": "32/20 distinct days"
-  },
-  {
-   "id": "H5",
-   "name": "contested band 81-95c (blocked on H4a)",
-   "status": "open",
-   "bar": {
-    "have": 58,
-    "need": 60,
-    "unit": "city-day units",
-    "ready": false,
-    "also": {
-     "have": 0,
-     "need": 1,
-     "unit": "H4a passed"
-    }
-   },
-   "note": "supply only; scoring waits on H4a (28 days since 2026-09-01)"
-  },
-  {
    "id": "H6",
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 150,
+    "have": 161,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 21,
+     "have": 22,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "21/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "22/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 357,
+    "have": 540,
     "need": 50,
     "unit": "scored (control)",
     "ready": false,
@@ -185,7 +134,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 69,
+    "have": 70,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -236,6 +185,27 @@
    "status": "closed",
    "bar": null,
    "note": "+0.5 correction stands; boundary diff -0.0004, n=157"
+  },
+  {
+   "id": "H4a",
+   "name": "shape validation (FAILED, closed 2026-09-28)",
+   "status": "closed",
+   "bar": null,
+   "note": "held-out Brier -2.7% vs base, n=2238; passed n=69-114 9/5-9/7 then went negative and stayed there"
+  },
+  {
+   "id": "H4b",
+   "name": "market lag on curve_dev (FAILED, closed 2026-09-28)",
+   "status": "closed",
+   "bar": null,
+   "note": "lag corr -0.021, 968 events / 32 days"
+  },
+  {
+   "id": "H5",
+   "name": "contested band 81-95c (closed 2026-09-28)",
+   "status": "closed",
+   "bar": null,
+   "note": "could only score after an H4a pass; H4a failed"
   }
  ],
  "pilot": {
@@ -253,45 +223,28 @@
  },
  "blocking": [
   {
-   "id": "H5",
-   "name": "contested band 81-95c (blocked on H4a)",
-   "status": "open",
-   "bar": {
-    "have": 58,
-    "need": 60,
-    "unit": "city-day units",
-    "ready": false,
-    "also": {
-     "have": 0,
-     "need": 1,
-     "unit": "H4a passed"
-    }
-   },
-   "note": "supply only; scoring waits on H4a (28 days since 2026-09-01)"
-  },
-  {
    "id": "H6",
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 150,
+    "have": 161,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 21,
+     "have": 22,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "21/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "22/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 357,
+    "have": 540,
     "need": 50,
     "unit": "scored (control)",
     "ready": false,
@@ -308,7 +261,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 69,
+    "have": 70,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false

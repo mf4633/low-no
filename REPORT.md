@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-09-28
+# low-no scorecard -- 2026-09-29
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -8,6 +8,7 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **PHX** DEAD_SCAVENGE @ 0.98 ceil 82 guide 84 -> CLI None :: **UNGRADED**  _most inert station; monsoon debris only bust mode. Td 60s+ raises min floor._
+- **PHX** DEAD_SCAVENGE @ 0.98 ceil 82 guide 84 -> CLI 83 :: **WIN**
+- **SFO** QUALIFIED @ 0.94 ceil 67 guide 71 -> CLI 69 :: **WIN**
 
-no qualified flags today -- a complete and acceptable outcome
+**2/2 hit** (100%) vs 98.2% breakeven at 0.98

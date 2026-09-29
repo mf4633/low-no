@@ -3,43 +3,36 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 2238,
-  "brier_base": 0.1093,
-  "brier_shape": 0.1123,
-  "improvement_pct": -2.74
+  "n": 2415,
+  "brier_base": 0.1087,
+  "brier_shape": 0.1102,
+  "improvement_pct": -1.41
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 968,
-  "days": 32,
-  "lag_corr": -0.021,
+  "events": 1000,
+  "days": 33,
+  "lag_corr": -0.018,
   "lag_ci": [
-   -0.084,
-   0.042
+   -0.08,
+   0.044
   ]
- },
- "H5": {
-  "id": "H5",
-  "ready": false,
-  "passed": false,
-  "units": 0,
-  "reason": "blocked: H4a has not passed"
  },
  "H6": {
   "id": "H6",
   "ready": false,
   "passed": false,
-  "events": 150,
+  "events": 161,
   "need_events": 200,
-  "days": 21,
+  "days": 22,
   "need_days": 20,
   "reason": "data bar not met"
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 357,
+  "pooled_n": 540,
   "hourly": {
    "n": 0,
    "brier_base": null,
@@ -47,24 +40,24 @@
    "improved": null
   },
   "control": {
-   "n": 357,
-   "brier_base": 0.1104,
-   "brier_shape": 0.1087,
+   "n": 540,
+   "brier_base": 0.0861,
+   "brier_shape": 0.0845,
    "improved": true
   },
   "ready": false,
   "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=357"
+  "reason": "need 50 scored decisions per stratum; have hourly=0, control=540"
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 903,
-   "stalled_off": 539,
-   "climbing_on": 1039,
-   "climbing_off": 69
+   "stalled_on": 926,
+   "stalled_off": 556,
+   "climbing_on": 1064,
+   "climbing_off": 70
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -74,21 +67,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 441,
-   "mean": -0.00088,
+   "n": 452,
+   "mean": -0.00117,
    "ci": [
-    -0.00546,
-    0.00371
+    -0.00578,
+    0.00344
    ]
   },
   "tail": {
-   "n": 844,
-   "mean": -0.00395,
+   "n": 861,
+   "mean": -0.00436,
    "ci": [
-    -0.00635,
-    -0.00155
+    -0.0068,
+    -0.00192
    ]
   }
  },
- "generated": "2026-09-28T15:34:01.836436Z"
+ "generated": "2026-09-29T08:25:34.922882Z"
 }
