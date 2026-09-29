@@ -1814,7 +1814,10 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `static/` | the canvas renderer: every roof a vector path, every sound an oscillator |
 | `campaign.py` | six chapters, what crosses between them, the Count |
 | `chronicle.py` | what happened, written down as it happened |
-| `cli.py` | the terminal interface |
+| `cli.py` | the terminal console: i/o, the command table, help, save and load, the campaign loop |
+| `console_town.py` / `_accounts` / `_road` / `_wall` / `_court` / `_house` | what the console says about each hall |
+| `console_advice.py` | the hints, and how a finished game says so |
+| `console_common.py` | rules, titles, sparklines, wrapping, reading a command line |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
 | `clock.py` | time that runs on its own |
