@@ -270,8 +270,11 @@ class TestTheyWalkThere(unittest.TestCase):
         self.assertIn("const WORK_ON = { forest: 'forest', field: 'fertile', water: 'coast'", self.js)
         self.assertIn("function workFor", self.js)
         self.assertIn("function tileKind", self.js)
-        # and plain ground asks for nothing: it is a place to stand
-        self.assertIn("if (!want) return moveThem(e, people);", self.js)
+        # and plain ground asks for nothing: it is a place to stand. Ground
+        # that does ask but has no shed to answer it says why, then walks.
+        self.assertIn("  if (!want) {\n    // Trees or a field", self.js)
+        self.assertIn("const why = noWorkFor(e);", self.js)
+        self.assertIn("    return moveThem(e, people);\n  }", self.js)
 
     def test_a_shed_you_have_shut_is_not_work(self):
         self.assertIn("b.enabled !== false", self.js)
