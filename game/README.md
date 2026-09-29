@@ -6,6 +6,9 @@ middle where both of them had it.
 
 Pure Python, standard library only, runs in a terminal.
 
+This repository is the source. Releases carry only `Marchlands.exe`, for
+anyone who just wants to double-click it; reviewing the code means this tree.
+
 ```bash
 cd game
 python3 -m marchlands --web                    # play it in a browser, drawn
@@ -1778,7 +1781,13 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `tech.py` | four ages, 25 technologies, five houses |
 | `military.py` | 14 unit types, the counter triangle, battles, sieges |
 | `events.py` | shocks, rival trading houses, bandits |
-| `engine.py` | the tick, the ledger, research, war, diplomacy, endings, saves |
+| `engine.py` | the tick, endings, saves, and the `GameState` shell the five halls below are mixed into |
+| `records.py` | the small records every hall names: goals, the day's ledger, the pending battle |
+| `hall_accounts.py` | the books: net worth, what came in and went out, the mint and the assize |
+| `hall_road.py` | bridges and tolls, carts and ships, what your people can see of the march |
+| `hall_wall.py` | hosts raised and fed, marches, sieges, storms, raids, and riding at their head |
+| `hall_court.py` | the other lords' turn, letters, alliances, pacts, coalitions, truces, gifts, the league table |
+| `hall_house.py` | the lord and his line: study, posts, marriages, estates and missions |
 | `scenario.py` | the map's pieces, and the default seat |
 | `scenarios.py` | the four scenarios and their terms |
 | `render.py` | ink: palette, framing, bars, sparklines, colour discipline |
@@ -1804,6 +1813,16 @@ You lose if your debts run away, or there is nowhere left that you hold.
 | `cli.py` | the terminal interface |
 | `sim.py` | two headless bots (trader, conqueror), used as balance tests |
 | `config.py` | every tunable number in the game |
+| `clock.py` | time that runs on its own |
+| `estates.py` | the three men who run your march, and what each wants |
+| `feats.py` | things worth having done |
+| `missions.py` | a path through the game that is yours rather than the scenario's |
+| `roles.py` | what you are, as distinct from who you are |
+| `rivers.py` | what the water does to the road, and what a bridge is worth |
+| `supply.py` | what a host eats, and the day it does not |
+| `plague.py` | the sickness, and the roads it comes down |
+| `sight.py` | what of the march you have seen, and what you can see today |
+| `mods.py` | changing the game without editing the game |
 
 ## What people actually say they love
 
