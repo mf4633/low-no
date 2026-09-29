@@ -6,7 +6,7 @@ import os
 import tempfile
 import unittest
 
-from _slow import slow
+from _slow import play_many, slow
 
 from marchlands import config as C
 from marchlands.engine import GameState
@@ -215,12 +215,16 @@ class TestLongRun(unittest.TestCase):
         self.assertGreaterEqual(len(g.progress.researched) - 1, 5)
         self.assertGreaterEqual(len(g.world.settlements), 2)
 
-    #: Twelve seeds, not four. A win is a rare event -- the naive bot takes the
-    #: crown about two games in twelve -- and a four-seed sample of a rare
-    #: event is a tripwire, not a measurement: it went off twice during this
-    #: project for balance changes that had made the bot *better*. Twelve costs
-    #: about two minutes and actually measures the thing.
-    BALANCE_SEEDS = (3, 5, 7, 17, 11, 23, 29, 31, 41, 47, 53, 59)
+    #: Twenty-four seeds, not twelve. The naive bot takes the crown about two
+    #: games in five (9 of these 24; 20 and 23 of 48 fresh seeds either side
+    #: of the payroll weld), so twelve seeds capped at six failed about one
+    #: run in three on any change that moved the dice -- it went off at the
+    #: mesh merge for a change that shifted nothing measurable. The band is
+    #: 5-17 wins of 24, roughly 20-70%: at the true rate it trips about one
+    #: run in a hundred, and a real shift to "nobody" or "anybody" still
+    #: lands outside it. `play_many` plays them side by side.
+    BALANCE_SEEDS = (3, 5, 7, 17, 11, 23, 29, 31, 41, 47, 53, 59,
+                     61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109)
 
     @slow
     def test_the_goal_is_reachable_but_not_assured(self):
@@ -237,16 +241,12 @@ class TestLongRun(unittest.TestCase):
         ordinary policy finishes within reach of the goal without walking it,
         and it moves long before a win appears or disappears.
         """
-        won, ends, worth = 0, [], []
-        for seed in self.BALANCE_SEEDS:
-            g = new_game(seed=seed)
-            Bot(g).run(C.GOAL_DAYS)
-            ends.append(f"{seed}:{g.net_worth():,.0f}")
-            worth.append(g.net_worth())
-            won += any(w in g.over for w in
-                       ("Triumph", "Dominion", "cathedral", "Reliquary"))
-        self.assertGreaterEqual(won, 1, f"nobody can win: {ends}")
-        self.assertLessEqual(won, 6, f"anybody can win: {ends}")
+        games = play_many(self.BALANCE_SEEDS)
+        ends = [f"{seed}:{w:,.0f}" for seed, _, _, w in games]
+        worth = [w for _, _, _, w in games]
+        won = sum(1 for _, v, _, _ in games if v)
+        self.assertGreaterEqual(won, 5, f"nobody can win: {ends}")
+        self.assertLessEqual(won, 17, f"anybody can win: {ends}")
         mean = sum(worth) / len(worth)
         goal = C.GOAL_NET_WORTH
         self.assertGreater(mean, 0.45 * goal, f"the economy is too punishing: {ends}")

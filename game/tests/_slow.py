@@ -19,3 +19,39 @@ RUN_SLOW = os.environ.get("MARCHLANDS_SLOW", "") not in ("", "0")
 
 slow = unittest.skipUnless(
     RUN_SLOW, "plays a long game -- set MARCHLANDS_SLOW=1 to run it")
+
+
+#: The words a finished game's `over` line opens with when the house won.
+WON = ("Triumph", "Dominion", "cathedral", "Reliquary")
+
+
+def _play_to_the_end(job):
+    """One bot game, played out: (seed, won, lasted, net worth)."""
+    scenario, seed = job
+    from marchlands import config as C
+    from marchlands.scenario import new_game
+    from marchlands.scenarios import start
+    from marchlands.sim import Bot
+    if scenario is None:
+        g = new_game(seed=seed)
+        Bot(g).run(C.GOAL_DAYS)
+    else:
+        g = start(scenario, seed=seed)
+        Bot(g).run(g.goals.days)
+    won = any(w in g.over for w in WON)
+    lasted = "Ruined" not in g.over and "Ended" not in g.over
+    return seed, won, lasted, g.net_worth()
+
+
+def play_many(seeds, scenario=None):
+    """A bot game on each seed, side by side on the machine's cores.
+
+    A balance guard is a rate, and a rate wants two dozen games, not one:
+    a single pinned seed is a coin already flipped, and any change that
+    shuffles the dice -- a man buried a day earlier -- flips it again.
+    Played in a row two dozen games are eight minutes; side by side, one.
+    """
+    from concurrent.futures import ProcessPoolExecutor
+    jobs = [(scenario, s) for s in seeds]
+    with ProcessPoolExecutor(max_workers=min(len(jobs), os.cpu_count() or 1)) as pool:
+        return list(pool.map(_play_to_the_end, jobs))
