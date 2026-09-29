@@ -5331,7 +5331,14 @@ function rightClick(e) {
   // shed, or ground a shed works (the trees, the field), is work; anywhere
   // else is a place to stand.
   const want = workFor(e);
-  if (!want) return moveThem(e, people);
+  if (!want) {
+    // Trees or a field with nothing to work them was a silent walk: the
+    // figure went and stood in the wood, and it looked like the click had
+    // failed. Say why there is no work there, then walk anyway.
+    const why = noWorkFor(e);
+    if (why) say(why);
+    return moveThem(e, people);
+  }
   const going = people.filter(f => f.work !== want.shed.uid);
   if (!going.length) return say(`they are already at the ${want.shed.name}.`);
   // Ask the shed before anybody sets off. "Off they go" and then "it has
@@ -5378,6 +5385,25 @@ function moveThem(e, people, at) {
   }
   for (const [uid, n] of off) send(`rest ${uid} ${n}`);
   bark('go', e, 'ground');
+}
+
+/* Why ground that asks for work has none to give: no shed works it yet,
+ * or the one that does is going up, shut, or full. Empty for plain
+ * ground, which asks for nothing. */
+const GROUND = { forest: 'these trees', field: 'this field', water: 'the water',
+                 hill: 'the hill', clay: 'the clay' };
+function noWorkFor(ev) {
+  const kind = tileKind(...screenToTile(ev));
+  const want = WORK_ON[kind];
+  if (!want || !plan) return '';
+  const sheds = plan.buildings.filter(b => b.terrain === want);
+  if (!sheds.length)
+    return `nothing works ${GROUND[kind]} yet -- B to build a shed for it, then right-click again.`;
+  const b = sheds[0];
+  if (sheds.every(s => !s.complete)) return `the ${b.name} is still going up -- they walk over and wait.`;
+  if (sheds.every(s => !s.complete || s.enabled === false))
+    return `the ${b.name} is shut -- \`i\` on it to open it.`;
+  return `the ${b.name} has all the hands it can use -- they walk over and wait.`;
 }
 
 /* Which sheds can take hands at all, and which is nearest to a click.
