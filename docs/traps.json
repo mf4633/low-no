@@ -1,45 +1,49 @@
 {
- "at": "2026-09-29T18:40:48.679697Z",
+ "at": "2026-09-29T19:38:40.326233Z",
  "traps": [
   {
-   "city": "DC",
-   "ceiling": 73,
-   "price": 90,
-   "p_model": 1.0,
-   "p_market": 0.9,
-   "edge_pts": 10.0,
+   "city": "LAX",
+   "ceiling": 79,
+   "price": 45,
+   "p_model": 0.6864,
+   "p_market": 0.45,
+   "edge_pts": 23.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "GRAVEYARD",
-     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "45c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 12:00 is past this station's measured convergence hour (12:00) with the running max still 0.2F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "LAS",
-   "ceiling": 81,
-   "price": 8,
-   "p_model": 0.1058,
-   "p_market": 0.08,
-   "edge_pts": 2.6,
-   "size_lcb": 0.0,
+   "city": "DC",
+   "ceiling": 73,
+   "price": 92,
+   "p_model": 1.0,
+   "p_market": 0.92,
+   "edge_pts": 8.0,
+   "size_lcb": 0.0416,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
