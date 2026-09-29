@@ -2784,6 +2784,7 @@ function frame() {
     drawPencil(t);
     ctx.restore();
   }
+  drawOrderHint();
   drawBarks(w, h);
   nextFrame();
 }
@@ -5392,19 +5393,75 @@ function moveThem(e, people, at) {
  * ground, which asks for nothing. */
 const GROUND = { forest: 'these trees', field: 'this field', water: 'the water',
                  hill: 'the hill', clay: 'the clay' };
-function noWorkFor(ev) {
+function workGap(ev) {
   const kind = tileKind(...screenToTile(ev));
   const want = WORK_ON[kind];
-  if (!want || !plan) return '';
+  if (!want || !plan) return null;
   const sheds = plan.buildings.filter(b => b.terrain === want);
-  if (!sheds.length)
-    return `nothing works ${GROUND[kind]} yet -- B to build a shed for it, then right-click again.`;
-  const b = sheds[0];
-  if (sheds.every(s => !s.complete)) return `the ${b.name} is still going up -- they walk over and wait.`;
-  if (sheds.every(s => !s.complete || s.enabled === false))
-    return `the ${b.name} is shut -- \`i\` on it to open it.`;
-  return `the ${b.name} has all the hands it can use -- they walk over and wait.`;
+  const name = sheds.length ? sheds[0].name : '';
+  if (!sheds.length) return { kind, name, why: 'none' };
+  if (sheds.every(s => !s.complete)) return { kind, name, why: 'building' };
+  if (sheds.every(s => !s.complete || s.enabled === false)) return { kind, name, why: 'shut' };
+  return { kind, name, why: 'full' };
 }
+function noWorkFor(ev) {
+  const g = workGap(ev);
+  if (!g) return '';
+  if (g.why === 'none')
+    return `nothing works ${GROUND[g.kind]} yet -- B to build a shed for it, then right-click again.`;
+  if (g.why === 'building') return `the ${g.name} is still going up -- they walk over and wait.`;
+  if (g.why === 'shut') return `the ${g.name} is shut -- \`i\` on it to open it.`;
+  return `the ${g.name} has all the hands it can use -- they walk over and wait.`;
+}
+
+/* What a right-click would do, shown before you make it. With hands picked
+ * and the pointer on trees or a field, a tag by the cursor names the shed
+ * they would go to and how full it is -- or, in red, why there is none. The
+ * cursor is how the genre answers "what will this click do"; a menu would
+ * put a second click in front of the commonest order in the game. */
+const VERB = { forest: 'fell', field: 'till', water: 'fish', hill: 'quarry', clay: 'dig' };
+const GAP = { none: 'nothing works it -- B', building: 'still going up',
+              shut: 'shut', full: 'full' };
+let hoverEv = null;
+function orderHint(ev) {
+  if (!ev || !plan || mode !== 'town' || sel.kind !== 'folk') return null;
+  if (box || drag || stroke || placing || drawing()) return null;
+  if (!sel.ids.some(i => { const f = plan.folk[i];
+    return f && f.kind !== 'kin' && f.kind !== 'watch'; })) return null;
+  const hit = buildingAt(ev);
+  const kind = tileKind(...screenToTile(ev));
+  const shed = hit && worksAt(hit) ? hit
+    : WORK_ON[kind] ? nearestWork(ev, WORK_ON[kind]) : null;
+  if (shed) {
+    const m = state && state.margin ? state.margin[shed.uid] : null;
+    const staffed = m ? m.staffed : 0, jobs = m ? m.jobs : 0;
+    const verb = hit === shed ? 'work' : (VERB[kind] || 'work');
+    return { text: `${verb} -- ${shed.name} ${staffed}/${jobs}`, ok: staffed < jobs };
+  }
+  const g = workGap(ev);
+  if (!g) return null;
+  return { text: g.name ? `${g.name}: ${GAP[g.why]}` : GAP[g.why], ok: false };
+}
+function drawOrderHint() {
+  const hint = orderHint(hoverEv);
+  if (!hint) return;
+  const r = canvas.getBoundingClientRect();
+  const x = hoverEv.clientX - r.left + 16, y = hoverEv.clientY - r.top + 20;
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.font = '12px Georgia, serif';
+  const bw = ctx.measureText(hint.text).width + 12, bh = 18;
+  ctx.fillStyle = hint.ok ? 'rgba(243,234,214,.92)' : 'rgba(120,30,20,.9)';
+  ctx.strokeStyle = 'rgba(60,44,24,.7)'; ctx.lineWidth = 1;
+  ctx.fillRect(x, y, bw, bh); ctx.strokeRect(x + .5, y + .5, bw - 1, bh - 1);
+  ctx.fillStyle = hint.ok ? '#2a1f12' : '#f3ead6'; ctx.textBaseline = 'middle';
+  ctx.fillText(hint.text, x + 6, y + bh / 2 + 1);
+  ctx.restore();
+}
+canvas.addEventListener('pointermove', e => {
+  hoverEv = e.pointerType === 'touch' ? null : { clientX: e.clientX, clientY: e.clientY };
+});
+canvas.addEventListener('pointerleave', () => { hoverEv = null; });
 
 /* Which sheds can take hands at all, and which is nearest to a click.
  * `margin` carries the jobs a shed offers, because that is the same
