@@ -1,14 +1,14 @@
 {
- "at": "2026-09-30T20:38:23.900458Z",
+ "at": "2026-09-30T21:42:27.500989Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 68,
-   "price": 3,
-   "p_model": 0.1343,
-   "p_market": 0.03,
-   "edge_pts": 10.4,
-   "size_lcb": 0.0047,
+   "price": 1,
+   "p_model": 0.1461,
+   "p_market": 0.01,
+   "edge_pts": 13.6,
+   "size_lcb": 0.0206,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -16,26 +16,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 1.8F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SAT",
-   "ceiling": 91,
-   "price": 90,
-   "p_model": 1.0,
-   "p_market": 0.9,
-   "edge_pts": 10.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "local hour 17:00 is past this station's measured convergence hour (12:00) with the running max still 1.8F short. The climb window has closed."
     }
    ]
   }
