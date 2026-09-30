@@ -1,5 +1,5 @@
 {
- "at": "2026-09-30T22:45:37.581405Z",
+ "at": "2026-09-30T22:51:23.143284Z",
  "cities": [
   {
    "city": "AUS",
@@ -435,11 +435,11 @@
      "floor": 65,
      "kind": "range",
      "label": "65-66",
-     "price": 93,
+     "price": 97,
      "p_no": 0.7746,
-     "p_mkt": 0.93,
-     "edge": -0.1554,
-     "ev_c": -16.3,
+     "p_mkt": 0.97,
+     "edge": -0.1954,
+     "ev_c": -20.3,
      "sigma": 2.26,
      "bias": 0.2,
      "dist": "normal+convective",
@@ -463,11 +463,11 @@
      "floor": 63,
      "kind": "range",
      "label": "63-64",
-     "price": 9,
+     "price": 6,
      "p_no": 1.0,
-     "p_mkt": 0.09,
-     "edge": 0.91,
-     "ev_c": 90.0,
+     "p_mkt": 0.06,
+     "edge": 0.94,
+     "ev_c": 93.0,
      "sigma": 2.26,
      "bias": 0.2,
      "dist": "normal+convective",
@@ -727,7 +727,7 @@
    },
    "guide": 86,
    "run_max": 84.2,
-   "pop": 37,
+   "pop": 71,
    "rungs": [
     {
      "ticker": "KXHIGHMIA-26SEP30-T89",
@@ -744,7 +744,7 @@
      "bias": -0.87,
      "dist": "normal+convective",
      "warn": [
-      "PoP 37 -- Gaussian unfit on storm days"
+      "PoP 71 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -771,7 +771,7 @@
      "bias": -0.87,
      "dist": "normal+convective",
      "warn": [
-      "PoP 37 -- Gaussian unfit on storm days"
+      "PoP 71 -- Gaussian unfit on storm days"
      ],
      "p_empirical": 1.0,
      "emp_n": null,
@@ -798,7 +798,7 @@
      "bias": -0.87,
      "dist": "normal+convective",
      "warn": [
-      "PoP 37 -- Gaussian unfit on storm days",
+      "PoP 71 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -826,7 +826,7 @@
      "bias": -0.87,
      "dist": "normal+convective",
      "warn": [
-      "PoP 37 -- Gaussian unfit on storm days",
+      "PoP 71 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -854,7 +854,7 @@
      "bias": -0.87,
      "dist": "normal+convective",
      "warn": [
-      "PoP 37 -- Gaussian unfit on storm days",
+      "PoP 71 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -882,7 +882,7 @@
      "bias": -0.87,
      "dist": "normal+convective",
      "warn": [
-      "PoP 37 -- Gaussian unfit on storm days"
+      "PoP 71 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -906,9 +906,9 @@
     "mode": "seasonal(m09,n=29)",
     "dist": "normal"
    },
-   "guide": 76,
+   "guide": 74,
    "run_max": 73.04,
-   "pop": 5,
+   "pop": 0,
    "rungs": [
     {
      "ticker": "KXHIGHNY-26SEP30-T79",
@@ -917,10 +917,10 @@
      "kind": "top",
      "label": ">=80",
      "price": 100,
-     "p_no": 0.9918,
+     "p_no": 0.9995,
      "p_mkt": 1.0,
-     "edge": -0.0082,
-     "ev_c": -0.8,
+     "edge": -0.0005,
+     "ev_c": -0.0,
      "sigma": 1.89,
      "bias": 1.16,
      "dist": "normal",
@@ -967,10 +967,10 @@
      "kind": "range",
      "label": "78-79",
      "price": 100,
-     "p_no": 0.9122,
+     "p_no": 0.9855,
      "p_mkt": 1.0,
-     "edge": -0.0878,
-     "ev_c": -8.8,
+     "edge": -0.0145,
+     "ev_c": -1.4,
      "sigma": 1.89,
      "bias": 1.16,
      "dist": "normal",
@@ -992,10 +992,10 @@
      "kind": "range",
      "label": "76-77",
      "price": 100,
-     "p_no": 0.6579,
+     "p_no": 0.841,
      "p_mkt": 1.0,
-     "edge": -0.3421,
-     "ev_c": -34.2,
+     "edge": -0.159,
+     "ev_c": -15.9,
      "sigma": 1.89,
      "bias": 1.16,
      "dist": "normal",
@@ -1019,10 +1019,10 @@
      "kind": "range",
      "label": "74-75",
      "price": 1,
-     "p_no": 0.521,
+     "p_no": 0.3801,
      "p_mkt": 0.01,
-     "edge": 0.511,
-     "ev_c": 50.6,
+     "edge": 0.3701,
+     "ev_c": 36.6,
      "sigma": 1.89,
      "bias": 1.16,
      "dist": "normal",
@@ -1033,7 +1033,7 @@
      "emp_n": null,
      "emp_source": null,
      "p_source": "gaussian_only",
-     "half_kelly": 0.2581,
+     "half_kelly": 0.1869,
      "half_kelly_lcb": 0.0,
      "size_frac": 0.05,
      "size_cap": 0.05,
@@ -1260,11 +1260,11 @@
      "floor": 87,
      "kind": "top",
      "label": ">=87",
-     "price": 93,
+     "price": 90,
      "p_no": 0.7063,
-     "p_mkt": 0.93,
-     "edge": -0.2237,
-     "ev_c": -23.1,
+     "p_mkt": 0.9,
+     "edge": -0.1937,
+     "ev_c": -20.1,
      "sigma": 2.67,
      "bias": -0.04,
      "dist": "normal",
@@ -1312,11 +1312,11 @@
      "floor": 85,
      "kind": "range",
      "label": "85-86",
-     "price": 10,
+     "price": 14,
      "p_no": 0.4134,
-     "p_mkt": 0.1,
-     "edge": 0.3134,
-     "ev_c": 30.9,
+     "p_mkt": 0.14,
+     "edge": 0.2734,
+     "ev_c": 26.9,
      "sigma": 2.67,
      "bias": -0.04,
      "dist": "normal",
@@ -1327,7 +1327,7 @@
      "emp_n": null,
      "emp_source": null,
      "p_source": "gaussian_only",
-     "half_kelly": 0.1741,
+     "half_kelly": 0.1589,
      "half_kelly_lcb": 0.0,
      "size_frac": 0.05,
      "size_cap": 0.05,
@@ -1534,11 +1534,11 @@
      "floor": 63,
      "kind": "range",
      "label": "63-64",
-     "price": 85,
+     "price": 78,
      "p_no": 1.0,
-     "p_mkt": 0.85,
-     "edge": 0.15,
-     "ev_c": 14.0,
+     "p_mkt": 0.78,
+     "edge": 0.22,
+     "ev_c": 20.0,
      "sigma": 2.78,
      "bias": 0.14,
      "dist": "normal",
@@ -2460,7 +2460,7 @@
    },
    "guide": 92,
    "run_max": 93.2,
-   "pop": 23,
+   "pop": 21,
    "rungs": [
     {
      "ticker": "KXHIGHTHOU-26SEP30-T98",
@@ -2477,7 +2477,7 @@
      "bias": 0.03,
      "dist": "normal+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 21 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -2504,7 +2504,7 @@
      "bias": 0.03,
      "dist": "normal+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 21 -- Gaussian unfit on storm days"
      ],
      "p_empirical": 1.0,
      "emp_n": null,
@@ -2531,7 +2531,7 @@
      "bias": 0.03,
      "dist": "normal+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 21 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -2558,7 +2558,7 @@
      "bias": 0.03,
      "dist": "normal+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days",
+      "PoP 21 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -2586,7 +2586,7 @@
      "bias": 0.03,
      "dist": "normal+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 21 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -2613,7 +2613,7 @@
      "bias": 0.03,
      "dist": "normal+convective",
      "warn": [
-      "PoP 23 -- Gaussian unfit on storm days"
+      "PoP 21 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -2948,11 +2948,11 @@
      "floor": 72,
      "kind": "range",
      "label": "72-73",
-     "price": 5,
+     "price": 6,
      "p_no": 0.9633,
-     "p_mkt": 0.05,
-     "edge": 0.9133,
-     "ev_c": 90.4,
+     "p_mkt": 0.06,
+     "edge": 0.9033,
+     "ev_c": 89.4,
      "sigma": 2.4,
      "bias": -0.66,
      "dist": "normal",
@@ -2963,7 +2963,7 @@
      "emp_n": null,
      "emp_source": null,
      "p_source": "gaussian_only",
-     "half_kelly": 0.4807,
+     "half_kelly": 0.4805,
      "half_kelly_lcb": 0.0,
      "size_frac": 0.05,
      "size_cap": 0.05,
@@ -3593,11 +3593,11 @@
      "floor": 96,
      "kind": "range",
      "label": "96-97",
-     "price": 99,
+     "price": 100,
      "p_no": 0.6513,
-     "p_mkt": 0.99,
-     "edge": -0.3387,
-     "ev_c": -34.5,
+     "p_mkt": 1.0,
+     "edge": -0.3487,
+     "ev_c": -34.9,
      "sigma": 2.19,
      "bias": -0.05,
      "dist": "normal+convective",
@@ -3621,11 +3621,11 @@
      "floor": 94,
      "kind": "range",
      "label": "94-95",
-     "price": 5,
+     "price": 4,
      "p_no": 0.5846,
-     "p_mkt": 0.05,
-     "edge": 0.5346,
-     "ev_c": 52.9,
+     "p_mkt": 0.04,
+     "edge": 0.5446,
+     "ev_c": 53.9,
      "sigma": 2.19,
      "bias": -0.05,
      "dist": "normal+convective",
@@ -3637,7 +3637,7 @@
      "emp_n": null,
      "emp_source": null,
      "p_source": "gaussian_only",
-     "half_kelly": 0.2814,
+     "half_kelly": 0.2837,
      "half_kelly_lcb": 0.0,
      "size_frac": 0.05,
      "size_cap": 0.05,
