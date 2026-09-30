@@ -1,13 +1,32 @@
 {
- "at": "2026-09-30T19:34:19.446973Z",
+ "at": "2026-09-30T20:38:23.900458Z",
  "traps": [
+  {
+   "city": "BOS",
+   "ceiling": 68,
+   "price": 3,
+   "p_model": 0.1343,
+   "p_market": 0.03,
+   "edge_pts": 10.4,
+   "size_lcb": 0.0047,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 1.8F short. The climb window has closed."
+    }
+   ]
+  },
   {
    "city": "SAT",
    "ceiling": 91,
-   "price": 85,
-   "p_model": 0.9593,
-   "p_market": 0.85,
-   "edge_pts": 10.9,
+   "price": 90,
+   "p_model": 1.0,
+   "p_market": 0.9,
+   "edge_pts": 10.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,41 +35,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "85c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "BOS",
-   "ceiling": 68,
-   "price": 5,
-   "p_model": 0.141,
-   "p_market": 0.05,
-   "edge_pts": 9.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (12:00) with the running max still 1.8F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 60,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
