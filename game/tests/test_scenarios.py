@@ -144,6 +144,9 @@ class TestBalance(unittest.TestCase):
     #: used to be -- happens to be one of them after the roll of the dead
     #: went exact. Losing ten of sixteen is "usually dies", which is a fault;
     #: at the measured rate it trips about one run in a hundred.
+    #: Most of those were the bot's own doing -- bakeries shut on a
+    #: cheap-bread day and never reopened under siege -- and with that
+    #: fixed it is 6 of 58 (2026-10-01).
     LASTING_SEEDS = tuple(range(5, 21))
 
     @slow

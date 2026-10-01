@@ -172,9 +172,15 @@ class Bot:
         # go on buying carts and buildings with a besieged town's last coin
         # and hand back "Ruined. Your debts outran your carts" from inside
         # its own walls.
+        # The shutter is not skipped with them. A bakery closed on a
+        # cheap-bread morning the day before the ring closed stayed closed
+        # through the whole siege, and the town starved with six hundred of
+        # flour in the warehouse -- most of the Salt Road's lost towns
+        # (19 of 58 seeds measured 2026-10-01; 6 with this).
         if any(s.besieged for s in g.world.settlements.values()):
             for s in g.world.settlements.values():
                 self._govern(s)
+                self._shutter(s)
             self._hold_out()
             self._defend()
             # A cart that cannot move is still on the books. Skipping the
