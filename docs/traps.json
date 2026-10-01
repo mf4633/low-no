@@ -1,5 +1,5 @@
 {
- "at": "2026-10-01T23:12:42.296332Z",
+ "at": "2026-10-01T23:20:46.437828Z",
  "traps": [
   {
    "city": "SAT",
@@ -21,6 +21,33 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "SAN",
+   "ceiling": 79,
+   "price": 1,
+   "p_model": 0.2911,
+   "p_market": 0.01,
+   "edge_pts": 28.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 0.2F short. The climb window has closed."
     }
    ]
   },
@@ -48,6 +75,29 @@
    ]
   },
   {
+   "city": "OKC",
+   "ceiling": 78,
+   "price": 1,
+   "p_model": 0.0857,
+   "p_market": 0.01,
+   "edge_pts": 7.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 2.1F short. The climb window has closed."
+    }
+   ]
+  },
+  {
    "city": "LAX",
    "ceiling": 78,
    "price": 1,
@@ -67,29 +117,6 @@
     {
      "code": "PAST_PEAK",
      "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 2.1F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "OKC",
-   "ceiling": 78,
-   "price": 1,
-   "p_model": 0.0369,
-   "p_market": 0.01,
-   "edge_pts": 2.7,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-12F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 2.1F short. The climb window has closed."
     }
    ]
   }
