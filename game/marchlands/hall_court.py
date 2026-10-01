@@ -292,10 +292,13 @@ class CourtMixin:
         rival_wars = sum(1 for a in self.armies
                          if a.owner != "player" and a.bound_for in self.world.towns)
 
+        lapsed: List[str] = []
         for key, t in self.world.towns.items():
             t.grow(self.rng, besieged=key in besieged, day=self.day)
             if t.truce_days > 0:
                 t.truce_days -= 1
+                if t.truce_days == 0 and not t.mine:
+                    lapsed.append(t.name)
             if t.mine:
                 said = self._loyalty_day(key, t)
                 if said:
@@ -347,6 +350,21 @@ class CourtMixin:
             t.ambition = 0.0
             rival_wars += 1
             msgs.append(self._send_host(t, pressure, prey))
+        if lapsed:
+            # A truce used to run out in silence: the countdown went to zero
+            # on the court screen and the next anybody heard of it was a lord
+            # gathering men. The day it ends is a dated reason, so it is a
+            # line -- one for all of them, since the Salt Road's run out
+            # together.
+            which = (lapsed[0] if len(lapsed) == 1 else
+                     f"{', '.join(lapsed[:-1])} and {lapsed[-1]}")
+            one = len(lapsed) == 1
+            msgs.append(self.note(
+                f"The {'truce' if one else 'truces'} with {which} "
+                f"{'has' if one else 'have'} run out. Nothing holds "
+                f"{'him' if one else 'them'} now but "
+                f"{'his temper' if one else 'their tempers'} -- `court` for "
+                f"{'how it stands' if one else 'whose is up'}."))
         return msgs
 
     # -------------------------------------------------------- the chancery

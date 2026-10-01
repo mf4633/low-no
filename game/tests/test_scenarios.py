@@ -89,9 +89,13 @@ class TestEachScenario(unittest.TestCase):
         self.assertTrue(all(t.truce_days == C.DAYS_PER_YEAR
                             for t in g.world.towns.values()))
         self.assertIn("year's truce", g.briefing)
-        g.advance(C.DAYS_PER_YEAR)
+        said = g.advance(C.DAYS_PER_YEAR)
         self.assertFalse(any(t.truce_days for t in g.world.towns.values()
                              if not t.mine))
+        # And it ends out loud, once, not as eight lines on the same day.
+        ends = [m for m in said if "run out" in m]
+        self.assertEqual(len(ends), 1, ends)
+        self.assertIn("truces with", ends[0])
 
     def test_the_iron_marches_opens_on_the_ore(self):
         g = start("iron_marches")
