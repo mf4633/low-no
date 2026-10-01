@@ -81,6 +81,18 @@ class TestEachScenario(unittest.TestCase):
         self.assertTrue(home.effect("port"))
         self.assertTrue(g.world.is_port("sealow"))
 
+    def test_the_salt_road_is_quiet_for_a_year_and_no_longer(self):
+        """The briefing promises a year's truce, and a soft seat on the
+        shore was besieged most games without one. Both years would be a
+        walk -- see `_salt_road` for the measurement."""
+        g = start("salt_road")
+        self.assertTrue(all(t.truce_days == C.DAYS_PER_YEAR
+                            for t in g.world.towns.values()))
+        self.assertIn("year's truce", g.briefing)
+        g.advance(C.DAYS_PER_YEAR)
+        self.assertFalse(any(t.truce_days for t in g.world.towns.values()
+                             if not t.mine))
+
     def test_the_iron_marches_opens_on_the_ore(self):
         g = start("iron_marches")
         home = next(iter(g.world.settlements.values()))

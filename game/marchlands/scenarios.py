@@ -78,6 +78,15 @@ def _salt_road(seed: int, house: str) -> GameState:
         stock=stores)
     build_towns(world, seed, temper=(0.9, 2.0), aggression=(0.2, 0.7),
                 hostility=(0.0, 25.0))
+    # The quiet is a treaty, not a temperament. Mild lords alone did not keep
+    # it: a seat with three spearmen and no wall is the softest mark on the
+    # march, and that weighed more with them than their nature did -- the
+    # shore was under siege for 75 to 273 of its 720 days (2026-10-01).
+    # A year of truce makes the briefing true and the second year the
+    # chapter's turn. Measured over 58 seeds of the bot: none, 0 wins and 3
+    # towns lost; a year, 13 and 1; both years, 46 and 0, which is a walk.
+    for t in world.towns.values():
+        t.truce_days = C.DAYS_PER_YEAR
     build_sites(world)                       # Sealow is yours, so it is not listed
     build_shrines(world)
     g = GameState(world=world, treasury=2200.0, seed=seed, house=house,
@@ -92,8 +101,9 @@ def _salt_road(seed: int, house: str) -> GameState:
     g._outlay = 0.0
     g.briefing = (
         "Sealow has a quay, a saltpan and no walls worth the name.\n"
-        "The lords inland are quiet this decade and have no quarrel with you.\n"
-        "You have two years to make the shore pay for itself."
+        "The lords inland have sworn a year's truce and have no quarrel with you.\n"
+        "You have two years to make the shore pay for itself, and one before\n"
+        "the shore is worth robbing."
     )
     return g
 
@@ -317,7 +327,8 @@ SCENARIOS: Dict[str, Scenario] = {s.key: s for s in [
     Scenario("marchlands", "The Marchlands", _marchlands,
              blurb="The full march. One hill, seven towns, three ways to win."),
     Scenario("salt_road", "The Salt Road", _salt_road, years=2,
-             blurb="Coastal and peaceful. Trade only, two years, no walls to hide behind."),
+             blurb="Coastal, and a year's truce. Trade first, two years, no walls "
+                   "to hide behind when the truce runs out."),
     Scenario("iron_marches", "The Iron Marches", _iron_marches,
              blurb="Ore under you, grain nowhere, and lords who already hate you."),
     Scenario("winter_crown", "The Winter Crown", _winter_crown, years=2.5,
