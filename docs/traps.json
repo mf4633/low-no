@@ -1,5 +1,5 @@
 {
- "at": "2026-10-01T22:06:57.219852Z",
+ "at": "2026-10-01T23:12:42.296332Z",
  "traps": [
   {
    "city": "SAT",
@@ -27,29 +27,33 @@
   {
    "city": "SFO",
    "ceiling": 74,
-   "price": 12,
-   "p_model": 0.2478,
-   "p_market": 0.12,
-   "edge_pts": 12.8,
+   "price": 1,
+   "p_model": 0.1955,
+   "p_market": 0.01,
+   "edge_pts": 18.6,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
+    },
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 0.6F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 0.6F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "LAX",
    "ceiling": 78,
-   "price": 3,
-   "p_model": 0.0619,
-   "p_market": 0.03,
-   "edge_pts": 3.2,
+   "price": 1,
+   "p_model": 0.0823,
+   "p_market": 0.01,
+   "edge_pts": 7.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,22 +66,22 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (12:00) with the running max still 2.8F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (12:00) with the running max still 2.1F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "OKC",
    "ceiling": 78,
-   "price": 4,
-   "p_model": 0.0679,
-   "p_market": 0.04,
-   "edge_pts": 2.8,
+   "price": 1,
+   "p_model": 0.0369,
+   "p_market": 0.01,
+   "edge_pts": 2.7,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-12F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
@@ -85,7 +89,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 2.8F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 2.1F short. The climb window has closed."
     }
    ]
   }
