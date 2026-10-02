@@ -1,18 +1,18 @@
 {
- "at": "2026-10-02T21:28:48.835684Z",
+ "at": "2026-10-02T22:31:00.892265Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 85,
    "price": 1,
-   "p_model": 0.1452,
+   "p_model": 0.084,
    "p_market": 0.01,
-   "edge_pts": 13.5,
+   "edge_pts": 7.4,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
@@ -20,7 +20,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.8F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.8F short. The climb window has closed."
     }
    ]
   }
