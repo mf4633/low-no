@@ -1,77 +1,149 @@
 {
- "at": "2026-10-01T23:20:47.342582Z",
+ "at": "2026-10-02T18:25:18.177473Z",
  "tracked": [
   {
-   "city": "SAT",
-   "station": "KSAT",
-   "ticker": "KXHIGHTSATX-26OCT01-T85",
-   "verdict": "DEAD_SCAVENGE",
+   "city": "SFO",
+   "station": "KSFO",
+   "ticker": "KXHIGHTSFO-26OCT02-T77",
+   "verdict": "QUALIFIED",
    "qualified": true,
-   "ceiling": 84,
-   "run_max": 84.02,
-   "gap_to_clear": -0.0,
-   "already_cleared": true,
-   "guide": 84,
-   "pop": 72,
-   "no_ask": 0.01,
-   "local_hour": 18,
+   "ceiling": 76,
+   "run_max": 64.4,
+   "gap_to_clear": 11.6,
+   "already_cleared": false,
+   "guide": 81,
+   "pop": 0,
+   "no_ask": 0.47,
+   "local_hour": 11,
    "obs_trace": [
     {
-     "ts": "2026-10-01T21:51:00+00:00",
+     "ts": "2026-10-02T18:00:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T20:51:00+00:00",
+     "ts": "2026-10-02T17:56:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T19:51:00+00:00",
+     "ts": "2026-10-02T17:55:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T19:48:00+00:00",
+     "ts": "2026-10-02T17:50:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T19:32:00+00:00",
+     "ts": "2026-10-02T17:45:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T19:17:00+00:00",
+     "ts": "2026-10-02T17:40:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T19:10:00+00:00",
+     "ts": "2026-10-02T17:35:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T18:51:00+00:00",
+     "ts": "2026-10-02T17:30:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T17:51:00+00:00",
+     "ts": "2026-10-02T17:25:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-01T17:29:00+00:00",
+     "ts": "2026-10-02T17:20:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": -0.6,
-    "q50": 0.0,
-    "q90": 1.4
+    "q10": 2.4,
+    "q50": 4.6,
+    "q90": 12.8
    },
    "projected_max": {
-    "q10": 83.4,
-    "q50": 84.0,
-    "q90": 85.4
+    "q10": 66.8,
+    "q50": 69.0,
+    "q90": 77.2
    },
-   "p_exceed_empirical": 1.0,
-   "emp_n": null,
-   "convergence_hour": 16,
-   "past_convergence": true,
-   "note": "day effectively decided"
+   "p_exceed_empirical": 0.13,
+   "emp_n": 98,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  },
+  {
+   "city": "SAN",
+   "station": "KSAN",
+   "ticker": "KXHIGHTSAN-26OCT02-T91",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 90,
+   "run_max": 87.8,
+   "gap_to_clear": 2.2,
+   "already_cleared": false,
+   "guide": 95,
+   "pop": 0,
+   "no_ask": 0.38,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-10-02T18:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T18:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-02T17:25:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -0.2,
+    "q50": 1.8,
+    "q90": 5.0
+   },
+   "projected_max": {
+    "q10": 87.6,
+    "q50": 89.6,
+    "q90": 92.8
+   },
+   "p_exceed_empirical": 0.3462,
+   "emp_n": 76,
+   "convergence_hour": 12,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
   }
  ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
