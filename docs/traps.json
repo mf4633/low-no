@@ -1,45 +1,37 @@
 {
- "at": "2026-10-03T22:25:34.888342Z",
+ "at": "2026-10-03T23:29:41.714559Z",
  "traps": [
   {
    "city": "AUS",
    "ceiling": 78,
-   "price": 11,
+   "price": 3,
    "p_model": 1.0,
-   "p_market": 0.11,
-   "edge_pts": 89.0,
+   "p_market": 0.03,
+   "edge_pts": 97.0,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 89 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 97 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "OKC",
    "ceiling": 70,
-   "price": 32,
-   "p_model": 0.5948,
-   "p_market": 0.32,
-   "edge_pts": 27.5,
+   "price": 12,
+   "p_model": 0.5347,
+   "p_market": 0.12,
+   "edge_pts": 41.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 27 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "model and market differ by 41 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
     }
    ]
   },
@@ -47,9 +39,9 @@
    "city": "DC",
    "ceiling": 68,
    "price": 1,
-   "p_model": 0.0937,
+   "p_model": 0.1692,
    "p_market": 0.01,
-   "edge_pts": 8.4,
+   "edge_pts": 15.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -57,12 +49,16 @@
      "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 1.1F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (14:00) with the running max still 1.1F short. The climb window has closed."
     }
    ]
   }
