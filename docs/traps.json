@@ -1,13 +1,13 @@
 {
- "at": "2026-10-03T22:16:19.190697Z",
+ "at": "2026-10-03T22:25:34.888342Z",
  "traps": [
   {
    "city": "AUS",
    "ceiling": 78,
-   "price": 18,
+   "price": 11,
    "p_model": 1.0,
-   "p_market": 0.18,
-   "edge_pts": 82.0,
+   "p_market": 0.11,
+   "edge_pts": 89.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,22 +16,26 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 82 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 89 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "OKC",
    "ceiling": 70,
-   "price": 12,
+   "price": 32,
    "p_model": 0.5948,
-   "p_market": 0.12,
-   "edge_pts": 47.5,
+   "p_market": 0.32,
+   "edge_pts": 27.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 47 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 27 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     },
     {
      "code": "PAST_PEAK",
