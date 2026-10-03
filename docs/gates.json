@@ -3,21 +3,21 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 2658,
-  "brier_base": 0.1089,
-  "brier_shape": 0.11,
-  "improvement_pct": -0.93
+  "n": 2769,
+  "brier_base": 0.1059,
+  "brier_shape": 0.1065,
+  "improvement_pct": -0.56
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1019,
-  "days": 36,
+  "events": 1023,
+  "days": 37,
   "lag_corr": -0.015,
   "lag_ci": [
-   -0.076,
-   0.047
+   -0.077,
+   0.046
   ]
  },
  "H6": {
@@ -32,7 +32,7 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 804,
+  "pooled_n": 1044,
   "hourly": {
    "n": 0,
    "brier_base": null,
@@ -40,24 +40,24 @@
    "improved": null
   },
   "control": {
-   "n": 804,
-   "brier_base": 0.0764,
-   "brier_shape": 0.0756,
-   "improved": true
+   "n": 1044,
+   "brier_base": 0.0754,
+   "brier_shape": 0.0765,
+   "improved": false
   },
   "ready": false,
   "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=804"
+  "reason": "need 50 scored decisions per stratum; have hourly=0, control=1044"
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 997,
-   "stalled_off": 601,
-   "climbing_on": 1120,
-   "climbing_off": 78
+   "stalled_on": 1017,
+   "stalled_off": 614,
+   "climbing_on": 1146,
+   "climbing_off": 81
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -67,21 +67,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 464,
-   "mean": -0.00153,
+   "n": 467,
+   "mean": -0.00112,
    "ci": [
-    -0.00649,
-    0.00344
+    -0.00604,
+    0.0038
    ]
   },
   "tail": {
-   "n": 872,
-   "mean": -0.00166,
+   "n": 875,
+   "mean": -0.00157,
    "ci": [
-    -0.00425,
-    0.00093
+    -0.00417,
+    0.00102
    ]
   }
  },
- "generated": "2026-10-02T13:56:37.607771Z"
+ "generated": "2026-10-03T08:04:48.648807Z"
 }

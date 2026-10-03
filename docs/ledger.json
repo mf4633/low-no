@@ -31316,9 +31316,472 @@
      "attribution": "BOUNDARY"
     }
    ]
+  },
+  {
+   "date": "2026-10-02",
+   "flags": [
+    {
+     "date": "2026-10-02",
+     "city": "SFO",
+     "station": "KSFO",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTSFO-26OCT02-T77",
+      "ceiling": 76,
+      "no_ask": 0.4,
+      "quote_src": "native",
+      "yes_bid": 60,
+      "run_max": 66.2,
+      "guide": 81,
+      "pop": 0,
+      "G": 5,
+      "net_cents": 58.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "WARN": "pace deficit 15F at entry -- Denver-Aug4 profile; verify slope/mechanism before executing",
+      "upstream": {
+       "city": "SFO",
+       "status": "calm_or_unknown",
+       "note": "no defined flow; upstream signal is meaningless"
+      },
+      "stall": null,
+      "sky": {
+       "cover": "BKN",
+       "base_ft": 1400,
+       "layers": [
+        {
+         "amount": "SCT",
+         "base_ft": 600
+        },
+        {
+         "amount": "BKN",
+         "base_ft": 1400
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 66.2,
+       "source": "fivemin",
+       "n_metar": 10,
+       "n_obs": 161
+      },
+      "sst": {
+       "buoy": "46026",
+       "sst_f": 59.2,
+       "obs_utc": "2026-10-02T19:40"
+      },
+      "forecasts": {
+       "nws_grid": 81.0,
+       "om_best": null,
+       "om_ecmwf": 75.3,
+       "om_gfs": 81.8,
+       "om_icon": 76.2,
+       "om_metno": 83.3
+      },
+      "airmass": {
+       "t850_max_f": 74.8,
+       "z500_max_m": 5901,
+       "soil_m3m3": 0.162,
+       "curve": {
+        "0": 55.8,
+        "1": 54.9,
+        "2": 55.7,
+        "3": 56.0,
+        "4": 55.2,
+        "5": 56.8,
+        "6": 54.7,
+        "7": 52.7,
+        "8": 57.1,
+        "9": 58.9,
+        "10": 61.1,
+        "11": 64.5,
+        "12": 69.3,
+        "13": 75.7,
+        "14": 79.8,
+        "15": 81.8,
+        "16": 75.5,
+        "17": 72.5,
+        "18": 69.0,
+        "19": 64.7,
+        "20": 64.2,
+        "21": 62.4,
+        "22": 61.6,
+        "23": 60.1
+       },
+       "curve_max_f": 81.8
+      },
+      "temp_now": 66.2,
+      "curve_pred_now": 75.7,
+      "curve_dev": -9.5,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 40,
+       "depth_at_best": 18,
+       "depth_le_max": 983,
+       "notional_le_max": 712.85,
+       "levels": [
+        [
+         40,
+         18
+        ],
+        [
+         42,
+         13
+        ],
+        [
+         43,
+         12
+        ],
+        [
+         44,
+         1
+        ],
+        [
+         48,
+         5
+        ],
+        [
+         49,
+         7
+        ],
+        [
+         52,
+         2
+        ],
+        [
+         56,
+         9
+        ]
+       ],
+       "yes_best_ask": 69,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-02T20:05:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-10-02T20:00:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-10-02T19:56:00+00:00",
+         "tC": null
+        },
+        {
+         "ts": "2026-10-02T19:55:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-10-02T19:50:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-02T19:45:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-02T19:40:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-02T19:35:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-02T19:30:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-02T19:25:00+00:00",
+         "tC": 18
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTSFO-26OCT02-T84",
+         "cap": null,
+         "floor": 85,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT02-T77",
+         "cap": 76,
+         "floor": null,
+         "no_ask": 40,
+         "yes_bid": 60
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT02-B83.5",
+         "cap": 84,
+         "floor": 83,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT02-B81.5",
+         "cap": 82,
+         "floor": 81,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT02-B79.5",
+         "cap": 80,
+         "floor": 79,
+         "no_ask": 93,
+         "yes_bid": 7
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT02-B77.5",
+         "cap": 78,
+         "floor": 77,
+         "no_ask": 80,
+         "yes_bid": 20
+        }
+       ],
+       "wx": "Haze"
+      },
+      "model": {
+       "p_exceed_cap": 0.1274,
+       "p_source": "blend(w_emp=0.93)",
+       "p_empirical": 0.0648,
+       "emp_n": 106,
+       "sigma": 2.54,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011Cfe2wTLA9WAoNZkxM5mT6\"}"
+     },
+     "settle": 76,
+     "attribution": "BOUNDARY"
+    },
+    {
+     "date": "2026-10-02",
+     "city": "SAN",
+     "station": "KSAN",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTSAN-26OCT02-T91",
+      "ceiling": 90,
+      "no_ask": 0.33,
+      "quote_src": "native",
+      "yes_bid": 67,
+      "run_max": 89.6,
+      "guide": 94,
+      "pop": 0,
+      "G": 4,
+      "net_cents": 65.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "SAN",
+       "status": "no_upstream_obs",
+       "upwind_bearing": 330
+      },
+      "stall": null,
+      "sky": {
+       "cover": "CLR",
+       "base_ft": 12500,
+       "layers": [
+        {
+         "amount": "CLR",
+         "base_ft": 12500
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 89.6,
+       "source": "fivemin",
+       "n_metar": 15,
+       "n_obs": 166
+      },
+      "sst": {
+       "buoy": "46232",
+       "sst_f": 72.7,
+       "obs_utc": "2026-10-02T19:56"
+      },
+      "forecasts": {
+       "nws_grid": 94.0,
+       "om_best": 88.0,
+       "om_ecmwf": 104.9,
+       "om_gfs": 88.0,
+       "om_icon": 95.6,
+       "om_metno": 93.3
+      },
+      "airmass": null,
+      "temp_now": 84.2,
+      "curve_pred_now": null,
+      "curve_dev": null,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 33,
+       "depth_at_best": 14,
+       "depth_le_max": 328,
+       "notional_le_max": 161.81,
+       "levels": [
+        [
+         33,
+         14
+        ],
+        [
+         34,
+         29
+        ],
+        [
+         35,
+         185
+        ],
+        [
+         38,
+         6
+        ],
+        [
+         43,
+         20
+        ],
+        [
+         61,
+         1
+        ],
+        [
+         93,
+         5
+        ],
+        [
+         94,
+         5
+        ]
+       ],
+       "yes_best_ask": 94,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-02T20:10:00+00:00",
+         "tC": 29
+        },
+        {
+         "ts": "2026-10-02T20:05:00+00:00",
+         "tC": 30
+        },
+        {
+         "ts": "2026-10-02T20:00:00+00:00",
+         "tC": 29
+        },
+        {
+         "ts": "2026-10-02T19:55:00+00:00",
+         "tC": 29
+        },
+        {
+         "ts": "2026-10-02T19:51:00+00:00",
+         "tC": 29.4
+        },
+        {
+         "ts": "2026-10-02T19:50:00+00:00",
+         "tC": 29
+        },
+        {
+         "ts": "2026-10-02T19:45:00+00:00",
+         "tC": 30
+        },
+        {
+         "ts": "2026-10-02T19:40:00+00:00",
+         "tC": 31
+        },
+        {
+         "ts": "2026-10-02T19:35:00+00:00",
+         "tC": 31
+        },
+        {
+         "ts": "2026-10-02T19:30:00+00:00",
+         "tC": 31
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTSAN-26OCT02-T98",
+         "cap": null,
+         "floor": 99,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTSAN-26OCT02-T91",
+         "cap": 90,
+         "floor": null,
+         "no_ask": 33,
+         "yes_bid": 67
+        },
+        {
+         "ticker": "KXHIGHTSAN-26OCT02-B97.5",
+         "cap": 98,
+         "floor": 97,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTSAN-26OCT02-B95.5",
+         "cap": 96,
+         "floor": 95,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTSAN-26OCT02-B93.5",
+         "cap": 94,
+         "floor": 93,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHTSAN-26OCT02-B91.5",
+         "cap": 92,
+         "floor": 91,
+         "no_ask": 96,
+         "yes_bid": 4
+        }
+       ],
+       "wx": "Clear"
+      },
+      "model": {
+       "p_exceed_cap": 0.4502,
+       "p_source": "blend(w_emp=0.9)",
+       "p_empirical": 0.3974,
+       "emp_n": 76,
+       "sigma": 2.24,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011Cfe3C6m5hD2TEQ1bd2421\"}"
+     },
+     "settle": 95,
+     "attribution": "WIN"
+    }
+   ]
   }
  ],
- "generated": "2026-10-02T13:52:46.549208Z",
+ "generated": "2026-10-03T07:59:56.817595Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
