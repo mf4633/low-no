@@ -3,36 +3,36 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 2769,
-  "brier_base": 0.1059,
-  "brier_shape": 0.1064,
-  "improvement_pct": -0.54
+  "n": 2877,
+  "brier_base": 0.1082,
+  "brier_shape": 0.109,
+  "improvement_pct": -0.69
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1023,
-  "days": 37,
-  "lag_corr": -0.015,
+  "events": 1038,
+  "days": 38,
+  "lag_corr": -0.012,
   "lag_ci": [
-   -0.077,
-   0.046
+   -0.072,
+   0.049
   ]
  },
  "H6": {
   "id": "H6",
   "ready": false,
   "passed": false,
-  "events": 164,
+  "events": 166,
   "need_events": 200,
-  "days": 23,
+  "days": 24,
   "need_days": 20,
   "reason": "data bar not met"
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 1083,
+  "pooled_n": 1146,
   "hourly": {
    "n": 0,
    "brier_base": null,
@@ -40,24 +40,24 @@
    "improved": null
   },
   "control": {
-   "n": 1083,
-   "brier_base": 0.076,
-   "brier_shape": 0.077,
+   "n": 1146,
+   "brier_base": 0.0805,
+   "brier_shape": 0.0815,
    "improved": false
   },
   "ready": false,
   "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=1083"
+  "reason": "need 50 scored decisions per stratum; have hourly=0, control=1146"
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1019,
-   "stalled_off": 614,
-   "climbing_on": 1146,
-   "climbing_off": 81
+   "stalled_on": 1046,
+   "stalled_off": 630,
+   "climbing_on": 1176,
+   "climbing_off": 86
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -67,21 +67,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 467,
-   "mean": -0.00112,
+   "n": 471,
+   "mean": -0.00116,
    "ci": [
-    -0.00604,
-    0.0038
+    -0.006,
+    0.00367
    ]
   },
   "tail": {
-   "n": 875,
-   "mean": -0.00157,
+   "n": 882,
+   "mean": -0.00149,
    "ci": [
-    -0.00417,
-    0.00102
+    -0.00407,
+    0.00109
    ]
   }
  },
- "generated": "2026-10-03T12:38:35.207217Z"
+ "generated": "2026-10-04T08:24:51.640340Z"
 }

@@ -31779,9 +31779,1037 @@
      "attribution": "WIN"
     }
    ]
+  },
+  {
+   "date": "2026-10-03",
+   "flags": [
+    {
+     "date": "2026-10-03",
+     "city": "OKC",
+     "station": "KOKC",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTOKC-26OCT03-T71",
+      "ceiling": 70,
+      "no_ask": 0.79,
+      "quote_src": "native",
+      "yes_bid": 21,
+      "run_max": 69.8,
+      "guide": 74,
+      "pop": 16,
+      "G": 4,
+      "net_cents": 19.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "OKC",
+       "status": "ok",
+       "upwind_bearing": 20,
+       "target_temp_f": 69.8,
+       "target_dew_f": null,
+       "wind_mps": 7.416,
+       "upstream": [
+        {
+         "station": "KGOK",
+         "ts": "2026-10-03T17:55:00+00:00",
+         "temp_f": 69.8,
+         "dew_f": null,
+         "wind_dir": 60,
+         "wind_mps": 5.544,
+         "km": 54.4,
+         "bearing": 18.7,
+         "name": "Guthrie, Guthrie Municipal Airport"
+        },
+        {
+         "station": "KSWO",
+         "ts": "2026-10-03T17:50:00+00:00",
+         "temp_f": 69.8,
+         "dew_f": null,
+         "wind_dir": 50,
+         "wind_mps": 5.544,
+         "km": 97.6,
+         "bearing": 28.1,
+         "name": "Stillwater, Stillwater Regional Airport"
+        },
+        {
+         "station": "KWDG",
+         "ts": "2026-10-03T16:50:00+00:00",
+         "temp_f": 69.8,
+         "dew_f": 60.8,
+         "wind_dir": 50,
+         "wind_mps": 7.56,
+         "km": 111.4,
+         "bearing": 351.2,
+         "name": "Enid, Enid Woodring Regional Airport"
+        }
+       ],
+       "max_upstream_temp_f": 69.8,
+       "advection_potential_f": 0.0,
+       "dew_differential_f": null,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "OVC",
+       "base_ft": 1300,
+       "layers": [
+        {
+         "amount": "OVC",
+         "base_ft": 1300
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 69.8,
+       "source": "fivemin",
+       "n_metar": 8,
+       "n_obs": 157
+      },
+      "forecasts": {
+       "nws_grid": 74.0,
+       "om_best": 68.1,
+       "om_ecmwf": 72.3,
+       "om_gfs": 68.1,
+       "om_icon": 69.9,
+       "om_metno": 72.7
+      },
+      "airmass": {
+       "t850_max_f": 59.2,
+       "z500_max_m": 5879,
+       "soil_m3m3": 0.26,
+       "curve": {
+        "0": 65.8,
+        "1": 65.6,
+        "2": 64.5,
+        "3": 63.5,
+        "4": 63.4,
+        "5": 64.3,
+        "6": 63.9,
+        "7": 63.5,
+        "8": 62.6,
+        "9": 62.8,
+        "10": 64.4,
+        "11": 66.6,
+        "12": 66.4,
+        "13": 67.2,
+        "14": 67.6,
+        "15": 68.0,
+        "16": 68.1,
+        "17": 67.7,
+        "18": 67.5,
+        "19": 67.7,
+        "20": 66.7,
+        "21": 65.6,
+        "22": 65.0,
+        "23": 64.4
+       },
+       "curve_max_f": 68.1
+      },
+      "temp_now": 69.8,
+      "curve_pred_now": 67.2,
+      "curve_dev": 2.6,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 79,
+       "depth_at_best": 31,
+       "depth_le_max": 277,
+       "notional_le_max": 243.18,
+       "levels": [
+        [
+         79,
+         31
+        ],
+        [
+         80,
+         66
+        ],
+        [
+         81,
+         19
+        ],
+        [
+         83,
+         7
+        ],
+        [
+         85,
+         5
+        ],
+        [
+         86,
+         4
+        ],
+        [
+         90,
+         35
+        ],
+        [
+         91,
+         21
+        ]
+       ],
+       "yes_best_ask": 24,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-03T17:55:00+00:00",
+         "tC": 21
+        },
+        {
+         "ts": "2026-10-03T17:50:00+00:00",
+         "tC": 21
+        },
+        {
+         "ts": "2026-10-03T17:45:00+00:00",
+         "tC": 21
+        },
+        {
+         "ts": "2026-10-03T17:40:00+00:00",
+         "tC": 20
+        },
+        {
+         "ts": "2026-10-03T17:35:00+00:00",
+         "tC": 20
+        },
+        {
+         "ts": "2026-10-03T17:30:00+00:00",
+         "tC": 20
+        },
+        {
+         "ts": "2026-10-03T17:25:00+00:00",
+         "tC": 20
+        },
+        {
+         "ts": "2026-10-03T17:20:00+00:00",
+         "tC": 20
+        },
+        {
+         "ts": "2026-10-03T17:15:00+00:00",
+         "tC": 20
+        },
+        {
+         "ts": "2026-10-03T17:10:00+00:00",
+         "tC": 19
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTOKC-26OCT03-T78",
+         "cap": null,
+         "floor": 79,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTOKC-26OCT03-T71",
+         "cap": 70,
+         "floor": null,
+         "no_ask": 79,
+         "yes_bid": 21
+        },
+        {
+         "ticker": "KXHIGHTOKC-26OCT03-B77.5",
+         "cap": 78,
+         "floor": 77,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTOKC-26OCT03-B75.5",
+         "cap": 76,
+         "floor": 75,
+         "no_ask": 96,
+         "yes_bid": 4
+        },
+        {
+         "ticker": "KXHIGHTOKC-26OCT03-B73.5",
+         "cap": 74,
+         "floor": 73,
+         "no_ask": 69,
+         "yes_bid": 31
+        },
+        {
+         "ticker": "KXHIGHTOKC-26OCT03-B71.5",
+         "cap": 72,
+         "floor": 71,
+         "no_ask": 59,
+         "yes_bid": 41
+        }
+       ],
+       "wx": "Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 0.9876,
+       "p_source": "blend(w_emp=0.9)",
+       "p_empirical": 0.9872,
+       "emp_n": 76,
+       "sigma": 2.04,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CffktfH5DJv4TdqiNvfAW\"}"
+     },
+     "settle": 69,
+     "attribution": "FORECAST_BUST"
+    },
+    {
+     "date": "2026-10-03",
+     "city": "DAL",
+     "station": "KDFW",
+     "verdict": "DEAD_SCAVENGE",
+     "detail": {
+      "ticker": "KXHIGHTDAL-26OCT03-T74",
+      "ceiling": 73,
+      "no_ask": 0.92,
+      "quote_src": "native",
+      "yes_bid": 8,
+      "run_max": 73.4,
+      "guide": 77,
+      "pop": 70,
+      "upstream": {
+       "city": "DAL",
+       "status": "ok",
+       "upwind_bearing": 50,
+       "target_temp_f": 73.4,
+       "target_dew_f": 71.6,
+       "wind_mps": 5.544,
+       "upstream": [
+        {
+         "station": "KTKI",
+         "ts": "2026-10-03T17:55:00+00:00",
+         "temp_f": 71.6,
+         "dew_f": 69.8,
+         "wind_dir": 80,
+         "wind_mps": 9.252,
+         "km": 52.1,
+         "bearing": 53.1,
+         "name": "McKinney - McKinney National Airport"
+        },
+        {
+         "station": "KF46",
+         "ts": "2026-10-03T17:35:00+00:00",
+         "temp_f": 71.2,
+         "dew_f": 71.2,
+         "wind_dir": 50,
+         "wind_mps": 11.16,
+         "km": 56.4,
+         "bearing": 85.9,
+         "name": "Rockwall Municipal Airport"
+        }
+       ],
+       "max_upstream_temp_f": 71.6,
+       "advection_potential_f": -1.8,
+       "dew_differential_f": -0.4,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "OVC",
+       "base_ft": 800,
+       "layers": [
+        {
+         "amount": "OVC",
+         "base_ft": 800
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 73.4,
+       "source": "fivemin",
+       "n_metar": 6,
+       "n_obs": 158
+      },
+      "forecasts": {
+       "nws_grid": 77.0,
+       "om_best": 74.3,
+       "om_ecmwf": 72.1,
+       "om_gfs": 74.3,
+       "om_icon": 73.3,
+       "om_metno": 73.0
+      },
+      "airmass": {
+       "t850_max_f": 61.8,
+       "z500_max_m": 5891,
+       "soil_m3m3": 0.476,
+       "curve": {
+        "0": 70.4,
+        "1": 69.9,
+        "2": 69.4,
+        "3": 68.8,
+        "4": 69.5,
+        "5": 69.2,
+        "6": 69.6,
+        "7": 69.5,
+        "8": 70.0,
+        "9": 70.2,
+        "10": 71.1,
+        "11": 71.3,
+        "12": 72.8,
+        "13": 74.1,
+        "14": 74.3,
+        "15": 72.9,
+        "16": 72.9,
+        "17": 73.8,
+        "18": 72.7,
+        "19": 72.3,
+        "20": 72.1,
+        "21": 72.2,
+        "22": 71.8,
+        "23": 72.0
+       },
+       "curve_max_f": 74.3
+      },
+      "temp_now": 73.4,
+      "curve_pred_now": 74.1,
+      "curve_dev": -0.7,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 92,
+       "depth_at_best": 14,
+       "depth_le_max": 244,
+       "notional_le_max": 234.98,
+       "levels": [
+        [
+         92,
+         14
+        ],
+        [
+         93,
+         18
+        ],
+        [
+         94,
+         25
+        ],
+        [
+         95,
+         23
+        ],
+        [
+         96,
+         18
+        ],
+        [
+         97,
+         35
+        ],
+        [
+         98,
+         111
+        ]
+       ],
+       "yes_best_ask": 9,
+       "yes_ctr_le_10c": 25,
+       "yes_usd_le_10c": 2.25
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-03T17:55:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:50:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:45:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:40:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:35:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:30:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:25:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:20:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:15:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T17:10:00+00:00",
+         "tC": 22
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTDAL-26OCT03-T81",
+         "cap": null,
+         "floor": 82,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDAL-26OCT03-T74",
+         "cap": 73,
+         "floor": null,
+         "no_ask": 92,
+         "yes_bid": 8
+        },
+        {
+         "ticker": "KXHIGHTDAL-26OCT03-B80.5",
+         "cap": 81,
+         "floor": 80,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHTDAL-26OCT03-B78.5",
+         "cap": 79,
+         "floor": 78,
+         "no_ask": 97,
+         "yes_bid": 3
+        },
+        {
+         "ticker": "KXHIGHTDAL-26OCT03-B76.5",
+         "cap": 77,
+         "floor": 76,
+         "no_ask": 84,
+         "yes_bid": 16
+        },
+        {
+         "ticker": "KXHIGHTDAL-26OCT03-B74.5",
+         "cap": 75,
+         "floor": 74,
+         "no_ask": 34,
+         "yes_bid": 66
+        }
+       ],
+       "wx": "Light Rain"
+      },
+      "model": {
+       "p_exceed_cap": 1.0,
+       "p_source": "blend(w_emp=0.0)",
+       "p_empirical": 1.0,
+       "emp_n": null,
+       "sigma": 1.83,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CffkotURYGNTL6YRvbkci\"}"
+     },
+     "settle": 74,
+     "attribution": "WIN"
+    },
+    {
+     "date": "2026-10-03",
+     "city": "AUS",
+     "station": "KAUS",
+     "verdict": "DEAD_SCAVENGE",
+     "detail": {
+      "ticker": "KXHIGHAUS-26OCT03-T79",
+      "ceiling": 78,
+      "no_ask": 0.03,
+      "quote_src": "native",
+      "yes_bid": 97,
+      "run_max": 78.8,
+      "guide": 82,
+      "pop": 20,
+      "upstream": {
+       "city": "AUS",
+       "status": "ok",
+       "upwind_bearing": 350,
+       "target_temp_f": 75.2,
+       "target_dew_f": 71.6,
+       "wind_mps": 20.376,
+       "upstream": [
+        {
+         "station": "KGTU",
+         "ts": "2026-10-03T22:55:00+00:00",
+         "temp_f": 73.4,
+         "dew_f": 71.6,
+         "wind_dir": 0,
+         "wind_mps": 12.96,
+         "km": 54.4,
+         "bearing": 358.6,
+         "name": "Georgetown, Georgetown Municipal Airport"
+        },
+        {
+         "station": "KRYW",
+         "ts": "2026-10-03T22:35:00+00:00",
+         "temp_f": 70.7,
+         "dew_f": 70.7,
+         "wind_dir": 20,
+         "wind_mps": 18.36,
+         "km": 44.0,
+         "bearing": 319.9,
+         "name": "Lago Vista TX, Rusty Allen Airport"
+        },
+        {
+         "station": "KBMQ",
+         "ts": "2026-10-03T21:53:00+00:00",
+         "temp_f": 71.1,
+         "dew_f": 68.0,
+         "wind_dir": 10,
+         "wind_mps": 16.56,
+         "km": 81.4,
+         "bearing": 318.4,
+         "name": "Burnet, Burnet Municipal Craddock Field"
+        }
+       ],
+       "max_upstream_temp_f": 73.4,
+       "advection_potential_f": -1.8,
+       "dew_differential_f": 0.0,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "OVC",
+       "base_ft": 1100,
+       "layers": [
+        {
+         "amount": "OVC",
+         "base_ft": 1100
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "run_max_detail": {
+       "run_max": 78.8,
+       "source": "fivemin",
+       "n_metar": 10,
+       "n_obs": 223
+      },
+      "forecasts": {
+       "nws_grid": 81.0,
+       "om_best": 77.1,
+       "om_ecmwf": 83.6,
+       "om_gfs": 77.1,
+       "om_icon": 76.4,
+       "om_metno": 84.5
+      },
+      "airmass": {
+       "t850_max_f": 64.2,
+       "z500_max_m": 5903,
+       "soil_m3m3": 0.46,
+       "curve": {
+        "0": 75.1,
+        "1": 74.3,
+        "2": 74.6,
+        "3": 74.3,
+        "4": 74.6,
+        "5": 74.5,
+        "6": 74.9,
+        "7": 75.2,
+        "8": 74.8,
+        "9": 74.9,
+        "10": 74.4,
+        "11": 74.3,
+        "12": 75.3,
+        "13": 75.8,
+        "14": 76.4,
+        "15": 77.1,
+        "16": 76.9,
+        "17": 75.4,
+        "18": 76.0,
+        "19": 74.6,
+        "20": 73.7,
+        "21": 73.4,
+        "22": 73.1,
+        "23": 72.4
+       },
+       "curve_max_f": 77.1
+      },
+      "temp_now": 75.2,
+      "curve_pred_now": 76.0,
+      "curve_dev": -0.8,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 3,
+       "depth_at_best": 135,
+       "depth_le_max": 334,
+       "notional_le_max": 123.62,
+       "levels": [
+        [
+         3,
+         135
+        ],
+        [
+         4,
+         9
+        ],
+        [
+         6,
+         13
+        ],
+        [
+         7,
+         16
+        ],
+        [
+         10,
+         40
+        ],
+        [
+         68,
+         3
+        ],
+        [
+         70,
+         10
+        ],
+        [
+         79,
+         4
+        ]
+       ],
+       "yes_best_ask": null,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-03T23:05:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T23:00:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:55:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:50:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:45:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:40:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:35:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:30:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:25:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-10-03T22:20:00+00:00",
+         "tC": 24
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHAUS-26OCT03-T86",
+         "cap": null,
+         "floor": 87,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHAUS-26OCT03-T79",
+         "cap": 78,
+         "floor": null,
+         "no_ask": 3,
+         "yes_bid": 97
+        },
+        {
+         "ticker": "KXHIGHAUS-26OCT03-B85.5",
+         "cap": 86,
+         "floor": 85,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHAUS-26OCT03-B83.5",
+         "cap": 84,
+         "floor": 83,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHAUS-26OCT03-B81.5",
+         "cap": 82,
+         "floor": 81,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHAUS-26OCT03-B79.5",
+         "cap": 80,
+         "floor": 79,
+         "no_ask": 99,
+         "yes_bid": 1
+        }
+       ],
+       "wx": "Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 1.0,
+       "p_source": "blend(w_emp=0.0)",
+       "p_empirical": 1.0,
+       "emp_n": null,
+       "sigma": 1.73,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CfgAKkgNoeFnFineU72Xy\"}"
+     },
+     "settle": 78,
+     "attribution": "BOUNDARY"
+    },
+    {
+     "date": "2026-10-03",
+     "city": "SFO",
+     "station": "KSFO",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTSFO-26OCT03-T83",
+      "ceiling": 82,
+      "no_ask": 0.94,
+      "quote_src": "native",
+      "yes_bid": 6,
+      "run_max": 73.4,
+      "guide": 88,
+      "pop": 0,
+      "G": 6,
+      "net_cents": 5.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "WARN": "pace deficit 15F at entry -- Denver-Aug4 profile; verify slope/mechanism before executing",
+      "upstream": {
+       "city": "SFO",
+       "status": "calm_or_unknown",
+       "note": "no defined flow; upstream signal is meaningless"
+      },
+      "stall": null,
+      "sky": {
+       "cover": null,
+       "base_ft": null,
+       "layers": []
+      },
+      "run_max_detail": {
+       "run_max": 73.4,
+       "source": "fivemin",
+       "n_metar": 6,
+       "n_obs": 155
+      },
+      "sst": {
+       "buoy": "46026",
+       "sst_f": 59.7,
+       "obs_utc": "2026-10-03T19:30"
+      },
+      "forecasts": {
+       "nws_grid": 88.0,
+       "om_best": 92.3,
+       "om_ecmwf": 84.5,
+       "om_gfs": 92.3,
+       "om_icon": 88.6,
+       "om_metno": 93.7
+      },
+      "airmass": {
+       "t850_max_f": 75.7,
+       "z500_max_m": 5893,
+       "soil_m3m3": 0.168,
+       "curve": {
+        "0": 61.5,
+        "1": 61.1,
+        "2": 61.7,
+        "3": 60.4,
+        "4": 60.0,
+        "5": 58.5,
+        "6": 57.7,
+        "7": 57.3,
+        "8": 58.7,
+        "9": 66.3,
+        "10": 71.5,
+        "11": 73.8,
+        "12": 80.2,
+        "13": 86.5,
+        "14": 89.7,
+        "15": 92.3,
+        "16": 90.3,
+        "17": 86.3,
+        "18": 80.4,
+        "19": 75.4,
+        "20": 74.2,
+        "21": 73.6,
+        "22": 73.0,
+        "23": 72.4
+       },
+       "curve_max_f": 92.3
+      },
+      "temp_now": 73.4,
+      "curve_pred_now": 86.5,
+      "curve_dev": -13.1,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 96,
+       "depth_at_best": 63,
+       "depth_le_max": 285,
+       "notional_le_max": 276.82,
+       "levels": [
+        [
+         96,
+         63
+        ],
+        [
+         97,
+         122
+        ],
+        [
+         98,
+         100
+        ]
+       ],
+       "yes_best_ask": 7,
+       "yes_ctr_le_10c": 122,
+       "yes_usd_le_10c": 10.14
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-03T19:55:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T19:50:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-10-03T19:45:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:40:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:35:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:30:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:25:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:20:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:15:00+00:00",
+         "tC": 22
+        },
+        {
+         "ts": "2026-10-03T19:10:00+00:00",
+         "tC": 22
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTSFO-26OCT03-T90",
+         "cap": null,
+         "floor": 91,
+         "no_ask": 62,
+         "yes_bid": 38
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT03-T83",
+         "cap": 82,
+         "floor": null,
+         "no_ask": 94,
+         "yes_bid": 6
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT03-B89.5",
+         "cap": 90,
+         "floor": 89,
+         "no_ask": 67,
+         "yes_bid": 33
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT03-B87.5",
+         "cap": 88,
+         "floor": 87,
+         "no_ask": 91,
+         "yes_bid": 9
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT03-B85.5",
+         "cap": 86,
+         "floor": 85,
+         "no_ask": 90,
+         "yes_bid": 10
+        },
+        {
+         "ticker": "KXHIGHTSFO-26OCT03-B83.5",
+         "cap": 84,
+         "floor": 83,
+         "no_ask": 94,
+         "yes_bid": 6
+        }
+       ],
+       "wx": ""
+      },
+      "model": {
+       "p_exceed_cap": 0.1607,
+       "p_source": "blend(w_emp=0.93)",
+       "p_empirical": 0.1,
+       "emp_n": 108,
+       "sigma": 2.54,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CffusJcd9pRmWG1Y6wJrG\"}"
+     },
+     "settle": 90,
+     "attribution": "WIN"
+    }
+   ]
   }
  ],
- "generated": "2026-10-03T12:35:00.741055Z",
+ "generated": "2026-10-04T08:22:18.153340Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
