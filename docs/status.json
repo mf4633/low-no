@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-04T13:16:48.870262Z",
+ "generated": "2026-10-05T08:58:15.443896Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 58,
+  "logged_days": 59,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-03",
-  "rung_observations": 88094,
-  "independent_units": 1451,
+  "last_day": "2026-10-04",
+  "rung_observations": 89060,
+  "independent_units": 1479,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -78,13 +78,14 @@
    "2026-09-30": 5,
    "2026-10-01": 6,
    "2026-10-02": 6,
-   "2026-10-03": 7
+   "2026-10-03": 7,
+   "2026-10-04": 6
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1213,
-  "settlements_verified": 1033,
+  "settlements_cached": 1236,
+  "settlements_verified": 1056,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -107,29 +108,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 166,
+    "have": 188,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 24,
+     "have": 25,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "24/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "25/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 1152,
+    "have": 1485,
     "need": 50,
     "unit": "scored (control)",
-    "ready": false,
+    "ready": true,
     "also": {
-     "have": 0,
+     "have": 99,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -141,7 +142,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 86,
+    "have": 89,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -234,41 +235,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 166,
+    "have": 188,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 24,
+     "have": 25,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "24/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
-  },
-  {
-   "id": "H7",
-   "name": "shape on temperature (stratified)",
-   "status": "open",
-   "bar": {
-    "have": 1152,
-    "need": 50,
-    "unit": "scored (control)",
-    "ready": false,
-    "also": {
-     "have": 0,
-     "need": 50,
-     "unit": "scored (hourly)"
-    }
-   },
-   "note": "the hourly pair is the binding leg; a verdict needs both strata, pooled is context"
+   "note": "25/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 86,
+    "have": 89,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false

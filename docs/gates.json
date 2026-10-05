@@ -3,61 +3,60 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 2886,
-  "brier_base": 0.1079,
-  "brier_shape": 0.1087,
-  "improvement_pct": -0.7
+  "n": 2928,
+  "brier_base": 0.107,
+  "brier_shape": 0.1074,
+  "improvement_pct": -0.42
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1038,
-  "days": 38,
-  "lag_corr": -0.012,
+  "events": 1055,
+  "days": 39,
+  "lag_corr": -0.007,
   "lag_ci": [
-   -0.072,
-   0.049
+   -0.067,
+   0.053
   ]
  },
  "H6": {
   "id": "H6",
   "ready": false,
   "passed": false,
-  "events": 166,
+  "events": 188,
   "need_events": 200,
-  "days": 24,
+  "days": 25,
   "need_days": 20,
   "reason": "data bar not met"
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 1152,
+  "pooled_n": 1584,
   "hourly": {
-   "n": 0,
-   "brier_base": null,
-   "brier_shape": null,
-   "improved": null
-  },
-  "control": {
-   "n": 1152,
-   "brier_base": 0.0801,
-   "brier_shape": 0.0811,
+   "n": 99,
+   "brier_base": 0.167,
+   "brier_shape": 0.17,
    "improved": false
   },
-  "ready": false,
-  "passed": false,
-  "reason": "need 50 scored decisions per stratum; have hourly=0, control=1152"
+  "control": {
+   "n": 1485,
+   "brier_base": 0.0833,
+   "brier_shape": 0.0852,
+   "improved": false
+  },
+  "ready": true,
+  "passed": false
  },
  "H8": {
   "id": "H8",
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1049,
-   "stalled_off": 630,
-   "climbing_on": 1176,
-   "climbing_off": 86
+   "stalled_on": 1071,
+   "stalled_off": 662,
+   "climbing_on": 1195,
+   "climbing_off": 89
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -67,21 +66,21 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 471,
-   "mean": -0.00116,
+   "n": 475,
+   "mean": -0.00118,
    "ci": [
-    -0.006,
+    -0.00604,
     0.00368
    ]
   },
   "tail": {
-   "n": 882,
-   "mean": -0.00149,
+   "n": 888,
+   "mean": -0.0015,
    "ci": [
-    -0.00407,
-    0.00109
+    -0.00411,
+    0.00111
    ]
   }
  },
- "generated": "2026-10-04T13:17:18.947726Z"
+ "generated": "2026-10-05T08:58:46.213110Z"
 }
