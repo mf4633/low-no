@@ -1,14 +1,14 @@
 {
- "at": "2026-10-06T21:57:32.793744Z",
+ "at": "2026-10-06T22:56:43.657118Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 62,
    "price": 1,
-   "p_model": 0.1143,
+   "p_model": 0.1001,
    "p_market": 0.01,
-   "edge_pts": 10.4,
-   "size_lcb": 0.0127,
+   "edge_pts": 9.0,
+   "size_lcb": 0.0055,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -16,26 +16,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 80,
-   "price": 12,
-   "p_model": 0.1723,
-   "p_market": 0.12,
-   "edge_pts": 5.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 3.0F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
     }
    ]
   }
