@@ -1,22 +1,18 @@
 {
- "at": "2026-10-06T22:56:43.657118Z",
+ "at": "2026-10-06T23:03:05.096118Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 62,
    "price": 1,
-   "p_model": 0.1001,
+   "p_model": 0.1049,
    "p_market": 0.01,
-   "edge_pts": 9.0,
-   "size_lcb": 0.0055,
+   "edge_pts": 9.5,
+   "size_lcb": 0.0434,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
     }
    ]
   }
