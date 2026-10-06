@@ -545,7 +545,10 @@ class WallMixin:
         want = [a.lower() for a in args]
         where = next((a for a in want
                       if a not in ("ring", "on", "down", "off", "stand")), "")
-        s = g.world.settlements.get(where) or g.home()
+        # The town you are looking at, not the seat: the button on the page
+        # shows this one's bell, so it must be this one's bell it rings.
+        where = where if where in g.world.settlements else self.here
+        s = self.settlement(where)
         if any(w in want for w in ("down", "off", "stand")):
             return self.say("  " + g.ring_bell(where, False))
         if any(w in want for w in ("ring", "on")) or not s.bell:

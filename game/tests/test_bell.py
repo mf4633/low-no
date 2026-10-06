@@ -116,6 +116,17 @@ class TestTheVerb(unittest.TestCase):
         con.do("bell down")
         self.assertEqual(s.bell, 0)
 
+    def test_it_rings_the_town_you_are_looking_at(self):
+        g, s = new_game()
+        other = start("marchlands", seed=3).world.settlements["aldworth"]
+        other.name = "Greyfell"
+        g.world.settlements["greyfell"] = other
+        con = Console(g, out=io.StringIO())
+        con.here = "greyfell"
+        con.do("bell ring")
+        self.assertEqual(other.bell, 1)
+        self.assertEqual(s.bell, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
