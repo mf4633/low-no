@@ -2231,3 +2231,24 @@ only western stations reach a 10-12 local look. Parse check on pre-registration
 logs, counts only, no outcomes: ~7.5 units/day with full morning coverage vs
 ~3/day (west only) without. Without morning scans the bar still fills, but on
 a western-only population; the verdict will say which population it read.
+
+## H16 ADDENDUM -- historical backtest, run AFTER the rule was frozen (2026-10-06)
+Michael asked for a backtest on the logged history. The rule was committed in
+e984f8f BEFORE this ran and is NOT changed by it. The forward test (days >=
+2026-10-07) is still the registered verdict; nothing was written to
+docs/frozen/. Days 2026-09-01..10-05 (top-rung floor fix onward), day-clustered
+bootstrap 95% CIs:
+
+    H16 as registered      n=230 / 34 days  hit 25.7% vs price 27.7c  -3.5c/unit [-9.0, +2.6]
+      warm dev             n=70             hit 35.7% vs price 32.0c  +2.2c       [-6.8, +11.1]
+      cold dev             n=160            hit 21.2% vs price 25.8c  -5.9c       [-12.1, +0.5]
+      not market mode      n=168            hit 11.3% vs price 14.7c  -4.7c
+    no-carry control       n=229                                       -4.9c/unit
+
+The market's prices on these buckets were CALIBRATED: hit rates track the
+price in every slice; the loss is about the fee. Forecast diagnostics: settle -
+full-carry projection +1.37F mean, RMSE 3.13; curve max alone RMSE 3.01; HALF
+carry RMSE 2.42 (best). In-sample only, not a registration: a half-carry bucket
+rule loses MORE (-5.3c/unit, CI [-10.8, -0.2]; warm side -11.8c). A better
+temperature forecast did not beat the price; the market already holds it.
+Read: H16 is expected to fail forward. It stays registered and runs to its bar.
