@@ -479,7 +479,7 @@ def main():
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
                          ("h6_eval", "H6"),
                          ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
-                         ("settle_conv_eval", "H9")):
+                         ("settle_conv_eval", "H9"), ("h16_offcurve", "H16")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -653,6 +653,18 @@ def _hypothesis_progress(obs):
     except Exception:
         h6_ready = False
 
+    # H16: forward-only from 2026-10-07. Counts graded units and distinct
+    # days from the test itself (never pnl), same two-leg bar as H4b/H6.
+    h16_u, h16_d, h16_ready, h16_nu, h16_nd = 0, 0, False, 60, 20
+    try:
+        import h16_offcurve as _h16
+        _g16 = [u for u in _h16.units() if "won" in u]
+        h16_u, h16_d = len(_g16), len({u["day"] for u in _g16})
+        h16_nu, h16_nd = _h16.MIN_UNITS, _h16.MIN_DAYS
+        h16_ready = bool(h16_u >= h16_nu and h16_d >= h16_nd)
+    except Exception:
+        h16_ready = False
+
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
@@ -676,6 +688,14 @@ def _hypothesis_progress(obs):
                  ready=h8_ready,
                  note="fills to the thinnest of four groups; H8b (joint cell) "
                       "is registered but not expected to report before the stop"),
+            dict(id="H16", name="morning off-curve bucket underpriced",
+                 have=h16_u, need=h16_nu, unit="graded city-day units",
+                 also=dict(have=h16_d, need=h16_nd, unit="distinct days"),
+                 ready=h16_ready,
+                 note="registered 2026-10-06, forward-only from 10-07; first "
+                      "10-12 local cycle, |dev|>=2F interpolated, YES on the "
+                      "full-carry bucket at the real ask. Verdict read ONCE at "
+                      "the bar. Needs morning scans (DISPATCH_PAT)"),
             dict(id="H15", name="LAX marine-layer regime not in the price",
                  have=0, need=20,
                  unit="distinct LAX marine-stratum days with a book",

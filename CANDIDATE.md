@@ -2166,3 +2166,68 @@ Collection continues for them.
 **Consequence for the stopping rule:** with both pilots retired, nothing that
 remains can put a trader on paper before 12/31. The stop date may be
 shortened at any time. This entry does not shorten it; that is Michael's call.
+
+# HYPOTHESIS 16 -- THE MORNING OFF-CURVE BUCKET IS UNDERPRICED
+# (registered 2026-10-06, FORWARD-ONLY: days >= 2026-10-07. n = 0 at registration.
+#  This text does not change. Harness: `h16_offcurve.py`, synthetic proof
+#  `test_h16_offcurve.py`, both committed with this entry.)
+
+## Where it comes from
+Michael, 2026-10-06: the point is to find where the market is wrong EARLY. That
+it is right once the highs are in says nothing about 10 AM. On 2026-10-05 DAL
+ran +2.9F over its forecast curve at 10:16 local and settled 86, above the
+market's own modal bucket (84-85); AUS likewise (settled 89). Hand-picked
+"underpriced" reads on 10/5 and 10/6 went 0-for-5 -- recorded here as the
+reason for a fixed rule, NOT as units.
+
+## Mechanism
+A day running well off its forecast curve by mid-morning tends to carry that
+offset into the afternoon. If the market repriced WITH the deviation (H4b says
+it does: no lag) but only PART of the way in level, the bucket a full carry
+points at is underpriced at a fixed morning hour. That is an under-reaction in
+level, which a change-on-change lag test cannot see.
+
+## Why this is not H4a or H4b, and does not reopen them
+* H4a scored whether curve shape improves the MODEL's remaining-climb Brier.
+  No market price in it.
+* H4b scored whether d(curve_dev) predicts the NEXT cycle's bottom-rung price
+  change. -0.021, FAILED, closed 2026-09-28.
+* H16 scores whether the PRICE, at the first 10-12 local cycle, on the
+  full-carry RUNG, is too low against SETTLEMENT. Different quantity, rung and
+  outcome variable. Per the anti-gaming rule it uses only out-of-sample days
+  (>= 2026-10-07) and a mechanism written before testing; nothing was
+  backtested on the H4 days to design it.
+* The deviation is recomputed against the curve INTERPOLATED to the scan
+  minute, not the logged `curve_dev` (top-of-hour value, reads warm all
+  morning).
+
+## The rule (fixed now)
+* One unit per (day, city). The FIRST LADDER cycle in [10:00, 12:00) local is
+  the only look; if it does not qualify the city-day is not a unit.
+* dev = temp_now - curve interpolated to the minute. Qualifies iff |dev| >= 2.0F.
+* proj = curve_max_f + dev (full carry). Bucket = the rung containing round(proj).
+* Buy YES at that rung's logged ask, 1-95c. No ask, no unit.
+* Fee ceil(0.07*C*P*(1-P)) charged on EVERY fill, win or lose (harsher than
+  shadow.pnl_cents, deliberately).
+
+## The test (fixed now)
+* Bar: >= 60 graded units AND >= 20 distinct days.
+* PASSES iff the 95% lower bound of mean per-unit P&L after fees is > 0 cents.
+* Read ONCE, at the first nightly that meets the bar, and frozen to
+  `docs/frozen/h16_verdict.json` (outside push_retry's regenerable set). The
+  H4a lesson: a verdict that can flip by n is the early-peek problem.
+* Context only, never a pass: the not-the-market-mode slice, and a no-carry
+  control (bucket at round(curve_max_f), same units) to show whether carrying
+  the deviation adds anything over the curve alone.
+* No pilot. Registered before the 2026-10-31 cutoff; the 2026-12-31 stop is
+  unchanged. A pass is an information claim, not a trader.
+* This buys YES at up to 95c, which is not the strategy's instrument ("no
+  lottery scanner" governs the GATE, not scored variants; PREREG_yes10 set the
+  precedent).
+
+## Dependency, stated at registration
+Since 2026-09-27 (DISPATCH_PAT expired) the first scan cycle lands ~17-18Z, so
+only western stations reach a 10-12 local look. Parse check on pre-registration
+logs, counts only, no outcomes: ~7.5 units/day with full morning coverage vs
+~3/day (west only) without. Without morning scans the bar still fills, but on
+a western-only population; the verdict will say which population it read.
