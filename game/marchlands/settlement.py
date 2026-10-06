@@ -1028,6 +1028,20 @@ class Settlement:
     #: roofs every time instead of none on an unlucky stream.
     RAID_TORCH = 3.5
 
+    #: The sheds whose hands work out of sight of the wall, and what the
+    #: town calls them when they come back with news. Farms, dairies and
+    #: orchards are under the wall; a mine is under the ground; the pans are
+    #: on the shore by the town. These are the ones out in the country.
+    RANGERS = {"woodcutter": "woodcutters", "charcoal_burner": "charcoal burners",
+               "sheep_farm": "shepherds", "quarry": "quarrymen",
+               "harbour": "fishermen"}
+
+    def rangers(self) -> List[str]:
+        """Who of this town is out in the country today, one entry per shed
+        being worked -- what widens the ring the town sees."""
+        return [self.RANGERS[b.spec.key] for b in self.buildings
+                if b.spec.key in self.RANGERS and b.worked]
+
     def hearths(self) -> int:
         return sum(1 for b in self.buildings if b.complete
                    and b.spec.key in ("bakery", "kiln", "smelter", "brewery",

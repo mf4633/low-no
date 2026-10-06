@@ -301,9 +301,15 @@ class RoadMixin:
         sh = self.shroud
         sh.morning()
         xy = self.world.coords
-        for key in self.world.settlements:
+        ranging = []
+        for key, s in self.world.settlements.items():
             if key in xy:
-                sh.look(*xy[key], self._sight_from(key, sight.TOWN_SIGHT))
+                base = self._sight_from(key, sight.TOWN_SIGHT)
+                sh.look(*xy[key], base)
+                out = len(s.rangers())
+                if out:
+                    ranging.append((key, base * (1.0 + min(
+                        sight.RANGER_CAP, sight.RANGER_REACH * out))))
         for key, t in self.world.towns.items():
             # Your sworn towns, and your allies': an ally shares what his
             # walls can see, which is half of what an alliance is for.
@@ -324,6 +330,16 @@ class RoadMixin:
                 sh.trail(xy[a.at], now, sight.HOST_SIGHT)
             sh.look(*now, sight.HOST_SIGHT if a.state == MARCHING
                     else self._sight_from(a.at, sight.HOST_SIGHT))
+        # Last, the hands out in the country, so that what is left over is
+        # what only they could have seen: the ground a woodcutter is the
+        # reason you know about, and the reason he gets the line for it.
+        self._ranged = {}
+        for key, r in ranging:
+            for c in sight.disc(*xy[key], r):
+                if c not in sh.visible:
+                    sh.visible.add(c)
+                    sh.explored.add(c)
+                    self._ranged.setdefault(c, key)
 
     def _sight_from(self, node: str, base: float) -> float:
         """How far a place sees: further from hill country, a twentieth
@@ -358,9 +374,27 @@ class RoadMixin:
                 where = self.host_xy(a)
                 close = bool(where) and self.shroud.sees(*where)
             if close:
+                if a.seen_day < self.day - 1 and a.state == MARCHING                         and not a.errand and a.owner not in self.court.allies:
+                    self._ranger_saw(a)
                 a.seen_day = self.day
                 a.seen_at = a.at or a.bound_for
                 a.seen_size = a.size
+
+    def _ranger_saw(self, a) -> None:
+        """A host come into sight where only the hands out in the country
+        could see it gets a line saying who saw it. Anywhere else -- under a
+        wall, beside a cart -- it is already being reported some other way."""
+        where = self.host_xy(a)
+        key = getattr(self, "_ranged", {}).get(sight.cell_of(*where)) if where else None
+        if key is None:
+            return
+        s = self.world.settlements[key]
+        out = s.rangers()
+        who = out[a.uid % len(out)] if out else "men"
+        dest = self.world.towns.get(a.bound_for) or self.world.settlements.get(a.bound_for)
+        road = f" on the road to {dest.name}" if dest is not None else ""
+        self.note(f"{who.capitalize()} out of {s.name} saw {a.name}, "
+                  f"about {int(round(a.size))} strong,{road}.")
 
     def known(self, town_key: str) -> Tuple[Dict[str, float], int]:
         """What you believe about a town, and how many days old it is."""

@@ -118,5 +118,57 @@ class TestTheSave(unittest.TestCase):
         self.assertLessEqual(set(g.world.coords), keys(web.march(g2, "aldworth")))
 
 
+class TestTheHandsOutInTheCountry(unittest.TestCase):
+    """Woodcutters, shepherds and quarrymen see further than the wall does,
+    and say so when they see somebody coming."""
+
+    def worked(self):
+        g = new_game()
+        g.advance(2)
+        self.assertIn("woodcutters", g.world.settlements["aldworth"].rangers())
+        return g
+
+    def test_a_worked_woodcutter_widens_the_ring(self):
+        g = self.worked()
+        wide = len(g.shroud.visible)
+        for b in g.world.settlements["aldworth"].buildings:
+            if b.key in g.world.settlements["aldworth"].RANGERS:
+                b.enabled = False
+        g._scout()
+        self.assertLess(len(g.shroud.visible), wide)
+        self.assertFalse(g._ranged)
+
+    def test_farms_do_not_count(self):
+        s = self.worked().world.settlements["aldworth"]
+        self.assertNotIn("farm", s.RANGERS)
+        self.assertEqual(len(s.rangers()),
+                         sum(1 for b in s.buildings
+                             if b.key in s.RANGERS and b.worked))
+
+    def _coming(self, g, at):
+        from marchlands.military import MARCHING, Army
+        a = Army(uid=903, name="the Margrave's host", owner="vantry",
+                 units={"spearman": 30}, at="vantry", bound_for="aldworth",
+                 state=MARCHING, days_left=3, leg_days=5)
+        g.armies.append(a)
+        g.host_xy = lambda h: at if h is a else None
+        before = len(g.chronicle.entries)
+        g._sight_hosts()
+        return [e.text for e in g.chronicle.entries[before:]]
+
+    def test_what_only_they_saw_is_a_line(self):
+        g = self.worked()
+        cell = next(iter(g._ranged))
+        at = ((cell[0] + 0.5) * sight.CELL, (cell[1] + 0.5) * sight.CELL)
+        lines = self._coming(g, at)
+        self.assertEqual(len(lines), 1)
+        self.assertIn("out of Aldworth saw the Margrave's host", lines[0])
+        self.assertIn("road to Aldworth", lines[0])
+
+    def test_under_the_wall_is_not_their_news(self):
+        g = self.worked()
+        self.assertEqual(self._coming(g, tuple(g.world.coords["aldworth"])), [])
+
+
 if __name__ == "__main__":
     unittest.main()
