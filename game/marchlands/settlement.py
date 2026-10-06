@@ -185,6 +185,10 @@ class Settlement:
     #: Your own gates, shut by you. It stops the carts, which stops the
     #: sickness and stops the income together: that is the decision.
     shut: bool = False
+    #: Days the bell has been rung, 0 when it is not. Every hand that works
+    #: out in the country comes in behind the wall: nothing is cut, quarried
+    #: or herded out there, and a raider finds empty fields.
+    bell: int = 0
     #: The day the last sickness went out, so a hub does not catch it again
     #: off its own carts the week after burying everybody.
     last_sick: int = -9999
@@ -421,6 +425,8 @@ class Settlement:
         self._season_now = season
         self.hardened = max(0.0, self.hardened - 2.0)
         self._advance_construction()
+        if self.bell:
+            self.bell += 1
         self._staff_buildings()
         self._produce(season, rep, mods)
         self._feed(rep)
@@ -575,6 +581,10 @@ class Settlement:
             b = self.find(uid)
             if b is None or not (b.complete and b.enabled):
                 continue
+            if self.called_in(b):
+                # A pin does not outrank the bell: they are all inside.
+                b.idle_reason = "the bell is rung"
+                continue
             take = min(b.spec.jobs, want, self.caps.get(uid, want), pool)
             b.staffed = take
             pool -= take
@@ -597,7 +607,7 @@ class Settlement:
             if not (b.complete and b.enabled):
                 continue
             why = self._cannot_work(b)
-            if why and b.uid not in self.pins:
+            if why and (b.uid not in self.pins or self.called_in(b)):
                 b.idle_reason = why
                 continue
             queue.append(b)
@@ -678,6 +688,13 @@ class Settlement:
     #: grinds today can be the grain a field brought in today.
     DRY_DAYS = 2
 
+    #: The ground outside the wall, and the sheds on it the bell calls in.
+    COUNTRY = ("fertile", "forest", "hills", "clay", "coast")
+
+    def called_in(self, b: "BuildingInstance") -> bool:
+        """Is this shed's work out in the country, with the bell rung?"""
+        return bool(self.bell) and b.spec.terrain in self.COUNTRY
+
     def _cannot_work(self, b: "BuildingInstance") -> str:
         """Why this shed could not work today even with every place filled,
         or '' if it could. Asked before hands are seated, so the reason is
@@ -685,6 +702,8 @@ class Settlement:
         spec = b.spec
         if not spec.jobs:
             return ""
+        if self.called_in(b):
+            return "the bell is rung"
         season = getattr(self, "_season_now", "")
         if season and spec.season and self._season_multiplier(spec, season) <= 0:
             return "out of season"
@@ -861,6 +880,8 @@ class Settlement:
                 continue
             if self.raided and self.raid_pressure > 0:
                 gone = b.head * C.HERD_DRIVEN * min(1.0, self.raid_pressure)
+                if self.bell:
+                    gone *= C.BELL_HERD   # most of them brought in with the people
                 if gone >= 0.05:
                     b.head = max(0.0, b.head - gone)
                     rep.notes.append(
@@ -1283,6 +1304,8 @@ class Settlement:
             # Shutting the gates is not free in the town either. Nothing
             # comes in, and everybody can see that nothing is coming in.
             out.append(("the gates are shut", -9.0))
+        if self.bell:
+            out.append(("the bell has the country in", C.BELL_MOOD))
         buildings_mood = 0.0
         for b in self.buildings:
             if b.complete:
@@ -1400,7 +1423,7 @@ class Settlement:
             # out fresh each morning -- so it has to be written down, for
             # the same reason `shoring` did.
             "raid_heat": self.raid_heat,
-            "sick": self.sick.to_dict(), "shut": self.shut,
+            "sick": self.sick.to_dict(), "shut": self.shut, "bell": self.bell,
             "last_sick": self.last_sick, "buried": self.buried,
             # Yesterday's hands, read by this morning's production before
             # this morning's fire and sickness write them again. Same class
@@ -1441,6 +1464,7 @@ class Settlement:
         s.raid_heat = float(d.get("raid_heat", 0.0))
         s.sick = Sickness.from_dict(d.get("sick"))
         s.shut = bool(d.get("shut", False))
+        s.bell = int(d.get("bell", 0))
         s.last_sick = int(d.get("last_sick", -9999))
         s.buried = float(d.get("buried", 0.0))
         s.fire_labour = float(d.get("fire_labour", 0.0))

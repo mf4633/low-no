@@ -285,6 +285,40 @@ class SiegeMixin:
                     f"nothing on the road reaches you.")
         return f"{s.name} opens its gates again. The carts may run."
 
+    def ring_bell(self, settlement_key: str = "", on: bool = True) -> str:
+        """Ring the bell, and everybody out in the country comes in.
+
+        Age of Empires' town bell, for the same reason: the warning is worth
+        nothing unless there is something to do about it. Rung, a raid finds
+        empty fields -- far fewer people driven off, most of the beasts
+        brought in. It costs everything the country makes while it rings,
+        the eyes the woodcutters were, and a crowded, sour town. Ring it on
+        rumour and you starve yourself; ring it late and they are on the
+        road when the horsemen come.
+        """
+        s = self.world.settlements.get(settlement_key or "") or self.home()
+        if bool(s.bell) == on:
+            return (f"the bell is already ringing at {s.name}" if on
+                    else f"the bell at {s.name} is not rung")
+        if on:
+            out = sorted({s.RANGERS.get(b.key, "field hands")
+                          for b in s.buildings
+                          if b.spec.terrain in s.COUNTRY and b.worked}) or ["herders"]
+            who = out[0] if len(out) == 1 else f"{', '.join(out[:-1])} and {out[-1]}"
+            s.bell = 1
+            s._seat_hands()
+            for b in s.buildings:
+                if s.called_in(b):
+                    b.throughput = 0.0      # they are walking in now
+            return self.note(f"The bell rang at {s.name}, and the {who} "
+                             f"came in behind the wall.")
+        days = max(0, s.bell - 1)
+        s.bell = 0
+        s._seat_hands()
+        return self.note(f"{s.name} stood the bell down after {days} "
+                         f"day{'' if days == 1 else 's'}; the country hands "
+                         f"go back out.")
+
     def fire_baggage(self, settlement_key: str = "", men: int = 0) -> str:
         """Out of the gate at his wagons rather than at his engines.
 

@@ -1222,6 +1222,7 @@ def snapshot(game, here: str = "") -> dict:
             "water": _water_view(game),
             "field": _field_view(game, key),
             "raided": s.raided,
+            "bell": s.bell,
             "blockaded": s.blockaded,
             "fires": len(s.fires.blazes),
             "rations": s.ration_level,

@@ -469,6 +469,7 @@ COMMANDS = {
     # sortie odds of a coordinate. tests/test_verbs.py keeps the keys unique.
     "odds": Console.cmd_sortie_odds,
     "gates": Console.cmd_gates, "quarantine": Console.cmd_gates,
+    "bell": Console.cmd_bell,
     "battle": Console.cmd_battle, "fight": Console.cmd_battle,
     "storm": Console.cmd_battle,
     "herds": Console.cmd_herds, "flock": Console.cmd_herds,

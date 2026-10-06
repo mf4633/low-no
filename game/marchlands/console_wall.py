@@ -539,6 +539,20 @@ class WallMixin:
             self.say("  " + ink.c(ink.pad(cmd, 22), tint)
                      + ink.c(what if not why else f"({why})", ink.DIM))
 
+    def cmd_bell(self, args: List[str]) -> None:
+        """Ring the bell and bring the country hands in, or stand it down."""
+        g = self.game
+        want = [a.lower() for a in args]
+        where = next((a for a in want
+                      if a not in ("ring", "on", "down", "off", "stand")), "")
+        s = g.world.settlements.get(where) or g.home()
+        if any(w in want for w in ("down", "off", "stand")):
+            return self.say("  " + g.ring_bell(where, False))
+        if any(w in want for w in ("ring", "on")) or not s.bell:
+            return self.say("  " + g.ring_bell(where, True))
+        self.say(f"  the bell has been ringing at {s.name} for "
+                 f"{max(0, s.bell - 1)} days -- `bell down` to send them out")
+
     def cmd_gates(self, args: List[str]) -> None:
         """Shut your gates against the sickness, or open them again."""
         from . import plague

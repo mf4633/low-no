@@ -3724,6 +3724,13 @@ function paint(s) {
     : s.town.fires ? `${s.town.fires} roofs alight`
     : s.town.blockaded ? 'the roads are cut' : s.over ? s.over : '';
   alarm.textContent = bad; alarm.hidden = !bad;
+  // The bell: one button, its words saying what pressing it will do.
+  const bell = $('bell');
+  const rung = (s.town.bell || 0) > 0;
+  bell.textContent = rung ? `stand the bell down (${Math.max(0, s.town.bell - 1)}d)`
+                          : 'ring the bell';
+  bell.dataset.do = rung ? 'bell down' : 'bell ring';
+  bell.setAttribute('aria-pressed', rung ? 'true' : 'false');
   paintPest(sick);
   paintSiege(s.town.siege);
   paintWater(s.town.water);

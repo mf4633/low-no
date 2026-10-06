@@ -158,6 +158,12 @@ SIEGE_HUNGER = 0.55             # what a besieged town still manages to produce
 RAID_SORTIE = 0.55              # how hard a sortie bites when the garrison comes out
 RAID_LOOT = 0.09                # share of a store a full raid carries off in a day
 RAID_FLIGHT = 0.012             # share of the people driven off the land daily
+#: The bell rung: the country hands are behind the wall, so a raid finds
+#: empty fields. Fewer people driven off, most of the beasts brought in --
+#: and nothing made out there while it rings, and a crowded town.
+BELL_FLIGHT = 0.25              # of RAID_FLIGHT, with the bell rung
+BELL_HERD = 0.4                 # of HERD_DRIVEN, with the bell rung
+BELL_MOOD = -5.0                # everybody in, sleeping in the yards
 RAID_PROSPERITY = 0.035         # prosperity a full day's raid costs a town
 RAID_LOOT_COIN = 260.0          # coin a full day's raid brings home
 RAID_TORCH = 0.10               # odds a day's raid puts a torch to something
