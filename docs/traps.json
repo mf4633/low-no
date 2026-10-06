@@ -1,14 +1,14 @@
 {
- "at": "2026-10-06T20:59:25.245719Z",
+ "at": "2026-10-06T21:57:32.793744Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 62,
-   "price": 5,
-   "p_model": 0.1657,
-   "p_market": 0.05,
-   "edge_pts": 11.6,
-   "size_lcb": 0.0192,
+   "price": 1,
+   "p_model": 0.1143,
+   "p_market": 0.01,
+   "edge_pts": 10.4,
+   "size_lcb": 0.0127,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -16,17 +16,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
+     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SFO",
    "ceiling": 80,
-   "price": 24,
-   "p_model": 0.286,
-   "p_market": 0.24,
-   "edge_pts": 4.6,
+   "price": 12,
+   "p_model": 0.1723,
+   "p_market": 0.12,
+   "edge_pts": 5.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -34,8 +34,8 @@
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
-     "code": "GRAVEYARD",
-     "why": "24c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 3.0F short. The climb window has closed."
     }
    ]
   }
