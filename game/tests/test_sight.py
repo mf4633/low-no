@@ -136,7 +136,7 @@ class TestTheHandsOutInTheCountry(unittest.TestCase):
                 b.enabled = False
         g._scout()
         self.assertLess(len(g.shroud.visible), wide)
-        self.assertFalse(g._ranged)
+        self.assertFalse(g._rings)
 
     def test_farms_do_not_count(self):
         s = self.worked().world.settlements["aldworth"]
@@ -145,29 +145,75 @@ class TestTheHandsOutInTheCountry(unittest.TestCase):
                          sum(1 for b in s.buildings
                              if b.key in s.RANGERS and b.worked))
 
-    def _coming(self, g, at):
-        from marchlands.military import MARCHING, Army
-        a = Army(uid=903, name="the Margrave's host", owner="vantry",
-                 units={"spearman": 30}, at="vantry", bound_for="aldworth",
-                 state=MARCHING, days_left=3, leg_days=5)
+    def march_on(self, g, origin="caldmoor", days=12):
+        """A real host on a real road: from a town well outside the ring,
+        marching on Aldworth, morning after morning until it is there."""
+        from marchlands.military import Army
+        a = Army(uid=903, name="the Margrave's host", owner=origin,
+                 units={"spearman": 30}, at=origin)
+        g._set_march(a, origin, "aldworth", a.units)
         g.armies.append(a)
-        g.host_xy = lambda h: at if h is a else None
-        before = len(g.chronicle.entries)
-        g._sight_hosts()
-        return [e.text for e in g.chronicle.entries[before:]]
+        lines = []
+        for _ in range(days):
+            before = len(g.chronicle.entries)
+            g._look_around()
+            lines += [e.text for e in g.chronicle.entries[before:]
+                      if "saw the Margrave's host" in e.text]
+            a.days_left -= 1
+            if a.days_left <= 0:
+                break
+        return lines
 
-    def test_what_only_they_saw_is_a_line(self):
-        g = self.worked()
-        cell = next(iter(g._ranged))
-        at = ((cell[0] + 0.5) * sight.CELL, (cell[1] + 0.5) * sight.CELL)
-        lines = self._coming(g, at)
-        self.assertEqual(len(lines), 1)
+    def test_a_host_marching_on_you_is_reported_once(self):
+        # The case that mattered and never fired: a host bound for one of
+        # yours is 'close' all the way, so a seen-yesterday test never let
+        # the line through -- and it steps 18 leagues across a 6-league band.
+        lines = self.march_on(self.worked())
+        self.assertEqual(len(lines), 1, lines)
         self.assertIn("out of Aldworth saw the Margrave's host", lines[0])
-        self.assertIn("road to Aldworth", lines[0])
+        self.assertIn("strong, on the road to Aldworth.", lines[0])
 
-    def test_under_the_wall_is_not_their_news(self):
+    def test_no_hands_out_no_line(self):
         g = self.worked()
-        self.assertEqual(self._coming(g, tuple(g.world.coords["aldworth"])), [])
+        for b in g.world.settlements["aldworth"].buildings:
+            if b.key in g.world.settlements["aldworth"].RANGERS:
+                b.enabled = False
+                b.throughput = 0.0
+        self.assertEqual(self.march_on(g), [])
+
+    def test_a_host_that_set_out_inside_the_ring_is_not_their_news(self):
+        self.assertEqual(self.march_on(self.worked(), origin="dunmere"), [])
+
+    def test_the_nearer_town_gets_the_credit(self):
+        g = self.worked()
+        g._scout()
+        r = g._rings["aldworth"]
+        ax, ay = g.world.coords["aldworth"]
+        from marchlands.military import MARCHING, Army
+        other = g.world.settlements["aldworth"]
+        g.world.settlements["greyfell"] = start("marchlands", seed=3).world.settlements["aldworth"]
+        g.world.settlements["greyfell"].name = "Greyfell"
+        g.world.coords["greyfell"] = (ax + 40, ay)
+        g._rings = {"aldworth": r, "greyfell": r}
+        g.world.settlements["greyfell"].rangers = other.rangers
+        a = Army(uid=904, name="the Margrave's host", owner="caldmoor",
+                 units={"spearman": 30}, at="caldmoor", bound_for="aldworth",
+                 state=MARCHING, days_left=3, leg_days=5)
+        g.host_xy = lambda h: (ax + 40 + r - 2, ay)   # just inside Greyfell's
+        g._ranger_saw(a)
+        self.assertIn("out of Greyfell saw", g.chronicle.entries[-1].text)
+
+    def test_no_road_no_dangling_comma(self):
+        g = self.worked()
+        g._scout()
+        from marchlands.military import MARCHING, Army
+        a = Army(uid=905, name="a host", owner="caldmoor",
+                 units={"spearman": 12}, at="caldmoor", bound_for="nowhere",
+                 state=MARCHING, days_left=3, leg_days=5)
+        ax, ay = g.world.coords["aldworth"]
+        g.host_xy = lambda h: (ax + 1, ay)
+        g._ranger_saw(a)
+        self.assertTrue(g.chronicle.entries[-1].text.endswith("about 12 strong."))
 
 
 if __name__ == "__main__":

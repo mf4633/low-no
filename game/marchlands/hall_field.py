@@ -360,8 +360,11 @@ class FieldMixin:
         a.units = {k: v for k, v in raiders.units.items() if v >= 0.5}
         s.units = {k: v for k, v in garrison.units.items() if v >= 0.5}
         # Stores carried off, people driven off the land.
+        # Rung, the carts and the sheaves came in with the people, and what
+        # the raiders find is what nobody could carry.
+        loot = C.RAID_LOOT * (C.BELL_LOOT if s.bell else 1.0)
         for k in list(s.market.stock):
-            s.market.take(k, s.market.stock[k] * C.RAID_LOOT * worked)
+            s.market.take(k, s.market.stock[k] * loot * worked)
         flight = C.RAID_FLIGHT * (C.BELL_FLIGHT if s.bell else 1.0)
         s.population = max(4.0, s.population * (1.0 - flight * worked))
         # Raiders carry torches. This is the cheapest way there is to hurt a

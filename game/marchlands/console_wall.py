@@ -452,6 +452,7 @@ class WallMixin:
                 men = int(arg)
             else:
                 where = arg
+        where = self._here_unless(where)
         self.say("  " + g.sally(where, men).replace("\n", "\n  "))
 
     def cmd_shore(self, args: List[str]) -> None:
@@ -460,7 +461,7 @@ class WallMixin:
         on = not (args and args[0].lower() in ("off", "no", "stop"))
         where = next((a for a in args
                       if a.lower() not in ("off", "no", "stop", "on")), "")
-        self.say("  " + g.shore(where, on))
+        self.say("  " + g.shore(self._here_unless(where), on))
 
     def cmd_battle(self, args: List[str]) -> None:
         """The fight the day is waiting on: see it, fight a round, or decide."""
@@ -539,15 +540,19 @@ class WallMixin:
             self.say("  " + ink.c(ink.pad(cmd, 22), tint)
                      + ink.c(what if not why else f"({why})", ink.DIM))
 
+    def _here_unless(self, where: str) -> str:
+        """The town named, or else the one you are looking at -- never the
+        seat by default. The page shows this town's gates, bell and breach,
+        so a button pressed on it must act on this town and not on the hall."""
+        return where if where in self.game.world.settlements else self.here
+
     def cmd_bell(self, args: List[str]) -> None:
         """Ring the bell and bring the country hands in, or stand it down."""
         g = self.game
         want = [a.lower() for a in args]
         where = next((a for a in want
                       if a not in ("ring", "on", "down", "off", "stand")), "")
-        # The town you are looking at, not the seat: the button on the page
-        # shows this one's bell, so it must be this one's bell it rings.
-        where = where if where in g.world.settlements else self.here
+        where = self._here_unless(where)
         s = self.settlement(where)
         if any(w in want for w in ("down", "off", "stand")):
             return self.say("  " + g.ring_bell(where, False))
@@ -561,9 +566,9 @@ class WallMixin:
         from . import plague
         g = self.game
         want = [a.lower() for a in args]
-        where = next((a for a in want
-                      if a not in ("shut", "close", "open", "up")), "")
-        s = g.world.settlements.get(where) or g.home()
+        where = self._here_unless(next(
+            (a for a in want if a not in ("shut", "close", "open", "up")), ""))
+        s = self.settlement(where)
         if any(w in want for w in ("shut", "close")):
             return self.say("  " + g.shut_gates(where, True))
         if "open" in want:
@@ -615,6 +620,7 @@ class WallMixin:
                 men = int(a)
             else:
                 where = a.lower()
+        where = self._here_unless(where)
         self.say("  " + g.fire_baggage(where, men).replace("\n", "\n  "))
 
     def cmd_sortie_odds(self, args: List[str]) -> None:

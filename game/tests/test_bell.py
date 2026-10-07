@@ -103,6 +103,38 @@ class TestTheRaid(unittest.TestCase):
         self.assertGreater(open_fields, 0)
         self.assertAlmostEqual(rung / open_fields, C.BELL_FLIGHT, places=2)
 
+    def loot(self, ring):
+        g, s = new_game()
+        if ring:
+            g.ring_bell("aldworth")
+        s.units = {}
+        stock = sum(s.market.stock.values())
+        g._raid_settlement(Army(uid=951, name="raiders", owner="vantry",
+                                units={"spearman": 40}, at="aldworth"), s)
+        return stock - sum(s.market.stock.values())
+
+    def test_the_granary_is_mostly_spared(self):
+        open_fields, rung = self.loot(False), self.loot(True)
+        self.assertGreater(open_fields, 0)
+        self.assertAlmostEqual(rung / open_fields, C.BELL_LOOT, places=2)
+
+    def herd_lost(self, ring):
+        from marchlands.settlement import BuildingInstance, DayReport
+        g, s = new_game()
+        fold = BuildingInstance(uid=s.next_uid, key="sheep_farm", days_left=0)
+        fold.head = 7.0
+        s.buildings.append(fold)
+        if ring:
+            g.ring_bell("aldworth")
+        s.raided, s.raid_pressure = True, 1.0
+        s._herds(DayReport())
+        return 7.0 - fold.head
+
+    def test_most_of_the_beasts_come_in(self):
+        open_fields, rung = self.herd_lost(False), self.herd_lost(True)
+        self.assertGreater(open_fields, 0)
+        self.assertAlmostEqual(rung / open_fields, C.BELL_HERD, places=2)
+
 
 class TestTheVerb(unittest.TestCase):
     def test_bell_rings_and_bell_down_stands_it_down(self):
@@ -126,6 +158,48 @@ class TestTheVerb(unittest.TestCase):
         con.do("bell ring")
         self.assertEqual(other.bell, 1)
         self.assertEqual(s.bell, 0)
+
+
+class TestTheSteward(unittest.TestCase):
+    def test_a_long_ringing_with_short_bread_is_named(self):
+        g, s = new_game()
+        g.ring_bell("aldworth")
+        g.advance(5)
+        s.popularity = 20.0
+        said = " ".join(Console(g, out=io.StringIO()).hints())
+        self.assertIn("The bell has rung at Aldworth for 5 days", said)
+        self.assertIn("`bell down aldworth`", said)
+
+    def test_no_bell_no_word(self):
+        g, s = new_game()
+        said = " ".join(Console(g, out=io.StringIO()).hints())
+        self.assertNotIn("The bell has rung", said)
+
+
+class TestTheTownOnScreen(unittest.TestCase):
+    """Every button on the town's page acts on the town the page shows."""
+
+    def two_towns(self):
+        g, s = new_game()
+        other = start("marchlands", seed=3).world.settlements["aldworth"]
+        other.name = "Greyfell"
+        other.count = lambda key: 0          # no keep: Aldworth stays the seat
+        g.world.settlements["greyfell"] = other
+        con = Console(g, out=io.StringIO())
+        con.here = "greyfell"
+        return g, s, other, con
+
+    def test_gates(self):
+        g, s, other, con = self.two_towns()
+        con.do("gates shut")
+        self.assertTrue(other.shut)
+        self.assertFalse(s.shut)
+
+    def test_naming_a_town_still_wins(self):
+        g, s, other, con = self.two_towns()
+        con.do("gates shut aldworth")
+        self.assertTrue(s.shut)
+        self.assertFalse(other.shut)
 
 
 if __name__ == "__main__":

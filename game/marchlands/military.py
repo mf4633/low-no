@@ -1450,6 +1450,9 @@ class Army:
     seen_day: int = -1
     seen_at: str = ""
     seen_size: int = 0
+    #: The leg (its `bound_for`) your country hands have already reported
+    #: this host on, so one march is one line however often it is in sight.
+    told_for: str = ""
     siege: SiegeState = field(default_factory=SiegeState)
     #: Rations in the baggage. A host eats every morning -- see supply.py --
     #: and this is the part of its eating that is its own rather than the
