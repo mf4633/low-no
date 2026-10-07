@@ -1,0 +1,163 @@
+# Builds Marchlands.exe -- a double-clickable Windows build of the game in
+# game/. Nothing to do with the trading system in this repo's root; it only
+# ever touches game/ and only runs when something in there changes.
+#
+# The push build tells you the packaging is broken on the day it breaks
+# rather than on the day you try to ship. A release comes out of the same
+# build two ways: push a tag named marchlands-v*, or simply bump the version
+# in game/marchlands/__init__.py. See "Cutting a release without pushing a
+# tag" further down for why the second way exists.
+name: Marchlands (Windows build)
+
+on:
+  # The everyday build: only when something in the game actually changed, so
+  # the trading system's own commits (score_run writes reports most nights)
+  # do not each cost a Windows runner.
+  push:
+    branches: ["**"]
+    paths:
+      - "game/**"
+      - ".github/workflows/marchlands-windows.yml"
+  # The release build, on its own trigger and deliberately without a paths
+  # filter. A tag points at a commit that is already on the server, so the
+  # push that creates it carries no file diff for a paths filter to match --
+  # putting `tags:` in the block above is the single most common way a
+  # tag-built release quietly never happens.
+  create:
+  workflow_dispatch:
+
+permissions:
+  contents: write            # to attach the exe to a release
+
+jobs:
+  build:
+    # `create` also fires for new branches. Only a release tag gets through.
+    if: >-
+      github.event_name != 'create' ||
+      (github.event.ref_type == 'tag' &&
+       startsWith(github.event.ref, 'marchlands-v'))
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Two, so the release step can see whether this commit is the
+          # one that changed the version.
+          fetch-depth: 2
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+
+      # The game itself has no dependencies, so this is the whole build.
+      - name: Build Marchlands.exe
+        run: python -m PyInstaller --clean --noconfirm packaging/marchlands.spec
+
+      # An exe that starts and serves a blank page is the failure this whole
+      # packaging exists to avoid -- the drawn view is served off disk, so the
+      # page and its scripts have to be inside the bundle. Prove they are,
+      # against the running executable, before anybody downloads it.
+      - name: Check it actually serves the drawn view
+        shell: pwsh
+        run: |
+          $exe = "dist\Marchlands.exe"
+          if (-not (Test-Path $exe)) { throw "no exe was built" }
+          $p = Start-Process $exe -ArgumentList "--port","8913","--no-browser" -PassThru
+          try {
+            $ok = $false
+            foreach ($i in 1..30) {
+              Start-Sleep -Seconds 2
+              try {
+                $page = Invoke-WebRequest "http://127.0.0.1:8913/" -UseBasicParsing
+                $js   = Invoke-WebRequest "http://127.0.0.1:8913/marchlands.js" -UseBasicParsing
+                $st   = Invoke-WebRequest "http://127.0.0.1:8913/state" -UseBasicParsing
+                $fr   = Invoke-WebRequest "http://127.0.0.1:8913/front" -UseBasicParsing
+                if ($page.StatusCode -eq 200 -and $js.Content.Length -gt 50000 `
+                    -and $st.Content -match '"idioms"' `
+                    -and $fr.Content -match '"open": true') { $ok = $true; break }
+              } catch { }
+            }
+            if (-not $ok) { throw "the exe did not serve the drawn view" }
+            # Start a game the way the front door does -- nothing typed.
+            $body = '{"house":"hansa","scenario":"winter_crown"}'
+            $new = Invoke-WebRequest "http://127.0.0.1:8913/new" -Method POST `
+                     -ContentType "application/json" -Body $body -UseBasicParsing
+            if ($new.Content -notmatch '"town"') { throw "could not start a game from the front door" }
+            Write-Host "served the page, $($js.Content.Length) bytes of script, live state, and began a game"
+          } finally {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Marchlands-windows
+          path: game/dist/Marchlands.exe
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/marchlands-v')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: game/dist/Marchlands.exe
+          generate_release_notes: true
+
+      # Cutting a release without pushing a tag.
+      #
+      # A tag is the natural trigger and it is not always available: pushing
+      # one needs write access to refs/tags, which not every session that can
+      # push a branch has. This job already runs with `contents: write`, so
+      # the build that made the exe can make the release too. The version in
+      # game/marchlands/__init__.py is the one source of truth -- bumping it is
+      # the release, and there is no second file to forget.
+      #
+      # Two guards, because they cover different mistakes. It fires only on
+      # the commit that actually changed the version, so ordinary work on a
+      # branch whose version happens to be unreleased does not ship itself;
+      # and it fires only if that version has no release yet, so a re-run, or
+      # the same bump arriving on a second branch, does not quietly replace
+      # what people already downloaded. A version number that means a
+      # different build each week is worse than no version number.
+      - name: What version is this, and did this commit change it?
+        id: ver
+        shell: bash
+        run: |
+          read_version() {
+            python -c "import re,sys; m=re.search(r'^__version__ = \"([^\"]+)\"', sys.stdin.read(), re.M); print(m.group(1) if m else '')"
+          }
+          v=$(read_version < marchlands/__init__.py)
+          was=$(git show HEAD^:game/marchlands/__init__.py 2>/dev/null | read_version || true)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "bumped=$([ -n "$v" ] && [ "$v" != "$was" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "Marchlands $v (the commit before said '${was:-nothing}')"
+
+      - name: Has that version already been released?
+        id: already
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="marchlands-v${{ steps.ver.outputs.version }}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "out=true" >> "$GITHUB_OUTPUT"
+            echo "$tag is already out; leaving it alone"
+          else
+            echo "out=false" >> "$GITHUB_OUTPUT"
+            echo "$tag has not been cut yet"
+          fi
+
+      - name: Cut it
+        if: >-
+          github.event_name == 'push' &&
+          steps.ver.outputs.bumped == 'true' &&
+          steps.already.outputs.out == 'false'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: marchlands-v${{ steps.ver.outputs.version }}
+          name: Marchlands ${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          files: game/dist/Marchlands.exe
+          generate_release_notes: true

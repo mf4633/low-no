@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marchlands"
+dynamic = ["version"]        # from marchlands.__version__; see below
+description = "A medieval town, trade and war game: land, labour, the road, and the wall"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []          # stdlib only, on purpose
+
+[project.scripts]
+marchlands = "marchlands.__main__:main"
+
+# One version number, kept in the package where the game itself can read it.
+[tool.setuptools.dynamic]
+version = {attr = "marchlands.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["marchlands*"]
+
+# The browser view is served off disk, so the page, its stylesheet and its two
+# scripts have to be in the wheel. Without this `pip install marchlands` ships
+# the engine and nothing to look at it with, and `--web` serves a blank page.
+[tool.setuptools.package-data]
+marchlands = ["static/*"]
