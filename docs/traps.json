@@ -1,5 +1,21 @@
 {
- "at": "2026-10-07T17:34:24.342003Z",
- "traps": [],
+ "at": "2026-10-07T18:38:01.097090Z",
+ "traps": [
+  {
+   "city": "NYC",
+   "ceiling": 65,
+   "price": 19,
+   "p_model": 0.3208,
+   "p_market": 0.19,
+   "edge_pts": 13.1,
+   "size_lcb": 0.0332,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
