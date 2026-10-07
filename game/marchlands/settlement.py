@@ -349,8 +349,11 @@ class Settlement:
             # same cut with the bell rung or not -- relief for the workshops
             # was tried at 0 and at 0.6 of it, and either way a bigger host or
             # a winter raid made ringing win on output as well as on people.
-            # With the same cut, the open town's fields are always the
-            # difference, so the bell stays a trade.
+            # With the same cut, when the workshops were manned either way the
+            # open town's fields are the difference, so the bell is a trade.
+            # A town short of hands is the exception: the bell's hands go to
+            # a mill that stood empty, and it can out-make the open town. That
+            # is the honest reward for an idle workshop, not a discount.
             base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
         if self.fire_labour and self.workforce:
             # The bucket chain is made of the people who were working.

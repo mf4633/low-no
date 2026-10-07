@@ -252,11 +252,11 @@ class TestAWholeRaid(unittest.TestCase):
         self.assertGreater(stock_rung, stock_open)
 
     def test_a_rung_town_still_makes_less_than_one_working_its_fields(self):
-        # The workshops keep part of the raid's cut: ringing trades output
-        # for people and stores, it does not win on every count.
-        # On the raid it was tuned on, a bigger one, and in winter: the
-        # cases where relief for the workshops let ringing win on output.
-        for spears, winter in ((40, False), (80, False), (50, True)):
+        # The workshops take the same raid cut rung or not, so with them
+        # manned either way ringing trades output for people and stores.
+        # All six cases where relief for the workshops let ringing win.
+        for spears, winter in ((40, False), (50, False), (80, False),
+                               (40, True), (50, True), (80, True)):
             with self.subTest(spears=spears, winter=winter):
                 lost_open, stock_open, made_open = self.run_raid(
                     False, workshops=True, spears=spears, winter=winter)
@@ -265,6 +265,35 @@ class TestAWholeRaid(unittest.TestCase):
                 self.assertLess(made_rung, made_open)
                 self.assertLess(lost_rung, lost_open)
                 self.assertGreater(stock_rung, stock_open)
+
+
+    def test_a_town_short_of_hands_is_paid_for_its_idle_mill(self):
+        # The exception the comment in productivity() names: six free hands,
+        # rung, sit the mill and bakery that stood empty while they farmed.
+        # Output can then favour the bell; people and stores always do.
+        from marchlands.military import RAIDING
+        from marchlands.settlement import BuildingInstance
+        out = {}
+        for ring in (False, True):
+            g, s = new_game()
+            for key in ("mill", "bakery"):
+                s.buildings.append(BuildingInstance(uid=s.next_uid, key=key,
+                                                    days_left=0))
+                s.next_uid += 1
+            for k, q in (("wheat", 2500), ("flour", 2500), ("wood", 800)):
+                s.market.stock[k] = s.market.stock.get(k, 0) + q
+            s.units = {}
+            s.resting = max(0, s.workforce - 6)
+            if ring:
+                g.ring_bell("aldworth")
+            pop = s.population
+            g.armies.append(Army(uid=954, name="raiders", owner="vantry",
+                                 units={"spearman": 40}, at="aldworth",
+                                 state=RAIDING))
+            g.advance(g.RAID_PATIENCE)
+            out[ring] = (pop - s.population, sum(s.market.stock.values()))
+        self.assertLess(out[True][0], out[False][0])
+        self.assertGreater(out[True][1], out[False][1])
 
 
 class TestTheVerb(unittest.TestCase):
@@ -427,6 +456,29 @@ class TestTheTownOnScreen(unittest.TestCase):
         con.do("bell ring north stand")
         self.assertEqual(other.bell, 1)
         self.assertEqual(s.bell, 1)               # Aldworth's still up
+
+    def test_a_whole_name_with_no_verb_is_the_place(self):
+        g, s, other, con = self.two_towns()
+        other.name = "North Stand"
+        con.here = "aldworth"
+        g.ring_bell("aldworth")
+        con.do("bell north stand")
+        self.assertEqual(other.bell, 1)           # North Stand rang
+        self.assertEqual(s.bell, 1)               # Aldworth was not stood down
+
+    def test_shore_on_either_side_of_the_name(self):
+        g, s, other, con = self.two_towns()
+        con.do("shore aldworth on")
+        self.assertTrue(s.shoring)
+        s.shoring = False
+        con.do("shore on aldworth")
+        self.assertTrue(s.shoring)
+
+    def test_gates_up_does_not_open_them(self):
+        g, s, other, con = self.two_towns()
+        other.shut = True
+        con.do("gates up")
+        self.assertTrue(other.shut)
 
     def test_naming_a_town_still_wins(self):
         g, s, other, con = self.two_towns()

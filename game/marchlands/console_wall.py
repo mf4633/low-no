@@ -537,19 +537,30 @@ class WallMixin:
         """The town named, or else the one you are looking at -- never the
         seat by default. The page shows this town's gates, bell and breach,
         so a button pressed on it must act on this town and not on the hall."""
+        return self._town_named(where) or self.here
+
+    def _town_named(self, where: str) -> str:
+        """The settlement this phrase names -- key, key with underscores,
+        or display name -- or '' if it names none."""
         towns = self.game.world.settlements
         where = (where or "").strip().lower()
+        if not where:
+            return ""
         for tried in (where, where.replace(" ", "_")):
             if tried in towns:
                 return tried
         by_name = {s.name.lower(): k for k, s in towns.items()}
-        return by_name.get(where, self.here)
+        return by_name.get(where, "")
 
     def _verb_and_place(self, args: List[str], verbs) -> Tuple[str, str]:
         """The first verb word is the action, and only that one word is
         taken out of the place -- so `bell ring north stand` rings North
-        Stand, and `shore aldworth off` sends the masons off."""
+        Stand, and `shore aldworth off` sends the masons off. But a phrase
+        that names a town whole is a place with no verb: `bell north stand`
+        is North Stand's bell, not "stand down the town on screen"."""
         words = [a for a in args if not a.isdigit()]
+        if self._town_named(" ".join(words)):
+            return "", " ".join(words)
         for i, w in enumerate(words):
             if w.lower() in verbs:
                 return w.lower(), " ".join(words[:i] + words[i + 1:])
