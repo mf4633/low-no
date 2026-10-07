@@ -35,15 +35,12 @@ TOWN_SIGHT = 58.0
 HOST_SIGHT = 46.0
 CART_SIGHT = 30.0
 
-#: How much further a town sees for every shed whose hands spend the day out
-#: in the country -- woodcutters, charcoal burners, shepherds, quarrymen,
-#: fishermen -- as a share of what its walls see. A field is under the wall
-#: and a bakery is inside it; the man who walks three miles into the wood for
-#: timber is the one who comes back saying there are spears on the road.
-RANGER_REACH = 0.10
-#: And no further than half again: five sheds of them out is a town that
-#: knows its own country, and a sixth is only more timber.
-RANGER_CAP = 0.50
+#: How much further a town sees for every shed being worked out in the
+#: country, as a share of what its walls see: people in the fields and the
+#: wood are eyes. Ring the bell and they come in, and the ring with them.
+COUNTRY_REACH = 0.05
+#: And no further than a quarter again.
+COUNTRY_CAP = 0.25
 
 Cell = Tuple[int, int]
 

@@ -118,102 +118,39 @@ class TestTheSave(unittest.TestCase):
         self.assertLessEqual(set(g.world.coords), keys(web.march(g2, "aldworth")))
 
 
-class TestTheHandsOutInTheCountry(unittest.TestCase):
-    """Woodcutters, shepherds and quarrymen see further than the wall does,
-    and say so when they see somebody coming."""
+class TestTheCountryWorked(unittest.TestCase):
+    """People in the fields and the wood are eyes: a worked country widens
+    the ring a town sees, and ringing the bell brings them, and it, in."""
 
     def worked(self):
         g = new_game()
         g.advance(2)
-        self.assertIn("woodcutters", g.world.settlements["aldworth"].rangers())
+        self.assertGreater(g.world.settlements["aldworth"].out_working(), 0)
         return g
 
-    def test_a_worked_woodcutter_widens_the_ring(self):
+    def test_a_worked_country_widens_the_ring(self):
         g = self.worked()
         wide = len(g.shroud.visible)
-        for b in g.world.settlements["aldworth"].buildings:
-            if b.key in g.world.settlements["aldworth"].RANGERS:
-                b.enabled = False
+        g.ring_bell("aldworth")
         g._scout()
+        self.assertEqual(g.world.settlements["aldworth"].out_working(), 0)
         self.assertLess(len(g.shroud.visible), wide)
-        self.assertFalse(g._rings)
 
-    def test_farms_do_not_count(self):
-        s = self.worked().world.settlements["aldworth"]
-        self.assertNotIn("farm", s.RANGERS)
-        self.assertEqual(len(s.rangers()),
-                         sum(1 for b in s.buildings
-                             if b.key in s.RANGERS and b.worked))
+    def test_no_further_than_the_cap(self):
+        g = self.worked()
+        s = g.world.settlements["aldworth"]
+        s.out_working = lambda: 99
+        g._scout()
+        ax, ay = g.world.coords["aldworth"]
+        r = g._sight_from("aldworth", sight.TOWN_SIGHT) * (1 + sight.COUNTRY_CAP)
+        self.assertTrue(g.shroud.sees(ax + r - sight.CELL, ay))
+        self.assertFalse(g.shroud.sees(ax + r + 2 * sight.CELL, ay))
 
-    def march_on(self, g, origin="caldmoor", days=12):
-        """A real host on a real road: from a town well outside the ring,
-        marching on Aldworth, morning after morning until it is there."""
+    def test_a_save_with_a_field_since_dropped_still_loads(self):
         from marchlands.military import Army
-        a = Army(uid=903, name="the Margrave's host", owner=origin,
-                 units={"spearman": 30}, at=origin)
-        g._set_march(a, origin, "aldworth", a.units)
-        g.armies.append(a)
-        lines = []
-        for _ in range(days):
-            before = len(g.chronicle.entries)
-            g._look_around()
-            lines += [e.text for e in g.chronicle.entries[before:]
-                      if "saw the Margrave's host" in e.text]
-            a.days_left -= 1
-            if a.days_left <= 0:
-                break
-        return lines
-
-    def test_a_host_marching_on_you_is_reported_once(self):
-        # The case that mattered and never fired: a host bound for one of
-        # yours is 'close' all the way, so a seen-yesterday test never let
-        # the line through -- and it steps 18 leagues across a 6-league band.
-        lines = self.march_on(self.worked())
-        self.assertEqual(len(lines), 1, lines)
-        self.assertIn("out of Aldworth saw the Margrave's host", lines[0])
-        self.assertIn("strong, on the road to Aldworth.", lines[0])
-
-    def test_no_hands_out_no_line(self):
-        g = self.worked()
-        for b in g.world.settlements["aldworth"].buildings:
-            if b.key in g.world.settlements["aldworth"].RANGERS:
-                b.enabled = False
-                b.throughput = 0.0
-        self.assertEqual(self.march_on(g), [])
-
-    def test_a_host_that_set_out_inside_the_ring_is_not_their_news(self):
-        self.assertEqual(self.march_on(self.worked(), origin="dunmere"), [])
-
-    def test_the_nearer_town_gets_the_credit(self):
-        g = self.worked()
-        g._scout()
-        r = g._rings["aldworth"]
-        ax, ay = g.world.coords["aldworth"]
-        from marchlands.military import MARCHING, Army
-        other = g.world.settlements["aldworth"]
-        g.world.settlements["greyfell"] = start("marchlands", seed=3).world.settlements["aldworth"]
-        g.world.settlements["greyfell"].name = "Greyfell"
-        g.world.coords["greyfell"] = (ax + 40, ay)
-        g._rings = {"aldworth": r, "greyfell": r}
-        g.world.settlements["greyfell"].rangers = other.rangers
-        a = Army(uid=904, name="the Margrave's host", owner="caldmoor",
-                 units={"spearman": 30}, at="caldmoor", bound_for="aldworth",
-                 state=MARCHING, days_left=3, leg_days=5)
-        g.host_xy = lambda h: (ax + 40 + r - 2, ay)   # just inside Greyfell's
-        g._ranger_saw(a)
-        self.assertIn("out of Greyfell saw", g.chronicle.entries[-1].text)
-
-    def test_no_road_no_dangling_comma(self):
-        g = self.worked()
-        g._scout()
-        from marchlands.military import MARCHING, Army
-        a = Army(uid=905, name="a host", owner="caldmoor",
-                 units={"spearman": 12}, at="caldmoor", bound_for="nowhere",
-                 state=MARCHING, days_left=3, leg_days=5)
-        ax, ay = g.world.coords["aldworth"]
-        g.host_xy = lambda h: (ax + 1, ay)
-        g._ranger_saw(a)
-        self.assertTrue(g.chronicle.entries[-1].text.endswith("about 12 strong."))
+        d = Army(uid=1, name="x", owner="vantry").to_dict()
+        d["told_for"] = "aldworth"
+        self.assertEqual(Army.from_dict(d).name, "x")
 
 
 if __name__ == "__main__":

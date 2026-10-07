@@ -32,11 +32,11 @@ class TestRinging(unittest.TestCase):
         self.assertTrue(any(b.staffed for b in country(s)))
         said = g.ring_bell("aldworth")
         self.assertIn("The bell rang at Aldworth", said)
-        self.assertIn("woodcutters", said)
+        self.assertIn("country hands came in", said)
         for b in country(s):
             self.assertEqual(b.staffed, 0)
             self.assertEqual(b.idle_reason, "the bell is rung")
-        self.assertEqual(s.rangers(), [])          # and their eyes with them
+        self.assertEqual(s.out_working(), 0)       # and their eyes with them
         self.assertTrue(any(said in e.text for e in g.chronicle.entries))
 
     def test_nothing_is_made_out_there_while_it_rings(self):

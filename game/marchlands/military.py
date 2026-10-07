@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import random
 import zlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Callable, Dict, List, Optional, Tuple
 
 from . import config as C
@@ -1450,9 +1450,6 @@ class Army:
     seen_day: int = -1
     seen_at: str = ""
     seen_size: int = 0
-    #: The leg (its `bound_for`) your country hands have already reported
-    #: this host on, so one march is one line however often it is in sight.
-    told_for: str = ""
     siege: SiegeState = field(default_factory=SiegeState)
     #: Rations in the baggage. A host eats every morning -- see supply.py --
     #: and this is the part of its eating that is its own rather than the
@@ -1515,7 +1512,9 @@ class Army:
         units = dict(d.pop("units", {}))
         log = list(d.pop("log", []))
         siege = SiegeState.from_dict(d.pop("siege", {}))
-        a = cls(**d)
+        # A field a later build dropped is not a reason to refuse the save.
+        known = {f.name for f in fields(cls)}
+        a = cls(**{k: v for k, v in d.items() if k in known})
         a.units, a.log, a.siege = units, log, siege
         return a
 

@@ -301,17 +301,13 @@ class SiegeMixin:
             return (f"the bell is already ringing at {s.name}" if on
                     else f"the bell at {s.name} is not rung")
         if on:
-            out = sorted({s.RANGERS.get(b.key, "field hands")
-                          for b in s.buildings
-                          if b.spec.terrain in s.COUNTRY and b.worked}) or ["herders"]
-            who = out[0] if len(out) == 1 else f"{', '.join(out[:-1])} and {out[-1]}"
             s.bell = 1
             s._seat_hands()
             for b in s.buildings:
                 if s.called_in(b):
                     b.throughput = 0.0      # they are walking in now
-            return self.note(f"The bell rang at {s.name}, and the {who} "
-                             f"came in behind the wall.")
+            return self.note(f"The bell rang at {s.name}, and the country "
+                             f"hands came in behind the wall.")
         days = max(0, s.bell - 1)
         s.bell = 0
         s._seat_hands()

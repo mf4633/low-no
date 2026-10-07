@@ -301,15 +301,12 @@ class RoadMixin:
         sh = self.shroud
         sh.morning()
         xy = self.world.coords
-        ranging = []
         for key, s in self.world.settlements.items():
             if key in xy:
-                base = self._sight_from(key, sight.TOWN_SIGHT)
-                sh.look(*xy[key], base)
-                out = len(s.rangers())
-                if out:
-                    ranging.append((key, base * (1.0 + min(
-                        sight.RANGER_CAP, sight.RANGER_REACH * out))))
+                wider = min(sight.COUNTRY_CAP,
+                            sight.COUNTRY_REACH * s.out_working())
+                sh.look(*xy[key],
+                        self._sight_from(key, sight.TOWN_SIGHT) * (1.0 + wider))
         for key, t in self.world.towns.items():
             # Your sworn towns, and your allies': an ally shares what his
             # walls can see, which is half of what an alliance is for.
@@ -330,15 +327,6 @@ class RoadMixin:
                 sh.trail(xy[a.at], now, sight.HOST_SIGHT)
             sh.look(*now, sight.HOST_SIGHT if a.state == MARCHING
                     else self._sight_from(a.at, sight.HOST_SIGHT))
-        # Last, the hands out in the country, so that what is left over is
-        # what only they could have seen: the ground a woodcutter is the
-        # reason you know about, and the reason he gets the line for it.
-        # The hands out in the country: a wider ring round each town that
-        # has any, kept for the morning so `_ranger_saw` can ask who saw.
-        self._rings = {}
-        for key, r in ranging:
-            sh.look(*xy[key], r)
-            self._rings[key] = r
 
     def _sight_from(self, node: str, base: float) -> float:
         """How far a place sees: further from hill country, a twentieth
@@ -367,9 +355,6 @@ class RoadMixin:
                 continue
             close = (a.at in mine or a.bound_for in mine or a.at in standing
                      or (a.state in (BESIEGING, RAIDING) and a.at in mine))
-            if (a.state == MARCHING and not a.errand
-                    and a.owner not in self.court.allies):
-                self._ranger_saw(a)
             # Or simply in sight: inside the ring round a town, a cart or a
             # host of yours, wherever on the road it has got to.
             if not close:
@@ -379,40 +364,6 @@ class RoadMixin:
                 a.seen_day = self.day
                 a.seen_at = a.at or a.bound_for
                 a.seen_size = a.size
-
-    def _ranger_saw(self, a) -> None:
-        """A host that has come in across the hands' ring gets a line saying
-        who saw it.
-
-        Asked as a crossing, not as a cell: a host steps eighteen leagues a
-        day and one woodcutter widens the ring by six, so a host is hardly
-        ever standing *in* the band on a morning -- but it walked through it
-        yesterday, and somebody with an axe watched it go by. Once per leg
-        (`told_for`), and the nearest town that saw it gets the credit.
-        """
-        if a.told_for == (a.bound_for or "-"):
-            return
-        xy = self.world.coords
-        now = self.host_xy(a)
-        if not now or a.at not in xy:
-            return
-        rings = getattr(self, "_rings", {})
-        best, best_d = None, 0.0
-        for key, r in rings.items():
-            d = math.dist(now, xy[key])
-            came_from_outside = math.dist(xy[a.at], xy[key]) > r
-            if d <= r and came_from_outside and (best is None or d < best_d):
-                best, best_d = key, d
-        if best is None:
-            return
-        a.told_for = a.bound_for or "-"
-        s = self.world.settlements[best]
-        out = s.rangers()
-        who = out[a.uid % len(out)] if out else "men"
-        dest = self.world.towns.get(a.bound_for) or self.world.settlements.get(a.bound_for)
-        road = f", on the road to {dest.name}" if dest is not None else ""
-        self.note(f"{who.capitalize()} out of {s.name} saw {a.name}, "
-                  f"about {int(round(a.size))} strong{road}.")
 
     def known(self, town_key: str) -> Tuple[Dict[str, float], int]:
         """What you believe about a town, and how many days old it is."""
