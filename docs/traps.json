@@ -1,13 +1,13 @@
 {
- "at": "2026-10-07T19:25:42.257732Z",
+ "at": "2026-10-07T20:28:31.760615Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 65,
-   "price": 20,
-   "p_model": 0.6315,
-   "p_market": 0.2,
-   "edge_pts": 43.1,
+   "price": 8,
+   "p_model": 0.5264,
+   "p_market": 0.08,
+   "edge_pts": 44.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,15 +16,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 43 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   }
