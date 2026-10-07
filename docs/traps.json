@@ -1,49 +1,41 @@
 {
- "at": "2026-10-07T22:35:33.248738Z",
+ "at": "2026-10-07T23:38:20.301991Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 65,
    "price": 1,
-   "p_model": 0.4701,
+   "p_model": 0.5032,
    "p_market": 0.01,
-   "edge_pts": 46.0,
+   "edge_pts": 49.3,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 49 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SFO",
    "ceiling": 76,
-   "price": 4,
-   "p_model": 0.2188,
-   "p_market": 0.04,
-   "edge_pts": 17.9,
+   "price": 1,
+   "p_model": 0.1208,
+   "p_market": 0.01,
+   "edge_pts": 11.1,
    "size_lcb": 0.0,
    "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 18 pts. In this ledger the market won 7 of 8 such disputes."
-    },
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 0.8F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 0.8F short. The climb window has closed."
     }
    ]
   }
