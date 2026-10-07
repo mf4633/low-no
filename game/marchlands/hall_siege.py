@@ -256,9 +256,7 @@ class SiegeMixin:
         nothing against one that is not, which is the shape a lever should
         have.
         """
-        s = self.world.settlements.get(settlement_key or self.home().name)
-        if s is None:
-            s = self.home()
+        s = self.world.settlements.get(settlement_key or "") or self.home()
         s.shoring = bool(on)
         if not on:
             return f"{s.name}: the masons come off the wall"

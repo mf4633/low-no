@@ -35,12 +35,12 @@ TOWN_SIGHT = 58.0
 HOST_SIGHT = 46.0
 CART_SIGHT = 30.0
 
-#: How much further a town sees for every shed being worked out in the
+#: How much further a town sees while anybody is working out in the
 #: country, as a share of what its walls see: people in the fields and the
-#: wood are eyes. Ring the bell and they come in, and the ring with them.
-COUNTRY_REACH = 0.05
-#: And no further than a quarter again.
-COUNTRY_CAP = 0.25
+#: wood are eyes. Flat, not per shed -- on the hand-made march every named
+#: place this reaches is in sight by the first morning, and a sixth farm
+#: only widened an empty disk. Ring the bell and the ring comes in.
+COUNTRY_WIDEN = 0.15
 
 Cell = Tuple[int, int]
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import random
 import zlib
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
 from . import config as C
@@ -1512,11 +1512,18 @@ class Army:
         units = dict(d.pop("units", {}))
         log = list(d.pop("log", []))
         siege = SiegeState.from_dict(d.pop("siege", {}))
-        # A field a later build dropped is not a reason to refuse the save.
-        known = {f.name for f in fields(cls)}
-        a = cls(**{k: v for k, v in d.items() if k in known})
+        # Fields a later build retired, named, so a save from then loads.
+        # Anything else unknown is a bad save and should say so.
+        for gone in RETIRED_ARMY_FIELDS:
+            d.pop(gone, None)
+        a = cls(**d)
         a.units, a.log, a.siege = units, log, siege
         return a
+
+
+#: Army fields that existed in a released or pushed build and were removed:
+#: `told_for` latched the country hands' sighting line, since folded.
+RETIRED_ARMY_FIELDS = ("told_for",)
 
 
 def recruit_cost(key: str, count: int, progress: Progress = NO_PROGRESS

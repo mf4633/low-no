@@ -451,7 +451,7 @@ class WallMixin:
             if arg.isdigit():
                 men = int(arg)
             else:
-                where = arg
+                where = arg.lower()
         where = self._here_unless(where)
         self.say("  " + g.sally(where, men).replace("\n", "\n  "))
 
@@ -459,7 +459,7 @@ class WallMixin:
         """Put masons on the breach while it is being made."""
         g = self.game
         on = not (args and args[0].lower() in ("off", "no", "stop"))
-        where = next((a for a in args
+        where = next((a.lower() for a in args
                       if a.lower() not in ("off", "no", "stop", "on")), "")
         self.say("  " + g.shore(self._here_unless(where), on))
 
@@ -544,7 +544,11 @@ class WallMixin:
         """The town named, or else the one you are looking at -- never the
         seat by default. The page shows this town's gates, bell and breach,
         so a button pressed on it must act on this town and not on the hall."""
-        return where if where in self.game.world.settlements else self.here
+        towns = self.game.world.settlements
+        if where in towns:
+            return where
+        by_name = {s.name.lower(): k for k, s in towns.items()}
+        return by_name.get(where.lower(), self.here)
 
     def cmd_bell(self, args: List[str]) -> None:
         """Ring the bell and bring the country hands in, or stand it down."""

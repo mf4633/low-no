@@ -136,21 +136,39 @@ class TestTheCountryWorked(unittest.TestCase):
         self.assertEqual(g.world.settlements["aldworth"].out_working(), 0)
         self.assertLess(len(g.shroud.visible), wide)
 
-    def test_no_further_than_the_cap(self):
+    def test_one_shed_or_twelve_is_the_same_ring(self):
         g = self.worked()
         s = g.world.settlements["aldworth"]
-        s.out_working = lambda: 99
+        s.out_working = lambda: 1
         g._scout()
-        ax, ay = g.world.coords["aldworth"]
-        r = g._sight_from("aldworth", sight.TOWN_SIGHT) * (1 + sight.COUNTRY_CAP)
-        self.assertTrue(g.shroud.sees(ax + r - sight.CELL, ay))
-        self.assertFalse(g.shroud.sees(ax + r + 2 * sight.CELL, ay))
+        one = set(g.shroud.visible)
+        s.out_working = lambda: 12
+        g._scout()
+        self.assertEqual(set(g.shroud.visible), one)
+
+    def test_the_first_morning_shows_the_near_country(self):
+        # What the widen is for, on the hand-made march: the ring of towns
+        # just past the wall's sight is on the map once anybody is out.
+        g = new_game()
+        g.advance(1)
+        self.assertGreater(g.world.settlements["aldworth"].out_working(), 0)
+        seen = keys(web.march(g, "aldworth"))
+        self.assertLessEqual(NEAR, seen)
+        self.assertIn("bruille", seen)
+        self.assertNotIn("ostmark", seen)
 
     def test_a_save_with_a_field_since_dropped_still_loads(self):
         from marchlands.military import Army
         d = Army(uid=1, name="x", owner="vantry").to_dict()
         d["told_for"] = "aldworth"
         self.assertEqual(Army.from_dict(d).name, "x")
+
+    def test_a_misspelled_field_is_refused_not_dropped(self):
+        from marchlands.military import Army
+        d = Army(uid=1, name="x", owner="vantry").to_dict()
+        d["boun_for"] = d.pop("bound_for")
+        with self.assertRaises(TypeError):
+            Army.from_dict(d)
 
 
 if __name__ == "__main__":

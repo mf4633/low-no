@@ -174,7 +174,7 @@ class AdviceMixin:
                             f"learned by then, they never will."))
         return out
 
-    def _bell_hints(self, food_days: float) -> List[Tuple[float, str]]:
+    def _bell_hints(self) -> List[Tuple[float, str]]:
         """A bell left ringing is a town eating its granary with the farms
         empty, and the unrest that follows says only that nobody is working.
         The steward names the cause. Standing it down stays your call."""
@@ -183,11 +183,17 @@ class AdviceMixin:
             if not s.bell:
                 continue
             days = max(0, s.bell - 1)
-            short = food_days < 20 or s.popularity < 30
-            out.append((95.0 if short else 40.0,
+            food = nourishment({k: s.market.stock[k] for k in RATION_GOODS})
+            eating = food / max(0.2 * s.population, 1e-6)
+            short = eating < 20 or s.popularity < 30
+            why = ("the granary is what they eat" if short
+                   else "nothing is made out there while it rings")
+            # Above the body hints (they start at 50), so a bell is mentioned
+            # while the town still has bread -- not only once it has none.
+            out.append((95.0 if short else 55.0,
                         f"The bell has rung at {s.name} for "
                         f"{ink.count(days, 'day')}: the farms and the wood are "
-                        f"empty and the granary is what they eat. "
+                        f"empty and {why}. "
                         f"`bell down {self.game._key_of(s)}` sends them back out."))
         return out
 
@@ -393,7 +399,7 @@ class AdviceMixin:
         ranked = [(50.0 - 0.01 * i, text) for i, text in enumerate(out)]
         ranked += (self._kin_hints() + self._economy_hints()
                    + self._castle_hints(bool(coming))
-                   + self._court_hints() + self._bell_hints(days))
+                   + self._court_hints() + self._bell_hints())
         ranked.sort(key=lambda row: -row[0])
         picked = [text for _, text in ranked][:4]
         if not picked:

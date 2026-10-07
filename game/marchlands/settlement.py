@@ -343,8 +343,9 @@ class Settlement:
             base *= C.SIEGE_HUNGER
         if self.blockaded:
             base *= C.BLOCKADE_HUNGER
-        if self.raid_pressure:
-            # You cannot reap a field with horsemen in it.
+        if self.raid_pressure and not self.sheltering():
+            # You cannot reap a field with horsemen in it. With the bell rung
+            # nobody is reaping: the hands are inside, at the workshops.
             base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
         if self.fire_labour and self.workforce:
             # The bucket chain is made of the people who were working.
@@ -697,6 +698,14 @@ class Settlement:
         return sum(1 for b in self.buildings
                    if b.spec.terrain in self.COUNTRY and b.worked)
 
+    def sheltering(self) -> bool:
+        """Has the bell actually brought anybody in? Rung over a country with
+        no shed open on it, it shelters nobody, and must not buy a raid
+        discount with mood alone."""
+        return bool(self.bell) and any(
+            b.complete and b.enabled and b.spec.terrain in self.COUNTRY
+            for b in self.buildings)
+
     def called_in(self, b: "BuildingInstance") -> bool:
         """Is this shed's work out in the country, with the bell rung?"""
         return bool(self.bell) and b.spec.terrain in self.COUNTRY
@@ -886,7 +895,7 @@ class Settlement:
                 continue
             if self.raided and self.raid_pressure > 0:
                 gone = b.head * C.HERD_DRIVEN * min(1.0, self.raid_pressure)
-                if self.bell:
+                if self.sheltering():
                     gone *= C.BELL_HERD   # most of them brought in with the people
                 if gone >= 0.05:
                     b.head = max(0.0, b.head - gone)
@@ -932,7 +941,9 @@ class Settlement:
                 if scale <= 1e-9:
                     b.idle_reason = "no beasts"
             if scale <= 0:
-                if prod <= 0:
+                if self.called_in(b):
+                    b.idle_reason = "the bell is rung"
+                elif prod <= 0:
                     b.idle_reason = "unrest"
                 elif spec.season:
                     b.idle_reason = "out of season"

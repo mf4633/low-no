@@ -303,8 +303,7 @@ class RoadMixin:
         xy = self.world.coords
         for key, s in self.world.settlements.items():
             if key in xy:
-                wider = min(sight.COUNTRY_CAP,
-                            sight.COUNTRY_REACH * s.out_working())
+                wider = sight.COUNTRY_WIDEN if s.out_working() else 0.0
                 sh.look(*xy[key],
                         self._sight_from(key, sight.TOWN_SIGHT) * (1.0 + wider))
         for key, t in self.world.towns.items():
