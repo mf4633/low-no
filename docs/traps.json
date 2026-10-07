@@ -1,21 +1,5 @@
 {
- "at": "2026-10-06T23:03:05.096118Z",
- "traps": [
-  {
-   "city": "NYC",
-   "ceiling": 62,
-   "price": 1,
-   "p_model": 0.1049,
-   "p_market": 0.01,
-   "edge_pts": 9.5,
-   "size_lcb": 0.0434,
-   "signals": [
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
-    }
-   ]
-  }
- ],
+ "at": "2026-10-07T13:20:47.294741Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
