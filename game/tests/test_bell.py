@@ -156,16 +156,33 @@ class TestTheRaid(unittest.TestCase):
                                  units={"spearman": 40}, at="aldworth"), s2)
         self.assertAlmostEqual(pop - s2.population, open_country, places=6)
 
-    def test_the_workshops_take_part_of_the_cut(self):
+    def test_the_workshops_take_the_same_cut(self):
+        # Rung or not, horsemen round the town cost the workshops the same:
+        # what ringing gives up is the fields, and only the fields.
         g, s = new_game()
         calm = s.productivity(g.progress)
         g.ring_bell("aldworth")
         s.raid_pressure = 0.667
         rung = s.productivity(g.progress)
         s.bell = 0
-        open_fields = s.productivity(g.progress)
-        self.assertLess(open_fields, rung)
+        self.assertEqual(s.productivity(g.progress), rung)
         self.assertLess(rung, calm)
+
+    def test_asking_whether_it_shelters_changes_nothing(self):
+        from marchlands.settlement import BuildingInstance
+        g, s = new_game()
+        for b in country(s):
+            b.enabled = False
+        burner = BuildingInstance(uid=s.next_uid, key="charcoal_burner",
+                                  days_left=0)
+        burner.dry_days = 2
+        s.buildings.append(burner)
+        s.market.stock["wood"] = 50.0
+        g.ring_bell("aldworth")
+        s.sheltering()
+        s.raid_pressure = 1.0
+        s.productivity(g.progress)
+        self.assertEqual(burner.dry_days, 2)
 
     def test_a_shed_that_could_not_work_shelters_nobody(self):
         from marchlands.settlement import BuildingInstance
@@ -199,11 +216,13 @@ class TestAWholeRaid(unittest.TestCase):
     order the game runs a day in (produce, eat, mood, then the raid) is part
     of what is being tested."""
 
-    def run_raid(self, ring, workshops=False):
+    def run_raid(self, ring, workshops=False, spears=40, winter=False):
         from marchlands.goods import good
         from marchlands.military import RAIDING
         from marchlands.settlement import BuildingInstance
         g, s = new_game()
+        if winter:
+            g.day = 270
         if workshops:
             for key in ("mill", "bakery"):
                 s.buildings.append(BuildingInstance(uid=s.next_uid, key=key,
@@ -216,7 +235,7 @@ class TestAWholeRaid(unittest.TestCase):
             g.ring_bell("aldworth")
         pop = s.population
         g.armies.append(Army(uid=953, name="raiders", owner="vantry",
-                             units={"spearman": 40}, at="aldworth",
+                             units={"spearman": spears}, at="aldworth",
                              state=RAIDING))
         made = 0.0
         for _ in range(g.RAID_PATIENCE):
@@ -235,10 +254,17 @@ class TestAWholeRaid(unittest.TestCase):
     def test_a_rung_town_still_makes_less_than_one_working_its_fields(self):
         # The workshops keep part of the raid's cut: ringing trades output
         # for people and stores, it does not win on every count.
-        lost_open, _, made_open = self.run_raid(False, workshops=True)
-        lost_rung, _, made_rung = self.run_raid(True, workshops=True)
-        self.assertLess(made_rung, made_open)
-        self.assertLess(lost_rung, lost_open)
+        # On the raid it was tuned on, a bigger one, and in winter: the
+        # cases where relief for the workshops let ringing win on output.
+        for spears, winter in ((40, False), (80, False), (50, True)):
+            with self.subTest(spears=spears, winter=winter):
+                lost_open, stock_open, made_open = self.run_raid(
+                    False, workshops=True, spears=spears, winter=winter)
+                lost_rung, stock_rung, made_rung = self.run_raid(
+                    True, workshops=True, spears=spears, winter=winter)
+                self.assertLess(made_rung, made_open)
+                self.assertLess(lost_rung, lost_open)
+                self.assertGreater(stock_rung, stock_open)
 
 
 class TestTheVerb(unittest.TestCase):
@@ -283,6 +309,37 @@ class TestTheSteward(unittest.TestCase):
         said = Console(g, out=io.StringIO()).hints()
         line = next(h for h in said if "The bell is ringing at Aldworth" in h)
         self.assertIn("nothing is made out there", line)
+        self.assertIn("`bell down aldworth`", line)
+        self.assertNotIn("<town>", line)
+
+    def test_fed_but_sour_is_not_told_the_granary_is_empty(self):
+        g, s = new_game()
+        s.market.stock["bread"] = s.market.stock.get("bread", 0.0) + 3000.0
+        g.ring_bell("aldworth")
+        g.advance(1)
+        s.popularity = 25.0
+        line = next(h for h in Console(g, out=io.StringIO()).hints()
+                    if "The bell has rung at Aldworth" in h)
+        self.assertNotIn("granary", line)
+        self.assertIn("mood 25", line)
+
+    def test_an_empty_granary_outranks_a_quiet_bell_and_the_towers(self):
+        from marchlands.military import MARCHING
+        g, s = new_game()
+        for k in list(s.market.stock):
+            s.market.stock[k] = 0.0
+        fed = start("marchlands", seed=3).world.settlements["aldworth"]
+        fed.name = "Greyfell"
+        fed.count = lambda k: 0
+        fed.market.stock["bread"] = 3000.0
+        fed.bell = 3
+        g.world.settlements["greyfell"] = fed
+        g.armies.append(Army(uid=960, name="the Margrave's host",
+                             owner="vantry", units={"spearman": 30},
+                             at="vantry", bound_for="aldworth",
+                             state=MARCHING, days_left=3, leg_days=4))
+        said = Console(g, out=io.StringIO()).hints()
+        self.assertTrue(any("of food" in h for h in said), said)
 
     def test_each_town_is_judged_on_its_own_granary(self):
         g, s = new_game()
@@ -355,6 +412,21 @@ class TestTheTownOnScreen(unittest.TestCase):
         self.assertEqual(s.bell, 0)
         con.do("sally 5 caer ithel")
         self.assertIn("Caer Ithel", con.out.getvalue())
+
+    def test_shore_takes_off_wherever_it_is_said(self):
+        g, s, other, con = self.two_towns()
+        s.shoring = True
+        con.do("shore aldworth off")
+        self.assertFalse(s.shoring)
+
+    def test_a_verb_word_inside_a_name_stays_in_the_name(self):
+        g, s, other, con = self.two_towns()
+        other.name = "North Stand"
+        con.here = "aldworth"
+        g.ring_bell("aldworth")
+        con.do("bell ring north stand")
+        self.assertEqual(other.bell, 1)
+        self.assertEqual(s.bell, 1)               # Aldworth's still up
 
     def test_naming_a_town_still_wins(self):
         g, s, other, con = self.two_towns()

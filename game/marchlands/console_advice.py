@@ -186,24 +186,30 @@ class AdviceMixin:
             days = max(0, s.bell - 1)
             food = nourishment({k: s.market.stock[k] for k in RATION_GOODS})
             eating = food / max(0.2 * s.population, 1e-6)
-            short = eating < 20 or s.popularity < 30
-            if not short:
-                quiet.append(f"{s.name} ({ink.count(days, 'day')})")
+            key = self.game._key_of(s)
+            if eating < 20:
+                why = "the farms and the wood are empty and the granary is what they eat"
+            elif s.popularity < 30:
+                why = (f"the town is crowded and sour -- mood {s.popularity:.0f} "
+                       f"-- and the bell is part of it")
+            else:
+                quiet.append((s.name, days, key))
                 continue
             out.append((95.0,
                         f"The bell has rung at {s.name} for "
-                        f"{ink.count(days, 'day')}: the farms and the wood are "
-                        f"empty and the granary is what they eat. "
-                        f"`bell down {self.game._key_of(s)}` sends them back out."))
+                        f"{ink.count(days, 'day')}: {why}. "
+                        f"`bell down {key}` sends them back out."))
         if quiet:
             # Above the body hints (they start at 50), so a bell is mentioned
             # while the town still has bread -- but one line for all of them,
             # so two fed bells cannot push a town with no food off the list.
-            where = (quiet[0] if len(quiet) == 1 else
-                     f"{', '.join(quiet[:-1])} and {quiet[-1]}")
+            named = [f"{name} ({ink.count(d, 'day')})" for name, d, _ in quiet]
+            where = (named[0] if len(named) == 1 else
+                     f"{', '.join(named[:-1])} and {named[-1]}")
+            how = " or ".join(f"`bell down {k}`" for _, _, k in quiet)
             out.append((55.0, f"The bell is ringing at {where}: nothing is "
-                              f"made out there while it rings. `bell down "
-                              f"<town>` sends them back out."))
+                              f"made out there while it rings. {how} sends "
+                              f"them back out."))
         return out
 
     def _economy_hints(self) -> List[Tuple[float, str]]:
@@ -326,8 +332,13 @@ class AdviceMixin:
                        f"`plans {a.at}` shows what stands against that, and "
                        f"`siege {a.uid} <plan>` changes it.")
         if days < 12:
-            out.append(f"{s.name} has about {ink.count(days, 'day')} of food. Build a farm, "
-                       f"a mill and a bakery -- or buy bread in from Vantry.")
+            # Ranked, not in the body: under twelve days of food outranks a
+            # quiet bell or a tower hint, which used to push it off the four.
+            hungry = (90.0, f"{s.name} has about {ink.count(days, 'day')} of food. "
+                            f"Build a farm, a mill and a bakery -- or buy bread "
+                            f"in from Vantry.")
+        else:
+            hungry = None
         if s.popularity < 40:
             out.append(f"Mood at {s.name} is {s.popularity:.0f}. `town` lists what is "
                        f"pulling it down; rations and taxes are the two big levers.")
@@ -406,6 +417,8 @@ class AdviceMixin:
         # which is how the house and the accounts both went unmentioned for a
         # hundred turns each while the fourth line was about a guildhall.
         ranked = [(50.0 - 0.01 * i, text) for i, text in enumerate(out)]
+        if hungry:
+            ranked.append(hungry)
         ranked += (self._kin_hints() + self._economy_hints()
                    + self._castle_hints(bool(coming))
                    + self._court_hints() + self._bell_hints())

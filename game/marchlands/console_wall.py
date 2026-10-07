@@ -5,7 +5,7 @@ One part of the terminal console (see cli.py). `self` is the Console.
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from .castle import PLANS, SiegeState, Works
 from . import keep as keeps
@@ -452,8 +452,8 @@ class WallMixin:
     def cmd_shore(self, args: List[str]) -> None:
         """Put masons on the breach while it is being made."""
         g = self.game
-        on = not (args and args[0].lower() in ("off", "no", "stop"))
-        where = self._place_words(args, ("off", "no", "stop", "on"))
+        verb, where = self._verb_and_place(args, ("off", "no", "stop", "on"))
+        on = verb not in ("off", "no", "stop")
         self.say("  " + g.shore(self._here_unless(where), on))
 
     def cmd_battle(self, args: List[str]) -> None:
@@ -545,6 +545,16 @@ class WallMixin:
         by_name = {s.name.lower(): k for k, s in towns.items()}
         return by_name.get(where, self.here)
 
+    def _verb_and_place(self, args: List[str], verbs) -> Tuple[str, str]:
+        """The first verb word is the action, and only that one word is
+        taken out of the place -- so `bell ring north stand` rings North
+        Stand, and `shore aldworth off` sends the masons off."""
+        words = [a for a in args if not a.isdigit()]
+        for i, w in enumerate(words):
+            if w.lower() in verbs:
+                return w.lower(), " ".join(words[:i] + words[i + 1:])
+        return "", " ".join(words)
+
     def _place_words(self, args: List[str], verbs=()) -> str:
         """Every word that is not a verb or a number, as one phrase -- so
         `bell ring caer ithel` means Caer Ithel and not the town on screen."""
@@ -554,13 +564,13 @@ class WallMixin:
     def cmd_bell(self, args: List[str]) -> None:
         """Ring the bell and bring the country hands in, or stand it down."""
         g = self.game
-        want = [a.lower() for a in args]
-        where = self._here_unless(self._place_words(
-            args, ("ring", "on", "down", "off", "stand")))
+        verb, place = self._verb_and_place(
+            args, ("ring", "on", "down", "off", "stand"))
+        where = self._here_unless(place)
         s = self.settlement(where)
-        if any(w in want for w in ("down", "off", "stand")):
+        if verb in ("down", "off", "stand"):
             return self.say("  " + g.ring_bell(where, False))
-        if any(w in want for w in ("ring", "on")) or not s.bell:
+        if verb in ("ring", "on") or not s.bell:
             return self.say("  " + g.ring_bell(where, True))
         self.say(f"  the bell has been ringing at {s.name} for "
                  f"{max(0, s.bell - 1)} days -- `bell down` to send them out")
@@ -569,13 +579,12 @@ class WallMixin:
         """Shut your gates against the sickness, or open them again."""
         from . import plague
         g = self.game
-        want = [a.lower() for a in args]
-        where = self._here_unless(self._place_words(
-            args, ("shut", "close", "open", "up")))
+        verb, place = self._verb_and_place(args, ("shut", "close", "open", "up"))
+        where = self._here_unless(place)
         s = self.settlement(where)
-        if any(w in want for w in ("shut", "close")):
+        if verb in ("shut", "close"):
             return self.say("  " + g.shut_gates(where, True))
-        if "open" in want:
+        if verb == "open":
             return self.say("  " + g.shut_gates(where, False))
 
         self.say(ink.head(s.name.upper(), "the gates, and what is on the road"))

@@ -344,14 +344,14 @@ class Settlement:
         if self.blockaded:
             base *= C.BLOCKADE_HUNGER
         if self.raid_pressure:
-            # You cannot reap a field with horsemen in it. With the bell rung
-            # nobody is reaping -- the hands are inside, at the workshops --
-            # but a town with riders round it still does not work like a town
-            # at peace: the yards are full and the carts do not come.
-            bite = 0.85 * self.raid_pressure
-            if self.sheltering():
-                bite *= C.BELL_RAID_CUT
-            base *= max(0.15, 1.0 - bite)
+            # Horsemen round the town: nobody reaps, the carts do not come,
+            # and the yards are full of people who should be elsewhere. The
+            # same cut with the bell rung or not -- relief for the workshops
+            # was tried at 0 and at 0.6 of it, and either way a bigger host or
+            # a winter raid made ringing win on output as well as on people.
+            # With the same cut, the open town's fields are always the
+            # difference, so the bell stays a trade.
+            base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
         if self.fire_labour and self.workforce:
             # The bucket chain is made of the people who were working.
             base *= max(0.25, 1.0 - self.fire_labour / self.workforce)
@@ -712,14 +712,15 @@ class Settlement:
         # had nobody out there to bring in.
         return bool(self.bell) and any(
             b.complete and b.enabled and b.spec.terrain in self.COUNTRY
-            and b.spec.jobs and not self._cannot_work(b, bell=False)
+            and b.spec.jobs and not self._cannot_work(b, bell=False, pure=True)
             for b in self.buildings)
 
     def called_in(self, b: "BuildingInstance") -> bool:
         """Is this shed's work out in the country, with the bell rung?"""
         return bool(self.bell) and b.spec.terrain in self.COUNTRY
 
-    def _cannot_work(self, b: "BuildingInstance", bell: bool = True) -> str:
+    def _cannot_work(self, b: "BuildingInstance", bell: bool = True,
+                     pure: bool = False) -> str:
         """Why this shed could not work today even with every place filled,
         or '' if it could. Asked before hands are seated, so the reason is
         known without paying anybody to find it out."""
@@ -740,7 +741,11 @@ class Settlement:
                      if self.market.stock.get(k, 0.0) < need * 0.25]
             if short:
                 return f"no {good(short[0]).name}"
-            b.dry_days = 0
+            if not pure:
+                # The inputs are back: the shed may try again. Only when
+                # hands are being seated -- asking from elsewhere (the bell,
+                # the accounts) must not change who is seated tomorrow.
+                b.dry_days = 0
         return ""
 
     def pin_hands(self, uid: int, hands: int) -> str:
