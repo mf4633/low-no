@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-10-06
+# low-no scorecard -- 2026-10-07
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -8,5 +8,6 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
+- **SFO** QUALIFIED @ 0.21 ceil 80 guide 86 -> CLI 80 :: **BOUNDARY**  _gap station: flips offshore a day before LAX. Weak NE drainage collapses to W reversal - timing city._
 
-no qualified flags today -- a complete and acceptable outcome
+**0/1 hit** (0%) vs 98.2% breakeven at 0.98

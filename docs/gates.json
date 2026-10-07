@@ -3,46 +3,46 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 2928,
-  "brier_base": 0.107,
-  "brier_shape": 0.1074,
-  "improvement_pct": -0.42
+  "n": 3093,
+  "brier_base": 0.1068,
+  "brier_shape": 0.1073,
+  "improvement_pct": -0.46
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1055,
-  "days": 39,
-  "lag_corr": -0.007,
+  "events": 1058,
+  "days": 40,
+  "lag_corr": -0.01,
   "lag_ci": [
-   -0.067,
-   0.053
+   -0.07,
+   0.05
   ]
  },
  "H6": {
   "id": "H6",
   "ready": false,
   "passed": false,
-  "events": 188,
+  "events": 193,
   "need_events": 200,
-  "days": 25,
+  "days": 26,
   "need_days": 20,
   "reason": "data bar not met"
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 1584,
+  "pooled_n": 1809,
   "hourly": {
    "n": 99,
-   "brier_base": 0.167,
-   "brier_shape": 0.17,
+   "brier_base": 0.1623,
+   "brier_shape": 0.1656,
    "improved": false
   },
   "control": {
-   "n": 1485,
-   "brier_base": 0.0833,
-   "brier_shape": 0.0852,
+   "n": 1710,
+   "brier_base": 0.0869,
+   "brier_shape": 0.0882,
    "improved": false
   },
   "ready": true,
@@ -53,10 +53,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1071,
-   "stalled_off": 662,
-   "climbing_on": 1195,
-   "climbing_off": 89
+   "stalled_on": 1101,
+   "stalled_off": 672,
+   "climbing_on": 1215,
+   "climbing_off": 91
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -66,21 +66,33 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 477,
-   "mean": -0.00095,
+   "n": 480,
+   "mean": -0.00094,
    "ci": [
-    -0.00596,
-    0.00406
+    -0.00593,
+    0.00405
    ]
   },
   "tail": {
-   "n": 889,
-   "mean": -0.00059,
+   "n": 892,
+   "mean": -0.00058,
    "ci": [
-    -0.00317,
-    0.00199
+    -0.00316,
+    0.00201
    ]
   }
  },
- "generated": "2026-10-06T14:16:21.890666Z"
+ "H16": {
+  "id": "H16",
+  "units": 0,
+  "need_units": 60,
+  "days": 0,
+  "need_days": 20,
+  "pending": 0,
+  "cities": {},
+  "ready": false,
+  "passed": false,
+  "reason": "data bar not met"
+ },
+ "generated": "2026-10-07T08:40:12.818632Z"
 }

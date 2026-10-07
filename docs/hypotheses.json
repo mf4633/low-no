@@ -1,24 +1,24 @@
 {
- "generated": "2026-10-06T14:15:53.892964Z",
+ "generated": "2026-10-07T08:39:52.200703Z",
  "hypotheses": [
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 188,
+   "have": 193,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 25,
+    "have": 26,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": false,
-   "note": "25/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "26/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 1485,
+   "have": 1710,
    "need": 50,
    "unit": "scored (control)",
    "also": {
@@ -32,11 +32,25 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 89,
+   "have": 91,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
    "note": "fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop"
+  },
+  {
+   "id": "H16",
+   "name": "morning off-curve bucket underpriced",
+   "have": 0,
+   "need": 60,
+   "unit": "graded city-day units",
+   "also": {
+    "have": 0,
+    "need": 20,
+    "unit": "distinct days"
+   },
+   "ready": false,
+   "note": "registered 2026-10-06, forward-only from 10-07; first 10-12 local cycle, |dev|>=2F interpolated, YES on the full-carry bucket at the real ask. Verdict read ONCE at the bar. Needs morning scans (DISPATCH_PAT)"
   },
   {
    "id": "H15",
