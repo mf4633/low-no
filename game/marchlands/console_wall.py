@@ -445,22 +445,15 @@ class WallMixin:
     def cmd_sally(self, args: List[str]) -> None:
         """Open the gate and go at the siege works."""
         g = self.game
-        where = ""
-        men = 0
-        for arg in args:
-            if arg.isdigit():
-                men = int(arg)
-            else:
-                where = arg.lower()
-        where = self._here_unless(where)
+        men = next((int(a) for a in args if a.isdigit()), 0)
+        where = self._here_unless(self._place_words(args))
         self.say("  " + g.sally(where, men).replace("\n", "\n  "))
 
     def cmd_shore(self, args: List[str]) -> None:
         """Put masons on the breach while it is being made."""
         g = self.game
         on = not (args and args[0].lower() in ("off", "no", "stop"))
-        where = next((a.lower() for a in args
-                      if a.lower() not in ("off", "no", "stop", "on")), "")
+        where = self._place_words(args, ("off", "no", "stop", "on"))
         self.say("  " + g.shore(self._here_unless(where), on))
 
     def cmd_battle(self, args: List[str]) -> None:
@@ -545,18 +538,25 @@ class WallMixin:
         seat by default. The page shows this town's gates, bell and breach,
         so a button pressed on it must act on this town and not on the hall."""
         towns = self.game.world.settlements
-        if where in towns:
-            return where
+        where = (where or "").strip().lower()
+        for tried in (where, where.replace(" ", "_")):
+            if tried in towns:
+                return tried
         by_name = {s.name.lower(): k for k, s in towns.items()}
-        return by_name.get(where.lower(), self.here)
+        return by_name.get(where, self.here)
+
+    def _place_words(self, args: List[str], verbs=()) -> str:
+        """Every word that is not a verb or a number, as one phrase -- so
+        `bell ring caer ithel` means Caer Ithel and not the town on screen."""
+        return " ".join(a for a in args
+                        if not a.isdigit() and a.lower() not in verbs)
 
     def cmd_bell(self, args: List[str]) -> None:
         """Ring the bell and bring the country hands in, or stand it down."""
         g = self.game
         want = [a.lower() for a in args]
-        where = next((a for a in want
-                      if a not in ("ring", "on", "down", "off", "stand")), "")
-        where = self._here_unless(where)
+        where = self._here_unless(self._place_words(
+            args, ("ring", "on", "down", "off", "stand")))
         s = self.settlement(where)
         if any(w in want for w in ("down", "off", "stand")):
             return self.say("  " + g.ring_bell(where, False))
@@ -570,8 +570,8 @@ class WallMixin:
         from . import plague
         g = self.game
         want = [a.lower() for a in args]
-        where = self._here_unless(next(
-            (a for a in want if a not in ("shut", "close", "open", "up")), ""))
+        where = self._here_unless(self._place_words(
+            args, ("shut", "close", "open", "up")))
         s = self.settlement(where)
         if any(w in want for w in ("shut", "close")):
             return self.say("  " + g.shut_gates(where, True))
@@ -617,14 +617,8 @@ class WallMixin:
     def cmd_torch(self, args: List[str]) -> None:
         """Send a party over the wall at the besieger's wagons."""
         g = self.game
-        men = 0
-        where = ""
-        for a in args:
-            if a.isdigit():
-                men = int(a)
-            else:
-                where = a.lower()
-        where = self._here_unless(where)
+        men = next((int(a) for a in args if a.isdigit()), 0)
+        where = self._here_unless(self._place_words(args))
         self.say("  " + g.fire_baggage(where, men).replace("\n", "\n  "))
 
     def cmd_sortie_odds(self, args: List[str]) -> None:

@@ -179,6 +179,7 @@ class AdviceMixin:
         empty, and the unrest that follows says only that nobody is working.
         The steward names the cause. Standing it down stays your call."""
         out: List[Tuple[float, str]] = []
+        quiet: List[str] = []
         for s in self.game.world.settlements.values():
             if not s.bell:
                 continue
@@ -186,15 +187,23 @@ class AdviceMixin:
             food = nourishment({k: s.market.stock[k] for k in RATION_GOODS})
             eating = food / max(0.2 * s.population, 1e-6)
             short = eating < 20 or s.popularity < 30
-            why = ("the granary is what they eat" if short
-                   else "nothing is made out there while it rings")
-            # Above the body hints (they start at 50), so a bell is mentioned
-            # while the town still has bread -- not only once it has none.
-            out.append((95.0 if short else 55.0,
+            if not short:
+                quiet.append(f"{s.name} ({ink.count(days, 'day')})")
+                continue
+            out.append((95.0,
                         f"The bell has rung at {s.name} for "
                         f"{ink.count(days, 'day')}: the farms and the wood are "
-                        f"empty and {why}. "
+                        f"empty and the granary is what they eat. "
                         f"`bell down {self.game._key_of(s)}` sends them back out."))
+        if quiet:
+            # Above the body hints (they start at 50), so a bell is mentioned
+            # while the town still has bread -- but one line for all of them,
+            # so two fed bells cannot push a town with no food off the list.
+            where = (quiet[0] if len(quiet) == 1 else
+                     f"{', '.join(quiet[:-1])} and {quiet[-1]}")
+            out.append((55.0, f"The bell is ringing at {where}: nothing is "
+                              f"made out there while it rings. `bell down "
+                              f"<town>` sends them back out."))
         return out
 
     def _economy_hints(self) -> List[Tuple[float, str]]:

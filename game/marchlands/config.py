@@ -163,6 +163,7 @@ RAID_FLIGHT = 0.012             # share of the people driven off the land daily
 #: and nothing made out there while it rings, and a crowded town.
 BELL_FLIGHT = 0.25              # of RAID_FLIGHT, with the bell rung
 BELL_HERD = 0.4                 # of HERD_DRIVEN, with the bell rung
+BELL_RAID_CUT = 0.6             # of the raid's productivity cut left on the workshops
 BELL_LOOT = 0.3                 # of RAID_LOOT: the sheaves and carts came in too
 BELL_MOOD = -5.0                # everybody in, sleeping in the yards
 RAID_PROSPERITY = 0.035         # prosperity a full day's raid costs a town

@@ -343,10 +343,15 @@ class Settlement:
             base *= C.SIEGE_HUNGER
         if self.blockaded:
             base *= C.BLOCKADE_HUNGER
-        if self.raid_pressure and not self.sheltering():
+        if self.raid_pressure:
             # You cannot reap a field with horsemen in it. With the bell rung
-            # nobody is reaping: the hands are inside, at the workshops.
-            base *= max(0.15, 1.0 - 0.85 * self.raid_pressure)
+            # nobody is reaping -- the hands are inside, at the workshops --
+            # but a town with riders round it still does not work like a town
+            # at peace: the yards are full and the carts do not come.
+            bite = 0.85 * self.raid_pressure
+            if self.sheltering():
+                bite *= C.BELL_RAID_CUT
+            base *= max(0.15, 1.0 - bite)
         if self.fire_labour and self.workforce:
             # The bucket chain is made of the people who were working.
             base *= max(0.25, 1.0 - self.fire_labour / self.workforce)
@@ -702,22 +707,26 @@ class Settlement:
         """Has the bell actually brought anybody in? Rung over a country with
         no shed open on it, it shelters nobody, and must not buy a raid
         discount with mood alone."""
+        # Only a shed that would have been worked today with the bell
+        # down: a winter orchard, a worked-out quarry or an empty pasture
+        # had nobody out there to bring in.
         return bool(self.bell) and any(
             b.complete and b.enabled and b.spec.terrain in self.COUNTRY
+            and b.spec.jobs and not self._cannot_work(b, bell=False)
             for b in self.buildings)
 
     def called_in(self, b: "BuildingInstance") -> bool:
         """Is this shed's work out in the country, with the bell rung?"""
         return bool(self.bell) and b.spec.terrain in self.COUNTRY
 
-    def _cannot_work(self, b: "BuildingInstance") -> str:
+    def _cannot_work(self, b: "BuildingInstance", bell: bool = True) -> str:
         """Why this shed could not work today even with every place filled,
         or '' if it could. Asked before hands are seated, so the reason is
         known without paying anybody to find it out."""
         spec = b.spec
         if not spec.jobs:
             return ""
-        if self.called_in(b):
+        if bell and self.called_in(b):
             return "the bell is rung"
         season = getattr(self, "_season_now", "")
         if season and spec.season and self._season_multiplier(spec, season) <= 0:

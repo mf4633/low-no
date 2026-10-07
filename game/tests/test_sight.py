@@ -146,6 +146,29 @@ class TestTheCountryWorked(unittest.TestCase):
         g._scout()
         self.assertEqual(set(g.shroud.visible), one)
 
+    def ring_in(self, season, keep):
+        g = self.worked()
+        s = g.world.settlements["aldworth"]
+        for b in s.buildings:
+            if b.spec.terrain in s.COUNTRY and b.key not in keep:
+                b.enabled = False
+        if "orchard" in keep:
+            from marchlands.settlement import BuildingInstance
+            s.buildings.append(BuildingInstance(uid=s.next_uid, key="orchard",
+                                                days_left=0))
+        s.tick(season, g.rng, g.progress, g.day)
+        g._scout()
+        return len(g.shroud.visible)
+
+    def test_an_orchard_widens_in_summer_and_not_in_winter(self):
+        self.assertGreater(self.ring_in("summer", ("orchard",)),
+                           self.ring_in("winter", ("orchard",)))
+
+    def test_the_seat_holds_its_ring_in_winter(self):
+        keep = ("farm", "woodcutter")
+        self.assertEqual(self.ring_in("winter", keep),
+                         self.ring_in("summer", keep))
+
     def test_the_first_morning_shows_the_near_country(self):
         # What the widen is for, on the hand-made march: the ring of towns
         # just past the wall's sight is on the map once anybody is out.
