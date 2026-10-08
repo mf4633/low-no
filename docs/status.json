@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-07T14:34:33.518261Z",
+ "generated": "2026-10-08T08:54:44.062223Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 61,
+  "logged_days": 62,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-06",
-  "rung_observations": 90026,
-  "independent_units": 1487,
+  "last_day": "2026-10-07",
+  "rung_observations": 91682,
+  "independent_units": 1509,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -82,13 +82,13 @@
    "2026-10-04": 6,
    "2026-10-05": 1,
    "2026-10-06": 6,
-   "2026-10-07": 2
+   "2026-10-07": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1282,
-  "settlements_verified": 1102,
+  "settlements_cached": 1305,
+  "settlements_verified": 1125,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -97,6 +97,7 @@
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
    "1-10",
+   "11-20",
    "31-40",
    "41-50",
    "71-80",
@@ -111,29 +112,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 193,
+    "have": 199,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 26,
+     "have": 27,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "26/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "27/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 1710,
+    "have": 1797,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 99,
+     "have": 105,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -145,7 +146,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 91,
+    "have": 92,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -157,12 +158,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 0,
+    "have": 11,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 0,
+     "have": 1,
      "need": 20,
      "unit": "distinct days"
     }
@@ -255,24 +256,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 193,
+    "have": 199,
     "need": 200,
     "unit": "print transitions",
     "ready": false,
     "also": {
-     "have": 26,
+     "have": 27,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "26/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "27/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 91,
+    "have": 92,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -284,12 +285,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 0,
+    "have": 11,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 0,
+     "have": 1,
      "need": 20,
      "unit": "distinct days"
     }
