@@ -1,44 +1,5 @@
 {
- "at": "2026-10-07T23:45:15.652715Z",
- "traps": [
-  {
-   "city": "NYC",
-   "ceiling": 65,
-   "price": 1,
-   "p_model": 0.5032,
-   "p_market": 0.01,
-   "edge_pts": 49.3,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 49 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 19:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 76,
-   "price": 1,
-   "p_model": 0.1208,
-   "p_market": 0.01,
-   "edge_pts": 11.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 0.8F short. The climb window has closed."
-    }
-   ]
-  }
- ],
+ "at": "2026-10-08T13:20:22.313070Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
