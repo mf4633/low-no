@@ -1,5 +1,25 @@
 {
- "at": "2026-10-08T13:20:22.313070Z",
- "traps": [],
+ "at": "2026-10-08T14:24:30.917676Z",
+ "traps": [
+  {
+   "city": "SEA",
+   "ceiling": 67,
+   "price": 52,
+   "p_model": 0.6326,
+   "p_market": 0.52,
+   "edge_pts": 11.3,
+   "size_lcb": 0.0577,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
