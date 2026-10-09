@@ -1,13 +1,13 @@
 {
- "at": "2026-10-09T15:53:17.159173Z",
+ "at": "2026-10-09T16:54:11.297695Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 75,
-   "price": 9,
-   "p_model": 0.9003,
-   "p_market": 0.09,
-   "edge_pts": 81.0,
+   "price": 10,
+   "p_model": 0.9084,
+   "p_market": 0.1,
+   "edge_pts": 80.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -24,9 +24,9 @@
    "city": "LAX",
    "ceiling": 78,
    "price": 21,
-   "p_model": 0.7485,
+   "p_model": 0.6988,
    "p_market": 0.21,
-   "edge_pts": 53.8,
+   "edge_pts": 48.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -35,7 +35,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 54 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 49 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -50,10 +50,10 @@
   {
    "city": "SFO",
    "ceiling": 69,
-   "price": 34,
-   "p_model": 0.4982,
-   "p_market": 0.34,
-   "edge_pts": 15.8,
+   "price": 35,
+   "p_model": 0.8111,
+   "p_market": 0.35,
+   "edge_pts": 46.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,7 +62,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -70,7 +70,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "34c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "35c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -78,11 +78,15 @@
    "city": "SAN",
    "ceiling": 79,
    "price": 62,
-   "p_model": 0.7497,
+   "p_model": 0.8582,
    "p_market": 0.62,
-   "edge_pts": 13.0,
+   "edge_pts": 23.8,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+    },
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
@@ -96,10 +100,10 @@
   {
    "city": "SEA",
    "ceiling": 58,
-   "price": 95,
-   "p_model": 0.9882,
-   "p_market": 0.95,
-   "edge_pts": 3.8,
+   "price": 98,
+   "p_model": 0.9927,
+   "p_market": 0.98,
+   "edge_pts": 1.3,
    "size_lcb": 0.0,
    "signals": [
     {
