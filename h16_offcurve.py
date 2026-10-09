@@ -59,7 +59,8 @@ Paper only. Nothing here places or recommends orders.
 import json, glob, os, math, datetime as dt, zoneinfo
 from lowno.config import CITIES
 
-START_DAY = "2026-10-07"
+START_DAY = "2026-10-09"   # was 2026-10-07; see CANDIDATE.md CORRECTION 2026-10-08
+# (stale api.weather.gov feed: 6 of 11 10/7 units had temp_now 2.4-11.6F stale)
 MIN_UNITS, MIN_DAYS = 60, 20
 DEV_MIN = 2.0
 HOUR_LO, HOUR_HI = 10, 12          # local, [lo, hi)

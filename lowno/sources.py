@@ -53,6 +53,50 @@ def latest_obs(station, since=None):
                         wx=p.get("textDescription")))
     return out
 
+def awc_metars(station, since):
+    """METARs/SPECIs since `since` from aviationweather.gov, in latest_obs shape.
+
+    STALE-FEED FIX (2026-10-08). api.weather.gov's observations feed lags by
+    HOURS at some stations: on 2026-10-07 the scanner logged KPHX at 80.6-82.4F
+    from 13:15Z to 17:29Z while the station's own METARs read 83->87->90->94,
+    and KSAN/KLAX/KSFO/KSAT were 7.6-11.6F stale at the H16 look. temp_now,
+    curve_dev and run_max were all built on that feed. aviationweather.gov
+    serves the same METARs within minutes, with the T-group tenths in `temp`.
+    `obsTime` (epoch) is the real observation time; `reportTime` is rounded to
+    the hour and must not be used for ordering."""
+    hrs = max(1, min(36, int((dt.datetime.now(dt.timezone.utc) - since)
+                             .total_seconds() // 3600) + 1))
+    j = _get(f"https://aviationweather.gov/api/data/metar?ids={station}"
+             f"&format=json&hours={hrs}", timeout=15)
+    out = []
+    for m in j or []:
+        ot, t = m.get("obsTime"), m.get("temp")
+        if ot is None or t is None:
+            continue
+        ts = dt.datetime.fromtimestamp(ot, dt.timezone.utc)
+        if ts < since:
+            continue
+        out.append(dict(ts=ts.isoformat().replace("+00:00", "Z"), tC=float(t),
+                        max24C=None, dewC=m.get("dewp"), raw=m.get("rawOb"),
+                        clouds=[], wind=m.get("wdir"), wspd=m.get("wspd"),
+                        vis=None, wx=m.get("wxString") or "", src="awc"))
+    return out
+
+
+def merge_obs(nws, awc):
+    """Union of both feeds, newest first. An AWC METAR whose minute already
+    exists in the NWS feed is dropped (same report). Returns (obs, feed) where
+    feed records each source's newest timestamp so staleness is logged."""
+    have = {o["ts"][:16] for o in nws}
+    merged = list(nws) + [o for o in awc if o["ts"][:16] not in have]
+    key = lambda o: dt.datetime.fromisoformat(o["ts"].replace("Z", "+00:00"))
+    merged.sort(key=key, reverse=True)
+    newest = lambda xs: (max(xs, key=key)["ts"] if xs else None)
+    return merged, dict(nws_latest=newest(nws), awc_latest=newest(awc),
+                        used=(merged[0]["ts"] if merged else None),
+                        used_src=(merged[0].get("src", "nws") if merged else None))
+
+
 def point_forecast_high(lat, lon):
     """NWS gridpoint forecast: returns (highF, shortForecast, pop%) for today."""
     meta = _get(f"https://api.weather.gov/points/{lat},{lon}")

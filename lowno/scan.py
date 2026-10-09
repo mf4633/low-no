@@ -23,8 +23,17 @@ def scan_once():
             _mid = dt.datetime.combine(today, dt.time(0), tz)
             _lst_mid = dt.datetime.combine(today, dt.time(0), dt.timezone(
                 _mid.utcoffset() - (_mid.dst() or dt.timedelta(0))))
-            obs = sources.latest_obs(c["station"],
-                                     since=_lst_mid - dt.timedelta(hours=1))
+            _since = _lst_mid - dt.timedelta(hours=1)
+            obs = sources.latest_obs(c["station"], since=_since)
+            # Stale-feed fix 2026-10-08: merge the aviationweather.gov METARs so
+            # temp_now / run_max / curve_dev use the freshest report. Failure
+            # of the second feed degrades to the old behaviour, never raises.
+            _feed = None
+            try:
+                obs, _feed = sources.merge_obs(
+                    obs, sources.awc_metars(c["station"], _since))
+            except Exception as _fe:
+                print("awc merge: skipped -", str(_fe)[:80])
             # api.weather.gov timestamps are UTC. The old filter compared the UTC
             # date prefix to the LOCAL date string, so 00:00-07:00Z obs (= prior
             # local evening on the West Coast, incl. yesterday's ~17:00 near-peak)
@@ -40,7 +49,10 @@ def scan_once():
                 return (t - (t.dst() or dt.timedelta(0))).date().isoformat()
             obs_today = [o for o in obs if _obs_local_date(o["ts"]) == today.isoformat()]
             rmax = gate.running_max_f(obs_today)
-            wx = obs_today[0]["wx"] if obs_today else ""
+            # wx text and sky stay on the NWS stream (AWC rows carry raw METAR
+            # weather codes, not the textDescription the gate parses).
+            _nws_today = [o for o in obs_today if o.get("src") != "awc"]
+            wx = _nws_today[0]["wx"] if _nws_today else ""
             try:
                 guide, short, pop = sources.point_forecast_high(c["lat"], c["lon"])
             except Exception:
@@ -75,7 +87,8 @@ def scan_once():
             # was not captured anywhere. run_max_detail records which observation
             # stream produced the max so the 5-minute cool bias is measurable.
             try:
-                detail["sky"] = sources.sky_from_obs(obs_today[0]) if obs_today else None
+                detail["sky"] = sources.sky_from_obs(_nws_today[0]) if _nws_today else None
+                detail["obs_feed"] = _feed
                 detail["run_max_detail"] = gate.running_max_f(obs_today, return_detail=True)
             except Exception as _se:
                 print("sky/run_max_detail: skipped -", str(_se)[:100])

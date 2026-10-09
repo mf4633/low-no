@@ -2252,3 +2252,32 @@ carry RMSE 2.42 (best). In-sample only, not a registration: a half-carry bucket
 rule loses MORE (-5.3c/unit, CI [-10.8, -0.2]; warm side -11.8c). A better
 temperature forecast did not beat the price; the market already holds it.
 Read: H16 is expected to fail forward. It stays registered and runs to its bar.
+
+# CORRECTION -- stale api.weather.gov observation feed  (2026-10-08)
+
+**What was wrong.** `latest_obs` reads api.weather.gov, whose observation feed
+lags by HOURS at some stations on some days. On 2026-10-07 the scanner logged
+KPHX temp_now 80.6-82.4F from 13:15Z through 17:29Z while the station's own
+METARs (IEM, aviationweather.gov) read 83 -> 87 -> 90 -> 94. At the H16 look,
+6 of 11 units carried a stale temp_now: SAN +11.6F, SAT +8.0, LAX +7.8,
+SFO +7.8, PHX +7.6, DEN +2.4. KMDW was ~80 min behind the same day.
+temp_now, curve_dev and run_max all came from that feed, so this reaches H4b,
+H16, the curve_dev telemetry and the gate's run_max INPUT (the GATE itself is
+untouched).
+
+**Fix (input data only, GATE unchanged).** `sources.awc_metars` +
+`sources.merge_obs`: scan.py (and mispricing_read.py) merge aviationweather.gov
+METARs into the NWS stream, newest first, duplicate minutes dropped. wx text
+and sky stay on the NWS stream. Every LADDER row now logs
+`detail.obs_feed = {nws_latest, awc_latest, used, used_src}`, so feed age is
+measured from here on. Proof: `test_obs_merge.py`.
+
+**H16.** START_DAY moves 2026-10-07 -> 2026-10-09, the first full day scanned
+with the fix. 10/7 and 10/8 units were built on the stale feed and are
+excluded, not rescored. The rule, bar and test are unchanged; this only drops
+two contaminated days and makes the requirement later, not easier.
+
+**Not done, and open.** History before 2026-10-09 is NOT repaired. How much of
+it is stale is unmeasured, because only the feed's own timestamps were logged,
+not the station's. Any historical curve_dev or run_max result (H4a, H4b, the
+H16 backtest addendum) carries this caveat until it is measured against IEM.

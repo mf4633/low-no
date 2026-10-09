@@ -73,7 +73,7 @@ def main():
 
         # 2. planted underpricing: bucket priced 20c, wins 60% -> must PASS
         a = os.path.join(tmp, "a")
-        g, s = world(a, 25, price=20, p_win=0.60)
+        g, s = world(a, 25, price=20, p_win=0.60, start=H.START_DAY)
         v = H.verdict(g, s, os.path.join(a, "v.json"))
         check("finds planted underpricing", v.get("ready") and v.get("passed"),
               json.dumps(v.get("frozen", {}).get("at_read")))
@@ -83,30 +83,31 @@ def main():
 
         # 3. fair market: priced 30c, wins 30% -> must NOT pass (fees make it negative)
         b = os.path.join(tmp, "b")
-        g, s = world(b, 25, price=30, p_win=0.30, seed=11)
+        g, s = world(b, 25, price=30, p_win=0.30, seed=11, start=H.START_DAY)
         v = H.verdict(g, s, os.path.join(b, "v.json"))
         check("null on fairly priced market", v.get("ready") and not v.get("passed"),
               json.dumps(v.get("frozen", {}).get("at_read")))
 
         # 4. below the bar: 25 days x 3 = 75 units but only 15 days -> refuse
         c = os.path.join(tmp, "c")
-        g, s = world(c, 15, price=20, p_win=0.9)
+        g, s = world(c, 15, price=20, p_win=0.9, start=H.START_DAY)
         v = H.verdict(g, s, os.path.join(c, "v.json"))
         check("refuses below the day bar", not v.get("ready") and not v.get("passed"),
               f"units={v.get('units')} days={v.get('days')}")
 
         # 5. pre-registration days are ignored
         d = os.path.join(tmp, "d")
-        g, s = world(d, 10, price=20, p_win=0.9, start="2026-09-30")
-        check("ignores days before 2026-10-07", len(H.units(g, s)) == 9,
+        g, s = world(d, 10, price=20, p_win=0.9,
+                     start=(dt.date.fromisoformat(H.START_DAY) - dt.timedelta(days=7)).isoformat())
+        check("ignores days before START_DAY", len(H.units(g, s)) == 9,
               f"n={len(H.units(g, s))}")
 
         # 6. first cycle only: a later qualifying cycle must not rescue a city-day
         e = os.path.join(tmp, "e")
         os.makedirs(os.path.join(e, "logs"))
-        early = ladder_row("2026-10-08", "DAL", "15:10", 71.0, 20)   # dev ~ -0.4: no unit
-        late = set_price(ladder_row("2026-10-08", "DAL", "16:20", 77.0, 20), "R86", 20)
-        open(os.path.join(e, "logs", "2026-10-08.jsonl"), "w").write(late + "\n" + early + "\n")
+        early = ladder_row("2026-10-10", "DAL", "15:10", 71.0, 20)   # dev ~ -0.4: no unit
+        late = set_price(ladder_row("2026-10-10", "DAL", "16:20", 77.0, 20), "R86", 20)
+        open(os.path.join(e, "logs", "2026-10-10.jsonl"), "w").write(late + "\n" + early + "\n")
         json.dump({}, open(os.path.join(e, "s.json"), "w"))
         n = len(H.units(os.path.join(e, "logs", "2*.jsonl"), os.path.join(e, "s.json")))
         check("first 10-12 local cycle only, no shopping", n == 0, f"n={n}")
@@ -114,16 +115,16 @@ def main():
         # 7. outside the window (09:30 local) is never a look
         f = os.path.join(tmp, "f")
         os.makedirs(os.path.join(f, "logs"))
-        open(os.path.join(f, "logs", "2026-10-08.jsonl"), "w").write(
-            set_price(ladder_row("2026-10-08", "DAL", "14:30", 72.0, 20), "R86", 20) + "\n")
+        open(os.path.join(f, "logs", "2026-10-10.jsonl"), "w").write(
+            set_price(ladder_row("2026-10-10", "DAL", "14:30", 72.0, 20), "R86", 20) + "\n")
         n = len(H.units(os.path.join(f, "logs", "2*.jsonl"), os.path.join(e, "s.json")))
         check("09:30 local is outside the window", n == 0, f"n={n}")
 
         # 8. no ask (ya 100 / None) -> no unit
         hh = os.path.join(tmp, "h")
         os.makedirs(os.path.join(hh, "logs"))
-        open(os.path.join(hh, "logs", "2026-10-08.jsonl"), "w").write(
-            set_price(ladder_row("2026-10-08", "DAL", "15:30", 74.25, 100), "R86", 100) + "\n")
+        open(os.path.join(hh, "logs", "2026-10-10.jsonl"), "w").write(
+            set_price(ladder_row("2026-10-10", "DAL", "15:30", 74.25, 100), "R86", 100) + "\n")
         n = len(H.units(os.path.join(hh, "logs", "2*.jsonl"), os.path.join(e, "s.json")))
         check("no offer, no unit", n == 0, f"n={n}")
 
@@ -133,7 +134,7 @@ def main():
 
         # 10. verdict is frozen at first read: a later, different world keeps it
         k = os.path.join(tmp, "k")
-        g, s = world(k, 25, price=20, p_win=0.60)
+        g, s = world(k, 25, price=20, p_win=0.60, start=H.START_DAY)
         vf = os.path.join(k, "v.json")
         first = H.verdict(g, s, vf)
         sv = {kk: 83 for kk in json.load(open(s))}          # every unit now loses
