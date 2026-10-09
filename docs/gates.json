@@ -3,21 +3,21 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 3228,
-  "brier_base": 0.107,
-  "brier_shape": 0.1076,
-  "improvement_pct": -0.6
+  "n": 3345,
+  "brier_base": 0.1093,
+  "brier_shape": 0.1099,
+  "improvement_pct": -0.59
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1084,
-  "days": 41,
-  "lag_corr": -0.0,
+  "events": 1105,
+  "days": 42,
+  "lag_corr": -0.002,
   "lag_ci": [
-   -0.06,
-   0.059
+   -0.061,
+   0.057
   ]
  },
  "H6": {
@@ -32,17 +32,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 1902,
+  "pooled_n": 2070,
   "hourly": {
-   "n": 105,
-   "brier_base": 0.167,
-   "brier_shape": 0.1682,
+   "n": 123,
+   "brier_base": 0.1575,
+   "brier_shape": 0.16,
    "improved": false
   },
   "control": {
-   "n": 1797,
-   "brier_base": 0.0861,
-   "brier_shape": 0.0875,
+   "n": 1947,
+   "brier_base": 0.0927,
+   "brier_shape": 0.093,
    "improved": false
   },
   "ready": true,
@@ -53,10 +53,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1135,
-   "stalled_off": 685,
-   "climbing_on": 1256,
-   "climbing_off": 92
+   "stalled_on": 1178,
+   "stalled_off": 696,
+   "climbing_on": 1292,
+   "climbing_off": 93
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -66,45 +66,33 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 484,
-   "mean": -0.00067,
+   "n": 493,
+   "mean": -5e-05,
    "ci": [
-    -0.00565,
-    0.00432
+    -0.00502,
+    0.00491
    ]
   },
   "tail": {
-   "n": 913,
-   "mean": -0.00045,
+   "n": 934,
+   "mean": -0.00023,
    "ci": [
-    -0.003,
-    0.0021
+    -0.00276,
+    0.0023
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 11,
+  "units": 0,
   "need_units": 60,
-  "days": 1,
+  "days": 0,
   "need_days": 20,
-  "pending": 3,
-  "cities": {
-   "BOS": 1,
-   "DC": 1,
-   "DEN": 1,
-   "EWR": 1,
-   "HOU": 1,
-   "LAX": 1,
-   "PHL": 1,
-   "PHX": 1,
-   "SAN": 1,
-   "SAT": 1,
-   "SFO": 1
-  },
+  "pending": 0,
+  "cities": {},
   "ready": false,
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-08T14:41:08.420653Z"
+ "generated": "2026-10-09T08:57:47.940220Z"
 }
