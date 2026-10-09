@@ -1,45 +1,18 @@
 {
- "at": "2026-10-09T20:07:30.867432Z",
+ "at": "2026-10-09T21:10:07.469282Z",
  "traps": [
-  {
-   "city": "LAX",
-   "ceiling": 78,
-   "price": 2,
-   "p_model": 0.2384,
-   "p_market": 0.02,
-   "edge_pts": 21.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 13:00 is past this station's measured convergence hour (12:00) with the running max still 1.0F short. The climb window has closed."
-    }
-   ]
-  },
   {
    "city": "SEA",
    "ceiling": 58,
-   "price": 77,
-   "p_model": 0.9445,
-   "p_market": 0.77,
-   "edge_pts": 17.4,
+   "price": 29,
+   "p_model": 0.9315,
+   "p_market": 0.29,
+   "edge_pts": 64.1,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 64 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -47,26 +20,45 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "77c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "29c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "ATL",
-   "ceiling": 75,
-   "price": 4,
-   "p_model": 0.1209,
-   "p_market": 0.04,
-   "edge_pts": 8.1,
-   "size_lcb": 0.0019,
+   "city": "LAX",
+   "ceiling": 78,
+   "price": 1,
+   "p_model": 0.1482,
+   "p_market": 0.01,
+   "edge_pts": 13.8,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.6F short. The climb window has closed."
+     "why": "local hour 14:00 is past this station's measured convergence hour (12:00) with the running max still 1.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "LAS",
+   "ceiling": 93,
+   "price": 98,
+   "p_model": 1.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
