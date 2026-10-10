@@ -3,20 +3,20 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 3345,
-  "brier_base": 0.1093,
-  "brier_shape": 0.1099,
-  "improvement_pct": -0.59
+  "n": 3438,
+  "brier_base": 0.1085,
+  "brier_shape": 0.1093,
+  "improvement_pct": -0.67
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1105,
-  "days": 42,
+  "events": 1125,
+  "days": 43,
   "lag_corr": -0.002,
   "lag_ci": [
-   -0.061,
+   -0.06,
    0.057
   ]
  },
@@ -32,17 +32,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 2070,
+  "pooled_n": 2145,
   "hourly": {
-   "n": 123,
-   "brier_base": 0.1575,
-   "brier_shape": 0.16,
+   "n": 132,
+   "brier_base": 0.1526,
+   "brier_shape": 0.1556,
    "improved": false
   },
   "control": {
-   "n": 1947,
-   "brier_base": 0.0927,
-   "brier_shape": 0.093,
+   "n": 2013,
+   "brier_base": 0.0932,
+   "brier_shape": 0.0934,
    "improved": false
   },
   "ready": true,
@@ -53,9 +53,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1178,
-   "stalled_off": 696,
-   "climbing_on": 1292,
+   "stalled_on": 1206,
+   "stalled_off": 709,
+   "climbing_on": 1311,
    "climbing_off": 93
   },
   "need_per_group": 150,
@@ -66,33 +66,46 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 493,
-   "mean": -5e-05,
+   "n": 504,
+   "mean": 0.00028,
    "ci": [
-    -0.00502,
-    0.00491
+    -0.00463,
+    0.00519
    ]
   },
   "tail": {
-   "n": 934,
-   "mean": -0.00023,
+   "n": 953,
+   "mean": -0.00041,
    "ci": [
-    -0.00276,
-    0.0023
+    -0.00291,
+    0.00208
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 0,
+  "units": 12,
   "need_units": 60,
-  "days": 0,
+  "days": 1,
   "need_days": 20,
   "pending": 0,
-  "cities": {},
+  "cities": {
+   "AUS": 1,
+   "DAL": 1,
+   "DEN": 1,
+   "EWR": 1,
+   "LAS": 1,
+   "LAX": 1,
+   "MSP": 1,
+   "NYC": 1,
+   "OKC": 1,
+   "SAT": 1,
+   "SEA": 1,
+   "SFO": 1
+  },
   "ready": false,
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-09T14:26:57.182738Z"
+ "generated": "2026-10-10T08:33:10.344192Z"
 }
