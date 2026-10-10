@@ -1,18 +1,18 @@
 {
- "at": "2026-10-10T21:53:09.585748Z",
+ "at": "2026-10-10T22:57:22.645157Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 68,
-   "price": 8,
-   "p_model": 0.5583,
-   "p_market": 0.08,
-   "edge_pts": 47.8,
+   "price": 5,
+   "p_model": 0.5148,
+   "p_market": 0.05,
+   "edge_pts": 46.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 48 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -20,17 +20,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "HOU",
    "ceiling": 87,
-   "price": 3,
-   "p_model": 0.1927,
-   "p_market": 0.03,
-   "edge_pts": 16.3,
+   "price": 1,
+   "p_model": 0.1863,
+   "p_market": 0.01,
+   "edge_pts": 17.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,26 +39,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 18 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 55,
-   "price": 94,
-   "p_model": 1.0,
-   "p_market": 0.94,
-   "edge_pts": 6.0,
-   "size_lcb": 0.2227,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "local hour 17:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   }
