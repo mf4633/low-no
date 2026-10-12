@@ -1,28 +1,28 @@
 {
- "generated": "2026-10-11T14:06:31.877962Z",
+ "generated": "2026-10-12T09:11:09.988311Z",
  "hypotheses": [
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 199,
+   "have": 212,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 27,
+    "have": 28,
     "need": 20,
     "unit": "distinct days"
    },
-   "ready": false,
-   "note": "27/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "ready": true,
+   "note": "28/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 2220,
+   "have": 2325,
    "need": 50,
    "unit": "scored (control)",
    "also": {
-    "have": 159,
+    "have": 168,
     "need": 50,
     "unit": "scored (hourly)"
    },
@@ -32,7 +32,7 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 96,
+   "have": 97,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
@@ -41,11 +41,11 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 20,
+   "have": 30,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 2,
+    "have": 3,
     "need": 20,
     "unit": "distinct days"
    },
