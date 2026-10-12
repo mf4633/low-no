@@ -1,13 +1,13 @@
 {
- "at": "2026-10-12T16:33:56.536615Z",
+ "at": "2026-10-12T17:38:20.098612Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 80,
    "price": 62,
-   "p_model": 0.8759,
+   "p_model": 0.8381,
    "p_market": 0.62,
-   "edge_pts": 25.6,
+   "edge_pts": 21.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,11 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 26 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
@@ -31,10 +27,10 @@
   {
    "city": "AUS",
    "ceiling": 89,
-   "price": 91,
-   "p_model": 0.9935,
-   "p_market": 0.91,
-   "edge_pts": 8.3,
+   "price": 96,
+   "p_model": 0.9907,
+   "p_market": 0.96,
+   "edge_pts": 3.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -44,45 +40,14 @@
    ]
   },
   {
-   "city": "SAN",
-   "ceiling": 67,
+   "city": "HOU",
+   "ceiling": 87,
    "price": 98,
-   "p_model": 0.987,
+   "p_model": 1.0,
    "p_market": 0.98,
-   "edge_pts": 0.7,
+   "edge_pts": 2.0,
    "size_lcb": 0.0,
    "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "LAX",
-   "ceiling": 63,
-   "price": 99,
-   "p_model": 0.994,
-   "p_market": 0.99,
-   "edge_pts": 0.4,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
