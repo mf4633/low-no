@@ -1,5 +1,78 @@
 {
- "at": "2026-10-13T14:24:16.437961Z",
- "tracked": [],
+ "at": "2026-10-13T15:28:30.403802Z",
+ "tracked": [
+  {
+   "city": "PHL",
+   "station": "KPHL",
+   "ticker": "KXHIGHPHIL-26OCT13-T76",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 75,
+   "run_max": 69.8,
+   "gap_to_clear": 5.2,
+   "already_cleared": false,
+   "guide": 80,
+   "pop": 2,
+   "no_ask": 0.97,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-10-13T15:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:54:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-13T14:20:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 2.8,
+    "q50": 6.0,
+    "q90": 9.4
+   },
+   "projected_max": {
+    "q10": 72.6,
+    "q50": 75.8,
+    "q90": 79.2
+   },
+   "p_exceed_empirical": 0.58,
+   "emp_n": 98,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
