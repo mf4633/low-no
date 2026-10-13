@@ -1,5 +1,101 @@
 {
- "at": "2026-10-12T23:41:48.753441Z",
- "traps": [],
+ "at": "2026-10-13T13:20:25.234327Z",
+ "traps": [
+  {
+   "city": "MSP",
+   "ceiling": 63,
+   "price": 6,
+   "p_model": 0.78,
+   "p_market": 0.06,
+   "edge_pts": 72.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 72 pts. In this ledger the market won 7 of 8 such disputes."
+    }
+   ]
+  },
+  {
+   "city": "CHI",
+   "ceiling": 81,
+   "price": 48,
+   "p_model": 0.8421,
+   "p_market": 0.48,
+   "edge_pts": 36.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "48c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "DEN",
+   "ceiling": 61,
+   "price": 80,
+   "p_model": 0.9141,
+   "p_market": 0.8,
+   "edge_pts": 11.4,
+   "size_lcb": 0.2669,
+   "signals": [
+    {
+     "code": "GRAVEYARD",
+     "why": "80c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "LAS",
+   "ceiling": 63,
+   "price": 89,
+   "p_model": 0.95,
+   "p_market": 0.89,
+   "edge_pts": 6.0,
+   "size_lcb": 0.046,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "89c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SAT",
+   "ceiling": 92,
+   "price": 88,
+   "p_model": 0.8988,
+   "p_market": 0.88,
+   "edge_pts": 1.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
