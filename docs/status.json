@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-12T16:52:05.827479Z",
+ "generated": "2026-10-13T09:21:45.302561Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 66,
+  "logged_days": 67,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-11",
-  "rung_observations": 98444,
-  "independent_units": 1628,
+  "last_day": "2026-10-12",
+  "rung_observations": 99680,
+  "independent_units": 1650,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -87,13 +87,13 @@
    "2026-10-09": 11,
    "2026-10-10": 11,
    "2026-10-11": 11,
-   "2026-10-12": 4
+   "2026-10-12": 9
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1397,
-  "settlements_verified": 1217,
+  "settlements_cached": 1420,
+  "settlements_verified": 1240,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -118,24 +118,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 212,
+    "have": 220,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 28,
+     "have": 29,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "28/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "29/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 2325,
+    "have": 2511,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
@@ -152,7 +152,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 97,
+    "have": 99,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -164,12 +164,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 30,
+    "have": 35,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 3,
+     "have": 4,
      "need": 20,
      "unit": "distinct days"
     }
@@ -262,7 +262,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 97,
+    "have": 99,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -274,12 +274,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 30,
+    "have": 35,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 3,
+     "have": 4,
      "need": 20,
      "unit": "distinct days"
     }

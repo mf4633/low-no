@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-10-12
+# low-no scorecard -- 2026-10-13
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -8,8 +8,9 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **NYC** QUALIFIED @ 0.93 ceil 68 guide 72 -> CLI None :: **UNGRADED**  _park bowl: Td throttle, -3.5F vs EWR clear days, -2 cloudy. EWR leads by 2-3h; LGA = marine sentinel._
-- **DAL** QUALIFIED @ 0.97 ceil 87 guide 91 -> CLI None :: **UNGRADED**
-- **SAT** QUALIFIED @ 0.93 ceil 89 guide 93 -> CLI None :: **UNGRADED**
+- **NYC** QUALIFIED @ 0.92 ceil 68 guide 72 -> CLI 70 :: **WIN**
+- **DAL** QUALIFIED @ 0.97 ceil 87 guide 91 -> CLI 90 :: **WIN**
+- **SAT** QUALIFIED @ 0.94 ceil 89 guide 93 -> CLI 90 :: **WIN**
+- **HOU** DEAD_SCAVENGE @ 0.98 ceil 87 guide 91 -> CLI 90 :: **WIN**
 
-no qualified flags today -- a complete and acceptable outcome
+**4/4 hit** (100%) vs 98.2% breakeven at 0.98
