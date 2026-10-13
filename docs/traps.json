@@ -1,13 +1,13 @@
 {
- "at": "2026-10-13T18:38:51.246155Z",
+ "at": "2026-10-13T19:53:59.732618Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 70,
-   "price": 14,
-   "p_model": 0.7371,
-   "p_market": 0.14,
-   "edge_pts": 59.7,
+   "price": 18,
+   "p_model": 0.7082,
+   "p_market": 0.18,
+   "edge_pts": 52.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,71 +16,64 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 60 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
-  {
-   "city": "CHI",
-   "ceiling": 81,
-   "price": 14,
-   "p_model": 0.4157,
-   "p_market": 0.14,
-   "edge_pts": 27.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "model and market differ by 53 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
-  {
-   "city": "MSP",
-   "ceiling": 63,
-   "price": 5,
-   "p_model": 0.1669,
-   "p_market": 0.05,
-   "edge_pts": 11.7,
-   "size_lcb": 0.0332,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 0.9F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "LAS",
    "ceiling": 63,
-   "price": 92,
-   "p_model": 0.9437,
-   "p_market": 0.92,
-   "edge_pts": 2.4,
-   "size_lcb": 0.0,
+   "price": 78,
+   "p_model": 0.9213,
+   "p_market": 0.78,
+   "edge_pts": 14.1,
+   "size_lcb": 0.2078,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "SEA",
-   "ceiling": 59,
+   "city": "CHI",
+   "ceiling": 81,
+   "price": 6,
+   "p_model": 0.1812,
+   "p_market": 0.06,
+   "edge_pts": 12.1,
+   "size_lcb": 0.0291,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "SAT",
+   "ceiling": 92,
    "price": 92,
-   "p_model": 0.9201,
+   "p_model": 0.9295,
    "p_market": 0.92,
-   "edge_pts": 0.0,
+   "edge_pts": 0.9,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
