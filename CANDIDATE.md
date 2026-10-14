@@ -2281,3 +2281,58 @@ two contaminated days and makes the requirement later, not easier.
 it is stale is unmeasured, because only the feed's own timestamps were logged,
 not the station's. Any historical curve_dev or run_max result (H4a, H4b, the
 H16 backtest addendum) carries this caveat until it is measured against IEM.
+
+# HYPOTHESIS 17 -- LAX: TODAY'S TEMPERATURE + THE MARINE-LAYER REGIME BEATS THE PRICE
+# (registered 2026-10-14, FORWARD-ONLY: days >= 2026-10-15. n = 0 at registration.
+#  This text does not change. Harness `h17_lax_anchor.py`, synthetic proof
+#  `test_h17_lax_anchor.py` (13 checks), training set `h17_train.json` built by
+#  `h17_train.py` from 2022-2025 only. All committed BEFORE the retro gate ran.)
+
+## Where it comes from
+
+H15's frozen forecast is climatology by regime and season, with nothing about
+TODAY. Its out-of-sample backtest (2026-08-10..09-11, run 2026-10-14) had it
+2.2-4.4F cold on all 6 marine days. Full-ladder Brier: market .062 vs model .161
+on marine days. Marine trades lost -3.0/-3.1/-5.5c per unit at edges
+.10/.15/.20. 2026 ran warm against 2022-25 climatology, and the market knew it.
+Michael asked for a version that can make money; this is the level fix,
+registered as new because H15 cannot be edited.
+
+## Mechanism
+
+The regime sets the SHAPE of the rest of the day: how much more LAX warms after
+11 AM PDT under stratus vs clear sky. Today's 11 AM temperature sets the LEVEL.
+In 2022-2025 (Aug 15-Nov 30) the rise after the 18Z ob has sd 1.34F on marine
+days, 1.57 on early-burn days and 1.99 on clear days, against 2.7-6.4F for
+climatology alone. The claim is that the 19Z book does not fully use the regime's
+shape. Expected to fail like H15/H16: the market already sees the same
+temperature and sky.
+
+## The model, the rule, the test (fixed now)
+
+Exactly as written in the `h17_lax_anchor.py` docstring. In short:
+* **Look:** the 19Z ladder (12 PDT), scan first, the 19:05Z `lax_book` record
+  as fallback.
+* **Model:** the empirical (CLI - t18) residuals for the cell, with lax_forecast's
+  seasonal windows, truncated at the 13-18Z max.
+* **Trade:** buy at the ask on any rung/side where model P - ask >= 0.15. Fee on
+  every fill.
+* **Bar:** >= 60 trades AND >= 20 days.
+* **Pass:** PASS iff the day-clustered bootstrap 95% LCB of mean P&L > 0. Read
+  once to `docs/frozen/h17_verdict.json`.
+
+## Retro gate, declared before it ran
+
+The same rule, once, on 2026-08-10..09-11. These days are absent from the
+training set, and H15's verdict never scores them. KILL before forward
+collection iff retro mean P&L < 0 AND model Brier >= market Brier. The result is
+written once to `docs/frozen/h17_retro.json`. The retro run cannot pass H17;
+only forward days can.
+
+## Dependency, stated at registration
+
+The hourly scan has missed the 19Z cycle on some days (10/12). That is why
+`lax_book.py` (CI, 19:05Z) now also logs ya/yb/na. A day with neither is not a
+unit. At ~1 LAX day per calendar day and 77 days to the stop, 20 days is
+reachable. 60 trades needs ~0.8 qualifying trades/day, which the retro gate's
+count will show.

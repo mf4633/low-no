@@ -166,7 +166,10 @@ def main():
         lo = fl if fl is not None else -999
         hi = cap if cap is not None else 999
         pm = sum(p for k, p in fc["dist"].items() if lo <= k <= hi)
+        # ya/yb/na raw cents too (2026-10-14): H17 falls back to this record
+        # when the hourly scan misses the 19Z cycle, and needs the NO ask.
         recs.append(dict(ticker=g.get("ticker"), floor=fl, cap=cap,
+                         ya=ya, yb=g.get("yes_bid"), na=g.get("no_ask"),
                          mkt=ya / 100.0, model=round(pm, 4),
                          diff=round(pm - ya / 100.0, 4)))
         print(f"  {str(g.get('ticker')):<28}{str(fl):>6}{str(cap):>5}"

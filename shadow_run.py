@@ -480,7 +480,7 @@ def main():
                          ("h6_eval", "H6"),
                          ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
                          ("settle_conv_eval", "H9"), ("h16_offcurve", "H16"),
-                         ("h15_lax", "H15")):
+                         ("h15_lax", "H15"), ("h17_lax_anchor", "H17")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -679,6 +679,17 @@ def _hypothesis_progress(obs):
     except Exception:
         h15_ready = False
 
+    # H17: forward-only from 2026-10-15; trades + days, never P&L below the bar.
+    h17_u, h17_d, h17_ready, h17_note = 0, 0, False, ""
+    try:
+        import h17_lax_anchor as _h17
+        _v17 = _h17.verdict(verdict_file=None)
+        h17_u, h17_d = _v17.get("units", 0), _v17.get("days", 0)
+        h17_ready = bool(_v17.get("ready"))
+        h17_note = _v17.get("reason", "") or ""
+    except Exception:
+        h17_ready = False
+
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
@@ -723,6 +734,13 @@ def _hypothesis_progress(obs):
                       "poll book in logs/poll_lax/; verdict read ONCE to "
                       "docs/frozen/h15_verdict.json. At ~25% marine rate the "
                       "bar lands ~early Dec, close to the 12-31 stop"),
+            dict(id="H17", name="LAX temp-anchored marine regime beats the price",
+                 have=h17_u, need=60, unit="graded trades (model P - ask >= .15)",
+                 also=dict(have=h17_d, need=20, unit="distinct days"),
+                 ready=h17_ready,
+                 note="registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; "
+                      "forward-only from 10-15, retro gate on 8/10-9/11 in "
+                      "docs/frozen/h17_retro.json. " + h17_note),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",
