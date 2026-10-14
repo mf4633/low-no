@@ -1,13 +1,13 @@
 {
- "at": "2026-10-14T17:24:39.934917Z",
+ "at": "2026-10-14T18:24:15.503248Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 58,
    "price": 9,
-   "p_model": 0.5313,
+   "p_model": 0.3057,
    "p_market": 0.09,
-   "edge_pts": 44.1,
+   "edge_pts": 21.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,22 +16,22 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 44 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "TTN",
    "ceiling": 78,
-   "price": 51,
-   "p_model": 0.753,
-   "p_market": 0.51,
-   "edge_pts": 24.3,
+   "price": 82,
+   "p_model": 1.0,
+   "p_market": 0.82,
+   "edge_pts": 18.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 18 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -39,7 +39,34 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "51c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "PHL",
+   "ceiling": 80,
+   "price": 31,
+   "p_model": 0.4709,
+   "p_market": 0.31,
+   "edge_pts": 16.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "31c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   },
@@ -47,9 +74,9 @@
    "city": "OKC",
    "ceiling": 81,
    "price": 3,
-   "p_model": 0.2195,
+   "p_model": 0.0724,
    "p_market": 0.03,
-   "edge_pts": 18.9,
+   "edge_pts": 4.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -57,31 +84,8 @@
      "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "PHL",
-   "ceiling": 80,
-   "price": 78,
-   "p_model": 0.7985,
-   "p_market": 0.78,
-   "edge_pts": 1.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
