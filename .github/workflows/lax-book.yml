@@ -1,0 +1,33 @@
+name: low-no LAX book (H15 daily record)
+on:
+  schedule:
+    # 19:05Z = 12:05 PDT, the start of H15's scoring hour. The classifier's
+    # 16Z-18Z window closes with the 18:53Z routine ob, so nothing earlier can
+    # classify. Two fires because GitHub drops scheduled runs; the second is a
+    # no-op if the first already logged the day.
+    - cron: "5 19 * * *"
+    - cron: "40 19 * * *"
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  group: lax-book
+  cancel-in-progress: false
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: record
+        run: |
+          . .github/push_retry.sh
+          git fetch --quiet origin main && git reset --quiet --hard origin/main
+          git config user.name lowno-bot && git config user.email bot@lowno
+          DAY=$(date -u +%F)
+          if [ -s "logs/lax_book/$DAY.jsonl" ]; then
+            echo "already logged $DAY"; exit 0
+          fi
+          python lax_book.py
+          push_retry "lax book $DAY"

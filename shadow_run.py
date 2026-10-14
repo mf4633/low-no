@@ -479,7 +479,8 @@ def main():
         for mod, hid in (("shape_eval", "H4a"), ("curve_lag", "H4b"),
                          ("h6_eval", "H6"),
                          ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
-                         ("settle_conv_eval", "H9"), ("h16_offcurve", "H16")):
+                         ("settle_conv_eval", "H9"), ("h16_offcurve", "H16"),
+                         ("h15_lax", "H15")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -665,6 +666,19 @@ def _hypothesis_progress(obs):
     except Exception:
         h16_ready = False
 
+    # H15: harness written 2026-10-14 (h15_lax.py). Counts marine/control
+    # days only -- the verdict function never returns a Brier below its bar.
+    h15_m, h15_c, h15_ready, h15_nm, h15_nc = 0, 0, False, 20, 10
+    try:
+        import h15_lax as _h15
+        _g15 = [u for u in _h15.units() if "brier_mkt" in u]
+        h15_m = sum(1 for u in _g15 if u["stratum"] == "MARINE")
+        h15_c = sum(1 for u in _g15 if u["stratum"] == "CONTROL")
+        h15_nm, h15_nc = _h15.MIN_MARINE, _h15.MIN_CONTROL
+        h15_ready = bool(h15_m >= h15_nm and h15_c >= h15_nc)
+    except Exception:
+        h15_ready = False
+
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
@@ -697,18 +711,18 @@ def _hypothesis_progress(obs):
                       "full-carry bucket at the real ask. Verdict read ONCE at "
                       "the bar. Needs morning scans (DISPATCH_PAT)"),
             dict(id="H15", name="LAX marine-layer regime not in the price",
-                 have=0, need=20,
+                 have=h15_m, need=h15_nm,
                  unit="distinct LAX marine-stratum days with a book",
-                 also=dict(have=0, need=2,
-                           unit="baselines beaten (market, clear-day control)"),
-                 ready=False,
-                 note="registered 2026-09-12, full text docs/H15.md, classifier "
-                      "lax_regime.py FROZEN the same day on free weather data "
-                      "with no price data in the loop. NO HARNESS YET -- have=0 "
-                      "is a placeholder, not a measured zero. Marine strata are "
-                      "29% of Sep-Dec days, so 20 of them needs ~70 calendar "
-                      "days from 2026-09-12: bar reached ~2026-11-20, 41 days "
-                      "before the stop. Reads logs/poll_lax/, NOT logs/poll/"),
+                 also=dict(have=h15_c, need=h15_nc,
+                           unit="NO_STRATUS control days with a book"),
+                 ready=h15_ready,
+                 note="registered 2026-09-12, full text docs/H15.md; harness "
+                      "h15_lax.py + test_h15_lax.py written 2026-10-14 BEFORE "
+                      "any H15 score was computed (rules in the H15.md "
+                      "addendum). Scored at 19Z (12 PDT) on the bottom-rung "
+                      "poll book in logs/poll_lax/; verdict read ONCE to "
+                      "docs/frozen/h15_verdict.json. At ~25% marine rate the "
+                      "bar lands ~early Dec, close to the 12-31 stop"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",

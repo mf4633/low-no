@@ -119,8 +119,10 @@ def sky_today(day):
     return out
 
 
-def ladder():
-    ymd = dt.datetime.now(dt.timezone.utc).strftime("%y%b%d").upper()
+def ladder(day):
+    # the ladder for `day`, not for today's UTC date (2026-10-14: --day used to
+    # print a different day's book against the requested day's regime)
+    ymd = dt.date.fromisoformat(day).strftime("%y%b%d").upper()
     try:
         return sources.kalshi_ladder(CITIES[CITY]["series"], ymd, probe_path=None) or []
     except Exception as e:
@@ -135,18 +137,24 @@ def main():
     day = a.day or dt.datetime.now(dt.timezone.utc).date().isoformat()
 
     obs = sky_today(day)
-    if len(obs) < 6:
-        print(f"  only {len(obs)} hourly sky obs for {day} -- too early to classify")
+    # 2026-10-14: classify on the 12Z-18Z sky only, the instant h15_lax.py
+    # scores at, and forecast from the same cell it uses (marine days get the
+    # pooled LATE_BURN+NO_BURN cell, since NO_BURN is not knowable until 21Z).
+    # A record that classified on later sky would disagree with the verdict.
+    import h15_lax as H15
+    missing = [h for h in range(12, H15.CUT_HOUR + 1) if h not in obs]
+    if missing:
+        print(f"  sky hours {missing} not in yet for {day} -- too early to classify")
         return
-    reg = LR.regime(obs)
-    fc = LF.forecast(reg, day)
+    reg = H15.regime_at_cut(obs)
+    cell, fc = H15.model_cell(obs, day)
     hrs = sorted(obs)
-    print(f"\nKLAX {day}   regime {reg}   (sky hours {hrs[0]:02d}Z-{hrs[-1]:02d}Z)")
+    print(f"\nKLAX {day}   regime {reg} -> cell {cell}   (sky {hrs[0]:02d}Z-{hrs[-1]:02d}Z, classified on <= {H15.CUT_HOUR}Z)")
     print(f"  forecast cell: n={fc['n']}  mean {fc['mean']:.1f}  [{fc['source']}]")
     if fc["n"] == 0:
         return
 
-    rows = ladder()
+    rows = ladder(day)
     if not rows:
         print("  no ladder"); return
     print(f"\n  {'ticker':<28}{'floor':>6}{'cap':>5}{'mkt YES':>9}{'model':>8}{'diff':>8}")
@@ -167,12 +175,12 @@ def main():
     with io.open(os.path.join(OUT_DIR, f"{day}.jsonl"), "a", encoding="utf-8") as fh:
         fh.write(json.dumps(dict(
             at=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
-            day=day, city=CITY, regime=reg, marine=reg in LF.MARINE,
+            day=day, city=CITY, regime=reg, cell=cell, marine=cell == "MARINE",
             cell_n=fc["n"], cell_mean=round(fc["mean"], 2), cell_src=fc["source"],
             rungs=recs)) + chr(10))
     big = [r for r in recs if abs(r["diff"]) >= 0.15]
     print(f"\n  logged to {OUT_DIR}/{day}.jsonl")
-    print(f"  marine stratum: {reg in LF.MARINE}   rungs diverging >=15pts: {len(big)}")
+    print(f"  marine stratum: {cell == 'MARINE'}   rungs diverging >=15pts: {len(big)}")
     if big:
         print("  NOTE: a divergence is a measurement, not a signal. The market was")
         print("        3.2x better calibrated than this class of model at KNYC/KDEN.")
