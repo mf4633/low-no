@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-13T15:08:08.428235Z",
+ "generated": "2026-10-14T07:32:30.456900Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 67,
+  "logged_days": 68,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-12",
-  "rung_observations": 99680,
-  "independent_units": 1650,
+  "last_day": "2026-10-13",
+  "rung_observations": 101000,
+  "independent_units": 1675,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -88,13 +88,13 @@
    "2026-10-10": 11,
    "2026-10-11": 11,
    "2026-10-12": 9,
-   "2026-10-13": 2
+   "2026-10-13": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1420,
-  "settlements_verified": 1240,
+  "settlements_cached": 1440,
+  "settlements_verified": 1260,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -102,8 +102,6 @@
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
-   "1-10",
-   "11-20",
    "31-40",
    "41-50",
    "71-80",
@@ -119,7 +117,7 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 220,
+    "have": 224,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
@@ -136,12 +134,12 @@
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 2511,
+    "have": 2610,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 168,
+     "have": 171,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -153,7 +151,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 99,
+    "have": 100,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -165,12 +163,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 35,
+    "have": 44,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 4,
+     "have": 5,
      "need": 20,
      "unit": "distinct days"
     }
@@ -263,7 +261,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 99,
+    "have": 100,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -275,12 +273,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 35,
+    "have": 44,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 4,
+     "have": 5,
      "need": 20,
      "unit": "distinct days"
     }

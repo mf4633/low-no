@@ -3,48 +3,48 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 3960,
-  "brier_base": 0.1108,
-  "brier_shape": 0.1116,
-  "improvement_pct": -0.78
+  "n": 4083,
+  "brier_base": 0.1106,
+  "brier_shape": 0.1115,
+  "improvement_pct": -0.8
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1206,
-  "days": 46,
-  "lag_corr": 0.007,
+  "events": 1235,
+  "days": 47,
+  "lag_corr": -0.001,
   "lag_ci": [
-   -0.049,
-   0.063
+   -0.057,
+   0.055
   ]
  },
  "H6": {
   "id": "H6",
   "ready": true,
   "passed": false,
-  "events": 220,
+  "events": 224,
   "days": 29,
-  "across_corr": 0.076,
+  "across_corr": 0.071,
   "across_ci": [
-   -0.057,
-   0.206
+   -0.061,
+   0.2
   ]
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 2679,
+  "pooled_n": 2781,
   "hourly": {
-   "n": 168,
-   "brier_base": 0.1358,
-   "brier_shape": 0.1356,
+   "n": 171,
+   "brier_base": 0.1351,
+   "brier_shape": 0.1348,
    "improved": true
   },
   "control": {
-   "n": 2511,
-   "brier_base": 0.1028,
-   "brier_shape": 0.1031,
+   "n": 2610,
+   "brier_base": 0.1033,
+   "brier_shape": 0.1036,
    "improved": false
   },
   "ready": true,
@@ -55,10 +55,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1282,
-   "stalled_off": 755,
-   "climbing_on": 1388,
-   "climbing_off": 99
+   "stalled_on": 1298,
+   "stalled_off": 778,
+   "climbing_on": 1407,
+   "climbing_off": 100
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -68,45 +68,46 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 535,
-   "mean": -0.0,
+   "n": 544,
+   "mean": 0.00014,
    "ci": [
-    -0.00477,
-    0.00477
+    -0.00461,
+    0.0049
    ]
   },
   "tail": {
-   "n": 1001,
-   "mean": -0.00101,
+   "n": 1019,
+   "mean": -0.00104,
    "ci": [
-    -0.00345,
-    0.00142
+    -0.00344,
+    0.00137
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 35,
+  "units": 44,
   "need_units": 60,
-  "days": 4,
+  "days": 5,
   "need_days": 20,
-  "pending": 3,
+  "pending": 0,
   "cities": {
-   "ATL": 1,
+   "ATL": 2,
    "AUS": 1,
    "DAL": 2,
    "DEN": 1,
-   "EWR": 3,
-   "HOU": 2,
-   "LAS": 3,
+   "EWR": 4,
+   "HOU": 3,
+   "LAS": 4,
    "LAX": 3,
    "MIA": 1,
    "MSP": 3,
    "NYC": 3,
-   "OKC": 1,
-   "PHX": 2,
-   "SAN": 1,
-   "SAT": 2,
+   "OKC": 2,
+   "PHL": 1,
+   "PHX": 3,
+   "SAN": 2,
+   "SAT": 3,
    "SEA": 2,
    "SFO": 2,
    "TTN": 2
@@ -115,5 +116,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-13T15:08:35.284966Z"
+ "generated": "2026-10-14T07:33:07.071773Z"
 }
