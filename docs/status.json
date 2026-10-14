@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-14T09:45:41.273122Z",
+ "generated": "2026-10-14T12:57:29.375452Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -180,17 +180,34 @@
    "name": "LAX marine-layer regime not in the price",
    "status": "open",
    "bar": {
-    "have": 0,
+    "have": 8,
     "need": 20,
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 0,
-     "need": 2,
-     "unit": "baselines beaten (market, clear-day control)"
+     "have": 17,
+     "need": 10,
+     "unit": "NO_STRATUS control days with a book"
     }
    },
-   "note": "registered 2026-09-12, full text docs/H15.md, classifier lax_regime.py FROZEN the same day on free weather data with no price data in the loop. NO HARNESS YET -- have=0 is a placeholder, not a measured zero. Marine strata are 29% of Sep-Dec days, so 20 of them needs ~70 calendar days from 2026-09-12: bar reached ~2026-11-20, 41 days before the stop. Reads logs/poll_lax/, NOT logs/poll/"
+   "note": "registered 2026-09-12, full text docs/H15.md; harness h15_lax.py + test_h15_lax.py written 2026-10-14 BEFORE any H15 score was computed (rules in the H15.md addendum). Scored at 19Z (12 PDT) on the bottom-rung poll book in logs/poll_lax/; verdict read ONCE to docs/frozen/h15_verdict.json. At ~25% marine rate the bar lands ~early Dec, close to the 12-31 stop"
+  },
+  {
+   "id": "H17",
+   "name": "LAX temp-anchored marine regime beats the price",
+   "status": "open",
+   "bar": {
+    "have": 0,
+    "need": 60,
+    "unit": "graded trades (model P - ask >= .15)",
+    "ready": false,
+    "also": {
+     "have": 0,
+     "need": 20,
+     "unit": "distinct days"
+    }
+   },
+   "note": "registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met"
   },
   {
    "id": "H1",
@@ -290,17 +307,34 @@
    "name": "LAX marine-layer regime not in the price",
    "status": "open",
    "bar": {
-    "have": 0,
+    "have": 8,
     "need": 20,
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 0,
-     "need": 2,
-     "unit": "baselines beaten (market, clear-day control)"
+     "have": 17,
+     "need": 10,
+     "unit": "NO_STRATUS control days with a book"
     }
    },
-   "note": "registered 2026-09-12, full text docs/H15.md, classifier lax_regime.py FROZEN the same day on free weather data with no price data in the loop. NO HARNESS YET -- have=0 is a placeholder, not a measured zero. Marine strata are 29% of Sep-Dec days, so 20 of them needs ~70 calendar days from 2026-09-12: bar reached ~2026-11-20, 41 days before the stop. Reads logs/poll_lax/, NOT logs/poll/"
+   "note": "registered 2026-09-12, full text docs/H15.md; harness h15_lax.py + test_h15_lax.py written 2026-10-14 BEFORE any H15 score was computed (rules in the H15.md addendum). Scored at 19Z (12 PDT) on the bottom-rung poll book in logs/poll_lax/; verdict read ONCE to docs/frozen/h15_verdict.json. At ~25% marine rate the bar lands ~early Dec, close to the 12-31 stop"
+  },
+  {
+   "id": "H17",
+   "name": "LAX temp-anchored marine regime beats the price",
+   "status": "open",
+   "bar": {
+    "have": 0,
+    "need": 60,
+    "unit": "graded trades (model P - ask >= .15)",
+    "ready": false,
+    "also": {
+     "have": 0,
+     "need": 20,
+     "unit": "distinct days"
+    }
+   },
+   "note": "registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met"
   }
  ]
 }
