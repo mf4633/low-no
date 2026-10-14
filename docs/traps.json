@@ -1,13 +1,13 @@
 {
- "at": "2026-10-14T23:34:24.241719Z",
+ "at": "2026-10-14T23:43:59.186356Z",
  "traps": [
   {
    "city": "PHL",
    "ceiling": 80,
-   "price": 6,
+   "price": 20,
    "p_model": 1.0,
-   "p_market": 0.06,
-   "edge_pts": 94.0,
+   "p_market": 0.2,
+   "edge_pts": 80.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 94 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 80 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -43,14 +47,14 @@
    "city": "OKC",
    "ceiling": 81,
    "price": 1,
-   "p_model": 0.0223,
+   "p_model": 0.0106,
    "p_market": 0.01,
-   "edge_pts": 1.2,
+   "edge_pts": 0.1,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
