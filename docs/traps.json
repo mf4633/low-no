@@ -1,13 +1,13 @@
 {
- "at": "2026-10-15T21:09:13.557868Z",
+ "at": "2026-10-15T22:12:53.285450Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 52,
-   "price": 2,
-   "p_model": 0.4694,
-   "p_market": 0.02,
-   "edge_pts": 44.9,
+   "price": 1,
+   "p_model": 0.327,
+   "p_market": 0.01,
+   "edge_pts": 31.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,17 +24,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
+     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.2F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SAN",
    "ceiling": 84,
-   "price": 98,
+   "price": 93,
    "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
+   "p_market": 0.93,
+   "edge_pts": 7.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -51,9 +51,9 @@
    "city": "OKC",
    "ceiling": 76,
    "price": 1,
-   "p_model": 0.0155,
+   "p_model": 0.0161,
    "p_market": 0.01,
-   "edge_pts": 0.5,
+   "edge_pts": 0.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -66,7 +66,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 6.0F short. The climb window has closed."
+     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 6.0F short. The climb window has closed."
     }
    ]
   }
