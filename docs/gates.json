@@ -3,10 +3,10 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 4185,
-  "brier_base": 0.1106,
-  "brier_shape": 0.1115,
-  "improvement_pct": -0.86
+  "n": 4239,
+  "brier_base": 0.112,
+  "brier_shape": 0.1128,
+  "improvement_pct": -0.69
  },
  "H4b": {
   "id": "H4b",
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 2865,
+  "pooled_n": 2916,
   "hourly": {
    "n": 174,
-   "brier_base": 0.1332,
-   "brier_shape": 0.1332,
-   "improved": false
+   "brier_base": 0.1359,
+   "brier_shape": 0.1328,
+   "improved": true
   },
   "control": {
-   "n": 2691,
-   "brier_base": 0.1006,
-   "brier_shape": 0.1011,
+   "n": 2742,
+   "brier_base": 0.0994,
+   "brier_shape": 0.1001,
    "improved": false
   },
   "ready": true,
@@ -55,10 +55,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1315,
-   "stalled_off": 800,
-   "climbing_on": 1437,
-   "climbing_off": 102
+   "stalled_on": 1321,
+   "stalled_off": 807,
+   "climbing_on": 1447,
+   "climbing_off": 103
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -68,29 +68,29 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 552,
-   "mean": 0.00011,
+   "n": 555,
+   "mean": 0.00012,
    "ci": [
-    -0.00455,
-    0.00478
+    -0.00452,
+    0.00476
    ]
   },
   "tail": {
-   "n": 1037,
-   "mean": -0.00089,
+   "n": 1042,
+   "mean": -0.00072,
    "ci": [
-    -0.00325,
-    0.00148
+    -0.00308,
+    0.00164
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 50,
+  "units": 53,
   "need_units": 60,
   "days": 6,
   "need_days": 20,
-  "pending": 3,
+  "pending": 0,
   "cities": {
    "ATL": 3,
    "AUS": 1,
@@ -98,13 +98,13 @@
    "DAL": 2,
    "DC": 1,
    "DEN": 1,
-   "EWR": 4,
+   "EWR": 5,
    "HOU": 4,
    "LAS": 5,
    "LAX": 3,
-   "MIA": 1,
+   "MIA": 2,
    "MSP": 3,
-   "NYC": 3,
+   "NYC": 4,
    "OKC": 2,
    "PHL": 1,
    "PHX": 3,
@@ -140,5 +140,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-15T07:25:36.040333Z"
+ "generated": "2026-10-15T09:28:59.661973Z"
 }
