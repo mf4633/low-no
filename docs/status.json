@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-14T12:57:29.375452Z",
+ "generated": "2026-10-15T07:24:58.648559Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 68,
+  "logged_days": 69,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-13",
-  "rung_observations": 101198,
-  "independent_units": 1678,
+  "last_day": "2026-10-14",
+  "rung_observations": 102446,
+  "independent_units": 1698,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -88,13 +88,14 @@
    "2026-10-10": 11,
    "2026-10-11": 11,
    "2026-10-12": 9,
-   "2026-10-13": 11
+   "2026-10-13": 11,
+   "2026-10-14": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1443,
-  "settlements_verified": 1263,
+  "settlements_cached": 1459,
+  "settlements_verified": 1279,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -102,6 +103,7 @@
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
+   "1-10",
    "31-40",
    "41-50",
    "71-80",
@@ -117,24 +119,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 224,
+    "have": 230,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 29,
+     "have": 30,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "29/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "30/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 2622,
+    "have": 2691,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
@@ -151,7 +153,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 100,
+    "have": 102,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -163,12 +165,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 44,
+    "have": 50,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 5,
+     "have": 6,
      "need": 20,
      "unit": "distinct days"
     }
@@ -185,7 +187,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 17,
+     "have": 18,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -278,7 +280,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 100,
+    "have": 102,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -290,12 +292,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 44,
+    "have": 50,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 5,
+     "have": 6,
      "need": 20,
      "unit": "distinct days"
     }
@@ -312,7 +314,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 17,
+     "have": 18,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
