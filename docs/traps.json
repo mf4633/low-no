@@ -1,13 +1,13 @@
 {
- "at": "2026-10-15T17:53:00.065979Z",
+ "at": "2026-10-15T18:59:29.436285Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 52,
-   "price": 7,
-   "p_model": 0.9002,
-   "p_market": 0.07,
-   "edge_pts": 83.0,
+   "price": 6,
+   "p_model": 0.8761,
+   "p_market": 0.06,
+   "edge_pts": 81.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,30 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 83 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "OKC",
-   "ceiling": 76,
-   "price": 3,
-   "p_model": 0.1983,
-   "p_market": 0.03,
-   "edge_pts": 16.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 82 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -51,14 +28,33 @@
    "city": "DAL",
    "ceiling": 87,
    "price": 94,
-   "p_model": 0.987,
+   "p_model": 1.0,
    "p_market": 0.94,
-   "edge_pts": 4.7,
-   "size_lcb": 0.21,
+   "edge_pts": 6.0,
+   "size_lcb": 0.3183,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    }
+   ]
+  },
+  {
+   "city": "OKC",
+   "ceiling": 76,
+   "price": 2,
+   "p_model": 0.055,
+   "p_market": 0.02,
+   "edge_pts": 3.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
