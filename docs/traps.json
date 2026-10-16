@@ -1,13 +1,13 @@
 {
- "at": "2026-10-16T18:27:39.110175Z",
+ "at": "2026-10-16T19:30:13.585640Z",
  "traps": [
   {
    "city": "DAL",
    "ceiling": 67,
-   "price": 8,
-   "p_model": 0.7631,
-   "p_market": 0.08,
-   "edge_pts": 68.3,
+   "price": 5,
+   "p_model": 0.4216,
+   "p_market": 0.05,
+   "edge_pts": 37.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 37 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
@@ -24,9 +24,9 @@
    "city": "CHI",
    "ceiling": 59,
    "price": 1,
-   "p_model": 0.4379,
+   "p_model": 0.1768,
    "p_market": 0.01,
-   "edge_pts": 42.8,
+   "edge_pts": 16.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -35,11 +35,15 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 43 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 1.8F short. The climb window has closed."
     }
    ]
   },
@@ -47,9 +51,9 @@
    "city": "TTN",
    "ceiling": 75,
    "price": 6,
-   "p_model": 0.0813,
+   "p_model": 0.0935,
    "p_market": 0.06,
-   "edge_pts": 2.1,
+   "edge_pts": 3.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -58,7 +62,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 5.2F short. The climb window has closed."
+     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 3.4F short. The climb window has closed."
     }
    ]
   }
