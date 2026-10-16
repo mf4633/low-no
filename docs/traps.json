@@ -1,13 +1,13 @@
 {
- "at": "2026-10-16T22:36:21.072925Z",
+ "at": "2026-10-16T23:34:43.090661Z",
  "traps": [
   {
    "city": "EWR",
    "ceiling": 75,
-   "price": 16,
+   "price": 8,
    "p_model": 1.0,
-   "p_market": 0.16,
-   "edge_pts": 84.0,
+   "p_market": 0.08,
+   "edge_pts": 92.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 84 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 92 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -28,9 +28,9 @@
    "city": "PHL",
    "ceiling": 77,
    "price": 1,
-   "p_model": 0.5136,
+   "p_model": 0.5321,
    "p_market": 0.01,
-   "edge_pts": 50.4,
+   "edge_pts": 52.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 50 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 52 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -47,7 +47,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
@@ -55,10 +55,10 @@
    "city": "DAL",
    "ceiling": 67,
    "price": 1,
-   "p_model": 0.1208,
+   "p_model": 0.0763,
    "p_market": 0.01,
-   "edge_pts": 11.1,
-   "size_lcb": 0.041,
+   "edge_pts": 6.6,
+   "size_lcb": 0.0185,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -66,26 +66,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.8F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "TTN",
-   "ceiling": 75,
-   "price": 1,
-   "p_model": 0.0804,
-   "p_market": 0.01,
-   "edge_pts": 7.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 1.6F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.8F short. The climb window has closed."
     }
    ]
   },
@@ -93,14 +74,33 @@
    "city": "CHI",
    "ceiling": 59,
    "price": 1,
-   "p_model": 0.0341,
+   "p_model": 0.0399,
    "p_market": 0.01,
-   "edge_pts": 2.4,
+   "edge_pts": 3.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-4F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 1.8F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "TTN",
+   "ceiling": 75,
+   "price": 1,
+   "p_model": 0.0376,
+   "p_market": 0.01,
+   "edge_pts": 2.8,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-22F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
@@ -108,7 +108,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (14:00) with the running max still 1.8F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (14:00) with the running max still 1.6F short. The climb window has closed."
     }
    ]
   }
