@@ -1,36 +1,13 @@
 {
- "at": "2026-10-16T15:24:15.856625Z",
+ "at": "2026-10-16T16:24:41.936241Z",
  "traps": [
-  {
-   "city": "CHI",
-   "ceiling": 59,
-   "price": 3,
-   "p_model": 0.8225,
-   "p_market": 0.03,
-   "edge_pts": 79.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-4F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 79 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
   {
    "city": "DAL",
    "ceiling": 67,
    "price": 14,
-   "p_model": 0.9183,
+   "p_model": 0.947,
    "p_market": 0.14,
-   "edge_pts": 77.8,
+   "edge_pts": 80.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,7 +16,30 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 78 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 81 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "CHI",
+   "ceiling": 59,
+   "price": 3,
+   "p_model": 0.7152,
+   "p_market": 0.03,
+   "edge_pts": 68.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-4F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 69 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
