@@ -1,18 +1,22 @@
 {
- "at": "2026-10-17T16:25:58.878418Z",
+ "at": "2026-10-17T17:29:22.524524Z",
  "traps": [
   {
    "city": "EWR",
    "ceiling": 60,
-   "price": 91,
+   "price": 90,
    "p_model": 1.0,
-   "p_market": 0.91,
-   "edge_pts": 9.0,
-   "size_lcb": 0.4931,
+   "p_market": 0.9,
+   "edge_pts": 10.0,
+   "size_lcb": 0.4938,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=-6F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "90c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
