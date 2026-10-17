@@ -1,13 +1,13 @@
 {
- "at": "2026-10-17T21:47:45.965863Z",
+ "at": "2026-10-17T22:50:23.644680Z",
  "traps": [
   {
    "city": "LAS",
    "ceiling": 76,
-   "price": 16,
-   "p_model": 0.7303,
-   "p_market": 0.16,
-   "edge_pts": 57.0,
+   "price": 5,
+   "p_model": 0.4181,
+   "p_market": 0.05,
+   "edge_pts": 36.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 57 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 37 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 0.8F short. The climb window has closed."
     }
    ]
   }
