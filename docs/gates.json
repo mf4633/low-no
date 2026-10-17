@@ -3,10 +3,10 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 4512,
-  "brier_base": 0.1153,
-  "brier_shape": 0.116,
-  "improvement_pct": -0.61
+  "n": 4590,
+  "brier_base": 0.1159,
+  "brier_shape": 0.1174,
+  "improvement_pct": -1.24
  },
  "H4b": {
   "id": "H4b",
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 3129,
+  "pooled_n": 3222,
   "hourly": {
-   "n": 180,
-   "brier_base": 0.1377,
-   "brier_shape": 0.1299,
+   "n": 225,
+   "brier_base": 0.1288,
+   "brier_shape": 0.1198,
    "improved": true
   },
   "control": {
-   "n": 2949,
-   "brier_base": 0.1009,
-   "brier_shape": 0.1019,
+   "n": 2997,
+   "brier_base": 0.1007,
+   "brier_shape": 0.1016,
    "improved": false
   },
   "ready": true,
@@ -55,10 +55,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1355,
-   "stalled_off": 826,
-   "climbing_on": 1500,
-   "climbing_off": 109
+   "stalled_on": 1358,
+   "stalled_off": 835,
+   "climbing_on": 1506,
+   "climbing_off": 111
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -68,29 +68,29 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 569,
-   "mean": 0.00145,
+   "n": 571,
+   "mean": 0.00153,
    "ci": [
-    -0.0027,
-    0.00559
+    -0.00258,
+    0.00564
    ]
   },
   "tail": {
-   "n": 1060,
-   "mean": -0.00297,
+   "n": 1062,
+   "mean": -0.00287,
    "ci": [
-    -0.00507,
-    -0.00087
+    -0.00495,
+    -0.00079
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 63,
+  "units": 64,
   "need_units": 60,
   "days": 8,
   "need_days": 20,
-  "pending": 1,
+  "pending": 0,
   "cities": {
    "ATL": 3,
    "AUS": 1,
@@ -109,7 +109,7 @@
    "PHL": 1,
    "PHX": 5,
    "SAN": 5,
-   "SAT": 3,
+   "SAT": 4,
    "SEA": 4,
    "SFO": 2,
    "TTN": 2
@@ -140,5 +140,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-17T06:56:31.635257Z"
+ "generated": "2026-10-17T08:50:16.423466Z"
 }
