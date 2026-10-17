@@ -1,24 +1,24 @@
 {
- "generated": "2026-10-16T12:31:04.962500Z",
+ "generated": "2026-10-17T06:55:53.528237Z",
  "hypotheses": [
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 232,
+   "have": 249,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 31,
+    "have": 32,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": true,
-   "note": "31/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "32/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 2808,
+   "have": 2949,
    "need": 50,
    "unit": "scored (control)",
    "also": {
@@ -32,7 +32,7 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 106,
+   "have": 109,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
@@ -41,11 +41,11 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 58,
+   "have": 63,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 7,
+    "have": 8,
     "need": 20,
     "unit": "distinct days"
    },
@@ -59,7 +59,7 @@
    "need": 20,
    "unit": "distinct LAX marine-stratum days with a book",
    "also": {
-    "have": 19,
+    "have": 20,
     "need": 10,
     "unit": "NO_STRATUS control days with a book"
    },
@@ -69,11 +69,11 @@
   {
    "id": "H17",
    "name": "LAX temp-anchored marine regime beats the price",
-   "have": 0,
+   "have": 2,
    "need": 60,
    "unit": "graded trades (model P - ask >= .15)",
    "also": {
-    "have": 0,
+    "have": 1,
     "need": 20,
     "unit": "distinct days"
    },

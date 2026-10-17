@@ -3,48 +3,48 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 4350,
-  "brier_base": 0.1127,
-  "brier_shape": 0.1135,
-  "improvement_pct": -0.7
+  "n": 4512,
+  "brier_base": 0.1153,
+  "brier_shape": 0.116,
+  "improvement_pct": -0.61
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1276,
-  "days": 49,
-  "lag_corr": 0.006,
+  "events": 1305,
+  "days": 50,
+  "lag_corr": 0.001,
   "lag_ci": [
-   -0.049,
-   0.061
+   -0.053,
+   0.055
   ]
  },
  "H6": {
   "id": "H6",
   "ready": true,
   "passed": false,
-  "events": 232,
-  "days": 31,
-  "across_corr": 0.069,
+  "events": 249,
+  "days": 32,
+  "across_corr": 0.064,
   "across_ci": [
-   -0.06,
-   0.196
+   -0.061,
+   0.186
   ]
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 2988,
+  "pooled_n": 3129,
   "hourly": {
    "n": 180,
-   "brier_base": 0.1325,
+   "brier_base": 0.1377,
    "brier_shape": 0.1299,
    "improved": true
   },
   "control": {
-   "n": 2808,
-   "brier_base": 0.0996,
-   "brier_shape": 0.1005,
+   "n": 2949,
+   "brier_base": 0.1009,
+   "brier_shape": 0.1019,
    "improved": false
   },
   "ready": true,
@@ -55,10 +55,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1337,
-   "stalled_off": 818,
-   "climbing_on": 1467,
-   "climbing_off": 106
+   "stalled_on": 1355,
+   "stalled_off": 826,
+   "climbing_on": 1500,
+   "climbing_off": 109
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -68,35 +68,35 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 562,
-   "mean": 0.00151,
+   "n": 569,
+   "mean": 0.00145,
    "ci": [
-    -0.00267,
-    0.00569
+    -0.0027,
+    0.00559
    ]
   },
   "tail": {
-   "n": 1048,
-   "mean": -0.00296,
+   "n": 1060,
+   "mean": -0.00297,
    "ci": [
-    -0.00508,
-    -0.00084
+    -0.00507,
+    -0.00087
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 58,
+  "units": 63,
   "need_units": 60,
-  "days": 7,
+  "days": 8,
   "need_days": 20,
-  "pending": 0,
+  "pending": 1,
   "cities": {
    "ATL": 3,
    "AUS": 1,
    "BOS": 1,
-   "DAL": 2,
-   "DC": 1,
+   "DAL": 3,
+   "DC": 2,
    "DEN": 2,
    "EWR": 5,
    "HOU": 4,
@@ -107,10 +107,10 @@
    "NYC": 4,
    "OKC": 2,
    "PHL": 1,
-   "PHX": 4,
-   "SAN": 4,
+   "PHX": 5,
+   "SAN": 5,
    "SAT": 3,
-   "SEA": 3,
+   "SEA": 4,
    "SFO": 2,
    "TTN": 2
   },
@@ -122,7 +122,7 @@
   "id": "H15",
   "marine_days": 8,
   "need_marine": 20,
-  "control_days": 19,
+  "control_days": 20,
   "need_control": 10,
   "context_days": 3,
   "pending": 0,
@@ -132,13 +132,13 @@
  },
  "H17": {
   "id": "H17",
-  "units": 0,
+  "units": 2,
   "need_units": 60,
-  "days": 0,
+  "days": 1,
   "need_days": 20,
   "ready": false,
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-16T12:31:42.811999Z"
+ "generated": "2026-10-17T06:56:31.635257Z"
 }
