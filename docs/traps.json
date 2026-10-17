@@ -1,26 +1,22 @@
 {
- "at": "2026-10-17T19:37:46.603570Z",
+ "at": "2026-10-17T20:39:56.812071Z",
  "traps": [
   {
-   "city": "EWR",
-   "ceiling": 60,
-   "price": 65,
-   "p_model": 1.0,
-   "p_market": 0.65,
-   "edge_pts": 35.0,
-   "size_lcb": 0.0,
+   "city": "LAS",
+   "ceiling": 76,
+   "price": 81,
+   "p_model": 0.9394,
+   "p_market": 0.81,
+   "edge_pts": 12.9,
+   "size_lcb": 0.1486,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 35 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "GRAVEYARD",
-     "why": "65c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "81c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
