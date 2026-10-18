@@ -1,26 +1,18 @@
 {
- "at": "2026-10-17T22:50:23.644680Z",
+ "at": "2026-10-18T16:35:38.556105Z",
  "traps": [
   {
-   "city": "LAS",
-   "ceiling": 76,
-   "price": 5,
-   "p_model": 0.4181,
-   "p_market": 0.05,
-   "edge_pts": 36.8,
+   "city": "SFO",
+   "ceiling": 64,
+   "price": 97,
+   "p_model": 0.9889,
+   "p_market": 0.97,
+   "edge_pts": 1.9,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 37 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 0.8F short. The climb window has closed."
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     }
    ]
   }
