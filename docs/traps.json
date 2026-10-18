@@ -1,9 +1,9 @@
 {
- "at": "2026-10-18T18:39:37.431115Z",
+ "at": "2026-10-18T19:42:29.199954Z",
  "traps": [
   {
-   "city": "SAN",
-   "ceiling": 82,
+   "city": "SFO",
+   "ceiling": 64,
    "price": 98,
    "p_model": 1.0,
    "p_market": 0.98,
@@ -11,42 +11,8 @@
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    }
-   ]
-  },
-  {
-   "city": "SFO",
-   "ceiling": 64,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    }
-   ]
-  },
-  {
-   "city": "HOU",
-   "ceiling": 71,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
