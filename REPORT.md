@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-10-17
+# low-no scorecard -- 2026-10-18
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -8,5 +8,6 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
+- **EWR** DEAD_SCAVENGE @ 0.65 ceil 60 guide 58 -> CLI 61 :: **WIN**
 
-no qualified flags today -- a complete and acceptable outcome
+**1/1 hit** (100%) vs 98.2% breakeven at 0.98

@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-17T11:40:26.867762Z",
+ "generated": "2026-10-18T07:18:05.850231Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 71,
+  "logged_days": 72,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-16",
-  "rung_observations": 105338,
-  "independent_units": 1748,
+  "last_day": "2026-10-17",
+  "rung_observations": 106298,
+  "independent_units": 1761,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -91,13 +91,14 @@
    "2026-10-13": 11,
    "2026-10-14": 11,
    "2026-10-15": 7,
-   "2026-10-16": 9
+   "2026-10-16": 9,
+   "2026-10-17": 7
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1512,
-  "settlements_verified": 1332,
+  "settlements_cached": 1532,
+  "settlements_verified": 1352,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -122,29 +123,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 249,
+    "have": 253,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 32,
+     "have": 33,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "32/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "33/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 2997,
+    "have": 3090,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 225,
+     "have": 228,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -156,7 +157,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 111,
+    "have": 120,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -168,12 +169,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 64,
+    "have": 69,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 8,
+     "have": 9,
      "need": 20,
      "unit": "distinct days"
     }
@@ -190,7 +191,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 20,
+     "have": 21,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -202,12 +203,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 2,
+    "have": 4,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 1,
+     "have": 2,
      "need": 20,
      "unit": "distinct days"
     }
@@ -283,7 +284,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 111,
+    "have": 120,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -295,12 +296,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 64,
+    "have": 69,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 8,
+     "have": 9,
      "need": 20,
      "unit": "distinct days"
     }
@@ -317,7 +318,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 20,
+     "have": 21,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -329,12 +330,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 2,
+    "have": 4,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 1,
+     "have": 2,
      "need": 20,
      "unit": "distinct days"
     }
