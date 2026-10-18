@@ -1,5 +1,78 @@
 {
- "at": "2026-10-18T17:39:32.499050Z",
- "tracked": [],
+ "at": "2026-10-18T18:39:38.769639Z",
+ "tracked": [
+  {
+   "city": "SAN",
+   "station": "KSAN",
+   "ticker": "KXHIGHTSAN-26OCT18-T83",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 82,
+   "run_max": 82.4,
+   "gap_to_clear": -0.4,
+   "already_cleared": true,
+   "guide": 85,
+   "pop": 2,
+   "no_ask": 0.98,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-10-18T18:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T18:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T18:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T18:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T18:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T17:55:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T17:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T17:50:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T17:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-18T17:40:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -0.2,
+    "q50": 1.8,
+    "q90": 5.0
+   },
+   "projected_max": {
+    "q10": 82.2,
+    "q50": 84.2,
+    "q90": 87.4
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 12,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
