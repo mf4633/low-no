@@ -1,21 +1,5 @@
 {
- "at": "2026-10-18T23:01:29.434455Z",
- "traps": [
-  {
-   "city": "SFO",
-   "ceiling": 64,
-   "price": 94,
-   "p_model": 1.0,
-   "p_market": 0.94,
-   "edge_pts": 6.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    }
-   ]
-  }
- ],
+ "at": "2026-10-19T00:57:50.379397Z",
+ "traps": [],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
