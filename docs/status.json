@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-18T12:08:19.393643Z",
+ "generated": "2026-10-19T07:44:22.418774Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 72,
+  "logged_days": 73,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-17",
-  "rung_observations": 106442,
-  "independent_units": 1761,
+  "last_day": "2026-10-18",
+  "rung_observations": 107882,
+  "independent_units": 1764,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -92,13 +92,15 @@
    "2026-10-14": 11,
    "2026-10-15": 7,
    "2026-10-16": 9,
-   "2026-10-17": 7
+   "2026-10-17": 7,
+   "2026-10-18": 13,
+   "2026-10-19": 3
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1535,
-  "settlements_verified": 1355,
+  "settlements_cached": 1555,
+  "settlements_verified": 1375,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -140,7 +142,7 @@
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 3105,
+    "have": 3225,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
@@ -169,12 +171,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 70,
+    "have": 74,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 9,
+     "have": 10,
      "need": 20,
      "unit": "distinct days"
     }
@@ -191,7 +193,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 21,
+     "have": 22,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -203,12 +205,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 4,
+    "have": 6,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 2,
+     "have": 3,
      "need": 20,
      "unit": "distinct days"
     }
@@ -296,12 +298,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 70,
+    "have": 74,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 9,
+     "have": 10,
      "need": 20,
      "unit": "distinct days"
     }
@@ -318,7 +320,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 21,
+     "have": 22,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -330,12 +332,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 4,
+    "have": 6,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 2,
+     "have": 3,
      "need": 20,
      "unit": "distinct days"
     }
