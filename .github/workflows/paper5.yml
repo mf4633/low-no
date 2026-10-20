@@ -1,0 +1,48 @@
+name: low-no paper5 (daily top-5 PAPER trader)
+on:
+  schedule:
+    # entry: 16:10Z (12:10 ET / 9:10 PT), backup 16:40Z. paper5 enter is a
+    # no-op once the day is entered, so the backup only fires if GitHub drops
+    # the first run.
+    - cron: "10 16 * * *"
+    - cron: "40 16 * * *"
+    # exit marks (sell-at-bid alternatives to holding)
+    - cron: "5 18 * * *"
+    - cron: "5 20 * * *"
+    - cron: "5 22 * * *"
+    # settle + report after the nightly scorecard writes settlements
+    - cron: "15 5 * * *"
+    - cron: "25 8 * * *"
+  workflow_dispatch:
+    inputs:
+      step: { description: "enter | mark | settle", required: true, default: "settle" }
+permissions: { contents: write }
+concurrency:
+  group: paper5
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: step
+        run: |
+          . .github/push_retry.sh
+          git fetch --quiet origin main && git reset --quiet --hard origin/main
+          git config user.name lowno-bot && git config user.email bot@lowno
+          STEP="${{ github.event.inputs.step }}"
+          if [ -z "$STEP" ]; then
+            H=$(date -u +%H)
+            case "$H" in
+              16) STEP=enter ;;
+              18|20|22) STEP=mark ;;
+              *) STEP=settle ;;
+            esac
+          fi
+          echo "step: $STEP"
+          python paper5.py "$STEP"
+          python paper5.py report
+          push_retry "paper5 $STEP $(date -u +%FT%H:%MZ)"
