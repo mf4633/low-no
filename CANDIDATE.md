@@ -2336,3 +2336,48 @@ The hourly scan has missed the 19Z cycle on some days (10/12). That is why
 unit. At ~1 LAX day per calendar day and 77 days to the stop, 20 days is
 reachable. 60 trades needs ~0.8 qualifying trades/day, which the retro gate's
 count will show.
+
+# HYPOTHESIS 18 -- A GROWING WARM OVERSHOOT POINTS AT AN UNDERPRICED BUCKET
+# (registered 2026-10-20, FORWARD-ONLY: days >= 2026-10-21. n = 0 at registration.
+#  This text does not change. Harness `h18_growing.py`, synthetic proof
+#  `test_h18_growing.py` (17 checks). Committed before any forward day exists.)
+
+## Where it comes from
+
+Hand picks 10/5-10/20 went 4/23 (log: lowno_tracking/hand_picks_log.jsonl,
+outside the repo). Cold-side picks went 1/10, YES at <=5c 0/8. The one setup
+with a positive record was OKC 10/20: the overshoot vs the minute-interpolated
+curve GREW across consecutive scans and the full-carry bucket (76-77 at 22c)
+settled. The rule below was backtested ONCE, before this text, on 9/1-10/19:
+warm_growing n=125 / 38 days, hit 49.6% at 43.6c, **+4.3c/unit [-3.7, +12.7]**
+(bootstrap over days), clean subset 10/9-10/19 **-5.3c** (n=33). Not
+significant. The harness reproduces that population exactly (125 units,
++4.32c). In-sample numbers are context; they can never pass H18.
+
+## Mechanism
+
+Settle minus projection in the same backtest: warm growing -0.64F, COLD
+growing **+2.61F** (n=234). Cold mornings revert; warm overshoots mostly hold.
+The claim is that the market under-prices the bucket a growing WARM overshoot
+points at. Cold is excluded: its reversion is real but already priced
+(cold_growing YES -4.2c).
+
+## Not H16
+
+H16 = one look at the first 10-12 local cycle, |dev| >= 2, both signs. H18 =
+growth between two cycles 45-120 min apart, warm only, 9-13 local. The
+populations overlap; a pass in both is NOT two independent confirmations.
+
+## The rule and the test (fixed now)
+
+Exactly as in the `h18_growing.py` docstring. In short: first cycle in [09:00,
+13:00) local with PoP <= 20, dev2 >= +1.5F and dev2 - dev1 >= +1.0F vs the latest
+cycle 45-120 min earlier; buy YES on the rung containing round(curve_max +
+dev2) at the logged ask (2-95c); Kalshi fee on every fill; one unit per
+city-day, first trigger only. Bar >= 60 units AND >= 20 days. PASS iff the
+day-clustered 95% LCB of mean P&L > 0, read ONCE to docs/frozen/h18_verdict.json.
+
+## Dependency, stated at registration
+
+Needs morning scans (10/15-10/17 had none). At ~2.5 units per scanned day the
+bar lands ~mid/late Nov if morning scans run daily. Expected to fail.

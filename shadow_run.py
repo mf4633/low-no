@@ -480,7 +480,8 @@ def main():
                          ("h6_eval", "H6"),
                          ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
                          ("settle_conv_eval", "H9"), ("h16_offcurve", "H16"),
-                         ("h15_lax", "H15"), ("h17_lax_anchor", "H17")):
+                         ("h15_lax", "H15"), ("h17_lax_anchor", "H17"),
+                         ("h18_growing", "H18")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -690,6 +691,16 @@ def _hypothesis_progress(obs):
     except Exception:
         h17_ready = False
 
+    # H18: forward-only from 2026-10-21; units + days, never P&L below the bar.
+    h18_u, h18_d, h18_ready = 0, 0, False
+    try:
+        import h18_growing as _h18
+        _v18 = _h18.verdict(verdict_file=None)
+        h18_u, h18_d = _v18.get("units", 0), _v18.get("days", 0)
+        h18_ready = bool(_v18.get("ready"))
+    except Exception:
+        h18_ready = False
+
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
@@ -741,6 +752,14 @@ def _hypothesis_progress(obs):
                  note="registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; "
                       "forward-only from 10-15, retro gate on 8/10-9/11 in "
                       "docs/frozen/h17_retro.json. " + h17_note),
+            dict(id="H18", name="growing warm overshoot bucket underpriced",
+                 have=h18_u, need=60, unit="graded city-day units",
+                 also=dict(have=h18_d, need=20, unit="distinct days"),
+                 ready=h18_ready,
+                 note="registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; "
+                      "forward-only from 10-21; warm only, dev2>=1.5 and grew "
+                      ">=1.0 over 45-120 min, 9-13 local; verdict read ONCE to "
+                      "docs/frozen/h18_verdict.json. Needs morning scans"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",
