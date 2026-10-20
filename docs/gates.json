@@ -3,17 +3,17 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 4845,
-  "brier_base": 0.118,
-  "brier_shape": 0.1196,
-  "improvement_pct": -1.42
+  "n": 4983,
+  "brier_base": 0.1173,
+  "brier_shape": 0.1191,
+  "improvement_pct": -1.5
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1311,
-  "days": 52,
+  "events": 1318,
+  "days": 53,
   "lag_corr": 0.001,
   "lag_ci": [
    -0.053,
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 3501,
+  "pooled_n": 3621,
   "hourly": {
-   "n": 234,
-   "brier_base": 0.1357,
-   "brier_shape": 0.1246,
+   "n": 237,
+   "brier_base": 0.1345,
+   "brier_shape": 0.1236,
    "improved": true
   },
   "control": {
-   "n": 3267,
+   "n": 3384,
    "brier_base": 0.1054,
-   "brier_shape": 0.1067,
+   "brier_shape": 0.1068,
    "improved": false
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1414,
-   "stalled_off": 868,
-   "climbing_on": 1578,
+   "stalled_on": 1432,
+   "stalled_off": 876,
+   "climbing_on": 1611,
    "climbing_off": 120
   },
   "need_per_group": 150,
@@ -68,35 +68,35 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 585,
-   "mean": 0.00268,
+   "n": 594,
+   "mean": 0.00257,
    "ci": [
-    -0.00118,
-    0.00654
+    -0.00124,
+    0.00638
    ]
   },
   "tail": {
-   "n": 1085,
-   "mean": -0.00219,
+   "n": 1103,
+   "mean": -0.00197,
    "ci": [
-    -0.00417,
-    -0.0002
+    -0.00393,
+    -2e-05
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 74,
+  "units": 79,
   "need_units": 60,
-  "days": 10,
+  "days": 11,
   "need_days": 20,
-  "pending": 4,
+  "pending": 2,
   "cities": {
    "ATL": 3,
    "AUS": 1,
-   "BOS": 1,
+   "BOS": 2,
    "DAL": 3,
-   "DC": 2,
+   "DC": 3,
    "DEN": 3,
    "EWR": 5,
    "HOU": 5,
@@ -106,10 +106,10 @@
    "MSP": 4,
    "NYC": 4,
    "OKC": 3,
-   "PHL": 1,
-   "PHX": 6,
+   "PHL": 2,
+   "PHX": 7,
    "SAN": 6,
-   "SAT": 4,
+   "SAT": 5,
    "SEA": 4,
    "SFO": 4,
    "TTN": 2
@@ -122,7 +122,7 @@
   "id": "H15",
   "marine_days": 8,
   "need_marine": 20,
-  "control_days": 22,
+  "control_days": 23,
   "need_control": 10,
   "context_days": 3,
   "pending": 0,
@@ -140,5 +140,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-19T14:48:07.359112Z"
+ "generated": "2026-10-20T07:30:30.604735Z"
 }
