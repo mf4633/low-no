@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-20T12:48:33.280884Z",
+ "generated": "2026-10-21T07:33:20.521146Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 74,
+  "logged_days": 75,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-19",
-  "rung_observations": 110030,
-  "independent_units": 1772,
+  "last_day": "2026-10-20",
+  "rung_observations": 111470,
+  "independent_units": 1775,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -94,13 +94,14 @@
    "2026-10-16": 9,
    "2026-10-17": 7,
    "2026-10-18": 13,
-   "2026-10-19": 14
+   "2026-10-19": 14,
+   "2026-10-20": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1581,
-  "settlements_verified": 1401,
+  "settlements_cached": 1601,
+  "settlements_verified": 1421,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -125,24 +126,24 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 253,
+    "have": 255,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 33,
+     "have": 34,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "33/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "34/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 3396,
+    "have": 3738,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
@@ -159,7 +160,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 120,
+    "have": 121,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -171,12 +172,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 81,
+    "have": 85,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 11,
+     "have": 12,
      "need": 20,
      "unit": "distinct days"
     }
@@ -216,6 +217,23 @@
     }
    },
    "note": "registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met"
+  },
+  {
+   "id": "H18",
+   "name": "growing warm overshoot bucket underpriced",
+   "status": "open",
+   "bar": {
+    "have": 0,
+    "need": 60,
+    "unit": "graded city-day units",
+    "ready": false,
+    "also": {
+     "have": 0,
+     "need": 20,
+     "unit": "distinct days"
+    }
+   },
+   "note": "registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; forward-only from 10-21; warm only, dev2>=1.5 and grew >=1.0 over 45-120 min, 9-13 local; verdict read ONCE to docs/frozen/h18_verdict.json. Needs morning scans"
   },
   {
    "id": "H1",
@@ -286,7 +304,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 120,
+    "have": 121,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -298,12 +316,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 81,
+    "have": 85,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 11,
+     "have": 12,
      "need": 20,
      "unit": "distinct days"
     }
@@ -343,6 +361,23 @@
     }
    },
    "note": "registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met"
+  },
+  {
+   "id": "H18",
+   "name": "growing warm overshoot bucket underpriced",
+   "status": "open",
+   "bar": {
+    "have": 0,
+    "need": 60,
+    "unit": "graded city-day units",
+    "ready": false,
+    "also": {
+     "have": 0,
+     "need": 20,
+     "unit": "distinct days"
+    }
+   },
+   "note": "registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; forward-only from 10-21; warm only, dev2>=1.5 and grew >=1.0 over 45-120 min, 9-13 local; verdict read ONCE to docs/frozen/h18_verdict.json. Needs morning scans"
   }
  ]
 }

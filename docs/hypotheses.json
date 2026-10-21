@@ -1,24 +1,24 @@
 {
- "generated": "2026-10-20T12:48:33.268070Z",
+ "generated": "2026-10-21T07:33:20.508161Z",
  "hypotheses": [
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 253,
+   "have": 255,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 33,
+    "have": 34,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": true,
-   "note": "33/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "34/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 3396,
+   "have": 3738,
    "need": 50,
    "unit": "scored (control)",
    "also": {
@@ -32,7 +32,7 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 120,
+   "have": 121,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
@@ -41,11 +41,11 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 81,
+   "have": 85,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 11,
+    "have": 12,
     "need": 20,
     "unit": "distinct days"
    },
@@ -79,6 +79,20 @@
    },
    "ready": false,
    "note": "registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met"
+  },
+  {
+   "id": "H18",
+   "name": "growing warm overshoot bucket underpriced",
+   "have": 0,
+   "need": 60,
+   "unit": "graded city-day units",
+   "also": {
+    "have": 0,
+    "need": 20,
+    "unit": "distinct days"
+   },
+   "ready": false,
+   "note": "registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; forward-only from 10-21; warm only, dev2>=1.5 and grew >=1.0 over 45-120 min, 9-13 local; verdict read ONCE to docs/frozen/h18_verdict.json. Needs morning scans"
   },
   {
    "id": "H1",
