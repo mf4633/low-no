@@ -35,14 +35,27 @@ jobs:
           git config user.name lowno-bot && git config user.email bot@lowno
           STEP="${{ github.event.inputs.step }}"
           if [ -z "$STEP" ]; then
-            H=$(date -u +%H)
-            case "$H" in
-              16) STEP=enter ;;
-              18|20|22) STEP=mark ;;
+            # Pick the step from the cron entry that fired, NOT the clock:
+            # GitHub starts scheduled runs hours late on busy days (10/21: the
+            # 08:25Z cron started 13:59Z), and an hour-of-day switch then turns
+            # a late entry into "settle" and the day is silently lost.
+            case "${{ github.event.schedule }}" in
+              "10 16 * * *"|"40 16 * * *") STEP=enter ;;
+              "5 18 * * *"|"5 20 * * *"|"5 22 * * *") STEP=mark ;;
               *) STEP=settle ;;
             esac
+            if [ "$STEP" = enter ]; then
+              # The rule enters at 16:10Z, before every city's peak. A run that
+              # starts more than 60 min late would be a different instrument.
+              LATE=$(( ( $(date -u +%s) - $(date -u -d "$(date -u +%F) 16:10" +%s) ) / 60 ))
+              if [ "$LATE" -gt 60 ]; then
+                echo "::warning::entry started $LATE min after 16:10Z -- day skipped, not entered late"
+                STEP=skip
+              fi
+            fi
           fi
           echo "step: $STEP"
+          if [ "$STEP" = skip ]; then exit 0; fi
           python paper5.py "$STEP"
           python paper5.py report
           push_retry "paper5 $STEP $(date -u +%FT%H:%MZ)"
