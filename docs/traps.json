@@ -1,5 +1,67 @@
 {
- "at": "2026-10-21T23:12:23.673301Z",
- "traps": [],
+ "at": "2026-10-22T13:21:13.138583Z",
+ "traps": [
+  {
+   "city": "DEN",
+   "ceiling": 72,
+   "price": 59,
+   "p_model": 0.8993,
+   "p_market": 0.59,
+   "edge_pts": 30.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 31 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "59c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SEA",
+   "ceiling": 55,
+   "price": 85,
+   "p_model": 0.9516,
+   "p_market": 0.85,
+   "edge_pts": 10.2,
+   "size_lcb": 0.2488,
+   "signals": [
+    {
+     "code": "GRAVEYARD",
+     "why": "85c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "SFO",
+   "ceiling": 62,
+   "price": 94,
+   "p_model": 0.9618,
+   "p_market": 0.94,
+   "edge_pts": 2.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
