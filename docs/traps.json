@@ -1,32 +1,13 @@
 {
- "at": "2026-10-22T16:35:11.068059Z",
+ "at": "2026-10-22T17:39:16.620181Z",
  "traps": [
-  {
-   "city": "DEN",
-   "ceiling": 72,
-   "price": 68,
-   "p_model": 0.7397,
-   "p_market": 0.68,
-   "edge_pts": 6.0,
-   "size_lcb": 0.0481,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "68c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
   {
    "city": "SFO",
    "ceiling": 62,
-   "price": 93,
-   "p_model": 0.9764,
-   "p_market": 0.93,
-   "edge_pts": 4.6,
+   "price": 88,
+   "p_model": 0.968,
+   "p_market": 0.88,
+   "edge_pts": 8.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -40,6 +21,10 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
