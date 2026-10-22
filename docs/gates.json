@@ -3,10 +3,10 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 5217,
-  "brier_base": 0.1187,
-  "brier_shape": 0.1208,
-  "improvement_pct": -1.83
+  "n": 5244,
+  "brier_base": 0.1185,
+  "brier_shape": 0.1207,
+  "improvement_pct": -1.85
  },
  "H4b": {
   "id": "H4b",
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 4167,
+  "pooled_n": 4185,
   "hourly": {
-   "n": 249,
-   "brier_base": 0.1348,
-   "brier_shape": 0.1246,
+   "n": 255,
+   "brier_base": 0.1325,
+   "brier_shape": 0.1227,
    "improved": true
   },
   "control": {
-   "n": 3918,
-   "brier_base": 0.113,
-   "brier_shape": 0.1135,
+   "n": 3930,
+   "brier_base": 0.1127,
+   "brier_shape": 0.1133,
    "improved": false
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1498,
-   "stalled_off": 896,
-   "climbing_on": 1683,
+   "stalled_on": 1503,
+   "stalled_off": 898,
+   "climbing_on": 1688,
    "climbing_off": 122
   },
   "need_per_group": 150,
@@ -68,19 +68,19 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 601,
-   "mean": 0.00262,
+   "n": 602,
+   "mean": 0.0026,
    "ci": [
-    -0.0011,
-    0.00634
+    -0.00112,
+    0.00631
    ]
   },
   "tail": {
-   "n": 1144,
-   "mean": -0.00188,
+   "n": 1147,
+   "mean": -0.00189,
    "ci": [
-    -0.00377,
-    2e-05
+    -0.00378,
+    -0.0
    ]
   }
  },
@@ -152,5 +152,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-22T07:34:32.349276Z"
+ "generated": "2026-10-22T09:40:48.946038Z"
 }
