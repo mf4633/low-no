@@ -1,5 +1,29 @@
 {
- "at": "2026-10-22T21:59:53.159740Z",
- "traps": [],
+ "at": "2026-10-22T23:04:17.213272Z",
+ "traps": [
+  {
+   "city": "SFO",
+   "ceiling": 62,
+   "price": 94,
+   "p_model": 1.0,
+   "p_market": 0.94,
+   "edge_pts": 6.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
