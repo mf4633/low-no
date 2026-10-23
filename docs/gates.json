@@ -3,21 +3,21 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 5244,
-  "brier_base": 0.1185,
-  "brier_shape": 0.1207,
-  "improvement_pct": -1.85
+  "n": 5403,
+  "brier_base": 0.1203,
+  "brier_shape": 0.122,
+  "improvement_pct": -1.46
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1338,
-  "days": 55,
-  "lag_corr": 0.0,
+  "events": 1345,
+  "days": 56,
+  "lag_corr": 0.002,
   "lag_ci": [
-   -0.054,
-   0.054
+   -0.052,
+   0.055
   ]
  },
  "H6": {
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 4185,
+  "pooled_n": 4296,
   "hourly": {
    "n": 255,
-   "brier_base": 0.1325,
-   "brier_shape": 0.1227,
+   "brier_base": 0.1311,
+   "brier_shape": 0.1217,
    "improved": true
   },
   "control": {
-   "n": 3930,
-   "brier_base": 0.1127,
-   "brier_shape": 0.1133,
+   "n": 4041,
+   "brier_base": 0.1152,
+   "brier_shape": 0.1161,
    "improved": false
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1503,
-   "stalled_off": 898,
-   "climbing_on": 1688,
+   "stalled_on": 1522,
+   "stalled_off": 901,
+   "climbing_on": 1709,
    "climbing_off": 122
   },
   "need_per_group": 150,
@@ -68,27 +68,27 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 602,
-   "mean": 0.0026,
+   "n": 605,
+   "mean": 0.00269,
    "ci": [
-    -0.00112,
-    0.00631
+    -0.00096,
+    0.00634
    ]
   },
   "tail": {
-   "n": 1147,
-   "mean": -0.00189,
+   "n": 1159,
+   "mean": -0.00172,
    "ci": [
-    -0.00378,
-    -0.0
+    -0.00358,
+    0.00014
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 95,
+  "units": 97,
   "need_units": 60,
-  "days": 13,
+  "days": 14,
   "need_days": 20,
   "pending": 0,
   "cities": {
@@ -102,7 +102,7 @@
    "EWR": 6,
    "HOU": 6,
    "LAS": 6,
-   "LAX": 5,
+   "LAX": 6,
    "MIA": 3,
    "MSP": 4,
    "NYC": 5,
@@ -111,7 +111,7 @@
    "PHX": 9,
    "SAN": 6,
    "SAT": 5,
-   "SEA": 5,
+   "SEA": 6,
    "SFO": 5,
    "TTN": 3
   },
@@ -133,9 +133,9 @@
  },
  "H17": {
   "id": "H17",
-  "units": 8,
+  "units": 10,
   "need_units": 60,
-  "days": 4,
+  "days": 5,
   "need_days": 20,
   "ready": false,
   "passed": false,
@@ -143,14 +143,14 @@
  },
  "H18": {
   "id": "H18",
-  "units": 1,
+  "units": 2,
   "need_units": 60,
-  "days": 1,
+  "days": 2,
   "need_days": 20,
   "pending": 0,
   "ready": false,
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-22T13:03:16.698587Z"
+ "generated": "2026-10-23T07:28:34.851510Z"
 }
