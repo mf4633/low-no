@@ -39253,9 +39253,245 @@
      "attribution": "WIN"
     }
    ]
+  },
+  {
+   "date": "2026-10-23",
+   "flags": [
+    {
+     "date": "2026-10-23",
+     "city": "CHI",
+     "station": "KMDW",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHCHI-26OCT23-T69",
+      "ceiling": 68,
+      "no_ask": 0.97,
+      "quote_src": "native",
+      "yes_bid": 3,
+      "run_max": 64.94,
+      "guide": 73,
+      "pop": 0,
+      "G": 5,
+      "net_cents": 2.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "CHI",
+       "status": "ok",
+       "upwind_bearing": 180,
+       "target_temp_f": 64.4,
+       "target_dew_f": 44.6,
+       "wind_mps": 7.416,
+       "upstream": [
+        {
+         "station": "KIKK",
+         "ts": "2026-10-23T15:15:00+00:00",
+         "temp_f": 61.7,
+         "dew_f": 46.6,
+         "wind_dir": 170,
+         "wind_mps": 5.4,
+         "km": 80.2,
+         "bearing": 186.1,
+         "name": "Greater Kankakee Airport"
+        },
+        {
+         "station": "KIGQ",
+         "ts": "2026-10-23T15:15:00+00:00",
+         "temp_f": 59.9,
+         "dew_f": 49.3,
+         "wind_dir": 0,
+         "wind_mps": 0,
+         "km": 33.0,
+         "bearing": 145.5,
+         "name": "Lansing Municipal Airport"
+        },
+        {
+         "station": "KJOT",
+         "ts": "2026-10-23T15:15:00+00:00",
+         "temp_f": 63.0,
+         "dew_f": 48.6,
+         "wind_dir": 160,
+         "wind_mps": 5.4,
+         "km": 46.3,
+         "bearing": 230.0,
+         "name": "Joliet Regional Airport"
+        }
+       ],
+       "max_upstream_temp_f": 63.0,
+       "advection_potential_f": -1.4,
+       "dew_differential_f": 4.7,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "CLR",
+       "base_ft": 12500,
+       "layers": [
+        {
+         "amount": "CLR",
+         "base_ft": 12500
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "obs_feed": {
+       "nws_latest": "2026-10-23T15:50:00+00:00",
+       "awc_latest": "2026-10-23T15:53:00Z",
+       "used": "2026-10-23T15:53:00Z",
+       "used_src": "awc"
+      },
+      "run_max_detail": {
+       "run_max": 64.94,
+       "source": "metar",
+       "n_metar": 10,
+       "n_obs": 77
+      },
+      "sst": null,
+      "forecasts": {
+       "nws_grid": 73.0,
+       "om_best": 70.6,
+       "om_ecmwf": 68.0,
+       "om_gfs": 70.6,
+       "om_icon": 70.7,
+       "om_metno": 68.2
+      },
+      "airmass": null,
+      "temp_now": 64.9,
+      "curve_pred_now": null,
+      "curve_dev": null,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 97,
+       "depth_at_best": 28,
+       "depth_le_max": 133,
+       "notional_le_max": 130.06,
+       "levels": [
+        [
+         97,
+         28
+        ],
+        [
+         98,
+         105
+        ]
+       ],
+       "yes_best_ask": 4,
+       "yes_ctr_le_10c": 923,
+       "yes_usd_le_10c": 67.23
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-10-23T15:53:00Z",
+         "tC": 18.3
+        },
+        {
+         "ts": "2026-10-23T15:50:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-23T15:45:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-23T15:40:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-10-23T15:35:00+00:00",
+         "tC": 17
+        },
+        {
+         "ts": "2026-10-23T15:00:00+00:00",
+         "tC": 16
+        },
+        {
+         "ts": "2026-10-23T14:55:00+00:00",
+         "tC": 16
+        },
+        {
+         "ts": "2026-10-23T14:53:00+00:00",
+         "tC": 15.6
+        },
+        {
+         "ts": "2026-10-23T14:45:00+00:00",
+         "tC": 16
+        },
+        {
+         "ts": "2026-10-23T14:40:00+00:00",
+         "tC": 15
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHCHI-26OCT23-T76",
+         "cap": null,
+         "floor": 77,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHCHI-26OCT23-T69",
+         "cap": 68,
+         "floor": null,
+         "no_ask": 97,
+         "yes_bid": 3
+        },
+        {
+         "ticker": "KXHIGHCHI-26OCT23-B75.5",
+         "cap": 76,
+         "floor": 75,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHCHI-26OCT23-B73.5",
+         "cap": 74,
+         "floor": 73,
+         "no_ask": 81,
+         "yes_bid": 19
+        },
+        {
+         "ticker": "KXHIGHCHI-26OCT23-B71.5",
+         "cap": 72,
+         "floor": 71,
+         "no_ask": 32,
+         "yes_bid": 68
+        },
+        {
+         "ticker": "KXHIGHCHI-26OCT23-B69.5",
+         "cap": 70,
+         "floor": 69,
+         "no_ask": 94,
+         "yes_bid": 6
+        }
+       ],
+       "wx": "Clear"
+      },
+      "model": {
+       "p_exceed_cap": 0.582,
+       "p_source": "blend(w_emp=0.96)",
+       "p_empirical": 0.5635,
+       "emp_n": 179,
+       "sigma": 2.02,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "reasoning": "advisor HTTP 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgKUprsVxQbxqTKVm3R8Y\"}"
+     },
+     "settle": 71,
+     "attribution": "WIN"
+    }
+   ]
   }
  ],
- "generated": "2026-10-23T12:38:08.541999Z",
+ "generated": "2026-10-24T07:12:39.887950Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
