@@ -481,7 +481,7 @@ def main():
                          ("shape_temp_eval", "H7"), ("shape_pair_eval", "H8"),
                          ("settle_conv_eval", "H9"), ("h16_offcurve", "H16"),
                          ("h15_lax", "H15"), ("h17_lax_anchor", "H17"),
-                         ("h18_growing", "H18")):
+                         ("h18_growing", "H18"), ("h19_late", "H19")):
             try:
                 m = __import__(mod)
                 gates[hid] = m.verdict()
@@ -701,6 +701,16 @@ def _hypothesis_progress(obs):
     except Exception:
         h18_ready = False
 
+    # H19: forward-only from 2026-10-25; units + days, never P&L below the bar.
+    h19_u, h19_d, h19_ready = 0, 0, False
+    try:
+        import h19_late as _h19
+        _v19 = _h19.verdict(verdict_file=None)
+        h19_u, h19_d = _v19.get("units", 0), _v19.get("days", 0)
+        h19_ready = bool(_v19.get("ready"))
+    except Exception:
+        h19_ready = False
+
     # PREREG_yes10_hotbias3 stays listed so its refutation is visible next to
     # the live ones rather than quietly dropped.
     return dict(
@@ -760,6 +770,15 @@ def _hypothesis_progress(obs):
                       "forward-only from 10-21; warm only, dev2>=1.5 and grew "
                       ">=1.0 over 45-120 min, 9-13 local; verdict read ONCE to "
                       "docs/frozen/h18_verdict.json. Needs morning scans"),
+            dict(id="H19", name="late day overpays for one more degree",
+                 have=h19_u, need=60, unit="graded rung units",
+                 also=dict(have=h19_d, need=20, unit="distinct days"),
+                 ready=h19_ready,
+                 note="registered 2026-10-24, CANDIDATE.md HYPOTHESIS 19; "
+                      "forward-only from 10-25; 16-19 local, YES on the leader "
+                      "at 71-90c + NO on the bucket 1-2F above at 11-30c, hold; "
+                      "graded after the day by h19-collect.yml; verdict read "
+                      "ONCE to docs/frozen/h19_verdict.json"),
             dict(id="H1", name="hot-bias (REFUTED 2026-08-27)",
                  have=0, need=0, unit="closed", note="do not revive"),
             dict(id="H2", name="early exit (REFUTED 2026-08-27)",

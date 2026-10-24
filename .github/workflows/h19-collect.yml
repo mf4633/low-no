@@ -1,0 +1,32 @@
+name: low-no H19 collect (late-day entries, graded after the day)
+on:
+  schedule:
+    # H19's last look is 19:00 PDT = 02:00Z. It reads public history (Kalshi
+    # 1-min candlesticks + IEM METAR), so any run after ~03Z the next day works
+    # and a late or dropped fire only delays a day, never loses it. Two fires;
+    # the second is a no-op when the first wrote the day.
+    - cron: "20 6 * * *"
+    - cron: "50 9 * * *"
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  group: h19-collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: collect
+        run: |
+          . .github/push_retry.sh
+          git fetch --quiet origin main && git reset --quiet --hard origin/main
+          git config user.name lowno-bot && git config user.email bot@lowno
+          python h19_late.py collect
+          python test_h19_late.py > /dev/null
+          if [ -n "$(git status --porcelain logs/h19)" ]; then
+            push_retry "h19 collect $(date -u +%FT%H:%MZ)"
+          fi

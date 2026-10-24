@@ -2381,3 +2381,57 @@ day-clustered 95% LCB of mean P&L > 0, read ONCE to docs/frozen/h18_verdict.json
 
 Needs morning scans (10/15-10/17 had none). At ~2.5 units per scanned day the
 bar lands ~mid/late Nov if morning scans run daily. Expected to fail.
+
+# HYPOTHESIS 19 -- LATE IN THE DAY THE MARKET OVERPAYS FOR ONE MORE DEGREE
+# (registered 2026-10-24, FORWARD-ONLY: days >= 2026-10-25. n = 0 at registration.
+#  This text does not change. Harness `h19_late.py`, synthetic proof
+#  `test_h19_late.py` (28 checks). Committed before any forward day exists.)
+
+## Where it comes from
+
+Michael asked (10/24) for entry and exit TIMES rather than winner picks. A
+timing study used Kalshi 1-minute bid/ask history for all 7,176 rungs
+9/1-10/22, IEM METARs and CLI settlements; buy at ask, sell at bid, fee on
+every fill. Exits: holding to settlement was the hindsight-best exit on 90% of
+bucket-days, and every early exit (30/60/120/240 min) lost more than holding,
+because it pays the spread and the fee twice. Entries: 3,311 state cells with
+>= 10 train days (9/1-10/5); 31 passed a train LCB > 0, FEWER than the ~83
+chance alone gives. Two survived the 10/6-10/22 test (one entry per
+bucket-day, hold), and they are the same mispricing from both sides:
+
+| leg | rule (16:00-19:00 local, hold) | train 9/1-10/5 | test 10/6-10/22 |
+|---|---|---|---|
+| A | bucket holds the METAR running max, mid 71-90c, buy YES | +3.0c [-1.3, +7.2] n=254 | +7.2c [+3.0, +11.5] n=111/17d |
+| B | bucket 1-2F above the running max, mid 11-30c, buy NO | +3.4c [-0.7, +7.5] n=228 | +8.1c [+3.9, +12.3] n=89/17d |
+
+(Harness numbers, Kalshi ceil fee per contract, day-clustered SE. The study's
+unrounded fee gave +3.5/+7.7 and +3.9/+8.6.) Selected from many cells, and the
+train intervals touch 0: a lead, not a finding. In-sample numbers can never
+pass H19. A third survivor, 91-98c favourites at 10-13 local, failed its test
+and is NOT part of this rule.
+
+## The rule and the test (fixed now)
+
+Exactly as in the `h19_late.py` docstring. In short: looks every 15 min,
+16:00-19:00 local; quote = latest 1-min candle <= 30 min old; running max =
+max METAR (routine + special) since local-standard midnight; leg A buys YES on
+a live bucket holding the running max at mid 71-90c; leg B buys NO on a bucket
+1-2F above it at mid 11-30c; first qualifying look per (rung, leg); hold to
+the CLI; Kalshi ceil fee per contract. Bar >= 60 units AND >= 20 days, A and B
+pooled. PASS iff the day-clustered 95% LCB of mean P&L > 0, read ONCE to
+docs/frozen/h19_verdict.json.
+
+## Collection
+
+Graded after the day from public history (Kalshi candlesticks + IEM METAR), so
+a late or dropped GitHub cron cannot lose a day: `h19-collect.yml` runs
+`python h19_late.py collect` nightly and writes logs/h19/<day>.json once per
+finished day. The harness reproduces the backtest population exactly (A 365 /
+B 317 units on 9/1-10/22). At ~13 units/day the 20-day bar binds: verdict
+about mid-November, inside the 12/31 stop.
+
+## Not the others
+
+H16/H18 trade the morning off-curve deviation; H17 is LAX only. H19 is late
+afternoon on every city and buys the leader / sells the next bucket up. No
+overlap in time window with H16 or H18.
