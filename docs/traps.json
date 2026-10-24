@@ -1,41 +1,22 @@
 {
- "at": "2026-10-24T21:47:22.836917Z",
+ "at": "2026-10-24T22:49:25.677593Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 56,
    "price": 1,
-   "p_model": 0.4455,
+   "p_model": 0.4642,
    "p_market": 0.01,
-   "edge_pts": 43.5,
+   "edge_pts": 45.4,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 44 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (13:00) with the running max still 0.1F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 53,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "local hour 18:00 is past this station's measured convergence hour (13:00) with the running max still 0.1F short. The climb window has closed."
     }
    ]
   }
