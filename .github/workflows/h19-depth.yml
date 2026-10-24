@@ -1,0 +1,30 @@
+name: low-no H19 depth (fill-reality context, never a verdict input)
+on:
+  schedule:
+    # H19 looks 16:00-19:00 local = 20:00Z (ET, EDT) .. 02:00Z (PT, PDT).
+    # Order books are ephemeral, so this must run live; a dropped fire only
+    # loses one sample of context, never an H19 unit.
+    - cron: "0,30 20-23 * * *"
+    - cron: "0,30 0-2 * * *"
+  workflow_dispatch: {}
+permissions: { contents: write }
+concurrency:
+  group: h19-depth
+  cancel-in-progress: false
+jobs:
+  depth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: log
+        run: |
+          . .github/push_retry.sh
+          git fetch --quiet origin main && git reset --quiet --hard origin/main
+          git config user.name lowno-bot && git config user.email bot@lowno
+          python h19_depth.py
+          if [ -n "$(git status --porcelain logs/h19_depth)" ]; then
+            push_retry "h19 depth $(date -u +%FT%H:%MZ)"
+          fi
