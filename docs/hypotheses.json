@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-24T12:04:49.899958Z",
+ "generated": "2026-10-25T07:44:58.549488Z",
  "hypotheses": [
   {
    "id": "H6",
@@ -18,7 +18,7 @@
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 4248,
+   "have": 4404,
    "need": 50,
    "unit": "scored (control)",
    "also": {
@@ -32,7 +32,7 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 123,
+   "have": 125,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
@@ -41,11 +41,11 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 104,
+   "have": 111,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 15,
+    "have": 16,
     "need": 20,
     "unit": "distinct days"
    },
@@ -59,7 +59,7 @@
    "need": 20,
    "unit": "distinct LAX marine-stratum days with a book",
    "also": {
-    "have": 25,
+    "have": 26,
     "need": 10,
     "unit": "NO_STRATUS control days with a book"
    },
@@ -69,11 +69,11 @@
   {
    "id": "H17",
    "name": "LAX temp-anchored marine regime beats the price",
-   "have": 11,
+   "have": 12,
    "need": 60,
    "unit": "graded trades (model P - ask >= .15)",
    "also": {
-    "have": 6,
+    "have": 7,
     "need": 20,
     "unit": "distinct days"
    },
@@ -83,16 +83,30 @@
   {
    "id": "H18",
    "name": "growing warm overshoot bucket underpriced",
-   "have": 4,
+   "have": 7,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 3,
+    "have": 4,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": false,
    "note": "registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; forward-only from 10-21; warm only, dev2>=1.5 and grew >=1.0 over 45-120 min, 9-13 local; verdict read ONCE to docs/frozen/h18_verdict.json. Needs morning scans"
+  },
+  {
+   "id": "H19",
+   "name": "late day overpays for one more degree",
+   "have": 0,
+   "need": 60,
+   "unit": "graded rung units",
+   "also": {
+    "have": 0,
+    "need": 20,
+    "unit": "distinct days"
+   },
+   "ready": false,
+   "note": "registered 2026-10-24, CANDIDATE.md HYPOTHESIS 19; forward-only from 10-25; 16-19 local, YES on the leader at 71-90c + NO on the bucket 1-2F above at 11-30c, hold; graded after the day by h19-collect.yml; verdict read ONCE to docs/frozen/h19_verdict.json"
   },
   {
    "id": "H1",

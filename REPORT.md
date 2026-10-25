@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-10-24
+# low-no scorecard -- 2026-10-25
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
@@ -8,5 +8,6 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
+- **BOS** QUALIFIED @ 0.64 ceil 56 guide 61 -> CLI None :: **UNGRADED**
 
 no qualified flags today -- a complete and acceptable outcome
