@@ -53,7 +53,7 @@ def fills(levels):
 
 def run():
     now = dt.datetime.now(dt.timezone.utc)
-    rows = []
+    rows, checked = [], []
     for city, c in sorted(CITIES.items()):
         tz = zoneinfo.ZoneInfo(c["tz"]); lt = now.astimezone(tz)
         if not (16 <= lt.hour < 19 or (lt.hour == 19 and lt.minute == 0)) and not os.environ.get("H19_DEPTH_ANYTIME"):
@@ -69,6 +69,7 @@ def run():
         if not obs or not rungs:
             continue
         rm = max(obs); r = round(rm)
+        checked.append(f"{city}@{lt.strftime('%H:%M')}:{len(rungs)}")
         for g in rungs:
             ya, yb, fl, cap = g.get("yes_ask"), g.get("yes_bid"), g.get("floor"), g.get("cap")
             if ya is None or yb is None or not (2 <= ya <= 98):
@@ -95,17 +96,29 @@ def run():
                              book_best=best, at_best=sum(s for p, s in lv if p == best) if best is not None else 0,
                              within_2c=sum(s for p, s in lv if best is not None and p <= best + 2),
                              fills=f, levels=lv[:10]))
-    if rows:
+    # heartbeat: proves the run looked, so an empty sample is not mistaken for a broken one
+    rows.append(dict(at=now.isoformat()[:16] + "Z", heartbeat=True, cities_checked=checked,
+                     hits=sum(1 for x in rows if "leg" in x)))
+    if checked or len(rows) > 1:
         os.makedirs(OUT, exist_ok=True)
         with open(os.path.join(OUT, now.date().isoformat() + ".jsonl"), "a") as fh:
             for x in rows:
                 fh.write(json.dumps(x) + "\n")
     print(f"h19_depth {now.isoformat()[:16]}Z: {len(rows)} rows")
     for x in rows[:20]:
+        if x.get("heartbeat"):
+            print("  checked", x["cities_checked"]); continue
         if "error" in x:
             print("  ERR", x); continue
         print(f"  {x['city']:4} {x['leg']} {x['side']:3} quoted {x['quoted']} best {x['book_best']} at_best {x['at_best']} "
               + " ".join(f"{k}:{(v or {}).get('excess_c')}" for k, v in x["fills"].items()))
+
+
+def window_end(now=None):
+    """Epoch of the next 02:05Z: today's if before 12Z, else tomorrow's."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    d = now.date() if now.hour < 12 else now.date() + dt.timedelta(days=1)
+    return int(dt.datetime.combine(d, dt.time(2, 5), dt.timezone.utc).timestamp())
 
 
 if __name__ == "__main__":

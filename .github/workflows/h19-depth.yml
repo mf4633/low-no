@@ -1,11 +1,13 @@
 name: low-no H19 depth (fill-reality context, never a verdict input)
 on:
   schedule:
-    # H19 looks 16:00-19:00 local = 20:00Z (ET, EDT) .. 02:00Z (PT, PDT).
-    # Order books are ephemeral, so this must run live; a dropped fire only
-    # loses one sample of context, never an H19 unit.
-    - cron: "0,30 20-23 * * *"
-    - cron: "0,30 0-2 * * *"
+    # H19 looks 16:00-19:00 local = 20:00Z (EDT) .. 02:00Z (PDT). GitHub fired
+    # only 2 of 14 half-hourly crons on 2026-10-24, so the job no longer relies
+    # on many fires: ONE start polls every 15 min itself until 02:05Z (or the
+    # 5h45m job budget). The 23:50Z start is a backup for a late or dropped
+    # first fire; concurrency queues it behind a running poller.
+    - cron: "50 19 * * *"
+    - cron: "50 23 * * *"
   workflow_dispatch: {}
 permissions: { contents: write }
 concurrency:
@@ -14,17 +16,25 @@ concurrency:
 jobs:
   depth:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: log
+      - name: poll
         run: |
           . .github/push_retry.sh
-          git fetch --quiet origin main && git reset --quiet --hard origin/main
           git config user.name lowno-bot && git config user.email bot@lowno
-          python h19_depth.py
-          if [ -n "$(git status --porcelain logs/h19_depth)" ]; then
-            push_retry "h19 depth $(date -u +%FT%H:%MZ)"
-          fi
+          START=$(date -u +%s)
+          END=$(python -c "import h19_depth as D; print(D.window_end())")
+          [ $((END - START)) -gt 20700 ] && END=$((START + 20700))
+          while [ "$(date -u +%s)" -lt "$END" ]; do
+            git fetch --quiet origin main && git reset --quiet --hard origin/main
+            python h19_depth.py
+            if [ -n "$(git status --porcelain logs/h19_depth)" ]; then
+              push_retry "h19 depth $(date -u +%FT%H:%MZ)"
+            fi
+            NOW=$(date -u +%s); NEXT=$(( (NOW / 900 + 1) * 900 ))
+            [ "$NEXT" -ge "$END" ] && break
+            sleep $((NEXT - NOW))
+          done
