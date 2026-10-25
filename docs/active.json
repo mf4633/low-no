@@ -1,5 +1,5 @@
 {
- "at": "2026-10-25T15:20:55.237843Z",
+ "at": "2026-10-25T16:22:01.622991Z",
  "tracked": [
   {
    "city": "BOS",
@@ -8,16 +8,32 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 59,
-   "run_max": 53.06,
-   "gap_to_clear": 5.9,
+   "run_max": 55.4,
+   "gap_to_clear": 3.6,
    "already_cleared": false,
    "guide": 66,
    "pop": 0,
-   "no_ask": 0.91,
-   "local_hour": 11,
+   "no_ask": 0.97,
+   "local_hour": 12,
    "obs_trace": [
     {
-     "ts": "2026-10-25T14:54:00Z",
+     "ts": "2026-10-25T15:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-25T15:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-25T15:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-25T15:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-25T14:54:00+00:00",
      "f": null
     },
     {
@@ -39,109 +55,21 @@
     {
      "ts": "2026-10-25T14:10:00+00:00",
      "f": null
-    },
-    {
-     "ts": "2026-10-25T13:55:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T13:54:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T13:50:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T13:45:00+00:00",
-     "f": null
     }
    ],
    "remaining_climb": {
-    "q10": -0.4,
-    "q50": 3.0,
-    "q90": 8.8
+    "q10": -0.6,
+    "q50": 1.4,
+    "q90": 6.2
    },
    "projected_max": {
-    "q10": 52.7,
-    "q50": 56.1,
-    "q90": 61.9
+    "q10": 54.8,
+    "q50": 56.8,
+    "q90": 61.6
    },
-   "p_exceed_empirical": 0.21,
-   "emp_n": 98,
+   "p_exceed_empirical": 0.1962,
+   "emp_n": 156,
    "convergence_hour": 13,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
-  },
-  {
-   "city": "MSP",
-   "station": "KMSP",
-   "ticker": "KXHIGHTMIN-26OCT25-T52",
-   "verdict": "DEAD_SCAVENGE",
-   "qualified": true,
-   "ceiling": 51,
-   "run_max": 51.8,
-   "gap_to_clear": -0.8,
-   "already_cleared": true,
-   "guide": 56,
-   "pop": 23,
-   "no_ask": 0.98,
-   "local_hour": 10,
-   "obs_trace": [
-    {
-     "ts": "2026-10-25T14:53:00Z",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:50:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:40:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:30:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:15:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:10:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T14:00:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T13:53:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-25T13:50:00+00:00",
-     "f": null
-    }
-   ],
-   "remaining_climb": {
-    "q10": 2.0,
-    "q50": 9.6,
-    "q90": 15.4
-   },
-   "projected_max": {
-    "q10": 53.8,
-    "q50": 61.4,
-    "q90": 67.2
-   },
-   "p_exceed_empirical": 1.0,
-   "emp_n": null,
-   "convergence_hour": 15,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
   }
