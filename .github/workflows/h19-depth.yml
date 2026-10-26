@@ -6,7 +6,12 @@ on:
     # on many fires: ONE start polls every 15 min itself until 02:05Z (or the
     # 5h45m job budget). The 23:50Z start is a backup for a late or dropped
     # first fire; concurrency queues it behind a running poller.
+    # 2026-10-25: the 19:50Z fire was 20+ min late; 19:20Z and 21:50Z added as
+    # extra starts. A start that finds a poller running queues and, once it
+    # runs, polls only until 02:05Z; a run that starts after 02:05Z exits at once.
+    - cron: "20 19 * * *"
     - cron: "50 19 * * *"
+    - cron: "50 21 * * *"
     - cron: "50 23 * * *"
   workflow_dispatch: {}
 permissions: { contents: write }
