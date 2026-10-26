@@ -1,5 +1,5 @@
 {
- "at": "2026-10-26T23:27:55.348499Z",
+ "at": "2026-10-26T23:35:19.611642Z",
  "traps": [
   {
    "city": "AUS",
@@ -10,6 +10,10 @@
    "edge_pts": 99.0,
    "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
     {
      "code": "DIVERGENCE",
      "why": "model and market differ by 99 pts. In this ledger the market won 7 of 8 such disputes."
