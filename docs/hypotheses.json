@@ -1,28 +1,28 @@
 {
- "generated": "2026-10-25T12:41:59.699947Z",
+ "generated": "2026-10-26T07:48:17.306169Z",
  "hypotheses": [
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 256,
+   "have": 267,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 35,
+    "have": 36,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": true,
-   "note": "35/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "36/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 4404,
+   "have": 4542,
    "need": 50,
    "unit": "scored (control)",
    "also": {
-    "have": 264,
+    "have": 279,
     "need": 50,
     "unit": "scored (hourly)"
    },
@@ -32,7 +32,7 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 125,
+   "have": 126,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
@@ -41,11 +41,11 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 111,
+   "have": 120,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 16,
+    "have": 17,
     "need": 20,
     "unit": "distinct days"
    },
@@ -59,7 +59,7 @@
    "need": 20,
    "unit": "distinct LAX marine-stratum days with a book",
    "also": {
-    "have": 26,
+    "have": 27,
     "need": 10,
     "unit": "NO_STRATUS control days with a book"
    },
@@ -69,11 +69,11 @@
   {
    "id": "H17",
    "name": "LAX temp-anchored marine regime beats the price",
-   "have": 12,
+   "have": 14,
    "need": 60,
    "unit": "graded trades (model P - ask >= .15)",
    "also": {
-    "have": 7,
+    "have": 8,
     "need": 20,
     "unit": "distinct days"
    },
@@ -83,11 +83,11 @@
   {
    "id": "H18",
    "name": "growing warm overshoot bucket underpriced",
-   "have": 7,
+   "have": 9,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 4,
+    "have": 5,
     "need": 20,
     "unit": "distinct days"
    },
