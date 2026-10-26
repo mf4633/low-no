@@ -1,33 +1,29 @@
 {
- "at": "2026-10-26T20:20:28.002700Z",
+ "at": "2026-10-26T21:22:40.399499Z",
  "traps": [
   {
    "city": "AUS",
    "ceiling": 80,
-   "price": 64,
+   "price": 14,
    "p_model": 1.0,
-   "p_market": 0.64,
-   "edge_pts": 36.0,
+   "p_market": 0.14,
+   "edge_pts": 86.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "64c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "model and market differ by 86 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "SAT",
    "ceiling": 79,
-   "price": 82,
-   "p_model": 0.8706,
-   "p_market": 0.82,
-   "edge_pts": 5.1,
-   "size_lcb": 0.0361,
+   "price": 64,
+   "p_model": 0.6981,
+   "p_market": 0.64,
+   "edge_pts": 5.8,
+   "size_lcb": 0.0284,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -35,7 +31,11 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "82c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "64c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (16:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   }
