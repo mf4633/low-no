@@ -1,13 +1,13 @@
 {
- "at": "2026-10-27T13:18:32.556913Z",
+ "at": "2026-10-27T14:19:55.220791Z",
  "traps": [
   {
    "city": "SAT",
    "ceiling": 78,
-   "price": 53,
-   "p_model": 0.9713,
-   "p_market": 0.53,
-   "edge_pts": 44.1,
+   "price": 52,
+   "p_model": 0.9747,
+   "p_market": 0.52,
+   "edge_pts": 45.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 44 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,40 +24,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "53c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "HOU",
-   "ceiling": 79,
-   "price": 48,
-   "p_model": 0.8891,
-   "p_market": 0.48,
-   "edge_pts": 40.9,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 41 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "48c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "52c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "MSP",
    "ceiling": 58,
-   "price": 26,
-   "p_model": 0.5913,
-   "p_market": 0.26,
-   "edge_pts": 33.1,
+   "price": 20,
+   "p_model": 0.5624,
+   "p_market": 0.2,
+   "edge_pts": 36.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -66,7 +43,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -74,7 +51,30 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "26c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "HOU",
+   "ceiling": 79,
+   "price": 47,
+   "p_model": 0.6795,
+   "p_market": 0.47,
+   "edge_pts": 20.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 21 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "47c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -82,9 +82,9 @@
    "city": "SEA",
    "ceiling": 53,
    "price": 94,
-   "p_model": 0.9698,
+   "p_model": 0.974,
    "p_market": 0.94,
-   "edge_pts": 3.0,
+   "edge_pts": 3.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -94,6 +94,21 @@
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "AUS",
+   "ceiling": 79,
+   "price": 95,
+   "p_model": 0.9607,
+   "p_market": 0.95,
+   "edge_pts": 1.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
