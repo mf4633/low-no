@@ -1,13 +1,13 @@
 {
- "at": "2026-10-27T18:24:45.463383Z",
+ "at": "2026-10-27T18:45:53.419626Z",
  "traps": [
   {
    "city": "MSP",
    "ceiling": 58,
-   "price": 6,
+   "price": 3,
    "p_model": 0.1286,
-   "p_market": 0.06,
-   "edge_pts": 6.9,
+   "p_market": 0.03,
+   "edge_pts": 9.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -21,36 +21,21 @@
    ]
   },
   {
-   "city": "AUS",
+   "city": "HOU",
    "ceiling": 79,
-   "price": 92,
-   "p_model": 0.9582,
-   "p_market": 0.92,
-   "edge_pts": 3.8,
-   "size_lcb": 0.0596,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    }
-   ]
-  },
-  {
-   "city": "DEN",
-   "ceiling": 64,
-   "price": 42,
-   "p_model": 0.4319,
-   "p_market": 0.42,
-   "edge_pts": 1.2,
+   "price": 6,
+   "p_model": 0.0632,
+   "p_market": 0.06,
+   "edge_pts": 0.3,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "GRAVEYARD",
-     "why": "42c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
