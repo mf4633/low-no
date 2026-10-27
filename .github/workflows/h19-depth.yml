@@ -9,6 +9,12 @@ on:
     # 2026-10-25: the 19:50Z fire was 20+ min late; 19:20Z and 21:50Z added as
     # extra starts. A start that finds a poller running queues and, once it
     # runs, polls only until 02:05Z; a run that starts after 02:05Z exits at once.
+    # 2026-10-26: every start fired 3h+ late (first run 23:08Z) and the 20-21Z
+    # ET/CT entries were missed. Early starts below sleep until 19:55Z, then
+    # poll; even a 3h-late 16:10Z fire lands before the window opens.
+    - cron: "10 16 * * *"
+    - cron: "10 17 * * *"
+    - cron: "40 18 * * *"
     - cron: "20 19 * * *"
     - cron: "50 19 * * *"
     - cron: "50 21 * * *"
@@ -33,6 +39,16 @@ jobs:
           START=$(date -u +%s)
           END=$(python -c "import h19_depth as D; print(D.window_end())")
           [ $((END - START)) -gt 20700 ] && END=$((START + 20700))
+          # Early start: wait for the window (19:55Z) instead of polling dead books.
+          OPEN=$(date -u -d "today 19:55" +%s)
+          HOUR=$(date -u +%-H)
+          if [ "$HOUR" -ge 12 ] && [ $((OPEN - START)) -gt 18000 ]; then
+            echo "too early to wait out within the job budget; exiting"; exit 0
+          fi
+          if [ "$HOUR" -ge 12 ] && [ "$START" -lt "$OPEN" ]; then
+            echo "early start: sleeping $((OPEN - START))s until 19:55Z"
+            sleep $((OPEN - START))
+          fi
           while [ "$(date -u +%s)" -lt "$END" ]; do
             git fetch --quiet origin main && git reset --quiet --hard origin/main
             python h19_depth.py
