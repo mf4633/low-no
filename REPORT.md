@@ -8,6 +8,5 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **BOS** QUALIFIED @ 0.64 ceil 56 guide 61 -> CLI 56 :: **BOUNDARY**
 
-**0/1 hit** (0%) vs 98.2% breakeven at 0.98
+no qualified flags today -- a complete and acceptable outcome
