@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-26T14:22:31.450045Z",
+ "generated": "2026-10-27T07:49:31.458718Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 80,
+  "logged_days": 81,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-25",
-  "rung_observations": 119894,
-  "independent_units": 1840,
+  "last_day": "2026-10-26",
+  "rung_observations": 121550,
+  "independent_units": 1862,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -101,13 +101,13 @@
    "2026-10-23": 11,
    "2026-10-24": 10,
    "2026-10-25": 10,
-   "2026-10-26": 1
+   "2026-10-26": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1718,
-  "settlements_verified": 1538,
+  "settlements_cached": 1741,
+  "settlements_verified": 1561,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -132,29 +132,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 267,
+    "have": 269,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 36,
+     "have": 37,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "36/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "37/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 4551,
+    "have": 4782,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 279,
+     "have": 309,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -178,12 +178,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 120,
+    "have": 127,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 17,
+     "have": 18,
      "need": 20,
      "unit": "distinct days"
     }
@@ -200,7 +200,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 27,
+     "have": 28,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -212,12 +212,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 14,
+    "have": 16,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 8,
+     "have": 9,
      "need": 20,
      "unit": "distinct days"
     }
@@ -229,12 +229,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 9,
+    "have": 11,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 5,
+     "have": 6,
      "need": 20,
      "unit": "distinct days"
     }
@@ -339,12 +339,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 120,
+    "have": 127,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 17,
+     "have": 18,
      "need": 20,
      "unit": "distinct days"
     }
@@ -361,7 +361,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 27,
+     "have": 28,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -373,12 +373,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 14,
+    "have": 16,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 8,
+     "have": 9,
      "need": 20,
      "unit": "distinct days"
     }
@@ -390,12 +390,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 9,
+    "have": 11,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 5,
+     "have": 6,
      "need": 20,
      "unit": "distinct days"
     }
