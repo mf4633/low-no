@@ -1,13 +1,13 @@
 {
- "at": "2026-10-28T20:59:39.153689Z",
+ "at": "2026-10-28T22:02:33.959442Z",
  "traps": [
   {
    "city": "AUS",
    "ceiling": 81,
-   "price": 6,
-   "p_model": 0.8247,
-   "p_market": 0.06,
-   "edge_pts": 76.5,
+   "price": 7,
+   "p_model": 0.4547,
+   "p_market": 0.07,
+   "edge_pts": 38.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,22 +16,26 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 76 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 38 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 17:00 is past this station's measured convergence hour (16:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "BOS",
    "ceiling": 53,
-   "price": 3,
-   "p_model": 0.1174,
-   "p_market": 0.03,
-   "edge_pts": 8.7,
-   "size_lcb": 0.0176,
+   "price": 2,
+   "p_model": 0.1565,
+   "p_market": 0.02,
+   "edge_pts": 13.7,
+   "size_lcb": 0.0424,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -39,7 +43,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 1.2F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (13:00) with the running max still 1.2F short. The climb window has closed."
     }
    ]
   }
