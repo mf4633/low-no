@@ -1,28 +1,28 @@
 {
- "generated": "2026-10-27T13:18:32.544512Z",
+ "generated": "2026-10-28T08:25:08.647440Z",
  "hypotheses": [
   {
    "id": "H6",
    "name": "market prices off the stale print",
-   "have": 269,
+   "have": 273,
    "need": 200,
    "unit": "print transitions",
    "also": {
-    "have": 37,
+    "have": 38,
     "need": 20,
     "unit": "distinct days"
    },
    "ready": true,
-   "note": "37/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "38/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 4782,
+   "have": 4920,
    "need": 50,
    "unit": "scored (control)",
    "also": {
-    "have": 309,
+    "have": 327,
     "need": 50,
     "unit": "scored (hourly)"
    },
@@ -32,7 +32,7 @@
   {
    "id": "H8",
    "name": "run_max/temp_now gap (H4a x H7)",
-   "have": 126,
+   "have": 129,
    "need": 150,
    "unit": "samples in 'climbing_off'",
    "ready": false,
@@ -41,11 +41,11 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 127,
+   "have": 135,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 18,
+    "have": 19,
     "need": 20,
     "unit": "distinct days"
    },
@@ -69,11 +69,11 @@
   {
    "id": "H17",
    "name": "LAX temp-anchored marine regime beats the price",
-   "have": 16,
+   "have": 18,
    "need": 60,
    "unit": "graded trades (model P - ask >= .15)",
    "also": {
-    "have": 9,
+    "have": 10,
     "need": 20,
     "unit": "distinct days"
    },
@@ -83,11 +83,11 @@
   {
    "id": "H18",
    "name": "growing warm overshoot bucket underpriced",
-   "have": 11,
+   "have": 16,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 6,
+    "have": 7,
     "need": 20,
     "unit": "distinct days"
    },
