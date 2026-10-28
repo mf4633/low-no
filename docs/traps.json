@@ -1,47 +1,13 @@
 {
- "at": "2026-10-28T19:56:38.154401Z",
+ "at": "2026-10-28T20:59:39.153689Z",
  "traps": [
-  {
-   "city": "BOS",
-   "ceiling": 53,
-   "price": 5,
-   "p_model": 0.1508,
-   "p_market": 0.05,
-   "edge_pts": 10.1,
-   "size_lcb": 0.025,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (13:00) with the running max still 1.2F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "DEN",
-   "ceiling": 64,
-   "price": 98,
-   "p_model": 1.0,
-   "p_market": 0.98,
-   "edge_pts": 2.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    }
-   ]
-  },
   {
    "city": "AUS",
    "ceiling": 81,
-   "price": 94,
-   "p_model": 0.9424,
-   "p_market": 0.94,
-   "edge_pts": 0.2,
+   "price": 6,
+   "p_model": 0.8247,
+   "p_market": 0.06,
+   "edge_pts": 76.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -49,8 +15,31 @@
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 76 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "BOS",
+   "ceiling": 53,
+   "price": 3,
+   "p_model": 0.1174,
+   "p_market": 0.03,
+   "edge_pts": 8.7,
+   "size_lcb": 0.0176,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (13:00) with the running max still 1.2F short. The climb window has closed."
     }
    ]
   }
