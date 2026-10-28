@@ -1,14 +1,14 @@
 {
- "at": "2026-10-28T18:53:53.729252Z",
+ "at": "2026-10-28T19:56:38.154401Z",
  "traps": [
   {
    "city": "BOS",
    "ceiling": 53,
-   "price": 7,
-   "p_model": 0.1679,
-   "p_market": 0.07,
-   "edge_pts": 9.8,
-   "size_lcb": 0.024,
+   "price": 5,
+   "p_model": 0.1508,
+   "p_market": 0.05,
+   "edge_pts": 10.1,
+   "size_lcb": 0.025,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -16,36 +16,32 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 14:00 is past this station's measured convergence hour (13:00) with the running max still 1.2F short. The climb window has closed."
+     "why": "local hour 15:00 is past this station's measured convergence hour (13:00) with the running max still 1.2F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "DEN",
    "ceiling": 64,
-   "price": 89,
-   "p_model": 0.9187,
-   "p_market": 0.89,
-   "edge_pts": 2.9,
+   "price": 98,
+   "p_model": 1.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "89c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   },
   {
-   "city": "SAT",
-   "ceiling": 80,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
+   "city": "AUS",
+   "ceiling": 81,
+   "price": 94,
+   "p_model": 0.9424,
+   "p_market": 0.94,
+   "edge_pts": 0.2,
    "size_lcb": 0.0,
    "signals": [
     {
