@@ -1,45 +1,56 @@
 {
- "at": "2026-10-27T22:58:38.991415Z",
+ "at": "2026-10-28T13:19:38.506112Z",
  "traps": [
   {
-   "city": "DEN",
-   "ceiling": 64,
-   "price": 1,
-   "p_model": 1.0,
-   "p_market": 0.01,
-   "edge_pts": 99.0,
+   "city": "DAL",
+   "ceiling": 81,
+   "price": 92,
+   "p_model": 0.9418,
+   "p_market": 0.92,
+   "edge_pts": 2.2,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 99 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   },
   {
    "city": "HOU",
-   "ceiling": 79,
-   "price": 1,
-   "p_model": 0.0154,
-   "p_market": 0.01,
-   "edge_pts": 0.5,
+   "ceiling": 80,
+   "price": 91,
+   "p_model": 0.9242,
+   "p_market": 0.91,
+   "edge_pts": 1.4,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "SAT",
+   "ceiling": 80,
+   "price": 97,
+   "p_model": 0.982,
+   "p_market": 0.97,
+   "edge_pts": 1.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (14:00) with the running max still 3.8F short. The climb window has closed."
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
