@@ -1,5 +1,78 @@
 {
- "at": "2026-10-28T14:22:34.988209Z",
- "tracked": [],
+ "at": "2026-10-28T15:25:33.291415Z",
+ "tracked": [
+  {
+   "city": "EWR",
+   "station": "KEWR",
+   "ticker": "KXHIGHTEWR-26OCT28-T61",
+   "verdict": "QUALIFIED",
+   "qualified": true,
+   "ceiling": 60,
+   "run_max": 53.6,
+   "gap_to_clear": 6.4,
+   "already_cleared": false,
+   "guide": 64,
+   "pop": 2,
+   "no_ask": 0.86,
+   "local_hour": 11,
+   "obs_trace": [
+    {
+     "ts": "2026-10-28T15:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:40:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T14:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-28T13:55:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 1.4,
+    "q50": 5.4,
+    "q90": 10.1
+   },
+   "projected_max": {
+    "q10": 55.0,
+    "q50": 59.0,
+    "q90": 63.7
+   },
+   "p_exceed_empirical": 0.43,
+   "emp_n": 98,
+   "convergence_hour": 14,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
