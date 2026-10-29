@@ -57,7 +57,7 @@ station guide bias (guide - CLI): {'LAX': -2.54, 'BOS': -1.51, 'NYC': 0.96, 'PHL
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 13 day(s): {'2026-10-04': 6, '2026-10-05': 1, '2026-10-06': 6, '2026-10-15': 7, '2026-10-17': 7} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 14 day(s): {'2026-10-05': 1, '2026-10-06': 6, '2026-10-15': 7, '2026-10-17': 7, '2026-10-29': 2} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: CLOSED -- REFUTED 2026-08-27, n=0 (no station clears +3F bias; CANDIDATE.md YES Pilot v1). Not accruing.
 
@@ -73,7 +73,7 @@ HYPOTHESIS PROGRESS (data bars, not results)
   H15   LAX marine-layer regime not in the price [########............] 8/20 distinct LAX marine-stratum days with a book  +registered 2026-09-12, full text docs/H15.md; harness h15_lax.py + test_h15_lax.py written 2026-10-14 BEFORE any H15 score was computed (rules in the H15.md addendum). Scored at 19Z (12 PDT) on the bottom-rung poll book in logs/poll_lax/; verdict read ONCE to docs/frozen/h15_verdict.json. At ~25% marine rate the bar lands ~early Dec, close to the 12-31 stop
   H17   LAX temp-anchored marine regime beats the price [######..............] 20/60 graded trades (model P - ask >= .15)  +registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met
   H18   growing warm overshoot bucket underpriced [#####...............] 16/60 graded city-day units  +registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; forward-only from 10-21; warm only, dev2>=1.5 and grew >=1.0 over 45-120 min, 9-13 local; verdict read ONCE to docs/frozen/h18_verdict.json. Needs morning scans
-  H19   late day overpays for one more degree [###.................] 38/60 graded rung units  +registered 2026-10-24, CANDIDATE.md HYPOTHESIS 19; forward-only from 10-25; 16-19 local, YES on the leader at 71-90c + NO on the bucket 1-2F above at 11-30c, hold; graded after the day by h19-collect.yml; verdict read ONCE to docs/frozen/h19_verdict.json
+  H19   late day overpays for one more degree [####................] 50/60 graded rung units  +registered 2026-10-24, CANDIDATE.md HYPOTHESIS 19; forward-only from 10-25; 16-19 local, YES on the leader at 71-90c + NO on the bucket 1-2F above at 11-30c, hold; graded after the day by h19-collect.yml; verdict read ONCE to docs/frozen/h19_verdict.json
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced
