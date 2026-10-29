@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-28T14:06:57.070216Z",
+ "generated": "2026-10-29T08:32:55.933506Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 82,
+  "logged_days": 83,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-27",
-  "rung_observations": 123278,
-  "independent_units": 1879,
+  "last_day": "2026-10-28",
+  "rung_observations": 124934,
+  "independent_units": 1903,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -103,13 +103,13 @@
    "2026-10-25": 10,
    "2026-10-26": 11,
    "2026-10-27": 10,
-   "2026-10-28": 1
+   "2026-10-28": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1765,
-  "settlements_verified": 1585,
+  "settlements_cached": 1788,
+  "settlements_verified": 1608,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -148,7 +148,7 @@
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 4938,
+    "have": 4983,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
@@ -177,12 +177,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 135,
+    "have": 145,
     "need": 60,
     "unit": "graded city-day units",
-    "ready": false,
+    "ready": true,
     "also": {
-     "have": 19,
+     "have": 20,
      "need": 20,
      "unit": "distinct days"
     }
@@ -211,12 +211,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 18,
+    "have": 20,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 10,
+     "have": 11,
      "need": 20,
      "unit": "distinct days"
     }
@@ -334,23 +334,6 @@
    "note": "fills to the thinnest of four groups; H8b (joint cell) is registered but not expected to report before the stop"
   },
   {
-   "id": "H16",
-   "name": "morning off-curve bucket underpriced",
-   "status": "open",
-   "bar": {
-    "have": 135,
-    "need": 60,
-    "unit": "graded city-day units",
-    "ready": false,
-    "also": {
-     "have": 19,
-     "need": 20,
-     "unit": "distinct days"
-    }
-   },
-   "note": "registered 2026-10-06, forward-only from 10-07; first 10-12 local cycle, |dev|>=2F interpolated, YES on the full-carry bucket at the real ask. Verdict read ONCE at the bar. Needs morning scans (DISPATCH_PAT)"
-  },
-  {
    "id": "H15",
    "name": "LAX marine-layer regime not in the price",
    "status": "open",
@@ -372,12 +355,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 18,
+    "have": 20,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 10,
+     "have": 11,
      "need": 20,
      "unit": "distinct days"
     }

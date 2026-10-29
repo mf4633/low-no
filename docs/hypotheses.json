@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-28T14:06:57.055566Z",
+ "generated": "2026-10-29T08:32:55.919197Z",
  "hypotheses": [
   {
    "id": "H6",
@@ -18,7 +18,7 @@
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
-   "have": 4938,
+   "have": 4983,
    "need": 50,
    "unit": "scored (control)",
    "also": {
@@ -41,15 +41,15 @@
   {
    "id": "H16",
    "name": "morning off-curve bucket underpriced",
-   "have": 135,
+   "have": 145,
    "need": 60,
    "unit": "graded city-day units",
    "also": {
-    "have": 19,
+    "have": 20,
     "need": 20,
     "unit": "distinct days"
    },
-   "ready": false,
+   "ready": true,
    "note": "registered 2026-10-06, forward-only from 10-07; first 10-12 local cycle, |dev|>=2F interpolated, YES on the full-carry bucket at the real ask. Verdict read ONCE at the bar. Needs morning scans (DISPATCH_PAT)"
   },
   {
@@ -69,11 +69,11 @@
   {
    "id": "H17",
    "name": "LAX temp-anchored marine regime beats the price",
-   "have": 18,
+   "have": 20,
    "need": 60,
    "unit": "graded trades (model P - ask >= .15)",
    "also": {
-    "have": 10,
+    "have": 11,
     "need": 20,
     "unit": "distinct days"
    },
