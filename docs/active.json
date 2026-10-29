@@ -1,5 +1,5 @@
 {
- "at": "2026-10-29T20:02:17.257286Z",
+ "at": "2026-10-29T21:03:45.615431Z",
  "tracked": [
   {
    "city": "NYC",
@@ -13,11 +13,15 @@
    "already_cleared": true,
    "guide": 69,
    "pop": 0,
-   "no_ask": 0.44,
-   "local_hour": 16,
+   "no_ask": 0.1,
+   "local_hour": 17,
    "obs_trace": [
     {
-     "ts": "2026-10-29T19:51:00Z",
+     "ts": "2026-10-29T20:51:00Z",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:51:00+00:00",
      "f": null
     },
     {
@@ -51,171 +55,23 @@
     {
      "ts": "2026-10-29T13:51:00+00:00",
      "f": null
-    },
-    {
-     "ts": "2026-10-29T12:51:00+00:00",
-     "f": null
     }
    ],
    "remaining_climb": {
     "q10": -0.1,
     "q50": 1.0,
-    "q90": 2.0
+    "q90": 1.9
    },
    "projected_max": {
     "q10": 65.9,
     "q50": 67.0,
-    "q90": 68.0
+    "q90": 67.9
    },
    "p_exceed_empirical": 1.0,
    "emp_n": null,
    "convergence_hour": 15,
    "past_convergence": true,
    "note": "day effectively decided"
-  },
-  {
-   "city": "PHX",
-   "station": "KPHX",
-   "ticker": "KXHIGHTPHX-26OCT29-T84",
-   "verdict": "QUALIFIED",
-   "qualified": true,
-   "ceiling": 83,
-   "run_max": 80.96,
-   "gap_to_clear": 2.0,
-   "already_cleared": false,
-   "guide": 87,
-   "pop": 1,
-   "no_ask": 0.95,
-   "local_hour": 13,
-   "obs_trace": [
-    {
-     "ts": "2026-10-29T19:51:00Z",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:35:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:30:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:51:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:30:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:25:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:20:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:00:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:51:00+00:00",
-     "f": null
-    }
-   ],
-   "remaining_climb": {
-    "q10": 0.6,
-    "q50": 3.4,
-    "q90": 5.0
-   },
-   "projected_max": {
-    "q10": 81.6,
-    "q50": 84.4,
-    "q90": 86.0
-   },
-   "p_exceed_empirical": 0.6541,
-   "emp_n": 157,
-   "convergence_hour": 15,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
-  },
-  {
-   "city": "SEA",
-   "station": "KSEA",
-   "ticker": "KXHIGHTSEA-26OCT29-T52",
-   "verdict": "DEAD_SCAVENGE",
-   "qualified": true,
-   "ceiling": 51,
-   "run_max": 51.8,
-   "gap_to_clear": -0.8,
-   "already_cleared": true,
-   "guide": 54,
-   "pop": 35,
-   "no_ask": 0.96,
-   "local_hour": 13,
-   "obs_trace": [
-    {
-     "ts": "2026-10-29T19:53:00Z",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:35:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:30:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:25:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T19:20:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:53:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:30:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:25:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T18:20:00+00:00",
-     "f": null
-    }
-   ],
-   "remaining_climb": {
-    "q10": 0.4,
-    "q50": 3.4,
-    "q90": 7.6
-   },
-   "projected_max": {
-    "q10": 52.2,
-    "q50": 55.2,
-    "q90": 59.4
-   },
-   "p_exceed_empirical": 1.0,
-   "emp_n": null,
-   "convergence_hour": 15,
-   "past_convergence": false,
-   "note": "still unresolved -- climb window open"
   }
  ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
