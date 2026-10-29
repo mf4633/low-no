@@ -1,6 +1,78 @@
 {
- "at": "2026-10-29T19:01:25.211457Z",
+ "at": "2026-10-29T20:02:17.257286Z",
  "tracked": [
+  {
+   "city": "NYC",
+   "station": "KNYC",
+   "ticker": "KXHIGHNY-26OCT29-T67",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 66,
+   "run_max": 66.02,
+   "gap_to_clear": -0.0,
+   "already_cleared": true,
+   "guide": 69,
+   "pop": 0,
+   "no_ask": 0.44,
+   "local_hour": 16,
+   "obs_trace": [
+    {
+     "ts": "2026-10-29T19:51:00Z",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T18:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T17:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T16:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T16:49:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T16:36:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T15:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T14:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T13:51:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T12:51:00+00:00",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": -0.1,
+    "q50": 1.0,
+    "q90": 2.0
+   },
+   "projected_max": {
+    "q10": 65.9,
+    "q50": 67.0,
+    "q90": 68.0
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": true,
+   "note": "day effectively decided"
+  },
   {
    "city": "PHX",
    "station": "KPHX",
@@ -8,16 +80,32 @@
    "verdict": "QUALIFIED",
    "qualified": true,
    "ceiling": 83,
-   "run_max": 80.06,
-   "gap_to_clear": 2.9,
+   "run_max": 80.96,
+   "gap_to_clear": 2.0,
    "already_cleared": false,
    "guide": 87,
    "pop": 1,
-   "no_ask": 0.9,
-   "local_hour": 12,
+   "no_ask": 0.95,
+   "local_hour": 13,
    "obs_trace": [
     {
-     "ts": "2026-10-29T18:51:00Z",
+     "ts": "2026-10-29T19:51:00Z",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T18:51:00+00:00",
      "f": null
     },
     {
@@ -39,61 +127,65 @@
     {
      "ts": "2026-10-29T17:51:00+00:00",
      "f": null
-    },
-    {
-     "ts": "2026-10-29T17:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:40:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:25:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:20:00+00:00",
-     "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 2.4,
-    "q50": 5.0,
-    "q90": 7.2
+    "q10": 0.6,
+    "q50": 3.4,
+    "q90": 5.0
    },
    "projected_max": {
-    "q10": 82.5,
-    "q50": 85.1,
-    "q90": 87.3
+    "q10": 81.6,
+    "q50": 84.4,
+    "q90": 86.0
    },
-   "p_exceed_empirical": 0.8516,
-   "emp_n": 153,
+   "p_exceed_empirical": 0.6541,
+   "emp_n": 157,
    "convergence_hour": 15,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
   },
   {
-   "city": "MSP",
-   "station": "KMSP",
-   "ticker": "KXHIGHTMIN-26OCT29-T56",
+   "city": "SEA",
+   "station": "KSEA",
+   "ticker": "KXHIGHTSEA-26OCT29-T52",
    "verdict": "DEAD_SCAVENGE",
    "qualified": true,
-   "ceiling": 55,
-   "run_max": 55.04,
-   "gap_to_clear": -0.0,
+   "ceiling": 51,
+   "run_max": 51.8,
+   "gap_to_clear": -0.8,
    "already_cleared": true,
-   "guide": 56,
-   "pop": 0,
-   "no_ask": 0.97,
-   "local_hour": 14,
+   "guide": 54,
+   "pop": 35,
+   "no_ask": 0.96,
+   "local_hour": 13,
    "obs_trace": [
     {
-     "ts": "2026-10-29T18:53:00Z",
+     "ts": "2026-10-29T19:53:00Z",
      "f": null
     },
     {
-     "ts": "2026-10-29T18:35:00+00:00",
+     "ts": "2026-10-29T19:45:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T19:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-10-29T18:53:00+00:00",
      "f": null
     },
     {
@@ -101,42 +193,22 @@
      "f": null
     },
     {
-     "ts": "2026-10-29T18:00:00+00:00",
+     "ts": "2026-10-29T18:25:00+00:00",
      "f": null
     },
     {
-     "ts": "2026-10-29T17:55:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:53:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:40:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:30:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-10-29T17:10:00+00:00",
+     "ts": "2026-10-29T18:20:00+00:00",
      "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 0.0,
-    "q50": 1.6,
-    "q90": 4.4
+    "q10": 0.4,
+    "q50": 3.4,
+    "q90": 7.6
    },
    "projected_max": {
-    "q10": 55.0,
-    "q50": 56.6,
+    "q10": 52.2,
+    "q50": 55.2,
     "q90": 59.4
    },
    "p_exceed_empirical": 1.0,
