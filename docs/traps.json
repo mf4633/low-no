@@ -1,13 +1,13 @@
 {
- "at": "2026-10-30T19:41:41.062004Z",
+ "at": "2026-10-30T20:43:49.004951Z",
  "traps": [
   {
    "city": "AUS",
    "ceiling": 72,
-   "price": 3,
-   "p_model": 0.8631,
-   "p_market": 0.03,
-   "edge_pts": 83.3,
+   "price": 1,
+   "p_model": 0.7277,
+   "p_market": 0.01,
+   "edge_pts": 71.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 83 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 72 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -27,10 +27,10 @@
   {
    "city": "SEA",
    "ceiling": 50,
-   "price": 14,
-   "p_model": 0.7465,
-   "p_market": 0.14,
-   "edge_pts": 60.7,
+   "price": 12,
+   "p_model": 0.4581,
+   "p_market": 0.12,
+   "edge_pts": 33.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 61 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 34 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -51,18 +51,14 @@
    "city": "SAT",
    "ceiling": 71,
    "price": 2,
-   "p_model": 0.5151,
+   "p_model": 0.1062,
    "p_market": 0.02,
-   "edge_pts": 49.5,
+   "edge_pts": 8.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=-1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 50 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -73,11 +69,11 @@
   {
    "city": "CHI",
    "ceiling": 59,
-   "price": 2,
-   "p_model": 0.1536,
-   "p_market": 0.02,
-   "edge_pts": 13.4,
-   "size_lcb": 0.0444,
+   "price": 1,
+   "p_model": 0.0553,
+   "p_market": 0.01,
+   "edge_pts": 4.5,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
@@ -85,7 +81,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 1.8F short. The climb window has closed."
+     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 1.8F short. The climb window has closed."
     }
    ]
   }
