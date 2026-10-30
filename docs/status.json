@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-10-29T14:31:31.639318Z",
+ "generated": "2026-10-30T08:38:58.865966Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 83,
+  "logged_days": 84,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-28",
-  "rung_observations": 124934,
-  "independent_units": 1903,
+  "last_day": "2026-10-29",
+  "rung_observations": 126590,
+  "independent_units": 1940,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -104,13 +104,13 @@
    "2026-10-26": 11,
    "2026-10-27": 10,
    "2026-10-28": 11,
-   "2026-10-29": 2
+   "2026-10-29": 11
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1788,
-  "settlements_verified": 1608,
+  "settlements_cached": 1811,
+  "settlements_verified": 1631,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -118,8 +118,10 @@
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
+   "11-20",
    "31-40",
    "41-50",
+   "71-80",
    "81-90",
    "91-95",
    "96-98"
@@ -132,29 +134,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 273,
+    "have": 279,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 38,
+     "have": 39,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "38/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "39/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 4983,
+    "have": 5154,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 327,
+     "have": 342,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -178,12 +180,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 145,
+    "have": 154,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 20,
+     "have": 21,
      "need": 20,
      "unit": "distinct days"
     }
@@ -200,7 +202,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 28,
+     "have": 29,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -212,12 +214,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 20,
+    "have": 23,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 11,
+     "have": 12,
      "need": 20,
      "unit": "distinct days"
     }
@@ -229,12 +231,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 16,
+    "have": 21,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 7,
+     "have": 8,
      "need": 20,
      "unit": "distinct days"
     }
@@ -344,7 +346,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 28,
+     "have": 29,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -356,12 +358,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 20,
+    "have": 23,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 11,
+     "have": 12,
      "need": 20,
      "unit": "distinct days"
     }
@@ -373,12 +375,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 16,
+    "have": 21,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 7,
+     "have": 8,
      "need": 20,
      "unit": "distinct days"
     }

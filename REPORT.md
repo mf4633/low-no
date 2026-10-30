@@ -1,4 +1,4 @@
-# low-no scorecard -- 2026-10-29
+# low-no scorecard -- 2026-10-30
 
 attribution codes:
   WIN            settled above ceiling; gate did its job
