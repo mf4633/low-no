@@ -1,18 +1,18 @@
 {
- "at": "2026-10-31T23:28:36.273352Z",
+ "at": "2026-10-31T23:36:23.136265Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 58,
-   "price": 6,
+   "price": 7,
    "p_model": 0.6998,
-   "p_market": 0.06,
-   "edge_pts": 64.0,
+   "p_market": 0.07,
+   "edge_pts": 63.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 64 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 63 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
@@ -23,23 +23,19 @@
   {
    "city": "LAS",
    "ceiling": 68,
-   "price": 20,
+   "price": 12,
    "p_model": 0.44,
-   "p_market": 0.2,
-   "edge_pts": 24.0,
+   "p_market": 0.12,
+   "edge_pts": 32.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "20c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     },
     {
      "code": "PAST_PEAK",
@@ -51,11 +47,19 @@
    "city": "OKC",
    "ceiling": 66,
    "price": 1,
-   "p_model": 0.0433,
+   "p_model": 0.0349,
    "p_market": 0.01,
-   "edge_pts": 3.3,
-   "size_lcb": 0.0167,
+   "edge_pts": 2.5,
+   "size_lcb": 0.0,
    "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
     {
      "code": "PAST_PEAK",
      "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 3.0F short. The climb window has closed."
