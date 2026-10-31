@@ -1,13 +1,13 @@
 {
- "at": "2026-10-31T21:27:26.448253Z",
+ "at": "2026-10-31T22:27:34.853714Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 58,
-   "price": 6,
-   "p_model": 0.7131,
-   "p_market": 0.06,
-   "edge_pts": 65.3,
+   "price": 9,
+   "p_model": 0.668,
+   "p_market": 0.09,
+   "edge_pts": 57.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,26 +16,26 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 65 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 58 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 0.1F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (15:00) with the running max still 0.1F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "LAS",
    "ceiling": 68,
-   "price": 45,
-   "p_model": 0.9293,
-   "p_market": 0.45,
-   "edge_pts": 47.9,
+   "price": 30,
+   "p_model": 0.699,
+   "p_market": 0.3,
+   "edge_pts": 39.9,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 48 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 40 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -43,7 +43,11 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "45c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "30c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
@@ -51,7 +55,7 @@
    "city": "OKC",
    "ceiling": 66,
    "price": 3,
-   "p_model": 0.0408,
+   "p_model": 0.0413,
    "p_market": 0.03,
    "edge_pts": 1.1,
    "size_lcb": 0.0,
@@ -66,7 +70,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 3.0F short. The climb window has closed."
+     "why": "local hour 17:00 is past this station's measured convergence hour (15:00) with the running max still 3.0F short. The climb window has closed."
     }
    ]
   }
