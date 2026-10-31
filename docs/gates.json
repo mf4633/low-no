@@ -6,7 +6,7 @@
   "n": 6651,
   "brier_base": 0.1256,
   "brier_shape": 0.1258,
-  "improvement_pct": -0.2
+  "improvement_pct": -0.18
  },
  "H4b": {
   "id": "H4b",
@@ -34,7 +34,7 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 5496,
+  "pooled_n": 5568,
   "hourly": {
    "n": 342,
    "brier_base": 0.1336,
@@ -42,9 +42,9 @@
    "improved": true
   },
   "control": {
-   "n": 5154,
-   "brier_base": 0.1214,
-   "brier_shape": 0.1214,
+   "n": 5226,
+   "brier_base": 0.1227,
+   "brier_shape": 0.1226,
    "improved": true
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1760,
-   "stalled_off": 1011,
-   "climbing_on": 1972,
+   "stalled_on": 1763,
+   "stalled_off": 1012,
+   "climbing_on": 1974,
    "climbing_off": 130
   },
   "need_per_group": 150,
@@ -68,29 +68,29 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 679,
-   "mean": 0.00148,
+   "n": 680,
+   "mean": 0.00147,
    "ci": [
-    -0.00195,
-    0.00492
+    -0.00196,
+    0.0049
    ]
   },
   "tail": {
    "n": 1320,
-   "mean": -0.00201,
+   "mean": -0.00203,
    "ci": [
-    -0.00379,
-    -0.00024
+    -0.00381,
+    -0.00026
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 161,
+  "units": 162,
   "need_units": 60,
   "days": 22,
   "need_days": 20,
-  "pending": 1,
+  "pending": 0,
   "cities": {
    "ATL": 4,
    "AUS": 5,
@@ -109,7 +109,7 @@
    "NYC": 10,
    "OKC": 7,
    "PHL": 4,
-   "PHX": 16,
+   "PHX": 17,
    "SAN": 10,
    "SAT": 6,
    "SEA": 8,
@@ -132,24 +132,24 @@
   },
   "context": {
    "current": {
-    "n": 161,
-    "mean_pnl_c": -3.96,
-    "lcb_c": -9.49,
-    "ucb_c": 1.56
+    "n": 162,
+    "mean_pnl_c": -3.39,
+    "lcb_c": -9.0,
+    "ucb_c": 2.22
    },
-   "hit": 0.211,
-   "mean_price": 23.6,
+   "hit": 0.216,
+   "mean_price": 23.5,
    "not_mode": {
-    "n": 125,
-    "mean_pnl_c": -2.5,
-    "lcb_c": -7.77,
-    "ucb_c": 2.77
+    "n": 126,
+    "mean_pnl_c": -1.77,
+    "lcb_c": -7.19,
+    "ucb_c": 3.65
    },
    "control_no_carry": {
-    "n": 161,
-    "mean_pnl_c": -7.14,
-    "lcb_c": -13.44,
-    "ucb_c": -0.85
+    "n": 162,
+    "mean_pnl_c": -7.62,
+    "lcb_c": -13.94,
+    "ucb_c": -1.29
    }
   }
  },
@@ -197,5 +197,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-10-31T08:27:31.492237Z"
+ "generated": "2026-10-31T10:43:37.229302Z"
 }
