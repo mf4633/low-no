@@ -3,9 +3,9 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 6810,
-  "brier_base": 0.1261,
-  "brier_shape": 0.1263,
+  "n": 6819,
+  "brier_base": 0.1259,
+  "brier_shape": 0.1262,
   "improvement_pct": -0.21
  },
  "H4b": {
@@ -34,7 +34,7 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 5706,
+  "pooled_n": 5715,
   "hourly": {
    "n": 345,
    "brier_base": 0.1359,
@@ -42,9 +42,9 @@
    "improved": true
   },
   "control": {
-   "n": 5361,
-   "brier_base": 0.1225,
-   "brier_shape": 0.1223,
+   "n": 5370,
+   "brier_base": 0.1223,
+   "brier_shape": 0.1222,
    "improved": true
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1792,
-   "stalled_off": 1020,
-   "climbing_on": 1998,
+   "stalled_on": 1793,
+   "stalled_off": 1021,
+   "climbing_on": 1999,
    "climbing_off": 130
   },
   "need_per_group": 150,
@@ -86,11 +86,11 @@
  },
  "H16": {
   "id": "H16",
-  "units": 166,
+  "units": 167,
   "need_units": 60,
   "days": 23,
   "need_days": 20,
-  "pending": 1,
+  "pending": 0,
   "cities": {
    "ATL": 5,
    "AUS": 5,
@@ -103,7 +103,7 @@
    "HOU": 10,
    "LAS": 14,
    "LAX": 7,
-   "MIA": 3,
+   "MIA": 4,
    "MSP": 6,
    "MSY": 3,
    "NYC": 10,
@@ -132,13 +132,13 @@
   },
   "context": {
    "current": {
-    "n": 166,
-    "mean_pnl_c": -3.78,
-    "lcb_c": -9.38,
-    "ucb_c": 1.81
+    "n": 167,
+    "mean_pnl_c": -3.59,
+    "lcb_c": -9.17,
+    "ucb_c": 1.98
    },
-   "hit": 0.217,
-   "mean_price": 24.0,
+   "hit": 0.222,
+   "mean_price": 24.3,
    "not_mode": {
     "n": 128,
     "mean_pnl_c": -2.12,
@@ -146,10 +146,10 @@
     "ucb_c": 3.24
    },
    "control_no_carry": {
-    "n": 166,
-    "mean_pnl_c": -8.05,
-    "lcb_c": -14.33,
-    "ucb_c": -1.78
+    "n": 167,
+    "mean_pnl_c": -8.11,
+    "lcb_c": -14.35,
+    "ucb_c": -1.87
    }
   }
  },
@@ -197,5 +197,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-11-01T09:13:03.743351Z"
+ "generated": "2026-11-01T11:37:38.761504Z"
 }
