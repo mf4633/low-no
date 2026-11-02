@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-11-01T14:23:54.755454Z",
+ "generated": "2026-11-02T09:29:50.542958Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 86,
+  "logged_days": 87,
   "first_day": "2026-08-07",
-  "last_day": "2026-10-31",
-  "rung_observations": 130040,
-  "independent_units": 2020,
+  "last_day": "2026-11-01",
+  "rung_observations": 130964,
+  "independent_units": 2042,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -106,13 +106,14 @@
    "2026-10-28": 11,
    "2026-10-29": 11,
    "2026-10-30": 10,
-   "2026-10-31": 11
+   "2026-10-31": 11,
+   "2026-11-01": 6
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1857,
-  "settlements_verified": 1677,
+  "settlements_cached": 1879,
+  "settlements_verified": 1699,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -123,6 +124,7 @@
    "1-10",
    "31-40",
    "41-50",
+   "71-80",
    "91-95",
    "96-98"
   ],
@@ -134,29 +136,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 293,
+    "have": 298,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 41,
+     "have": 42,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "41/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "42/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 5370,
+    "have": 5493,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 345,
+     "have": 357,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -180,12 +182,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 167,
+    "have": 168,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 23,
+     "have": 24,
      "need": 20,
      "unit": "distinct days"
     }
