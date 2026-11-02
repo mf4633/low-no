@@ -1,13 +1,32 @@
 {
- "at": "2026-11-02T18:37:25.626613Z",
+ "at": "2026-11-02T22:24:04.420574Z",
  "traps": [
   {
-   "city": "MSY",
-   "ceiling": 77,
-   "price": 17,
-   "p_model": 0.8696,
-   "p_market": 0.17,
-   "edge_pts": 70.0,
+   "city": "SEA",
+   "ceiling": 51,
+   "price": 21,
+   "p_model": 0.7495,
+   "p_market": 0.21,
+   "edge_pts": 53.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 54 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "21c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "OKC",
+   "ceiling": 74,
+   "price": 7,
+   "p_model": 0.2821,
+   "p_market": 0.07,
+   "edge_pts": 21.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,36 +35,25 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 70 pts. In this ledger the market won 7 of 8 such disputes."
-    }
-   ]
-  },
-  {
-   "city": "OKC",
-   "ceiling": 74,
-   "price": 16,
-   "p_model": 0.7303,
-   "p_market": 0.16,
-   "edge_pts": 57.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 57 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 21 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "DEN",
-   "ceiling": 49,
-   "price": 56,
-   "p_model": 0.9542,
-   "p_market": 0.56,
-   "edge_pts": 39.4,
+   "city": "SFO",
+   "ceiling": 63,
+   "price": 46,
+   "p_model": 0.6477,
+   "p_market": 0.46,
+   "edge_pts": 18.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -54,76 +62,38 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 39 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "GRAVEYARD",
-     "why": "56c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "46c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 0.4F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "DC",
    "ceiling": 64,
-   "price": 46,
-   "p_model": 0.7189,
-   "p_market": 0.46,
-   "edge_pts": 25.9,
-   "size_lcb": 0.0,
+   "price": 1,
+   "p_model": 0.0889,
+   "p_market": 0.01,
+   "edge_pts": 7.9,
+   "size_lcb": 0.0299,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 26 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "46c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "SEA",
-   "ceiling": 51,
-   "price": 55,
-   "p_model": 0.7524,
-   "p_market": 0.55,
-   "edge_pts": 20.2,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "55c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "CHI",
-   "ceiling": 63,
-   "price": 16,
-   "p_model": 0.3554,
-   "p_market": 0.16,
-   "edge_pts": 19.5,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
+     "code": "PAST_PEAK",
+     "why": "local hour 17:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   }
