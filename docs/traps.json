@@ -1,13 +1,13 @@
 {
- "at": "2026-11-02T23:26:32.087973Z",
+ "at": "2026-11-02T23:58:42.644420Z",
  "traps": [
   {
    "city": "OKC",
    "ceiling": 74,
-   "price": 5,
+   "price": 3,
    "p_model": 0.5349,
-   "p_market": 0.05,
-   "edge_pts": 48.5,
+   "p_market": 0.03,
+   "edge_pts": 50.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 48 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 50 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -31,15 +31,15 @@
   {
    "city": "SEA",
    "ceiling": 51,
-   "price": 6,
+   "price": 8,
    "p_model": 0.3835,
-   "p_market": 0.06,
-   "edge_pts": 32.4,
+   "p_market": 0.08,
+   "edge_pts": 30.3,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "PAST_PEAK",
@@ -51,15 +51,11 @@
    "city": "DC",
    "ceiling": 64,
    "price": 1,
-   "p_model": 0.1329,
+   "p_model": 0.1348,
    "p_market": 0.01,
-   "edge_pts": 12.3,
-   "size_lcb": 0.0521,
+   "edge_pts": 12.5,
+   "size_lcb": 0.063,
    "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
     {
      "code": "PAST_PEAK",
      "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 1.0F short. The climb window has closed."
