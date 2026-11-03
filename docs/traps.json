@@ -1,13 +1,13 @@
 {
- "at": "2026-11-03T14:21:40.643179Z",
+ "at": "2026-11-03T15:23:43.842666Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 72,
-   "price": 44,
-   "p_model": 0.8988,
-   "p_market": 0.44,
-   "edge_pts": 45.9,
+   "price": 26,
+   "p_model": 0.8826,
+   "p_market": 0.26,
+   "edge_pts": 62.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,49 +16,30 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 46 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 62 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "44c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "26c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "DEN",
    "ceiling": 54,
-   "price": 71,
-   "p_model": 0.8714,
-   "p_market": 0.71,
-   "edge_pts": 16.1,
-   "size_lcb": 0.0,
+   "price": 74,
+   "p_model": 0.8695,
+   "p_market": 0.74,
+   "edge_pts": 13.0,
+   "size_lcb": 0.1263,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "GRAVEYARD",
-     "why": "71c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "HOU",
-   "ceiling": 79,
-   "price": 99,
-   "p_model": 0.9913,
-   "p_market": 0.99,
-   "edge_pts": 0.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+     "why": "74c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
