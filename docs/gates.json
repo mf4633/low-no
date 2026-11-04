@@ -3,9 +3,9 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 7125,
-  "brier_base": 0.1255,
-  "brier_shape": 0.1261,
+  "n": 7137,
+  "brier_base": 0.1253,
+  "brier_shape": 0.1259,
   "improvement_pct": -0.47
  },
  "H4b": {
@@ -34,7 +34,7 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 6015,
+  "pooled_n": 6027,
   "hourly": {
    "n": 366,
    "brier_base": 0.1435,
@@ -42,9 +42,9 @@
    "improved": true
   },
   "control": {
-   "n": 5649,
-   "brier_base": 0.1224,
-   "brier_shape": 0.1225,
+   "n": 5661,
+   "brier_base": 0.1221,
+   "brier_shape": 0.1222,
    "improved": false
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1850,
-   "stalled_off": 1057,
-   "climbing_on": 2032,
+   "stalled_on": 1851,
+   "stalled_off": 1060,
+   "climbing_on": 2033,
    "climbing_off": 131
   },
   "need_per_group": 150,
@@ -68,15 +68,15 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 721,
+   "n": 722,
    "mean": -0.00017,
    "ci": [
-    -0.00399,
-    0.00366
+    -0.00398,
+    0.00365
    ]
   },
   "tail": {
-   "n": 1376,
+   "n": 1377,
    "mean": -0.0001,
    "ci": [
     -0.00203,
@@ -86,11 +86,11 @@
  },
  "H16": {
   "id": "H16",
-  "units": 182,
+  "units": 183,
   "need_units": 60,
   "days": 26,
   "need_days": 20,
-  "pending": 1,
+  "pending": 0,
   "cities": {
    "ATL": 6,
    "AUS": 6,
@@ -103,7 +103,7 @@
    "HOU": 12,
    "LAS": 16,
    "LAX": 7,
-   "MIA": 4,
+   "MIA": 5,
    "MSP": 6,
    "MSY": 4,
    "NYC": 10,
@@ -132,23 +132,23 @@
   },
   "context": {
    "current": {
-    "n": 182,
-    "mean_pnl_c": -2.54,
-    "lcb_c": -7.92,
-    "ucb_c": 2.84
+    "n": 183,
+    "mean_pnl_c": -2.56,
+    "lcb_c": -7.91,
+    "ucb_c": 2.8
    },
-   "hit": 0.242,
-   "mean_price": 25.2,
+   "hit": 0.24,
+   "mean_price": 25.1,
    "not_mode": {
-    "n": 137,
-    "mean_pnl_c": -1.55,
+    "n": 138,
+    "mean_pnl_c": -1.59,
     "lcb_c": -6.86,
-    "ucb_c": 3.75
+    "ucb_c": 3.68
    },
    "control_no_carry": {
-    "n": 182,
-    "mean_pnl_c": -7.69,
-    "lcb_c": -13.61,
+    "n": 183,
+    "mean_pnl_c": -7.66,
+    "lcb_c": -13.55,
     "ucb_c": -1.76
    }
   }
@@ -197,5 +197,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-11-04T09:04:44.055335Z"
+ "generated": "2026-11-04T12:35:02.413491Z"
 }
