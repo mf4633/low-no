@@ -1,13 +1,13 @@
 {
- "at": "2026-11-04T13:19:39.011012Z",
+ "at": "2026-11-04T14:22:02.395356Z",
  "traps": [
   {
    "city": "ATL",
    "ceiling": 70,
-   "price": 30,
-   "p_model": 0.976,
-   "p_market": 0.3,
-   "edge_pts": 67.6,
+   "price": 33,
+   "p_model": 0.985,
+   "p_market": 0.33,
+   "edge_pts": 65.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 66 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,7 +24,22 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "30c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "MIA",
+   "ceiling": 80,
+   "price": 92,
+   "p_model": 0.9916,
+   "p_market": 0.92,
+   "edge_pts": 7.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   },
@@ -32,9 +47,9 @@
    "city": "MSY",
    "ceiling": 78,
    "price": 92,
-   "p_model": 0.9514,
+   "p_model": 0.9701,
    "p_market": 0.92,
-   "edge_pts": 3.1,
+   "edge_pts": 5.0,
    "size_lcb": 0.0,
    "signals": [
     {
