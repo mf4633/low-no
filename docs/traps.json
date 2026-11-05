@@ -1,13 +1,13 @@
 {
- "at": "2026-11-05T14:22:46.266768Z",
+ "at": "2026-11-05T15:25:35.098899Z",
  "traps": [
   {
    "city": "CHI",
    "ceiling": 54,
-   "price": 9,
-   "p_model": 0.9262,
-   "p_market": 0.09,
-   "edge_pts": 83.6,
+   "price": 15,
+   "p_model": 0.9357,
+   "p_market": 0.15,
+   "edge_pts": 78.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 84 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 79 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -25,32 +25,17 @@
    ]
   },
   {
-   "city": "EWR",
-   "ceiling": 70,
-   "price": 94,
-   "p_model": 0.9732,
-   "p_market": 0.94,
-   "edge_pts": 3.3,
+   "city": "TTN",
+   "ceiling": 69,
+   "price": 97,
+   "p_model": 0.9895,
+   "p_market": 0.97,
+   "edge_pts": 1.9,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
-   "city": "BOS",
-   "ceiling": 69,
-   "price": 99,
-   "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
-   "size_lcb": 0.2252,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     }
    ]
   }
