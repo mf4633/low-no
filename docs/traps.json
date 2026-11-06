@@ -1,33 +1,22 @@
 {
- "at": "2026-11-06T21:00:55.374926Z",
+ "at": "2026-11-06T22:02:05.604866Z",
  "traps": [
-  {
-   "city": "SAT",
-   "ceiling": 73,
-   "price": 96,
-   "p_model": 1.0,
-   "p_market": 0.96,
-   "edge_pts": 4.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    }
-   ]
-  },
   {
    "city": "OKC",
    "ceiling": 55,
-   "price": 12,
-   "p_model": 0.1392,
-   "p_market": 0.12,
-   "edge_pts": 1.9,
-   "size_lcb": 0.0044,
+   "price": 11,
+   "p_model": 0.2754,
+   "p_market": 0.11,
+   "edge_pts": 16.5,
+   "size_lcb": 0.0,
    "signals": [
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 1.9F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 1.0F short. The climb window has closed."
     }
    ]
   }
