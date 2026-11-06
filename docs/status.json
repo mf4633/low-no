@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-11-05T15:32:20.912795Z",
+ "generated": "2026-11-06T09:23:27.492350Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 90,
+  "logged_days": 91,
   "first_day": "2026-08-07",
-  "last_day": "2026-11-04",
-  "rung_observations": 135284,
-  "independent_units": 2110,
+  "last_day": "2026-11-05",
+  "rung_observations": 136736,
+  "independent_units": 2124,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -111,13 +111,13 @@
    "2026-11-02": 8,
    "2026-11-03": 10,
    "2026-11-04": 10,
-   "2026-11-05": 3
+   "2026-11-05": 10
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 1949,
-  "settlements_verified": 1769,
+  "settlements_cached": 1971,
+  "settlements_verified": 1791,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -125,7 +125,6 @@
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
-   "1-10",
    "31-40",
    "41-50",
    "71-80",
@@ -157,12 +156,12 @@
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 5727,
+    "have": 5844,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 366,
+     "have": 378,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -174,7 +173,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 131,
+    "have": 132,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -186,12 +185,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 189,
+    "have": 192,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 27,
+     "have": 28,
      "need": 20,
      "unit": "distinct days"
     }
@@ -237,12 +236,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 34,
+    "have": 35,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 13,
+     "have": 14,
      "need": 20,
      "unit": "distinct days"
     }
@@ -335,7 +334,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 131,
+    "have": 132,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -381,12 +380,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 34,
+    "have": 35,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 13,
+     "have": 14,
      "need": 20,
      "unit": "distinct days"
     }

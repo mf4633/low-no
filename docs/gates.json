@@ -3,21 +3,21 @@
   "id": "H4a",
   "ready": true,
   "passed": false,
-  "n": 7191,
-  "brier_base": 0.1252,
-  "brier_shape": 0.1256,
-  "improvement_pct": -0.28
+  "n": 7320,
+  "brier_base": 0.125,
+  "brier_shape": 0.1253,
+  "improvement_pct": -0.25
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1639,
+  "events": 1644,
   "days": 70,
   "lag_corr": -0.003,
   "lag_ci": [
-   -0.052,
-   0.045
+   -0.051,
+   0.046
   ]
  },
  "H6": {
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 6093,
+  "pooled_n": 6222,
   "hourly": {
-   "n": 366,
-   "brier_base": 0.1441,
-   "brier_shape": 0.1393,
+   "n": 378,
+   "brier_base": 0.1424,
+   "brier_shape": 0.1388,
    "improved": true
   },
   "control": {
-   "n": 5727,
-   "brier_base": 0.1219,
-   "brier_shape": 0.1219,
+   "n": 5844,
+   "brier_base": 0.1214,
+   "brier_shape": 0.1214,
    "improved": false
   },
   "ready": true,
@@ -55,10 +55,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1868,
-   "stalled_off": 1076,
-   "climbing_on": 2048,
-   "climbing_off": 131
+   "stalled_on": 1882,
+   "stalled_off": 1098,
+   "climbing_on": 2060,
+   "climbing_off": 132
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -68,27 +68,27 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 733,
-   "mean": -9e-05,
+   "n": 743,
+   "mean": -0.00033,
    "ci": [
-    -0.00384,
-    0.00366
+    -0.00406,
+    0.00341
    ]
   },
   "tail": {
-   "n": 1396,
-   "mean": -9e-05,
+   "n": 1415,
+   "mean": 2e-05,
    "ci": [
-    -0.00199,
-    0.00181
+    -0.00184,
+    0.00189
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 189,
+  "units": 192,
   "need_units": 60,
-  "days": 27,
+  "days": 28,
   "need_days": 20,
   "pending": 0,
   "cities": {
@@ -101,13 +101,13 @@
    "DEN": 9,
    "EWR": 8,
    "HOU": 12,
-   "LAS": 17,
-   "LAX": 8,
+   "LAS": 18,
+   "LAX": 9,
    "MIA": 6,
    "MSP": 6,
    "MSY": 4,
    "NYC": 10,
-   "OKC": 7,
+   "OKC": 8,
    "PHL": 6,
    "PHX": 19,
    "SAN": 12,
@@ -132,24 +132,24 @@
   },
   "context": {
    "current": {
-    "n": 189,
-    "mean_pnl_c": -2.32,
-    "lcb_c": -7.53,
-    "ucb_c": 2.89
+    "n": 192,
+    "mean_pnl_c": -1.99,
+    "lcb_c": -7.17,
+    "ucb_c": 3.19
    },
-   "hit": 0.238,
-   "mean_price": 24.7,
+   "hit": 0.24,
+   "mean_price": 24.5,
    "not_mode": {
-    "n": 143,
-    "mean_pnl_c": -1.67,
-    "lcb_c": -6.76,
-    "ucb_c": 3.42
+    "n": 146,
+    "mean_pnl_c": -1.25,
+    "lcb_c": -6.31,
+    "ucb_c": 3.82
    },
    "control_no_carry": {
-    "n": 189,
-    "mean_pnl_c": -8.07,
-    "lcb_c": -13.82,
-    "ucb_c": -2.33
+    "n": 192,
+    "mean_pnl_c": -7.88,
+    "lcb_c": -13.56,
+    "ucb_c": -2.19
    }
   }
  },
@@ -177,9 +177,9 @@
  },
  "H18": {
   "id": "H18",
-  "units": 34,
+  "units": 35,
   "need_units": 60,
-  "days": 13,
+  "days": 14,
   "need_days": 20,
   "pending": 0,
   "ready": false,
@@ -197,5 +197,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-11-05T15:33:13.716069Z"
+ "generated": "2026-11-06T09:24:00.278649Z"
 }
