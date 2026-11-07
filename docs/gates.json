@@ -4,20 +4,20 @@
   "ready": true,
   "passed": false,
   "n": 7329,
-  "brier_base": 0.1249,
+  "brier_base": 0.125,
   "brier_shape": 0.1252,
-  "improvement_pct": -0.24
+  "improvement_pct": -0.15
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1644,
-  "days": 70,
+  "events": 1645,
+  "days": 71,
   "lag_corr": -0.003,
   "lag_ci": [
-   -0.051,
-   0.046
+   -0.052,
+   0.045
   ]
  },
  "H6": {
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 6231,
+  "pooled_n": 6276,
   "hourly": {
    "n": 378,
-   "brier_base": 0.1424,
-   "brier_shape": 0.1388,
+   "brier_base": 0.1425,
+   "brier_shape": 0.1383,
    "improved": true
   },
   "control": {
-   "n": 5853,
-   "brier_base": 0.1212,
-   "brier_shape": 0.1212,
+   "n": 5898,
+   "brier_base": 0.1214,
+   "brier_shape": 0.1214,
    "improved": false
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 1884,
-   "stalled_off": 1099,
-   "climbing_on": 2060,
+   "stalled_on": 1896,
+   "stalled_off": 1113,
+   "climbing_on": 2070,
    "climbing_off": 132
   },
   "need_per_group": 150,
@@ -68,27 +68,27 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 744,
-   "mean": -0.00033,
+   "n": 748,
+   "mean": -0.00035,
    "ci": [
     -0.00406,
-    0.0034
+    0.00336
    ]
   },
   "tail": {
-   "n": 1416,
-   "mean": 2e-05,
+   "n": 1418,
+   "mean": 0.0001,
    "ci": [
-    -0.00184,
-    0.00189
+    -0.00176,
+    0.00197
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 192,
+  "units": 193,
   "need_units": 60,
-  "days": 28,
+  "days": 29,
   "need_days": 20,
   "pending": 0,
   "cities": {
@@ -113,7 +113,7 @@
    "SAN": 12,
    "SAT": 6,
    "SEA": 9,
-   "SFO": 5,
+   "SFO": 6,
    "TTN": 5
   },
   "ready": true,
@@ -132,24 +132,24 @@
   },
   "context": {
    "current": {
-    "n": 192,
-    "mean_pnl_c": -1.99,
-    "lcb_c": -7.17,
-    "ucb_c": 3.19
+    "n": 193,
+    "mean_pnl_c": -2.06,
+    "lcb_c": -7.21,
+    "ucb_c": 3.09
    },
-   "hit": 0.24,
-   "mean_price": 24.5,
+   "hit": 0.238,
+   "mean_price": 24.4,
    "not_mode": {
-    "n": 146,
-    "mean_pnl_c": -1.25,
-    "lcb_c": -6.31,
-    "ucb_c": 3.82
+    "n": 147,
+    "mean_pnl_c": -1.35,
+    "lcb_c": -6.38,
+    "ucb_c": 3.69
    },
    "control_no_carry": {
-    "n": 192,
-    "mean_pnl_c": -7.88,
-    "lcb_c": -13.56,
-    "ucb_c": -2.19
+    "n": 193,
+    "mean_pnl_c": -8.02,
+    "lcb_c": -13.69,
+    "ucb_c": -2.35
    }
   }
  },
@@ -157,7 +157,7 @@
   "id": "H15",
   "marine_days": 8,
   "need_marine": 20,
-  "control_days": 31,
+  "control_days": 32,
   "need_control": 10,
   "context_days": 7,
   "pending": 0,
@@ -167,9 +167,9 @@
  },
  "H17": {
   "id": "H17",
-  "units": 23,
+  "units": 24,
   "need_units": 60,
-  "days": 12,
+  "days": 13,
   "need_days": 20,
   "ready": false,
   "passed": false,
@@ -197,5 +197,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-11-06T15:11:45.744892Z"
+ "generated": "2026-11-07T08:44:39.040023Z"
 }
