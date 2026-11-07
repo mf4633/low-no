@@ -1,5 +1,5 @@
 {
- "at": "2026-11-07T22:51:39.261298Z",
+ "at": "2026-11-07T23:00:12.993330Z",
  "traps": [
   {
    "city": "SAT",
@@ -27,10 +27,10 @@
   {
    "city": "SEA",
    "ceiling": 60,
-   "price": 10,
+   "price": 9,
    "p_model": 0.4294,
-   "p_market": 0.1,
-   "edge_pts": 32.9,
+   "p_market": 0.09,
+   "edge_pts": 33.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,17 +39,21 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 34 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 2.1F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "SAN",
    "ceiling": 82,
-   "price": 94,
+   "price": 91,
    "p_model": 1.0,
-   "p_market": 0.94,
-   "edge_pts": 6.0,
+   "p_market": 0.91,
+   "edge_pts": 9.0,
    "size_lcb": 0.0,
    "signals": [
     {
