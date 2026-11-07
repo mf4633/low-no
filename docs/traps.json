@@ -1,13 +1,13 @@
 {
- "at": "2026-11-07T18:42:01.114035Z",
+ "at": "2026-11-07T19:45:12.222538Z",
  "traps": [
   {
    "city": "SAT",
    "ceiling": 69,
-   "price": 29,
-   "p_model": 0.8946,
-   "p_market": 0.29,
-   "edge_pts": 60.5,
+   "price": 71,
+   "p_model": 1.0,
+   "p_market": 0.71,
+   "edge_pts": 29.0,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 60 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 29 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,17 +24,17 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "29c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "71c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "SEA",
    "ceiling": 60,
-   "price": 66,
-   "p_model": 0.8877,
-   "p_market": 0.66,
-   "edge_pts": 22.8,
+   "price": 54,
+   "p_model": 0.7768,
+   "p_market": 0.54,
+   "edge_pts": 23.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -43,11 +43,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 23 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "66c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "54c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -67,6 +67,21 @@
     {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    }
+   ]
+  },
+  {
+   "city": "AUS",
+   "ceiling": 69,
+   "price": 98,
+   "p_model": 1.0,
+   "p_market": 0.98,
+   "edge_pts": 2.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
