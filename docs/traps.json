@@ -1,13 +1,13 @@
 {
- "at": "2026-11-08T17:29:52.323765Z",
+ "at": "2026-11-08T18:33:51.634898Z",
  "traps": [
   {
-   "city": "AUS",
-   "ceiling": 63,
-   "price": 38,
-   "p_model": 0.9743,
-   "p_market": 0.38,
-   "edge_pts": 59.4,
+   "city": "NYC",
+   "ceiling": 60,
+   "price": 17,
+   "p_model": 0.7773,
+   "p_market": 0.17,
+   "edge_pts": 60.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,26 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 59 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 61 pts. In this ledger the market won 7 of 8 such disputes."
+    }
+   ]
+  },
+  {
+   "city": "AUS",
+   "ceiling": 63,
+   "price": 60,
+   "p_model": 0.9617,
+   "p_market": 0.6,
+   "edge_pts": 36.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,37 +43,18 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "38c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "NYC",
-   "ceiling": 60,
-   "price": 17,
-   "p_model": 0.7161,
-   "p_market": 0.17,
-   "edge_pts": 54.6,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 55 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "DAL",
    "ceiling": 68,
-   "price": 91,
-   "p_model": 0.9617,
-   "p_market": 0.91,
-   "edge_pts": 5.2,
-   "size_lcb": 0.1906,
+   "price": 93,
+   "p_model": 0.9782,
+   "p_market": 0.93,
+   "edge_pts": 4.8,
+   "size_lcb": 0.22,
    "signals": [
     {
      "code": "BOUNDARY",
