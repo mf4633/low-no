@@ -1,13 +1,13 @@
 {
- "at": "2026-11-08T18:33:51.634898Z",
+ "at": "2026-11-08T18:40:40.093145Z",
  "traps": [
   {
    "city": "NYC",
    "ceiling": 60,
-   "price": 17,
+   "price": 16,
    "p_model": 0.7773,
-   "p_market": 0.17,
-   "edge_pts": 60.7,
+   "p_market": 0.16,
+   "edge_pts": 61.7,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,26 +16,26 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 61 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 62 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "AUS",
    "ceiling": 63,
-   "price": 60,
-   "p_model": 0.9617,
-   "p_market": 0.6,
-   "edge_pts": 36.2,
+   "price": 63,
+   "p_model": 0.956,
+   "p_market": 0.63,
+   "edge_pts": 32.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 36 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -43,7 +43,7 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "60c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "63c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
@@ -59,6 +59,25 @@
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    }
+   ]
+  },
+  {
+   "city": "MSY",
+   "ceiling": 67,
+   "price": 67,
+   "p_model": 0.6868,
+   "p_market": 0.67,
+   "edge_pts": 1.7,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "67c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
