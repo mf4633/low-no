@@ -43933,10 +43933,259 @@
   },
   {
    "date": "2026-11-09",
-   "flags": []
+   "flags": [
+    {
+     "date": "2026-11-09",
+     "city": "DAL",
+     "station": "KDFW",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTDAL-26NOV09-T71",
+      "ceiling": 70,
+      "no_ask": 0.43,
+      "quote_src": "native",
+      "yes_bid": 57,
+      "run_max": 66.2,
+      "guide": 74,
+      "pop": 2,
+      "G": 4,
+      "net_cents": 55.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "DAL",
+       "status": "calm_or_unknown",
+       "note": "no defined flow; upstream signal is meaningless"
+      },
+      "stall": null,
+      "sky": {
+       "cover": "FEW",
+       "base_ft": 4200,
+       "layers": [
+        {
+         "amount": "FEW",
+         "base_ft": 4200
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "obs_feed": {
+       "nws_latest": "2026-11-09T16:55:00+00:00",
+       "awc_latest": "2026-11-09T16:53:00Z",
+       "used": "2026-11-09T16:55:00+00:00",
+       "used_src": "nws"
+      },
+      "run_max_detail": {
+       "run_max": 66.2,
+       "source": "fivemin",
+       "n_metar": 11,
+       "n_obs": 51
+      },
+      "forecasts": {
+       "nws_grid": 73.0,
+       "om_best": 70.7,
+       "om_ecmwf": 70.0,
+       "om_gfs": 70.7,
+       "om_icon": 69.7,
+       "om_metno": 71.0
+      },
+      "airmass": {
+       "t850_max_f": 53.7,
+       "z500_max_m": 5823,
+       "soil_m3m3": 0.263,
+       "curve": {
+        "0": 58.2,
+        "1": 57.2,
+        "2": 56.3,
+        "3": 55.8,
+        "4": 55.5,
+        "5": 55.4,
+        "6": 55.1,
+        "7": 55.2,
+        "8": 56.5,
+        "9": 59.4,
+        "10": 63.1,
+        "11": 66.3,
+        "12": 67.9,
+        "13": 68.7,
+        "14": 70.3,
+        "15": 70.7,
+        "16": 70.5,
+        "17": 68.8,
+        "18": 66.0,
+        "19": 64.2,
+        "20": 63.3,
+        "21": 62.4,
+        "22": 61.7,
+        "23": 61.3
+       },
+       "curve_max_f": 70.7
+      },
+      "temp_now": 66.2,
+      "curve_pred_now": 66.3,
+      "curve_dev": -0.1,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 43,
+       "depth_at_best": 2,
+       "depth_le_max": 2086,
+       "notional_le_max": 1665.25,
+       "levels": [
+        [
+         43,
+         2
+        ],
+        [
+         44,
+         16
+        ],
+        [
+         45,
+         51
+        ],
+        [
+         46,
+         40
+        ],
+        [
+         47,
+         32
+        ],
+        [
+         48,
+         43
+        ],
+        [
+         49,
+         38
+        ],
+        [
+         50,
+         57
+        ]
+       ],
+       "yes_best_ask": 61,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-11-09T16:55:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-11-09T16:53:00Z",
+         "tC": 18.9
+        },
+        {
+         "ts": "2026-11-09T16:40:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-09T16:30:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-11-09T16:10:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-09T16:05:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-09T16:00:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-09T15:53:00+00:00",
+         "tC": 17.2
+        },
+        {
+         "ts": "2026-11-09T15:40:00+00:00",
+         "tC": 17
+        },
+        {
+         "ts": "2026-11-09T15:35:00+00:00",
+         "tC": 17
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTDAL-26NOV09-T78",
+         "cap": null,
+         "floor": 79,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDAL-26NOV09-T71",
+         "cap": 70,
+         "floor": null,
+         "no_ask": 43,
+         "yes_bid": 57
+        },
+        {
+         "ticker": "KXHIGHTDAL-26NOV09-B77.5",
+         "cap": 78,
+         "floor": 77,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDAL-26NOV09-B75.5",
+         "cap": 76,
+         "floor": 75,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTDAL-26NOV09-B73.5",
+         "cap": 74,
+         "floor": 73,
+         "no_ask": 95,
+         "yes_bid": 5
+        },
+        {
+         "ticker": "KXHIGHTDAL-26NOV09-B71.5",
+         "cap": 72,
+         "floor": 71,
+         "no_ask": 66,
+         "yes_bid": 34
+        }
+       ],
+       "wx": "Mostly Clear"
+      },
+      "model": {
+       "p_exceed_cap": 0.9634,
+       "p_source": "blend(w_emp=0.96)",
+       "p_empirical": 0.9624,
+       "emp_n": 184,
+       "sigma": 1.82,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "ABSTAIN",
+      "confidence": 0.87,
+      "p_exceed": 0.93,
+      "reasoning": "DAL 16:55Z reads 19\u00b0C (66.2\u00b0F), already at run_max with ~3hrs of heating potential remaining. Curve peak at 70.7\u00b0F (hr14-15 local), NWS grid 73\u00b0F. Sky is FEW/CLR, winds nearly calm (S 3kt at KDFW METAR), no capping mechanism. BKN150/BKN250 layers at 1553Z are mid-high cloud \u2014 modest trim only. Current temp tracks curve perfectly (dev=-0.1). Guidance spread 70-73\u00b0F all exceeds the 70\u00b0F ceiling. Market implies ~57% YES (capped), but physics and model both show ~93% exceed probability. Position wins if max >70\u00b0F; trajectory and clear skies strongly support that.",
+      "watch": "KDFW 17:53Z METAR: if temp fails to advance past 19\u00b0C with winds shifting N or cloud deck lowering to BKN below 5000ft, re-evaluate.",
+      "direction_guard": "Downgraded from CONCUR: reasoning argues the day stays cool/capped, but this position pays only if the high EXCEEDS the cap. Inverted.",
+      "original_verdict": "CONCUR"
+     },
+     "settle": null,
+     "attribution": "UNGRADED"
+    }
+   ]
   }
  ],
- "generated": "2026-11-09T13:21:05.134605Z",
+ "generated": "2026-11-09T17:31:15.817483Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
