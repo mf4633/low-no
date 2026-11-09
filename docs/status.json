@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-11-08T14:23:23.950089Z",
+ "generated": "2026-11-09T09:43:28.668227Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 93,
+  "logged_days": 94,
   "first_day": "2026-08-07",
-  "last_day": "2026-11-07",
-  "rung_observations": 139148,
-  "independent_units": 2162,
+  "last_day": "2026-11-08",
+  "rung_observations": 140804,
+  "independent_units": 2194,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -114,13 +114,13 @@
    "2026-11-05": 10,
    "2026-11-06": 5,
    "2026-11-07": 10,
-   "2026-11-08": 1
+   "2026-11-08": 10
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 2018,
-  "settlements_verified": 1838,
+  "settlements_cached": 2041,
+  "settlements_verified": 1861,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -128,6 +128,7 @@
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
+   "1-10",
    "31-40",
    "41-50",
    "71-80",
@@ -142,29 +143,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 308,
+    "have": 313,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 43,
+     "have": 44,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "43/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "44/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 6063,
+    "have": 6150,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 390,
+     "have": 432,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -176,7 +177,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 132,
+    "have": 133,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -188,12 +189,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 196,
+    "have": 200,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 30,
+     "have": 31,
      "need": 20,
      "unit": "distinct days"
     }
@@ -210,7 +211,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 33,
+     "have": 34,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -222,12 +223,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 26,
+    "have": 29,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 14,
+     "have": 15,
      "need": 20,
      "unit": "distinct days"
     }
@@ -239,12 +240,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 40,
+    "have": 43,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 15,
+     "have": 16,
      "need": 20,
      "unit": "distinct days"
     }
@@ -337,7 +338,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 132,
+    "have": 133,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -354,7 +355,7 @@
     "unit": "distinct LAX marine-stratum days with a book",
     "ready": false,
     "also": {
-     "have": 33,
+     "have": 34,
      "need": 10,
      "unit": "NO_STRATUS control days with a book"
     }
@@ -366,12 +367,12 @@
    "name": "LAX temp-anchored marine regime beats the price",
    "status": "open",
    "bar": {
-    "have": 26,
+    "have": 29,
     "need": 60,
     "unit": "graded trades (model P - ask >= .15)",
     "ready": false,
     "also": {
-     "have": 14,
+     "have": 15,
      "need": 20,
      "unit": "distinct days"
     }
@@ -383,12 +384,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 40,
+    "have": 43,
     "need": 60,
     "unit": "graded city-day units",
     "ready": false,
     "also": {
-     "have": 15,
+     "have": 16,
      "need": 20,
      "unit": "distinct days"
     }
