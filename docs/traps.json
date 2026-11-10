@@ -1,13 +1,13 @@
 {
- "at": "2026-11-09T23:05:19.181396Z",
+ "at": "2026-11-10T00:45:21.620185Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 65,
    "price": 1,
-   "p_model": 0.2026,
+   "p_model": 0.2048,
    "p_market": 0.01,
-   "edge_pts": 19.3,
+   "edge_pts": 19.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,12 +15,8 @@
      "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
      "code": "PAST_PEAK",
-     "why": "local hour 17:00 is past this station's measured convergence hour (14:00) with the running max still 0.6F short. The climb window has closed."
+     "why": "local hour 18:00 is past this station's measured convergence hour (14:00) with the running max still 0.6F short. The climb window has closed."
     }
    ]
   }
