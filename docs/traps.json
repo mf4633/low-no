@@ -1,13 +1,36 @@
 {
- "at": "2026-11-11T18:32:07.553897Z",
+ "at": "2026-11-11T20:16:15.266715Z",
  "traps": [
+  {
+   "city": "SAT",
+   "ceiling": 73,
+   "price": 58,
+   "p_model": 0.7945,
+   "p_market": 0.58,
+   "edge_pts": 21.4,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 21 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "58c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
   {
    "city": "HOU",
    "ceiling": 75,
-   "price": 6,
-   "p_model": 0.3634,
-   "p_market": 0.06,
-   "edge_pts": 30.3,
+   "price": 2,
+   "p_model": 0.2083,
+   "p_market": 0.02,
+   "edge_pts": 18.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +39,11 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 19 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 1.6F short. The climb window has closed."
     }
    ]
   }
