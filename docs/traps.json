@@ -1,13 +1,13 @@
 {
- "at": "2026-11-12T15:21:09.035696Z",
+ "at": "2026-11-12T16:22:37.284698Z",
  "traps": [
   {
    "city": "SFO",
    "ceiling": 67,
-   "price": 75,
-   "p_model": 0.9176,
-   "p_market": 0.75,
-   "edge_pts": 16.8,
+   "price": 78,
+   "p_model": 0.9019,
+   "p_market": 0.78,
+   "edge_pts": 12.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,26 +15,22 @@
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "UNFIT_DIST",
      "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
     },
     {
      "code": "GRAVEYARD",
-     "why": "75c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "PHL",
    "ceiling": 60,
-   "price": 91,
-   "p_model": 0.9941,
-   "p_market": 0.91,
-   "edge_pts": 8.4,
+   "price": 96,
+   "p_model": 1.0,
+   "p_market": 0.96,
+   "edge_pts": 4.0,
    "size_lcb": 0.0,
    "signals": [
     {
