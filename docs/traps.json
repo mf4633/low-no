@@ -1,13 +1,13 @@
 {
- "at": "2026-11-12T20:48:35.123234Z",
+ "at": "2026-11-12T21:47:56.346944Z",
  "traps": [
   {
    "city": "LAX",
    "ceiling": 76,
-   "price": 2,
-   "p_model": 0.4976,
-   "p_market": 0.02,
-   "edge_pts": 47.8,
+   "price": 1,
+   "p_model": 0.2831,
+   "p_market": 0.01,
+   "edge_pts": 27.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 48 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 27 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,7 +24,7 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 12:00 is past this station's measured convergence hour (12:00) with the running max still 0.8F short. The climb window has closed."
+     "why": "local hour 13:00 is past this station's measured convergence hour (12:00) with the running max still 0.8F short. The climb window has closed."
     }
    ]
   }
