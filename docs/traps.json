@@ -1,13 +1,13 @@
 {
- "at": "2026-11-13T21:24:42.487482Z",
+ "at": "2026-11-13T22:21:32.091631Z",
  "traps": [
   {
    "city": "PHX",
    "ceiling": 76,
-   "price": 3,
-   "p_model": 0.1957,
-   "p_market": 0.03,
-   "edge_pts": 16.6,
+   "price": 1,
+   "p_model": 0.068,
+   "p_market": 0.01,
+   "edge_pts": 5.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,12 +15,12 @@
      "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 17 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (15:00) with the running max still 2.6F short. The climb window has closed."
     }
    ]
   }
