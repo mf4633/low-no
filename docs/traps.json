@@ -1,13 +1,36 @@
 {
- "at": "2026-11-15T14:16:23.285457Z",
+ "at": "2026-11-15T15:15:21.520288Z",
  "traps": [
+  {
+   "city": "AUS",
+   "ceiling": 60,
+   "price": 4,
+   "p_model": 0.9047,
+   "p_market": 0.04,
+   "edge_pts": 86.5,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=-5F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 86 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
   {
    "city": "SAT",
    "ceiling": 66,
    "price": 3,
-   "p_model": 0.8616,
+   "p_model": 0.8612,
    "p_market": 0.03,
-   "edge_pts": 83.2,
+   "edge_pts": 83.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -25,35 +48,12 @@
    ]
   },
   {
-   "city": "AUS",
-   "ceiling": 60,
-   "price": 8,
-   "p_model": 0.8946,
-   "p_market": 0.08,
-   "edge_pts": 81.5,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=-5F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 81 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    }
-   ]
-  },
-  {
    "city": "HOU",
    "ceiling": 64,
    "price": 14,
-   "p_model": 0.9454,
+   "p_model": 0.9512,
    "p_market": 0.14,
-   "edge_pts": 80.5,
+   "edge_pts": 81.1,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -73,10 +73,10 @@
   {
    "city": "MSY",
    "ceiling": 63,
-   "price": 9,
-   "p_model": 0.7359,
-   "p_market": 0.09,
-   "edge_pts": 64.6,
+   "price": 8,
+   "p_model": 0.5946,
+   "p_market": 0.08,
+   "edge_pts": 51.5,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -85,7 +85,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 65 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 51 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
