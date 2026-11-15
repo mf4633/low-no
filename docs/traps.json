@@ -1,13 +1,13 @@
 {
- "at": "2026-11-15T16:14:35.962330Z",
+ "at": "2026-11-15T17:14:03.844557Z",
  "traps": [
   {
    "city": "AUS",
    "ceiling": 60,
    "price": 3,
-   "p_model": 0.8837,
+   "p_model": 0.9089,
    "p_market": 0.03,
-   "edge_pts": 85.4,
+   "edge_pts": 87.9,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,7 +16,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 85 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 88 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -27,10 +27,10 @@
   {
    "city": "SAT",
    "ceiling": 66,
-   "price": 3,
-   "p_model": 0.8219,
-   "p_market": 0.03,
-   "edge_pts": 79.2,
+   "price": 2,
+   "p_model": 0.7133,
+   "p_market": 0.02,
+   "edge_pts": 69.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -39,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 79 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 69 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -50,19 +50,19 @@
   {
    "city": "HOU",
    "ceiling": 64,
-   "price": 11,
-   "p_model": 0.8832,
-   "p_market": 0.11,
-   "edge_pts": 77.3,
+   "price": 15,
+   "p_model": 0.7774,
+   "p_market": 0.15,
+   "edge_pts": 62.7,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 77 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 63 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -73,19 +73,15 @@
   {
    "city": "MSY",
    "ceiling": 63,
-   "price": 8,
-   "p_model": 0.3839,
-   "p_market": 0.08,
-   "edge_pts": 30.4,
+   "price": 6,
+   "p_model": 0.0855,
+   "p_market": 0.06,
+   "edge_pts": 2.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 30 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
