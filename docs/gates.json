@@ -3,48 +3,48 @@
   "id": "H4a",
   "ready": true,
   "passed": true,
-  "n": 8010,
-  "brier_base": 0.1248,
-  "brier_shape": 0.1248,
-  "improvement_pct": 0.04
+  "n": 8127,
+  "brier_base": 0.1256,
+  "brier_shape": 0.1253,
+  "improvement_pct": 0.26
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1789,
-  "days": 78,
-  "lag_corr": 0.002,
+  "events": 1807,
+  "days": 79,
+  "lag_corr": 0.001,
   "lag_ci": [
-   -0.044,
-   0.048
+   -0.045,
+   0.047
   ]
  },
  "H6": {
   "id": "H6",
   "ready": true,
   "passed": false,
-  "events": 332,
-  "days": 47,
-  "across_corr": 0.027,
+  "events": 336,
+  "days": 48,
+  "across_corr": 0.026,
   "across_ci": [
    -0.081,
-   0.134
+   0.133
   ]
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 6975,
+  "pooled_n": 7011,
   "hourly": {
    "n": 486,
-   "brier_base": 0.1534,
-   "brier_shape": 0.1587,
+   "brier_base": 0.1529,
+   "brier_shape": 0.1582,
    "improved": false
   },
   "control": {
-   "n": 6489,
-   "brier_base": 0.1213,
-   "brier_shape": 0.1211,
+   "n": 6525,
+   "brier_base": 0.1214,
+   "brier_shape": 0.1212,
    "improved": true
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 2026,
-   "stalled_off": 1237,
-   "climbing_on": 2149,
+   "stalled_on": 2065,
+   "stalled_off": 1247,
+   "climbing_on": 2169,
    "climbing_off": 137
   },
   "need_per_group": 150,
@@ -68,50 +68,50 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 799,
-   "mean": 0.00039,
+   "n": 811,
+   "mean": 0.00013,
    "ci": [
-    -0.00317,
-    0.00394
+    -0.00339,
+    0.00365
    ]
   },
   "tail": {
-   "n": 1532,
-   "mean": 0.00015,
+   "n": 1550,
+   "mean": -8e-05,
    "ci": [
-    -0.00167,
-    0.00196
+    -0.00189,
+    0.00173
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 225,
+  "units": 231,
   "need_units": 60,
-  "days": 36,
+  "days": 37,
   "need_days": 20,
   "pending": 0,
   "cities": {
    "ATL": 6,
    "AUS": 8,
-   "BOS": 8,
+   "BOS": 9,
    "CHI": 6,
    "DAL": 12,
    "DC": 5,
    "DEN": 10,
    "EWR": 10,
    "HOU": 17,
-   "LAS": 22,
+   "LAS": 23,
    "LAX": 10,
    "MIA": 8,
-   "MSP": 7,
+   "MSP": 8,
    "MSY": 4,
    "NYC": 12,
-   "OKC": 10,
+   "OKC": 11,
    "PHL": 6,
    "PHX": 21,
-   "SAN": 13,
-   "SAT": 8,
+   "SAN": 14,
+   "SAT": 9,
    "SEA": 9,
    "SFO": 8,
    "TTN": 5
@@ -132,24 +132,24 @@
   },
   "context": {
    "current": {
-    "n": 225,
+    "n": 231,
     "mean_pnl_c": -1.03,
-    "lcb_c": -5.94,
-    "ucb_c": 3.88
+    "lcb_c": -5.85,
+    "ucb_c": 3.79
    },
-   "hit": 0.267,
-   "mean_price": 26.2,
+   "hit": 0.264,
+   "mean_price": 26.0,
    "not_mode": {
-    "n": 166,
-    "mean_pnl_c": 0.12,
-    "lcb_c": -4.78,
-    "ucb_c": 5.02
+    "n": 172,
+    "mean_pnl_c": 0.08,
+    "lcb_c": -4.72,
+    "ucb_c": 4.88
    },
    "control_no_carry": {
-    "n": 225,
-    "mean_pnl_c": -7.96,
-    "lcb_c": -13.29,
-    "ucb_c": -2.62
+    "n": 231,
+    "mean_pnl_c": -7.33,
+    "lcb_c": -12.57,
+    "ucb_c": -2.09
    }
   }
  },
@@ -157,7 +157,7 @@
   "id": "H15",
   "marine_days": 8,
   "need_marine": 20,
-  "control_days": 34,
+  "control_days": 35,
   "need_control": 10,
   "context_days": 7,
   "pending": 0,
@@ -167,9 +167,9 @@
  },
  "H17": {
   "id": "H17",
-  "units": 29,
+  "units": 31,
   "need_units": 60,
-  "days": 15,
+  "days": 16,
   "need_days": 20,
   "ready": false,
   "passed": false,
@@ -177,9 +177,9 @@
  },
  "H18": {
   "id": "H18",
-  "units": 48,
+  "units": 53,
   "need_units": 60,
-  "days": 20,
+  "days": 21,
   "need_days": 20,
   "pending": 0,
   "ready": false,
@@ -197,5 +197,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-11-14T14:14:52.117538Z"
+ "generated": "2026-11-15T09:17:27.306623Z"
 }
