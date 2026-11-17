@@ -4,17 +4,17 @@
   "ready": true,
   "passed": true,
   "n": 8331,
-  "brier_base": 0.1255,
+  "brier_base": 0.1254,
   "brier_shape": 0.1252,
-  "improvement_pct": 0.19
+  "improvement_pct": 0.14
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1841,
+  "events": 1846,
   "days": 81,
-  "lag_corr": 0.005,
+  "lag_corr": 0.004,
   "lag_ci": [
    -0.041,
    0.05
@@ -24,28 +24,28 @@
   "id": "H6",
   "ready": true,
   "passed": false,
-  "events": 336,
-  "days": 48,
-  "across_corr": 0.026,
+  "events": 344,
+  "days": 49,
+  "across_corr": 0.024,
   "across_ci": [
-   -0.081,
-   0.133
+   -0.082,
+   0.129
   ]
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 7185,
+  "pooled_n": 7254,
   "hourly": {
    "n": 498,
-   "brier_base": 0.1523,
-   "brier_shape": 0.1579,
+   "brier_base": 0.1522,
+   "brier_shape": 0.1575,
    "improved": false
   },
   "control": {
-   "n": 6687,
-   "brier_base": 0.1212,
-   "brier_shape": 0.1212,
-   "improved": true
+   "n": 6756,
+   "brier_base": 0.121,
+   "brier_shape": 0.121,
+   "improved": false
   },
   "ready": true,
   "passed": false
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 2103,
-   "stalled_off": 1269,
-   "climbing_on": 2182,
+   "stalled_on": 2107,
+   "stalled_off": 1271,
+   "climbing_on": 2186,
    "climbing_off": 139
   },
   "need_per_group": 150,
@@ -68,40 +68,40 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 817,
-   "mean": 0.00073,
+   "n": 828,
+   "mean": 0.00057,
    "ci": [
-    -0.00243,
-    0.00389
+    -0.00255,
+    0.0037
    ]
   },
   "tail": {
-   "n": 1568,
-   "mean": -0.0024,
+   "n": 1587,
+   "mean": -0.00248,
    "ci": [
-    -0.00402,
-    -0.00078
+    -0.00409,
+    -0.00087
    ]
   }
  },
  "H16": {
   "id": "H16",
-  "units": 233,
+  "units": 241,
   "need_units": 60,
-  "days": 38,
+  "days": 39,
   "need_days": 20,
-  "pending": 3,
+  "pending": 0,
   "cities": {
-   "ATL": 6,
+   "ATL": 7,
    "AUS": 8,
-   "BOS": 9,
+   "BOS": 10,
    "CHI": 6,
    "DAL": 12,
    "DC": 5,
-   "DEN": 10,
+   "DEN": 11,
    "EWR": 10,
    "HOU": 17,
-   "LAS": 23,
+   "LAS": 24,
    "LAX": 10,
    "MIA": 8,
    "MSP": 9,
@@ -109,12 +109,12 @@
    "NYC": 12,
    "OKC": 11,
    "PHL": 6,
-   "PHX": 21,
-   "SAN": 14,
+   "PHX": 22,
+   "SAN": 15,
    "SAT": 9,
-   "SEA": 9,
+   "SEA": 10,
    "SFO": 8,
-   "TTN": 5
+   "TTN": 6
   },
   "ready": true,
   "passed": false,
@@ -132,24 +132,24 @@
   },
   "context": {
    "current": {
-    "n": 233,
-    "mean_pnl_c": -1.06,
-    "lcb_c": -5.84,
-    "ucb_c": 3.72
+    "n": 241,
+    "mean_pnl_c": -0.54,
+    "lcb_c": -5.31,
+    "ucb_c": 4.23
    },
-   "hit": 0.266,
-   "mean_price": 26.2,
+   "hit": 0.27,
+   "mean_price": 26.0,
    "not_mode": {
-    "n": 173,
-    "mean_pnl_c": 0.0,
-    "lcb_c": -4.77,
-    "ucb_c": 4.77
+    "n": 179,
+    "mean_pnl_c": 0.8,
+    "lcb_c": -3.97,
+    "ucb_c": 5.57
    },
    "control_no_carry": {
-    "n": 233,
-    "mean_pnl_c": -7.3,
-    "lcb_c": -12.5,
-    "ucb_c": -2.1
+    "n": 241,
+    "mean_pnl_c": -6.9,
+    "lcb_c": -11.99,
+    "ucb_c": -1.81
    }
   }
  },
@@ -177,14 +177,45 @@
  },
  "H18": {
   "id": "H18",
-  "units": 56,
+  "units": 63,
   "need_units": 60,
-  "days": 22,
+  "days": 23,
   "need_days": 20,
-  "pending": 3,
-  "ready": false,
+  "pending": 0,
+  "ready": true,
   "passed": false,
-  "reason": "data bar not met"
+  "frozen": {
+   "read_at_units": 63,
+   "read_at_days": 23,
+   "read_on": "2026-11-17",
+   "passed": false,
+   "at_read": {
+    "n": 63,
+    "days": 23,
+    "mean_pnl_c": 4.57,
+    "lcb_c": -5.1,
+    "ucb_c": 14.24
+   }
+  },
+  "context": {
+   "current": {
+    "n": 63,
+    "days": 23,
+    "mean_pnl_c": 4.57,
+    "lcb_c": -5.1,
+    "ucb_c": 14.24
+   },
+   "hit": 0.492,
+   "mean_price": 42.9,
+   "settle_minus_proj": 0.27,
+   "adjacent_15_45": {
+    "n": 19,
+    "days": 13,
+    "mean_pnl_c": 2.89,
+    "lcb_c": -18.34,
+    "ucb_c": 24.13
+   }
+  }
  },
  "H19": {
   "id": "H19",
@@ -197,5 +228,5 @@
   "passed": false,
   "reason": "data bar not met"
  },
- "generated": "2026-11-16T17:06:16.115342Z"
+ "generated": "2026-11-17T10:39:06.924145Z"
 }
