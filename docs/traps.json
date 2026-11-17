@@ -1,25 +1,6 @@
 {
- "at": "2026-11-17T13:17:19.590442Z",
+ "at": "2026-11-17T14:17:21.615920Z",
  "traps": [
-  {
-   "city": "MIA",
-   "ceiling": 77,
-   "price": 88,
-   "p_model": 0.9898,
-   "p_market": 0.88,
-   "edge_pts": 11.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
   {
    "city": "LAS",
    "ceiling": 60,
@@ -38,10 +19,10 @@
   {
    "city": "PHX",
    "ceiling": 69,
-   "price": 99,
+   "price": 95,
    "p_model": 1.0,
-   "p_market": 0.99,
-   "edge_pts": 1.0,
+   "p_market": 0.95,
+   "edge_pts": 5.0,
    "size_lcb": 0.0,
    "signals": [
     {
