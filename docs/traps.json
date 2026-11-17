@@ -1,14 +1,29 @@
 {
- "at": "2026-11-17T17:14:31.424810Z",
+ "at": "2026-11-17T18:13:13.165747Z",
  "traps": [
+  {
+   "city": "DAL",
+   "ceiling": 62,
+   "price": 99,
+   "p_model": 1.0,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    }
+   ]
+  },
   {
    "city": "LAS",
    "ceiling": 60,
-   "price": 96,
+   "price": 99,
    "p_model": 1.0,
-   "p_market": 0.96,
-   "edge_pts": 4.0,
-   "size_lcb": 0.1963,
+   "p_market": 0.99,
+   "edge_pts": 1.0,
+   "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
