@@ -1,5 +1,78 @@
 {
- "at": "2026-11-17T16:14:25.299677Z",
- "tracked": [],
+ "at": "2026-11-17T17:14:32.125091Z",
+ "tracked": [
+  {
+   "city": "LAS",
+   "station": "KLAS",
+   "ticker": "KXHIGHTLV-26NOV17-T61",
+   "verdict": "DEAD_SCAVENGE",
+   "qualified": true,
+   "ceiling": 60,
+   "run_max": 60.8,
+   "gap_to_clear": -0.8,
+   "already_cleared": true,
+   "guide": 63,
+   "pop": 1,
+   "no_ask": 0.96,
+   "local_hour": 9,
+   "obs_trace": [
+    {
+     "ts": "2026-11-17T16:56:00Z",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:35:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:20:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:15:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:10:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:05:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T16:00:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-17T15:56:00Z",
+     "f": null
+    }
+   ],
+   "remaining_climb": {
+    "q10": 6.4,
+    "q50": 12.0,
+    "q90": 15.1
+   },
+   "projected_max": {
+    "q10": 67.2,
+    "q50": 72.8,
+    "q90": 75.9
+   },
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
+   "convergence_hour": 15,
+   "past_convergence": false,
+   "note": "still unresolved -- climb window open"
+  }
+ ],
  "note": "Projection is the EMPIRICAL remaining-climb range at this station and local hour, added to the running max. q10/q50/q90, not a point forecast. NO pays only if the max EXCEEDS the ceiling."
 }
