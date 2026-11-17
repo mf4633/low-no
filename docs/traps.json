@@ -1,22 +1,22 @@
 {
- "at": "2026-11-16T22:52:19.730245Z",
+ "at": "2026-11-17T00:47:55.338512Z",
  "traps": [
   {
    "city": "LAS",
    "ceiling": 65,
-   "price": 8,
-   "p_model": 0.2419,
-   "p_market": 0.08,
-   "edge_pts": 16.2,
-   "size_lcb": 0.0,
+   "price": 2,
+   "p_model": 0.0484,
+   "p_market": 0.02,
+   "edge_pts": 2.8,
+   "size_lcb": 0.0064,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
+     "code": "PAST_PEAK",
+     "why": "local hour 16:00 is past this station's measured convergence hour (15:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   }
