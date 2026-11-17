@@ -1,5 +1,5 @@
 {
- "at": "2026-11-17T00:47:55.332427Z",
+ "at": "2026-11-17T01:47:28.276589Z",
  "cities": [
   {
    "city": "AUS",
@@ -349,9 +349,9 @@
     "mode": "seasonal(m11,n=15)",
     "dist": "normal"
    },
-   "guide": 62,
+   "guide": 65,
    "run_max": 64.4,
-   "pop": 0,
+   "pop": 1,
    "rungs": [
     {
      "ticker": "KXHIGHDEN-26NOV16-T67",
@@ -360,10 +360,10 @@
      "kind": "top",
      "label": ">=68",
      "price": 100,
-     "p_no": 0.9891,
+     "p_no": 0.8626,
      "p_mkt": 1.0,
-     "edge": -0.0109,
-     "ev_c": -1.1,
+     "edge": -0.1374,
+     "ev_c": -13.7,
      "sigma": 1.73,
      "bias": -0.22,
      "dist": "normal",
@@ -410,10 +410,10 @@
      "kind": "range",
      "label": "66-67",
      "price": 100,
-     "p_no": 0.7318,
+     "p_no": 0.4988,
      "p_mkt": 1.0,
-     "edge": -0.2682,
-     "ev_c": -26.8,
+     "edge": -0.5012,
+     "ev_c": -50.1,
      "sigma": 1.73,
      "bias": -0.22,
      "dist": "normal",
@@ -437,21 +437,23 @@
      "kind": "range",
      "label": "64-65",
      "price": 1,
-     "p_no": 0.0,
+     "p_no": 0.4075,
      "p_mkt": 0.01,
-     "edge": -0.01,
-     "ev_c": -1.0,
+     "edge": 0.3975,
+     "ev_c": 39.3,
      "sigma": 1.73,
      "bias": -0.22,
      "dist": "normal",
-     "warn": [],
+     "warn": [
+      "model-market divergence >15pts -- market historically wins this regime"
+     ],
      "p_empirical": null,
      "emp_n": null,
      "emp_source": null,
      "p_source": "gaussian_only",
-     "half_kelly": 0.0,
+     "half_kelly": 0.2008,
      "half_kelly_lcb": 0.0,
-     "size_frac": 0.0,
+     "size_frac": 0.05,
      "size_cap": 0.05,
      "cap_binding": false
     },
@@ -519,7 +521,7 @@
    },
    "guide": 70,
    "run_max": 71.6,
-   "pop": 42,
+   "pop": 22,
    "rungs": [
     {
      "ticker": "KXHIGHLAX-26NOV16-T75",
@@ -536,7 +538,7 @@
      "bias": -2.23,
      "dist": "marine/unfit+convective",
      "warn": [
-      "PoP 42 -- Gaussian unfit on storm days",
+      "PoP 22 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -564,7 +566,7 @@
      "bias": -2.23,
      "dist": "marine/unfit+convective",
      "warn": [
-      "PoP 42 -- Gaussian unfit on storm days"
+      "PoP 22 -- Gaussian unfit on storm days"
      ],
      "p_empirical": 1.0,
      "emp_n": null,
@@ -591,7 +593,7 @@
      "bias": -2.23,
      "dist": "marine/unfit+convective",
      "warn": [
-      "PoP 42 -- Gaussian unfit on storm days",
+      "PoP 22 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -619,7 +621,7 @@
      "bias": -2.23,
      "dist": "marine/unfit+convective",
      "warn": [
-      "PoP 42 -- Gaussian unfit on storm days",
+      "PoP 22 -- Gaussian unfit on storm days",
       "model-market divergence >15pts -- market historically wins this regime"
      ],
      "p_empirical": null,
@@ -647,7 +649,7 @@
      "bias": -2.23,
      "dist": "marine/unfit+convective",
      "warn": [
-      "PoP 42 -- Gaussian unfit on storm days"
+      "PoP 22 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -674,7 +676,7 @@
      "bias": -2.23,
      "dist": "marine/unfit+convective",
      "warn": [
-      "PoP 42 -- Gaussian unfit on storm days"
+      "PoP 22 -- Gaussian unfit on storm days"
      ],
      "p_empirical": null,
      "emp_n": null,
@@ -1488,11 +1490,11 @@
      "floor": 54,
      "kind": "range",
      "label": "54-55",
-     "price": 99,
+     "price": 100,
      "p_no": 0.6135,
-     "p_mkt": 0.99,
-     "edge": -0.3765,
-     "ev_c": -38.3,
+     "p_mkt": 1.0,
+     "edge": -0.3865,
+     "ev_c": -38.6,
      "sigma": 2.41,
      "bias": -0.06,
      "dist": "normal+convective",
@@ -2105,7 +2107,7 @@
     "mode": "seasonal(m11,n=15)",
     "dist": "normal"
    },
-   "guide": 61,
+   "guide": 65,
    "run_max": 62.6,
    "pop": 0,
    "rungs": [
@@ -2646,22 +2648,24 @@
      "floor": null,
      "kind": "bottom",
      "label": "<=65",
-     "price": 2,
-     "p_no": 0.0484,
-     "p_mkt": 0.02,
-     "edge": 0.0284,
-     "ev_c": 2.8,
+     "price": 1,
+     "p_no": 0.6628,
+     "p_mkt": 0.01,
+     "edge": 0.6528,
+     "ev_c": 64.6,
      "sigma": 1.53,
      "bias": -0.15,
      "dist": "normal",
-     "warn": [],
-     "p_empirical": 0.014,
-     "emp_n": 212,
-     "emp_source": "cell:LAS|16",
-     "p_source": "blend(w_emp=0.96)",
-     "half_kelly": 0.0145,
-     "half_kelly_lcb": 0.0064,
-     "size_frac": 0.0064,
+     "warn": [
+      "model-market divergence >15pts -- market historically wins this regime"
+     ],
+     "p_empirical": 0.6617,
+     "emp_n": 2070,
+     "emp_source": "pooled:LAS",
+     "p_source": "blend(w_emp=1.0)",
+     "half_kelly": 0.3297,
+     "half_kelly_lcb": 0.0,
+     "size_frac": 0.05,
      "size_cap": 0.05,
      "cap_binding": false
     },
@@ -3484,7 +3488,7 @@
     "mode": "seasonal(m11,n=15)",
     "dist": "normal"
    },
-   "guide": 57,
+   "guide": 64,
    "run_max": 57.2,
    "pop": 0,
    "rungs": [
@@ -3495,10 +3499,10 @@
      "kind": "top",
      "label": ">=60",
      "price": 100,
-     "p_no": 0.713,
+     "p_no": 0.0286,
      "p_mkt": 1.0,
-     "edge": -0.287,
-     "ev_c": -28.7,
+     "edge": -0.9714,
+     "ev_c": -97.1,
      "sigma": 2.32,
      "bias": 0.16,
      "dist": "normal",
@@ -3547,10 +3551,10 @@
      "kind": "range",
      "label": "58-59",
      "price": 1,
-     "p_no": 0.4018,
+     "p_no": 0.9724,
      "p_mkt": 0.01,
-     "edge": 0.3918,
-     "ev_c": 38.8,
+     "edge": 0.9624,
+     "ev_c": 95.3,
      "sigma": 2.32,
      "bias": 0.16,
      "dist": "normal",
@@ -3561,7 +3565,7 @@
      "emp_n": null,
      "emp_source": null,
      "p_source": "gaussian_only",
-     "half_kelly": 0.1979,
+     "half_kelly": 0.4861,
      "half_kelly_lcb": 0.0,
      "size_frac": 0.05,
      "size_cap": 0.05,
