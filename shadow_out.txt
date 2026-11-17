@@ -9,7 +9,7 @@ om_metno     22531    87  -1.50  2.24  2.78    51%
 om_ecmwf     22878    87  -1.26  2.73  3.49    44%
 mean            42     1  -0.49  1.45  1.64    71%   unranked (<5 days)
 median          42     1  -0.66  1.44  1.64    76%   unranked (<5 days)
-spend: 561 calls, est $7.9943 spent, $-2.99 left (~-210 calls)
+spend: 564 calls, est $8.0370 spent, $-3.04 left (~-213 calls)
 rung-obs 153500 -> 2372 independent units over 102 days
   band   n   w    hit   need    LCB UCBfix     pnl   verdict
   1-10 180   4     2%   5.8%     1%     6%    -3.6   RETIRED
@@ -57,13 +57,13 @@ station guide bias (guide - CLI): {'LAX': -2.36, 'BOS': -1.48, 'MSP': -0.87, 'NY
  PREREG_yes10_hotbias3   0   0     --    0%       --
    yes10_hotbias3_live   0   0     --    0%       --
 
-scan coverage BELOW 8 cycles on 16 day(s): {'2026-10-15': 7, '2026-10-17': 7, '2026-11-01': 6, '2026-11-06': 5, '2026-11-17': 2} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
+scan coverage BELOW 8 cycles on 16 day(s): {'2026-10-15': 7, '2026-10-17': 7, '2026-11-01': 6, '2026-11-06': 5, '2026-11-17': 4} (of 11 scheduled) -- first-qualifying-cycle entries on these days sample later prices
 
 PREREG_yes10_hotbias3: CLOSED -- REFUTED 2026-08-27, n=0 (no station clears +3F bias; CANDIDATE.md YES Pilot v1). Not accruing.
 
 PAPER PILOT $100 @ 2026-08-26 (p_hyp 6.8%, half-Kelly, cap 5%): $100.00 after 0 trades (0 wins, 0 skipped), status ACTIVE; quit lines $40 / $5000
   HYPOTHESIS REFUTED 2026-08-27: hot-bias premise was a CLI parser artifact. Measured rate 3.1% vs breakeven 2.6% (LCB 1.5%). No station clears the bias gate, so the pilot correctly trades nothing. NO SEED. See CANDIDATE.md.
-  status.json written (lowno.status/1): 102 days, 4 hypothesis bar(s) still short
+  status.json written (lowno.status/1): 102 days, 3 hypothesis bar(s) still short
 
 HYPOTHESIS PROGRESS (data bars, not results)
   H6    market prices off the stale print [####################] 344/200 print transitions  +49/20 distinct days; poll data starts 2026-08-31, NYC/DEN only
@@ -73,7 +73,7 @@ HYPOTHESIS PROGRESS (data bars, not results)
   H15   LAX marine-layer regime not in the price [########............] 8/20 distinct LAX marine-stratum days with a book  +registered 2026-09-12, full text docs/H15.md; harness h15_lax.py + test_h15_lax.py written 2026-10-14 BEFORE any H15 score was computed (rules in the H15.md addendum). Scored at 19Z (12 PDT) on the bottom-rung poll book in logs/poll_lax/; verdict read ONCE to docs/frozen/h15_verdict.json. At ~25% marine rate the bar lands ~early Dec, close to the 12-31 stop
   H17   LAX temp-anchored marine regime beats the price [###########.........] 33/60 graded trades (model P - ask >= .15)  +registered 2026-10-14, CANDIDATE.md HYPOTHESIS 17; forward-only from 10-15, retro gate on 8/10-9/11 in docs/frozen/h17_retro.json. data bar not met
   H18   growing warm overshoot bucket underpriced [####################] 63/60 graded city-day units  +registered 2026-10-20, CANDIDATE.md HYPOTHESIS 18; forward-only from 10-21; warm only, dev2>=1.5 and grew >=1.0 over 45-120 min, 9-13 local; verdict read ONCE to docs/frozen/h18_verdict.json. Needs morning scans
-  H19   late day overpays for one more degree [###################.] 126/60 graded rung units  +registered 2026-10-24, CANDIDATE.md HYPOTHESIS 19; forward-only from 10-25; 16-19 local, YES on the leader at 71-90c + NO on the bucket 1-2F above at 11-30c, hold; graded after the day by h19-collect.yml; verdict read ONCE to docs/frozen/h19_verdict.json
+  H19   late day overpays for one more degree [####################] 130/60 graded rung units  +registered 2026-10-24, CANDIDATE.md HYPOTHESIS 19; forward-only from 10-25; 16-19 local, YES on the leader at 71-90c + NO on the bucket 1-2F above at 11-30c, hold; graded after the day by h19-collect.yml; verdict read ONCE to docs/frozen/h19_verdict.json
   H1    hot-bias (REFUTED 2026-08-27) [####################] 0/0 closed  +do not revive
   H2    early exit (REFUTED 2026-08-27) [####################] 0/0 closed  +expectancy set at entry
   H3    settlement gap (NOT SUPPORTED) [####################] 0/0 closed  +real but priced

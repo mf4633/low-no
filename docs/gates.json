@@ -12,8 +12,8 @@
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1846,
-  "days": 81,
+  "events": 1849,
+  "days": 82,
   "lag_corr": 0.004,
   "lag_ci": [
    -0.041,
@@ -90,7 +90,7 @@
   "need_units": 60,
   "days": 39,
   "need_days": 20,
-  "pending": 0,
+  "pending": 4,
   "cities": {
    "ATL": 7,
    "AUS": 8,
@@ -181,7 +181,7 @@
   "need_units": 60,
   "days": 23,
   "need_days": 20,
-  "pending": 0,
+  "pending": 2,
   "ready": true,
   "passed": false,
   "frozen": {
@@ -219,14 +219,58 @@
  },
  "H19": {
   "id": "H19",
-  "units": 126,
+  "units": 130,
   "need_units": 60,
-  "days": 19,
+  "days": 20,
   "need_days": 20,
   "pending": 0,
-  "ready": false,
+  "ready": true,
   "passed": false,
-  "reason": "data bar not met"
+  "frozen": {
+   "read_at_units": 130,
+   "read_at_days": 20,
+   "read_on": "2026-11-17",
+   "passed": false,
+   "at_read": {
+    "n": 130,
+    "days": 20,
+    "mean_pnl_c": -11.05,
+    "lcb_c": -21.92,
+    "ucb_c": -0.17
+   }
+  },
+  "context": {
+   "current": {
+    "n": 130,
+    "days": 20,
+    "mean_pnl_c": -11.05,
+    "lcb_c": -21.92,
+    "ucb_c": -0.17
+   },
+   "leg_A": {
+    "n": 71,
+    "days": 19,
+    "mean_pnl_c": -12.15,
+    "lcb_c": -21.98,
+    "ucb_c": -2.33
+   },
+   "leg_B": {
+    "n": 59,
+    "days": 20,
+    "mean_pnl_c": -9.71,
+    "lcb_c": -22.39,
+    "ucb_c": 2.97
+   },
+   "exact_fee": {
+    "n": 130,
+    "days": 20,
+    "mean_pnl_c": -10.56,
+    "lcb_c": -21.42,
+    "ucb_c": 0.31
+   },
+   "hit": 0.769,
+   "mean_price": 86.7
+  }
  },
- "generated": "2026-11-17T13:58:20.510160Z"
+ "generated": "2026-11-17T16:59:46.747897Z"
 }

@@ -8,6 +8,7 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
-- **LAS** DEAD_SCAVENGE @ 0.94 ceil 60 guide 63 -> CLI None :: **UNGRADED**
+- **LAS** DEAD_SCAVENGE @ 0.97 ceil 60 guide 63 -> CLI None :: **UNGRADED**
+- **PHX** DEAD_SCAVENGE @ 0.95 ceil 69 guide 73 -> CLI None :: **UNGRADED**  _most inert station; monsoon debris only bust mode. Td 60s+ raises min floor._
 
 no qualified flags today -- a complete and acceptable outcome
