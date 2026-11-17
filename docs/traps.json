@@ -1,33 +1,18 @@
 {
- "at": "2026-11-17T14:17:21.615920Z",
+ "at": "2026-11-17T15:18:22.277853Z",
  "traps": [
   {
    "city": "LAS",
    "ceiling": 60,
-   "price": 94,
+   "price": 97,
    "p_model": 1.0,
-   "p_market": 0.94,
-   "edge_pts": 6.0,
-   "size_lcb": 0.2975,
+   "p_market": 0.97,
+   "edge_pts": 3.0,
+   "size_lcb": 0.0951,
    "signals": [
     {
      "code": "BOUNDARY",
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    }
-   ]
-  },
-  {
-   "city": "PHX",
-   "ceiling": 69,
-   "price": 95,
-   "p_model": 1.0,
-   "p_market": 0.95,
-   "edge_pts": 5.0,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     }
    ]
   }
