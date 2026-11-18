@@ -1,5 +1,29 @@
 {
- "at": "2026-11-18T18:27:27.647701Z",
- "traps": [],
+ "at": "2026-11-18T21:24:34.620866Z",
+ "traps": [
+  {
+   "city": "HOU",
+   "ceiling": 68,
+   "price": 32,
+   "p_model": 0.6263,
+   "p_market": 0.32,
+   "edge_pts": 30.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 31 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
+    }
+   ]
+  }
+ ],
  "note": "Rungs with POSITIVE model edge that carry at least one measured trap signal. The board sorts by edge; the largest edges are systematically the worst bets, because a big model-market gap at a station the model barely knows is a statement about the model."
 }
