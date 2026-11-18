@@ -8,5 +8,6 @@ attribution codes:
   DATA_GAP       obs/guidance unverifiable at scan time -- should have been PASS
   UNGRADED       no CLI found yet
 
+- **SFO** DEAD_SCAVENGE @ 0.98 ceil 55 guide 60 -> CLI None :: **UNGRADED**  _gap station: flips offshore a day before LAX. Weak NE drainage collapses to W reversal - timing city._
 
 no qualified flags today -- a complete and acceptable outcome
