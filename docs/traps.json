@@ -1,26 +1,26 @@
 {
- "at": "2026-11-18T21:24:34.620866Z",
+ "at": "2026-11-18T22:25:46.331385Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 68,
-   "price": 32,
-   "p_model": 0.6263,
-   "p_market": 0.32,
-   "edge_pts": 30.6,
+   "price": 31,
+   "p_model": 0.5359,
+   "p_market": 0.31,
+   "edge_pts": 22.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 31 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 23 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "32c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "31c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 15:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   }
