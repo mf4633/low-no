@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-11-18T16:36:45.729565Z",
+ "generated": "2026-11-19T10:19:02.320570Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 103,
+  "logged_days": 104,
   "first_day": "2026-08-07",
-  "last_day": "2026-11-17",
-  "rung_observations": 154742,
-  "independent_units": 2389,
+  "last_day": "2026-11-18",
+  "rung_observations": 156122,
+  "independent_units": 2396,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -124,13 +124,13 @@
    "2026-11-15": 11,
    "2026-11-16": 12,
    "2026-11-17": 9,
-   "2026-11-18": 3
+   "2026-11-18": 9
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 2248,
-  "settlements_verified": 2068,
+  "settlements_cached": 2271,
+  "settlements_verified": 2091,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -154,17 +154,17 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 344,
+    "have": 351,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 49,
+     "have": 50,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "49/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "50/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
@@ -188,7 +188,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 139,
+    "have": 140,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -200,12 +200,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 251,
+    "have": 259,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 40,
+     "have": 41,
      "need": 20,
      "unit": "distinct days"
     }
@@ -251,12 +251,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 69,
+    "have": 70,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 24,
+     "have": 25,
      "need": 20,
      "unit": "distinct days"
     }
@@ -349,7 +349,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 139,
+    "have": 140,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
