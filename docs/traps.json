@@ -1,13 +1,51 @@
 {
- "at": "2026-11-19T16:14:22.801879Z",
+ "at": "2026-11-19T17:14:07.693746Z",
  "traps": [
+  {
+   "city": "SAN",
+   "ceiling": 66,
+   "price": 98,
+   "p_model": 0.9913,
+   "p_market": 0.98,
+   "edge_pts": 1.1,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
+  {
+   "city": "MSP",
+   "ceiling": 54,
+   "price": 94,
+   "p_model": 0.9469,
+   "p_market": 0.94,
+   "edge_pts": 0.7,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    }
+   ]
+  },
   {
    "city": "SFO",
    "ceiling": 55,
-   "price": 93,
-   "p_model": 0.9664,
-   "p_market": 0.93,
-   "edge_pts": 3.6,
+   "price": 97,
+   "p_model": 0.9759,
+   "p_market": 0.97,
+   "edge_pts": 0.6,
    "size_lcb": 0.0,
    "signals": [
     {
