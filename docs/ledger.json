@@ -45518,13 +45518,272 @@
       "reasoning": "Current KBOS is 15.0\u00b0C (59\u00b0F) at 15:54Z with calm winds (00000KT), CLR skies. Diurnal curve peaks at 64\u00b0F hours 14-15Z, already passed \u2014 the curve_max is 64\u00b0F but we're at 59\u00b0F with the solar peak behind us. Wind has gone calm/light, suggesting post-peak stall. NWS guides 67\u00b0F but ECMWF (60.9\u00b0F) and MetNo (60.6\u00b0F) cluster near or below the 62\u00b0F ceiling. The ladder B63.5 YES at 28\u00a2 implies meaningful probability of staying below 64\u00b0F. The cap requires >62\u00b0F; current pace and the calm post-peak wind profile argue the day has topped out near 59\u00b0F. Heat mechanism absent.",
       "watch": "KBOS hourly tick at 16:54Z \u2014 if it prints 16\u00b0C+ (61\u00b0F+) the trajectory reopens; if flat or falling, day is capped well below 62\u00b0F"
      },
-     "settle": null,
-     "attribution": "UNGRADED"
+     "settle": 63,
+     "attribution": "WIN"
+    },
+    {
+     "date": "2026-11-19",
+     "city": "HOU",
+     "station": "KHOU",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTHOU-26NOV19-T73",
+      "ceiling": 72,
+      "no_ask": 0.93,
+      "quote_src": "native",
+      "yes_bid": 7,
+      "run_max": 66.92,
+      "guide": 76,
+      "pop": 0,
+      "G": 4,
+      "net_cents": 6.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "HOU",
+       "status": "ok",
+       "upwind_bearing": 50,
+       "target_temp_f": 66.2,
+       "target_dew_f": 57.2,
+       "wind_mps": 11.124,
+       "upstream": [
+        {
+         "station": "KBPT",
+         "ts": "2026-11-19T16:40:00+00:00",
+         "temp_f": 69.8,
+         "dew_f": 59.0,
+         "wind_dir": 60,
+         "wind_mps": 7.416,
+         "km": 126.1,
+         "bearing": 73.6,
+         "name": "Beaumont/Port Arthur Southeast Texas Regional Airport"
+        }
+       ],
+       "max_upstream_temp_f": 69.8,
+       "advection_potential_f": 3.6,
+       "dew_differential_f": 1.8,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "CLR",
+       "base_ft": 12500,
+       "layers": [
+        {
+         "amount": "CLR",
+         "base_ft": 12500
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "obs_feed": {
+       "nws_latest": "2026-11-19T16:40:00+00:00",
+       "awc_latest": "2026-11-19T16:53:00Z",
+       "used": "2026-11-19T16:53:00Z",
+       "used_src": "awc"
+      },
+      "run_max_detail": {
+       "run_max": 66.92,
+       "source": "metar",
+       "n_metar": 12,
+       "n_obs": 45
+      },
+      "sst": {
+       "buoy": "42035",
+       "sst_f": 70.0,
+       "obs_utc": "2026-11-19T16:40"
+      },
+      "forecasts": {
+       "nws_grid": 76.0,
+       "om_best": 74.3,
+       "om_ecmwf": 73.2,
+       "om_gfs": 74.3,
+       "om_icon": 73.9,
+       "om_metno": 73.3
+      },
+      "airmass": {
+       "t850_max_f": 51.1,
+       "z500_max_m": 5853,
+       "soil_m3m3": 0.387,
+       "curve": {
+        "0": 57.6,
+        "1": 57.7,
+        "2": 56.6,
+        "3": 56.6,
+        "4": 56.7,
+        "5": 57.0,
+        "6": 57.2,
+        "7": 57.5,
+        "8": 59.0,
+        "9": 63.2,
+        "10": 67.5,
+        "11": 70.6,
+        "12": 73.4,
+        "13": 74.3,
+        "14": 73.9,
+        "15": 74.3,
+        "16": 73.9,
+        "17": 72.2,
+        "18": 68.3,
+        "19": 66.4,
+        "20": 64.0,
+        "21": 62.6,
+        "22": 60.9,
+        "23": 59.6
+       },
+       "curve_max_f": 74.3
+      },
+      "temp_now": 66.9,
+      "curve_pred_now": 70.6,
+      "curve_dev": -3.7,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 93,
+       "depth_at_best": 3,
+       "depth_le_max": 148,
+       "notional_le_max": 143.93,
+       "levels": [
+        [
+         93,
+         3
+        ],
+        [
+         94,
+         1
+        ],
+        [
+         96,
+         1
+        ],
+        [
+         97,
+         90
+        ],
+        [
+         98,
+         53
+        ]
+       ],
+       "yes_best_ask": 9,
+       "yes_ctr_le_10c": 124,
+       "yes_usd_le_10c": 12.22
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-11-19T16:53:00Z",
+         "tC": 19.4
+        },
+        {
+         "ts": "2026-11-19T16:40:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-11-19T16:30:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-11-19T16:25:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-11-19T16:00:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-19T15:55:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-19T15:53:00+00:00",
+         "tC": 17.8
+        },
+        {
+         "ts": "2026-11-19T15:50:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-19T15:30:00+00:00",
+         "tC": 17
+        },
+        {
+         "ts": "2026-11-19T15:25:00+00:00",
+         "tC": 17
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTHOU-26NOV19-T80",
+         "cap": null,
+         "floor": 81,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTHOU-26NOV19-T73",
+         "cap": 72,
+         "floor": null,
+         "no_ask": 93,
+         "yes_bid": 7
+        },
+        {
+         "ticker": "KXHIGHTHOU-26NOV19-B79.5",
+         "cap": 80,
+         "floor": 79,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTHOU-26NOV19-B77.5",
+         "cap": 78,
+         "floor": 77,
+         "no_ask": 91,
+         "yes_bid": 9
+        },
+        {
+         "ticker": "KXHIGHTHOU-26NOV19-B75.5",
+         "cap": 76,
+         "floor": 75,
+         "no_ask": 60,
+         "yes_bid": 40
+        },
+        {
+         "ticker": "KXHIGHTHOU-26NOV19-B73.5",
+         "cap": 74,
+         "floor": 73,
+         "no_ask": 61,
+         "yes_bid": 39
+        }
+       ],
+       "wx": "Clear"
+      },
+      "model": {
+       "p_exceed_cap": 0.5448,
+       "p_source": "blend(w_emp=0.96)",
+       "p_empirical": 0.5291,
+       "emp_n": 204,
+       "sigma": 2.46,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "OVERRIDE_TO_PASS",
+      "confidence": 0.72,
+      "p_exceed": 0.42,
+      "reasoning": "Current temp 66.9F at 16:53Z (10:53 CST) with run_max 66.9F. Guidance 73-76F but pace deficit is ~7-8F vs curve_pred 70.6F, actual -3.7F below curve already. NNE/ENE wind 4-8kt with OVC250 (high cirrus, minimal suppression). However, upstream KBPT shows 69.8F ceiling on incoming air; with onshore NE flow, advection limits further gains. Models cluster 73-76F but current trajectory is well below pace. Curve peak at 13-16Z shows 74-75F, but we're already past the peak heating window in November (sunset ~17:30 CST). Time remaining insufficient to close a 6-7F gap from 66.9F to exceed 72F ceiling. November day length is the kill: solar angle too low to drive the required heating rate.",
+      "watch": "16:53Z METAR temp \u2014 if next obs shows 68F+ (a 1F+ jump in one cycle), reassess; otherwise heating is effectively done"
+     },
+     "settle": 76,
+     "attribution": "WIN"
     }
    ]
   }
  ],
- "generated": "2026-11-19T16:35:03.264627Z",
+ "generated": "2026-11-20T09:56:32.069232Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
