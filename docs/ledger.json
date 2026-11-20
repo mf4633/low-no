@@ -45784,10 +45784,246 @@
   },
   {
    "date": "2026-11-20",
-   "flags": []
+   "flags": [
+    {
+     "date": "2026-11-20",
+     "city": "MIA",
+     "station": "KMIA",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHMIA-26NOV20-T80",
+      "ceiling": 79,
+      "no_ask": 0.96,
+      "quote_src": "native",
+      "yes_bid": 4,
+      "run_max": 75.92,
+      "guide": 83,
+      "pop": 3,
+      "G": 4,
+      "net_cents": 3.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "MIA",
+       "status": "ok",
+       "upwind_bearing": 200,
+       "target_temp_f": 75.2,
+       "target_dew_f": 71.6,
+       "wind_mps": 7.416,
+       "upstream": [
+        {
+         "station": "KHST",
+         "ts": "2026-11-20T14:55:00+00:00",
+         "temp_f": 74.3,
+         "dew_f": 69.4,
+         "wind_dir": 250,
+         "wind_mps": 7.56,
+         "km": 34.6,
+         "bearing": 194.5,
+         "name": "Homestead Air Reserve Base"
+        },
+        {
+         "station": "KMTH",
+         "ts": "2026-11-20T15:50:00+00:00",
+         "temp_f": 78.8,
+         "dew_f": 71.6,
+         "wind_dir": 320,
+         "wind_mps": 5.544,
+         "km": 141.4,
+         "bearing": 212.9,
+         "name": "The Florida Keys - Marathon International Airport"
+        }
+       ],
+       "max_upstream_temp_f": 78.8,
+       "advection_potential_f": 3.6,
+       "dew_differential_f": 0.0,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "OVC",
+       "base_ft": 1700,
+       "layers": [
+        {
+         "amount": "BKN",
+         "base_ft": 900
+        },
+        {
+         "amount": "OVC",
+         "base_ft": 1700
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "obs_feed": {
+       "nws_latest": "2026-11-20T15:35:00+00:00",
+       "awc_latest": "2026-11-20T15:53:00Z",
+       "used": "2026-11-20T15:53:00Z",
+       "used_src": "awc"
+      },
+      "run_max_detail": {
+       "run_max": 75.92,
+       "source": "metar",
+       "n_metar": 14,
+       "n_obs": 58
+      },
+      "sst": {
+       "buoy": "VAKF1",
+       "sst_f": 75.7,
+       "obs_utc": "2026-11-20T15:18"
+      },
+      "forecasts": {
+       "nws_grid": 83.0,
+       "om_best": null,
+       "om_ecmwf": null,
+       "om_gfs": null,
+       "om_icon": null,
+       "om_metno": null
+      },
+      "airmass": null,
+      "temp_now": 75.9,
+      "curve_pred_now": null,
+      "curve_dev": null,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 96,
+       "depth_at_best": 67,
+       "depth_le_max": 377,
+       "notional_le_max": 367.61,
+       "levels": [
+        [
+         96,
+         67
+        ],
+        [
+         97,
+         51
+        ],
+        [
+         98,
+         259
+        ]
+       ],
+       "yes_best_ask": 7,
+       "yes_ctr_le_10c": 287,
+       "yes_usd_le_10c": 26.6
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-11-20T15:53:00Z",
+         "tC": 24.4
+        },
+        {
+         "ts": "2026-11-20T15:35:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-11-20T15:30:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-11-20T15:25:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-11-20T15:20:00+00:00",
+         "tC": 24
+        },
+        {
+         "ts": "2026-11-20T15:15:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-11-20T14:53:00+00:00",
+         "tC": 23.3
+        },
+        {
+         "ts": "2026-11-20T14:45:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-11-20T14:35:00+00:00",
+         "tC": 23
+        },
+        {
+         "ts": "2026-11-20T14:30:00+00:00",
+         "tC": 23
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHMIA-26NOV20-T87",
+         "cap": null,
+         "floor": 88,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHMIA-26NOV20-T80",
+         "cap": 79,
+         "floor": null,
+         "no_ask": 96,
+         "yes_bid": 4
+        },
+        {
+         "ticker": "KXHIGHMIA-26NOV20-B86.5",
+         "cap": 87,
+         "floor": 86,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHMIA-26NOV20-B84.5",
+         "cap": 85,
+         "floor": 84,
+         "no_ask": 91,
+         "yes_bid": 9
+        },
+        {
+         "ticker": "KXHIGHMIA-26NOV20-B82.5",
+         "cap": 83,
+         "floor": 82,
+         "no_ask": 48,
+         "yes_bid": 52
+        },
+        {
+         "ticker": "KXHIGHMIA-26NOV20-B80.5",
+         "cap": 81,
+         "floor": 80,
+         "no_ask": 70,
+         "yes_bid": 30
+        }
+       ],
+       "wx": "Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 0.399,
+       "p_source": "blend(w_emp=0.95)",
+       "p_empirical": 0.3688,
+       "emp_n": 158,
+       "sigma": 1.52,
+       "size_frac": 0.0
+      }
+     },
+     "advisor": {
+      "verdict": "OVERRIDE_TO_PASS",
+      "confidence": 0.88,
+      "p_exceed": 0.12,
+      "reasoning": "BKN009/BKN018 OVC deck at 900-1700ft is a hard lid. Run-max 75.9F at 15:53Z, pace deficit ~7F vs 83F guidance with ~3-4hrs remaining. OVC cover suppressing insolation entirely; no deck-dissolution signal (bases holding 800-900ft print-over-print, slight lowering trend). Marine onshore flow S/SW 5-11kt consistent with sea-breeze regime pinning coastal temps near dewpoint. KHST upstream only 74.3F at 34km south. Market pricing 80-81F bucket at 30\u00a2 YES implies consensus ~low-80s max \u2014 well above cap but ceiling itself still a barrier. Day is running cool/suppressed; NO wins only if max >79F, but current temp 75.9F with thick low cloud argues strongly against reaching 80F. This is a cool/suppressed regime \u2014 AGAINST the low-no position.",
+      "watch": "BKN/OVC bases rising above 2500ft would signal dissolution and potential afternoon rally toward 80F+"
+     },
+     "settle": null,
+     "attribution": "UNGRADED"
+    }
+   ]
   }
  ],
- "generated": "2026-11-20T13:35:48.704339Z",
+ "generated": "2026-11-20T16:10:00.067245Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
