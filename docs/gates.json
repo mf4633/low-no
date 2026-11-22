@@ -2,22 +2,22 @@
  "H4a": {
   "id": "H4a",
   "ready": true,
-  "passed": true,
-  "n": 8523,
-  "brier_base": 0.1242,
-  "brier_shape": 0.1241,
-  "improvement_pct": 0.07
+  "passed": false,
+  "n": 8676,
+  "brier_base": 0.1235,
+  "brier_shape": 0.1236,
+  "improvement_pct": -0.07
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1873,
-  "days": 84,
-  "lag_corr": 0.004,
+  "events": 1879,
+  "days": 85,
+  "lag_corr": 0.002,
   "lag_ci": [
-   -0.041,
-   0.05
+   -0.044,
+   0.047
   ]
  },
  "H6": {
@@ -34,17 +34,17 @@
  },
  "H7": {
   "id": "H7",
-  "pooled_n": 7422,
+  "pooled_n": 7542,
   "hourly": {
-   "n": 513,
-   "brier_base": 0.1511,
-   "brier_shape": 0.1559,
+   "n": 525,
+   "brier_base": 0.15,
+   "brier_shape": 0.1549,
    "improved": false
   },
   "control": {
-   "n": 6909,
-   "brier_base": 0.1198,
-   "brier_shape": 0.1199,
+   "n": 7017,
+   "brier_base": 0.1191,
+   "brier_shape": 0.1191,
    "improved": false
   },
   "ready": true,
@@ -55,9 +55,9 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 2162,
-   "stalled_off": 1304,
-   "climbing_on": 2208,
+   "stalled_on": 2181,
+   "stalled_off": 1324,
+   "climbing_on": 2213,
    "climbing_off": 140
   },
   "need_per_group": 150,
@@ -68,19 +68,19 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 857,
-   "mean": 0.00089,
+   "n": 861,
+   "mean": 0.00081,
    "ci": [
-    -0.00209,
-    0.00387
+    -0.00218,
+    0.0038
    ]
   },
   "tail": {
    "n": 1661,
-   "mean": -0.00216,
+   "mean": -0.00227,
    "ci": [
-    -0.00369,
-    -0.00062
+    -0.00382,
+    -0.00073
    ]
   }
  },
@@ -157,7 +157,7 @@
   "id": "H15",
   "marine_days": 8,
   "need_marine": 20,
-  "control_days": 36,
+  "control_days": 37,
   "need_control": 10,
   "context_days": 7,
   "pending": 0,
@@ -272,5 +272,5 @@
    "mean_price": 86.7
   }
  },
- "generated": "2026-11-21T15:27:39.239266Z"
+ "generated": "2026-11-22T09:45:45.379413Z"
 }
