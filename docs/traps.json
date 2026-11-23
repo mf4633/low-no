@@ -1,13 +1,13 @@
 {
- "at": "2026-11-23T14:16:42.536975Z",
+ "at": "2026-11-23T15:13:42.850126Z",
  "traps": [
   {
    "city": "HOU",
    "ceiling": 67,
    "price": 10,
-   "p_model": 0.8675,
+   "p_model": 0.7718,
    "p_market": 0.1,
-   "edge_pts": 76.8,
+   "edge_pts": 67.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -16,17 +16,17 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 77 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 67 pts. In this ledger the market won 7 of 8 such disputes."
     }
    ]
   },
   {
    "city": "DEN",
    "ceiling": 39,
-   "price": 27,
-   "p_model": 0.8635,
-   "p_market": 0.27,
-   "edge_pts": 59.4,
+   "price": 26,
+   "p_model": 0.8731,
+   "p_market": 0.26,
+   "edge_pts": 61.3,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -35,21 +35,21 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 59 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 61 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "27c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "26c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "AUS",
    "ceiling": 60,
-   "price": 49,
-   "p_model": 0.9193,
-   "p_market": 0.49,
-   "edge_pts": 42.9,
+   "price": 56,
+   "p_model": 0.9265,
+   "p_market": 0.56,
+   "edge_pts": 36.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -58,40 +58,21 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 43 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 37 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "GRAVEYARD",
-     "why": "49c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    }
-   ]
-  },
-  {
-   "city": "ATL",
-   "ceiling": 67,
-   "price": 67,
-   "p_model": 0.9106,
-   "p_market": 0.67,
-   "edge_pts": 24.1,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "67c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "56c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
    "city": "MSY",
    "ceiling": 69,
-   "price": 84,
-   "p_model": 0.9225,
-   "p_market": 0.84,
-   "edge_pts": 8.2,
+   "price": 78,
+   "p_model": 0.9782,
+   "p_market": 0.78,
+   "edge_pts": 19.8,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -99,12 +80,31 @@
      "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 20 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "GRAVEYARD",
-     "why": "84c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "ATL",
+   "ceiling": 67,
+   "price": 81,
+   "p_model": 0.8963,
+   "p_market": 0.81,
+   "edge_pts": 8.6,
+   "size_lcb": 0.1781,
+   "signals": [
+    {
+     "code": "GRAVEYARD",
+     "why": "81c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
