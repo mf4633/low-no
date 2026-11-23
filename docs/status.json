@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-11-22T15:21:53.452657Z",
+ "generated": "2026-11-23T10:46:59.565491Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 107,
+  "logged_days": 108,
   "first_day": "2026-08-07",
-  "last_day": "2026-11-21",
-  "rung_observations": 159572,
-  "independent_units": 2435,
+  "last_day": "2026-11-22",
+  "rung_observations": 160262,
+  "independent_units": 2442,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -127,13 +127,14 @@
    "2026-11-18": 9,
    "2026-11-19": 9,
    "2026-11-20": 8,
-   "2026-11-21": 3
+   "2026-11-21": 3,
+   "2026-11-22": 4
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 2340,
-  "settlements_verified": 2160,
+  "settlements_cached": 2363,
+  "settlements_verified": 2183,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -141,11 +142,9 @@
   "no_bands_proven": [],
   "yes_bands_proven_nominal": [],
   "no_bands_retired": [
-   "1-10",
    "31-40",
    "41-50",
    "71-80",
-   "81-90",
    "91-95",
    "96-98"
   ],
@@ -157,17 +156,17 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 351,
+    "have": 355,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 50,
+     "have": 51,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "50/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "51/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
@@ -191,7 +190,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 140,
+    "have": 141,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false
@@ -352,7 +351,7 @@
    "name": "run_max/temp_now gap (H4a x H7)",
    "status": "open",
    "bar": {
-    "have": 140,
+    "have": 141,
     "need": 150,
     "unit": "samples in 'climbing_off'",
     "ready": false

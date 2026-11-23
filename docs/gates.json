@@ -4,19 +4,19 @@
   "ready": true,
   "passed": false,
   "n": 8676,
-  "brier_base": 0.1235,
+  "brier_base": 0.1236,
   "brier_shape": 0.1236,
-  "improvement_pct": -0.07
+  "improvement_pct": -0.0
  },
  "H4b": {
   "id": "H4b",
   "ready": true,
   "passed": false,
-  "events": 1879,
-  "days": 85,
+  "events": 1882,
+  "days": 86,
   "lag_corr": 0.002,
   "lag_ci": [
-   -0.044,
+   -0.043,
    0.047
   ]
  },
@@ -24,8 +24,8 @@
   "id": "H6",
   "ready": true,
   "passed": false,
-  "events": 351,
-  "days": 50,
+  "events": 355,
+  "days": 51,
   "across_corr": 0.022,
   "across_ci": [
    -0.083,
@@ -37,15 +37,15 @@
   "pooled_n": 7542,
   "hourly": {
    "n": 525,
-   "brier_base": 0.15,
-   "brier_shape": 0.1549,
+   "brier_base": 0.1503,
+   "brier_shape": 0.1552,
    "improved": false
   },
   "control": {
    "n": 7017,
-   "brier_base": 0.1191,
+   "brier_base": 0.1193,
    "brier_shape": 0.1191,
-   "improved": false
+   "improved": true
   },
   "ready": true,
   "passed": false
@@ -55,10 +55,10 @@
   "ready": false,
   "passed": false,
   "counts": {
-   "stalled_on": 2181,
-   "stalled_off": 1324,
-   "climbing_on": 2213,
-   "climbing_off": 140
+   "stalled_on": 2194,
+   "stalled_off": 1343,
+   "climbing_on": 2218,
+   "climbing_off": 141
   },
   "need_per_group": 150,
   "reason": "data bar not met (four groups, 150 each)"
@@ -68,19 +68,19 @@
   "ready": true,
   "passed": false,
   "boundary": {
-   "n": 861,
-   "mean": 0.00081,
+   "n": 864,
+   "mean": 0.0008,
    "ci": [
-    -0.00218,
-    0.0038
+    -0.00217,
+    0.00378
    ]
   },
   "tail": {
-   "n": 1661,
-   "mean": -0.00227,
+   "n": 1663,
+   "mean": -0.00213,
    "ci": [
-    -0.00382,
-    -0.00073
+    -0.00367,
+    -0.00059
    ]
   }
  },
@@ -272,5 +272,5 @@
    "mean_price": 86.7
   }
  },
- "generated": "2026-11-22T15:22:41.895621Z"
+ "generated": "2026-11-23T10:47:35.838218Z"
 }
