@@ -46861,10 +46861,303 @@
   },
   {
    "date": "2026-11-23",
-   "flags": []
+   "flags": [
+    {
+     "date": "2026-11-23",
+     "city": "ATL",
+     "station": "KATL",
+     "verdict": "QUALIFIED",
+     "detail": {
+      "ticker": "KXHIGHTATL-26NOV23-T68",
+      "ceiling": 67,
+      "no_ask": 0.57,
+      "quote_src": "native",
+      "yes_bid": 43,
+      "run_max": 66.2,
+      "guide": 71,
+      "pop": 8,
+      "G": 4,
+      "net_cents": 41.0,
+      "size": {
+       "cap": 0.05,
+       "max_position_frac": 0.05,
+       "kelly_source": "prob.evaluate_ladder (model p); gate does not estimate p",
+       "note": "PAPER ONLY. Cap is unconditional and binds on every flag while no band's Wilson LCB clears its fee breakeven."
+      },
+      "upstream": {
+       "city": "ATL",
+       "status": "ok",
+       "upwind_bearing": 320,
+       "target_temp_f": 64.4,
+       "target_dew_f": 57.2,
+       "wind_mps": 20.376,
+       "upstream": [
+        {
+         "station": "KVPC",
+         "ts": "2026-11-23T16:55:00+00:00",
+         "temp_f": 64.4,
+         "dew_f": 59.0,
+         "wind_dir": 290,
+         "wind_mps": 11.16,
+         "km": 65.9,
+         "bearing": 325.2,
+         "name": "Cartersville Airport"
+        },
+        {
+         "station": "KPUJ",
+         "ts": "2026-11-23T16:55:00+00:00",
+         "temp_f": 59.0,
+         "dew_f": 57.2,
+         "wind_dir": null,
+         "wind_mps": 9.36,
+         "km": 57.1,
+         "bearing": 304.4,
+         "name": "Dallas Paulding County Regional Airport"
+        },
+        {
+         "station": "KRYY",
+         "ts": "2026-11-23T17:30:00+00:00",
+         "temp_f": 64.4,
+         "dew_f": 55.4,
+         "wind_dir": 290,
+         "wind_mps": 11.124,
+         "km": 45.1,
+         "bearing": 341.6,
+         "name": "Cobb County International Airport - McCollum Field"
+        }
+       ],
+       "max_upstream_temp_f": 64.4,
+       "advection_potential_f": 0.0,
+       "dew_differential_f": 1.8,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "BKN",
+       "base_ft": 1800,
+       "layers": [
+        {
+         "amount": "BKN",
+         "base_ft": 1800
+        },
+        {
+         "amount": "BKN",
+         "base_ft": 12000
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "obs_feed": {
+       "nws_latest": "2026-11-23T17:30:00+00:00",
+       "awc_latest": "2026-11-23T17:52:00Z",
+       "used": "2026-11-23T17:52:00Z",
+       "used_src": "awc"
+      },
+      "run_max_detail": {
+       "run_max": 66.2,
+       "source": "fivemin",
+       "n_metar": 17,
+       "n_obs": 71
+      },
+      "forecasts": {
+       "nws_grid": 71.0,
+       "om_best": 68.0,
+       "om_ecmwf": 64.3,
+       "om_gfs": 68.0,
+       "om_icon": 67.1,
+       "om_metno": 65.6
+      },
+      "airmass": {
+       "t850_max_f": 53.1,
+       "z500_max_m": 5752,
+       "soil_m3m3": 0.224,
+       "curve": {
+        "0": 59.6,
+        "1": 60.0,
+        "2": 58.5,
+        "3": 59.2,
+        "4": 59.4,
+        "5": 59.4,
+        "6": 58.6,
+        "7": 57.8,
+        "8": 56.9,
+        "9": 58.3,
+        "10": 60.4,
+        "11": 63.8,
+        "12": 65.4,
+        "13": 67.0,
+        "14": 67.9,
+        "15": 67.8,
+        "16": 66.8,
+        "17": 64.2,
+        "18": 61.8,
+        "19": 59.9,
+        "20": 57.6,
+        "21": 55.1,
+        "22": 53.4,
+        "23": 52.2
+       },
+       "curve_max_f": 67.9
+      },
+      "temp_now": 64.9,
+      "curve_pred_now": 67.0,
+      "curve_dev": -2.1,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 57,
+       "depth_at_best": 190,
+       "depth_le_max": 3160,
+       "notional_le_max": 2916.59,
+       "levels": [
+        [
+         57,
+         190
+        ],
+        [
+         61,
+         24
+        ],
+        [
+         62,
+         51
+        ],
+        [
+         63,
+         1
+        ],
+        [
+         64,
+         2
+        ],
+        [
+         65,
+         26
+        ],
+        [
+         66,
+         1
+        ],
+        [
+         67,
+         21
+        ]
+       ],
+       "yes_best_ask": 51,
+       "yes_ctr_le_10c": 0,
+       "yes_usd_le_10c": 0.0
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-11-23T17:52:00Z",
+         "tC": 18.3
+        },
+        {
+         "ts": "2026-11-23T17:30:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-23T17:25:00+00:00",
+         "tC": 19
+        },
+        {
+         "ts": "2026-11-23T17:20:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-23T16:55:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-23T16:52:00Z",
+         "tC": 18.3
+        },
+        {
+         "ts": "2026-11-23T16:43:00Z",
+         "tC": 18.9
+        },
+        {
+         "ts": "2026-11-23T16:00:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-23T15:55:00+00:00",
+         "tC": 18
+        },
+        {
+         "ts": "2026-11-23T15:52:00+00:00",
+         "tC": 18.3
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTATL-26NOV23-T75",
+         "cap": null,
+         "floor": 76,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTATL-26NOV23-T68",
+         "cap": 67,
+         "floor": null,
+         "no_ask": 57,
+         "yes_bid": 43
+        },
+        {
+         "ticker": "KXHIGHTATL-26NOV23-B74.5",
+         "cap": 75,
+         "floor": 74,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTATL-26NOV23-B72.5",
+         "cap": 73,
+         "floor": 72,
+         "no_ask": 99,
+         "yes_bid": 1
+        },
+        {
+         "ticker": "KXHIGHTATL-26NOV23-B70.5",
+         "cap": 71,
+         "floor": 70,
+         "no_ask": 84,
+         "yes_bid": 16
+        },
+        {
+         "ticker": "KXHIGHTATL-26NOV23-B68.5",
+         "cap": 69,
+         "floor": 68,
+         "no_ask": 64,
+         "yes_bid": 36
+        }
+       ],
+       "wx": "Mostly Cloudy"
+      },
+      "model": {
+       "p_exceed_cap": 0.9364,
+       "p_source": "blend(w_emp=0.95)",
+       "p_empirical": 0.9353,
+       "emp_n": 168,
+       "sigma": 2.17,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "OVERRIDE_TO_PASS",
+      "confidence": 0.72,
+      "p_exceed": 0.52,
+      "reasoning": "BKN018 deck (1800ft) is a lid mechanism: low broken cloud blocks peak insolation in late afternoon Atlanta. Run_max is 66.2F at 17:52Z with temp now 64.9F (18.3\u00b0C) and falling from the 19\u00b0C (66.2F) peak seen at 16:43Z. Curve_dev = -2.1F vs model curve. The diurnal peak is likely banked; NW flow 8kt post-frontal, upstream max only 64.4F \u2014 no warm advection. Models split (NWS 71F vs ECMWF 64.3F), but the hourly tape shows cooling, not heating. BKN018 deck suppresses any further rise. The day appears capped at or below 67F, which is a LOSS for NO.",
+      "watch": "BKN018 base rising above 3000ft in next METAR (deck dissolving would allow recovery toward 68+F)"
+     },
+     "settle": null,
+     "attribution": "UNGRADED"
+    }
+   ]
   }
  ],
- "generated": "2026-11-23T15:21:17.962829Z",
+ "generated": "2026-11-23T19:15:37.836360Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",
