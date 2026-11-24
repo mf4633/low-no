@@ -47151,13 +47151,286 @@
       "reasoning": "BKN018 deck (1800ft) is a lid mechanism: low broken cloud blocks peak insolation in late afternoon Atlanta. Run_max is 66.2F at 17:52Z with temp now 64.9F (18.3\u00b0C) and falling from the 19\u00b0C (66.2F) peak seen at 16:43Z. Curve_dev = -2.1F vs model curve. The diurnal peak is likely banked; NW flow 8kt post-frontal, upstream max only 64.4F \u2014 no warm advection. Models split (NWS 71F vs ECMWF 64.3F), but the hourly tape shows cooling, not heating. BKN018 deck suppresses any further rise. The day appears capped at or below 67F, which is a LOSS for NO.",
       "watch": "BKN018 base rising above 3000ft in next METAR (deck dissolving would allow recovery toward 68+F)"
      },
+     "settle": 68,
+     "attribution": "WIN"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-24",
+   "flags": [
+    {
+     "date": "2026-11-24",
+     "city": "DC",
+     "station": "KDCA",
+     "verdict": "DEAD_SCAVENGE",
+     "detail": {
+      "ticker": "KXHIGHTDC-26NOV24-T52",
+      "ceiling": 51,
+      "no_ask": 0.94,
+      "quote_src": "native",
+      "yes_bid": 6,
+      "run_max": 51.8,
+      "guide": 54,
+      "pop": 0,
+      "upstream": {
+       "city": "DC",
+       "status": "ok",
+       "upwind_bearing": 330,
+       "target_temp_f": 42.8,
+       "target_dew_f": 26.6,
+       "wind_mps": 22.212,
+       "upstream": [
+        {
+         "station": "KGAI",
+         "ts": "2026-11-24T10:00:00+00:00",
+         "temp_f": 37.4,
+         "dew_f": 26.6,
+         "wind_dir": 300,
+         "wind_mps": 5.544,
+         "km": 37.5,
+         "bearing": 342.4,
+         "name": "Gaithersburg - Montgomery County Airport"
+        },
+        {
+         "station": "KJYO",
+         "ts": "2026-11-24T09:55:00+00:00",
+         "temp_f": 37.4,
+         "dew_f": 30.2,
+         "wind_dir": 340,
+         "wind_mps": 9.36,
+         "km": 52.9,
+         "bearing": 299.8,
+         "name": "Leesburg / Godfrey"
+        },
+        {
+         "station": "KIAD",
+         "ts": "2026-11-24T10:00:00+00:00",
+         "temp_f": 39.2,
+         "dew_f": 26.6,
+         "wind_dir": 0,
+         "wind_mps": 0,
+         "km": 37.0,
+         "bearing": 285.2,
+         "name": "Washington/Dulles International Airport, DC"
+        }
+       ],
+       "max_upstream_temp_f": 39.2,
+       "advection_potential_f": -3.6,
+       "dew_differential_f": 3.6,
+       "note": "advection_potential is headroom IF the air arrived unmodified. At light wind, transport over 100km takes many hours -- read this as a regional airmass ceiling, not a forecast. A POSITIVE dew_differential means the incoming air is MOISTER, which lowers the wet-bulb ceiling regardless of how warm it is."
+      },
+      "stall": null,
+      "sky": {
+       "cover": "CLR",
+       "base_ft": 12500,
+       "layers": [
+        {
+         "amount": "CLR",
+         "base_ft": 12500
+        }
+       ],
+       "note": "obscuring cover only matters at BKN/OVC; FEW/SCT trims little insolation. High BKN (>20000ft) is cirrus -- a modest trim, not a cap."
+      },
+      "obs_feed": {
+       "nws_latest": "2026-11-24T10:00:00+00:00",
+       "awc_latest": "2026-11-24T09:52:00Z",
+       "used": "2026-11-24T10:00:00+00:00",
+       "used_src": "nws"
+      },
+      "run_max_detail": {
+       "run_max": 51.8,
+       "source": "fivemin",
+       "n_metar": 5,
+       "n_obs": 22
+      },
+      "forecasts": {
+       "nws_grid": 54.0,
+       "om_best": 51.3,
+       "om_ecmwf": 54.6,
+       "om_gfs": 51.3,
+       "om_icon": 51.3,
+       "om_metno": 49.8
+      },
+      "airmass": {
+       "t850_max_f": 36.6,
+       "z500_max_m": 5744,
+       "soil_m3m3": 0.202,
+       "curve": {
+        "0": 50.5,
+        "1": 47.8,
+        "2": 45.6,
+        "3": 44.1,
+        "4": 42.4,
+        "5": 40.8,
+        "6": 39.9,
+        "7": 38.9,
+        "8": 40.6,
+        "9": 44.2,
+        "10": 46.6,
+        "11": 49.3,
+        "12": 50.3,
+        "13": 51.0,
+        "14": 51.3,
+        "15": 51.1,
+        "16": 50.0,
+        "17": 46.0,
+        "18": 43.2,
+        "19": 41.5,
+        "20": 40.1,
+        "21": 38.5,
+        "22": 36.5,
+        "23": 35.2
+       },
+       "curve_max_f": 51.3
+      },
+      "temp_now": 42.8,
+      "curve_pred_now": 40.8,
+      "curve_dev": 2.0,
+      "depth": {
+       "src": "from_yes_bids",
+       "best_no_ask": 94,
+       "depth_at_best": 34,
+       "depth_le_max": 420,
+       "notional_le_max": 402.79,
+       "levels": [
+        [
+         94,
+         34
+        ],
+        [
+         95,
+         32
+        ],
+        [
+         96,
+         313
+        ],
+        [
+         97,
+         23
+        ],
+        [
+         98,
+         18
+        ]
+       ],
+       "yes_best_ask": 8,
+       "yes_ctr_le_10c": 85,
+       "yes_usd_le_10c": 8.26
+      },
+      "evidence": {
+       "obs_tail": [
+        {
+         "ts": "2026-11-24T10:00:00+00:00",
+         "tC": 6
+        },
+        {
+         "ts": "2026-11-24T09:52:00+00:00",
+         "tC": 6.1
+        },
+        {
+         "ts": "2026-11-24T09:35:00+00:00",
+         "tC": 6
+        },
+        {
+         "ts": "2026-11-24T09:10:00+00:00",
+         "tC": 6
+        },
+        {
+         "ts": "2026-11-24T09:05:00+00:00",
+         "tC": 6
+        },
+        {
+         "ts": "2026-11-24T08:55:00+00:00",
+         "tC": 6
+        },
+        {
+         "ts": "2026-11-24T08:52:00+00:00",
+         "tC": 6.7
+        },
+        {
+         "ts": "2026-11-24T08:50:00+00:00",
+         "tC": 7
+        },
+        {
+         "ts": "2026-11-24T08:45:00+00:00",
+         "tC": 7
+        },
+        {
+         "ts": "2026-11-24T08:40:00+00:00",
+         "tC": 7
+        }
+       ],
+       "ladder": [
+        {
+         "ticker": "KXHIGHTDC-26NOV24-T59",
+         "cap": null,
+         "floor": 60,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDC-26NOV24-T52",
+         "cap": 51,
+         "floor": null,
+         "no_ask": 94,
+         "yes_bid": 6
+        },
+        {
+         "ticker": "KXHIGHTDC-26NOV24-B58.5",
+         "cap": 59,
+         "floor": 58,
+         "no_ask": 100,
+         "yes_bid": null
+        },
+        {
+         "ticker": "KXHIGHTDC-26NOV24-B56.5",
+         "cap": 57,
+         "floor": 56,
+         "no_ask": 98,
+         "yes_bid": 2
+        },
+        {
+         "ticker": "KXHIGHTDC-26NOV24-B54.5",
+         "cap": 55,
+         "floor": 54,
+         "no_ask": 85,
+         "yes_bid": 15
+        },
+        {
+         "ticker": "KXHIGHTDC-26NOV24-B52.5",
+         "cap": 53,
+         "floor": 52,
+         "no_ask": 26,
+         "yes_bid": 74
+        }
+       ],
+       "wx": "Clear"
+      },
+      "model": {
+       "p_exceed_cap": 1.0,
+       "p_source": "blend(w_emp=0.0)",
+       "p_empirical": 1.0,
+       "emp_n": null,
+       "sigma": 2.21,
+       "size_frac": 0.05
+      }
+     },
+     "advisor": {
+      "verdict": "CONCUR",
+      "confidence": 0.82,
+      "p_exceed": 0.87,
+      "reasoning": "Cap is 51\u00b0F. At 10:00Z KDCA reads 42.8\u00b0F (6\u00b0C) with CLR skies and NW winds 22 m/s. Diurnal curve peaks ~51.3\u00b0F at hour 14-15 local. NWS grid = 54\u00b0F, ECMWF = 54.6\u00b0F. Market ladder confirms mass: B52.5 YES at 74\u00a2 implies ~74% chance of exceeding 52\u00b0F, meaning >52\u00b0F is near-consensus. CLR sky = no deck lid; post-frontal NW flow advects cold but clear air \u2014 insolation unimpeded. G = 54 - 51 = +3\u00b0F (just under +4 gate threshold, but model p_exceed = 1.0 and ladder strongly supports >52\u00b0F). The pace deficit (~9\u00b0F at 10Z) is normal for late-November solar timing; curve max arrives ~14-15 local. Cold NW airmass is a mild headwind but clear sky and NWS/ECMWF consensus at 54\u00b0F overrides.",
+      "watch": "KDCA hourly temp rate 14-16Z: if plateau below 49\u00b0F by 15Z, cooling has won"
+     },
      "settle": null,
      "attribution": "UNGRADED"
     }
    ]
   }
  ],
- "generated": "2026-11-23T19:15:37.836360Z",
+ "generated": "2026-11-24T12:22:07.610313Z",
  "advisor_version": 2,
  "advisor_v2_since": "2026-08-11",
  "cap_fix_since": "2026-08-24",

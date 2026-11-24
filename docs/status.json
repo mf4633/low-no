@@ -1,6 +1,6 @@
 {
  "schema": "lowno.status/1",
- "generated": "2026-11-23T19:19:00.473554Z",
+ "generated": "2026-11-24T12:26:28.176354Z",
  "repo": "mf4633/low-no",
  "constitution": {
   "paper_only": true,
@@ -11,11 +11,11 @@
   "interlock_line_printed": true
  },
  "data": {
-  "logged_days": 108,
+  "logged_days": 109,
   "first_day": "2026-08-07",
-  "last_day": "2026-11-22",
-  "rung_observations": 160262,
-  "independent_units": 2442,
+  "last_day": "2026-11-23",
+  "rung_observations": 161780,
+  "independent_units": 2467,
   "stations_us": 23,
   "stations_world_listed": 20,
   "stations_world_live": 0,
@@ -129,13 +129,14 @@
    "2026-11-20": 8,
    "2026-11-21": 3,
    "2026-11-22": 4,
-   "2026-11-23": 6
+   "2026-11-23": 11,
+   "2026-11-24": 6
   }
  },
  "integrity": {
   "cli_window_days": 7,
-  "settlements_cached": 2363,
-  "settlements_verified": 2183,
+  "settlements_cached": 2386,
+  "settlements_verified": 2206,
   "settlements_unconfirmable": 180,
   "note": "unconfirmable = older than the CLI window; cannot be re-derived"
  },
@@ -146,6 +147,7 @@
    "31-40",
    "41-50",
    "71-80",
+   "81-90",
    "91-95",
    "96-98"
   ],
@@ -157,29 +159,29 @@
    "name": "market prices off the stale print",
    "status": "open",
    "bar": {
-    "have": 355,
+    "have": 375,
     "need": 200,
     "unit": "print transitions",
     "ready": true,
     "also": {
-     "have": 51,
+     "have": 52,
      "need": 20,
      "unit": "distinct days"
     }
    },
-   "note": "51/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
+   "note": "52/20 distinct days; poll data starts 2026-08-31, NYC/DEN only"
   },
   {
    "id": "H7",
    "name": "shape on temperature (stratified)",
    "status": "open",
    "bar": {
-    "have": 7017,
+    "have": 7029,
     "need": 50,
     "unit": "scored (control)",
     "ready": true,
     "also": {
-     "have": 525,
+     "have": 528,
      "need": 50,
      "unit": "scored (hourly)"
     }
@@ -203,12 +205,12 @@
    "name": "morning off-curve bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 268,
+    "have": 272,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 42,
+     "have": 43,
      "need": 20,
      "unit": "distinct days"
     }
@@ -254,12 +256,12 @@
    "name": "growing warm overshoot bucket underpriced",
    "status": "open",
    "bar": {
-    "have": 75,
+    "have": 78,
     "need": 60,
     "unit": "graded city-day units",
     "ready": true,
     "also": {
-     "have": 26,
+     "have": 27,
      "need": 20,
      "unit": "distinct days"
     }
@@ -271,12 +273,12 @@
    "name": "late day overpays for one more degree",
    "status": "open",
    "bar": {
-    "have": 151,
+    "have": 154,
     "need": 60,
     "unit": "graded rung units",
     "ready": true,
     "also": {
-     "have": 25,
+     "have": 26,
      "need": 20,
      "unit": "distinct days"
     }
