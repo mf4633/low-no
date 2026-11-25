@@ -1,13 +1,13 @@
 {
- "at": "2026-11-25T03:18:45.041778Z",
+ "at": "2026-11-25T04:15:19.636970Z",
  "traps": [
   {
    "city": "MSY",
    "ceiling": 61,
    "price": 1,
-   "p_model": 0.0561,
+   "p_model": 0.462,
    "p_market": 0.01,
-   "edge_pts": 4.6,
+   "edge_pts": 45.2,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -15,12 +15,16 @@
      "why": "G=-5F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 21:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
+     "why": "local hour 22:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   }
