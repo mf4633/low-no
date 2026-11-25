@@ -1,49 +1,26 @@
 {
- "at": "2026-11-24T22:59:53.234318Z",
+ "at": "2026-11-25T01:25:28.164965Z",
  "traps": [
-  {
-   "city": "SFO",
-   "ceiling": 59,
-   "price": 45,
-   "p_model": 0.7281,
-   "p_market": 0.45,
-   "edge_pts": 27.8,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 28 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "marine-layer station: bimodal burn-off, a Gaussian cannot price it. Every loss in this ledger has been one of these."
-    },
-    {
-     "code": "GRAVEYARD",
-     "why": "45c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 14:00 is past this station's measured convergence hour (14:00) with the running max still 0.0F short. The climb window has closed."
-    }
-   ]
-  },
   {
    "city": "MSY",
    "ceiling": 61,
    "price": 1,
-   "p_model": 0.0244,
+   "p_model": 0.0561,
    "p_market": 0.01,
-   "edge_pts": 1.4,
+   "edge_pts": 4.6,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=-5F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 16:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   }
