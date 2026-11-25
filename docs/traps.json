@@ -1,30 +1,148 @@
 {
- "at": "2026-11-25T04:15:19.636970Z",
+ "at": "2026-11-25T05:14:43.774075Z",
  "traps": [
   {
-   "city": "MSY",
-   "ceiling": 61,
-   "price": 1,
-   "p_model": 0.462,
-   "p_market": 0.01,
-   "edge_pts": 45.2,
+   "city": "PHL",
+   "ceiling": 49,
+   "price": 27,
+   "p_model": 0.9146,
+   "p_market": 0.27,
+   "edge_pts": 64.5,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "BOUNDARY",
-     "why": "G=-5F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 45 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 64 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "27c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "DC",
+   "ceiling": 52,
+   "price": 13,
+   "p_model": 0.6722,
+   "p_market": 0.13,
+   "edge_pts": 54.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 54 pts. In this ledger the market won 7 of 8 such disputes."
+    }
+   ]
+  },
+  {
+   "city": "TTN",
+   "ceiling": 46,
+   "price": 50,
+   "p_model": 0.9036,
+   "p_market": 0.5,
+   "edge_pts": 40.4,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 40 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "50c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "NYC",
+   "ceiling": 46,
+   "price": 33,
+   "p_model": 0.5665,
+   "p_market": 0.33,
+   "edge_pts": 23.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=1F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "33c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "DEN",
+   "ceiling": 48,
+   "price": 83,
+   "p_model": 0.9795,
+   "p_market": 0.83,
+   "edge_pts": 14.9,
+   "size_lcb": 0.4163,
+   "signals": [
+    {
+     "code": "GRAVEYARD",
+     "why": "83c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "EWR",
+   "ceiling": 46,
+   "price": 86,
+   "p_model": 0.94,
+   "p_market": 0.86,
+   "edge_pts": 8.0,
+   "size_lcb": 0.2117,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "86c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    }
+   ]
+  },
+  {
+   "city": "MIA",
+   "ceiling": 74,
+   "price": 88,
+   "p_model": 0.8823,
+   "p_market": 0.88,
+   "edge_pts": 0.2,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 22:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "88c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   }
