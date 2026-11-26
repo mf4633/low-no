@@ -1,21 +1,37 @@
 {
- "at": "2026-11-26T19:48:08.170394Z",
+ "at": "2026-11-26T20:44:58.105206Z",
  "tracked": [
   {
    "city": "SFO",
    "station": "KSFO",
    "ticker": "KXHIGHTSFO-26NOV26-T61",
-   "verdict": "QUALIFIED",
+   "verdict": "DEAD_SCAVENGE",
    "qualified": true,
    "ceiling": 60,
-   "run_max": 57.92,
-   "gap_to_clear": 2.1,
-   "already_cleared": false,
+   "run_max": 60.8,
+   "gap_to_clear": -0.8,
+   "already_cleared": true,
    "guide": 64,
    "pop": 0,
-   "no_ask": 0.97,
-   "local_hour": 11,
+   "no_ask": 0.98,
+   "local_hour": 12,
    "obs_trace": [
+    {
+     "ts": "2026-11-26T20:30:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-26T20:25:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-26T19:56:00+00:00",
+     "f": null
+    },
+    {
+     "ts": "2026-11-26T19:40:00+00:00",
+     "f": null
+    },
     {
      "ts": "2026-11-26T19:20:00+00:00",
      "f": null
@@ -39,36 +55,20 @@
     {
      "ts": "2026-11-26T18:50:00+00:00",
      "f": null
-    },
-    {
-     "ts": "2026-11-26T18:45:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-11-26T18:10:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-11-26T18:05:00+00:00",
-     "f": null
-    },
-    {
-     "ts": "2026-11-26T17:56:00+00:00",
-     "f": null
     }
    ],
    "remaining_climb": {
-    "q10": 2.0,
-    "q50": 5.0,
-    "q90": 11.8
+    "q10": 0.8,
+    "q50": 3.4,
+    "q90": 10.8
    },
    "projected_max": {
-    "q10": 59.9,
-    "q50": 62.9,
-    "q90": 69.7
+    "q10": 61.6,
+    "q50": 64.2,
+    "q90": 71.6
    },
-   "p_exceed_empirical": 0.88,
-   "emp_n": 198,
+   "p_exceed_empirical": 1.0,
+   "emp_n": null,
    "convergence_hour": 14,
    "past_convergence": false,
    "note": "still unresolved -- climb window open"
