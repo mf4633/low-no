@@ -1,18 +1,41 @@
 {
- "at": "2026-11-27T04:02:43.099887Z",
+ "at": "2026-11-27T05:02:52.368957Z",
  "traps": [
+  {
+   "city": "TTN",
+   "ceiling": 52,
+   "price": 1,
+   "p_model": 0.8657,
+   "p_market": 0.01,
+   "edge_pts": 85.6,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "BOUNDARY",
+     "why": "G=3F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
+    },
+    {
+     "code": "DIVERGENCE",
+     "why": "model and market differ by 86 pts. In this ledger the market won 7 of 8 such disputes."
+    },
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    }
+   ]
+  },
   {
    "city": "SAN",
    "ceiling": 77,
    "price": 1,
-   "p_model": 0.851,
+   "p_model": 0.792,
    "p_market": 0.01,
-   "edge_pts": 84.1,
+   "edge_pts": 78.2,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 84 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 78 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -20,40 +43,36 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 20:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 21:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "EWR",
    "ceiling": 54,
-   "price": 10,
-   "p_model": 0.4756,
-   "p_market": 0.1,
-   "edge_pts": 37.6,
+   "price": 3,
+   "p_model": 0.7093,
+   "p_market": 0.03,
+   "edge_pts": 67.9,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 38 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 68 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 23:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "NYC",
    "ceiling": 55,
-   "price": 2,
-   "p_model": 0.3366,
-   "p_market": 0.02,
-   "edge_pts": 31.7,
+   "price": 1,
+   "p_model": 0.3357,
+   "p_market": 0.01,
+   "edge_pts": 32.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -62,54 +81,8 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 32 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 33 pts. In this ledger the market won 7 of 8 such disputes."
     },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 23:00 is past this station's measured convergence hour (15:00) with the running max still 3.9F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "PHL",
-   "ceiling": 56,
-   "price": 13,
-   "p_model": 0.2886,
-   "p_market": 0.13,
-   "edge_pts": 15.9,
-   "size_lcb": 0.0,
-   "signals": [
-    {
-     "code": "BOUNDARY",
-     "why": "G=0F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
-     "code": "DIVERGENCE",
-     "why": "model and market differ by 16 pts. In this ledger the market won 7 of 8 such disputes."
-    },
-    {
-     "code": "UNFIT_DIST",
-     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
-    },
-    {
-     "code": "PAST_PEAK",
-     "why": "local hour 23:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
-    }
-   ]
-  },
-  {
-   "city": "BOS",
-   "ceiling": 48,
-   "price": 97,
-   "p_model": 1.0,
-   "p_market": 0.97,
-   "edge_pts": 3.0,
-   "size_lcb": 0.0,
-   "signals": [
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
