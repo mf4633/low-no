@@ -1,22 +1,18 @@
 {
- "at": "2026-11-27T02:02:46.777627Z",
+ "at": "2026-11-27T03:02:33.681039Z",
  "traps": [
   {
    "city": "SAN",
    "ceiling": 77,
    "price": 1,
-   "p_model": 0.7509,
+   "p_model": 0.7766,
    "p_market": 0.01,
-   "edge_pts": 74.1,
+   "edge_pts": 76.7,
    "size_lcb": 0.0,
    "signals": [
     {
-     "code": "BOUNDARY",
-     "why": "G=2F is inside guidance's own error bar (measured sigma 1.5-2.0F). The 'edge' is noise."
-    },
-    {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 74 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 77 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -24,17 +20,17 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 18:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
+     "why": "local hour 19:00 is past this station's measured convergence hour (12:00) with the running max still 0.0F short. The climb window has closed."
     }
    ]
   },
   {
    "city": "NYC",
    "ceiling": 55,
-   "price": 8,
-   "p_model": 0.3352,
-   "p_market": 0.08,
-   "edge_pts": 25.5,
+   "price": 7,
+   "p_model": 0.3355,
+   "p_market": 0.07,
+   "edge_pts": 26.6,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -43,7 +39,7 @@
     },
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 26 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 27 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
@@ -51,40 +47,40 @@
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 21:00 is past this station's measured convergence hour (15:00) with the running max still 6.1F short. The climb window has closed."
+     "why": "local hour 22:00 is past this station's measured convergence hour (15:00) with the running max still 5.0F short. The climb window has closed."
     }
    ]
   },
   {
-   "city": "EWR",
-   "ceiling": 54,
-   "price": 19,
-   "p_model": 0.4288,
-   "p_market": 0.19,
-   "edge_pts": 23.9,
+   "city": "BOS",
+   "ceiling": 48,
+   "price": 78,
+   "p_model": 1.0,
+   "p_market": 0.78,
+   "edge_pts": 22.0,
    "size_lcb": 0.0,
    "signals": [
     {
      "code": "DIVERGENCE",
-     "why": "model and market differ by 24 pts. In this ledger the market won 7 of 8 such disputes."
+     "why": "model and market differ by 22 pts. In this ledger the market won 7 of 8 such disputes."
     },
     {
      "code": "UNFIT_DIST",
      "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
     },
     {
-     "code": "PAST_PEAK",
-     "why": "local hour 21:00 is past this station's measured convergence hour (14:00) with the running max still 2.9F short. The climb window has closed."
+     "code": "GRAVEYARD",
+     "why": "78c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     }
    ]
   },
   {
-   "city": "DC",
+   "city": "PHL",
    "ceiling": 56,
-   "price": 59,
-   "p_model": 0.6327,
-   "p_market": 0.59,
-   "edge_pts": 4.3,
+   "price": 23,
+   "p_model": 0.3743,
+   "p_market": 0.23,
+   "edge_pts": 14.4,
    "size_lcb": 0.0,
    "signals": [
     {
@@ -97,11 +93,34 @@
     },
     {
      "code": "GRAVEYARD",
-     "why": "59c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+     "why": "23c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
     },
     {
      "code": "PAST_PEAK",
-     "why": "local hour 21:00 is past this station's measured convergence hour (14:00) with the running max still 0.1F short. The climb window has closed."
+     "why": "local hour 22:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
+    }
+   ]
+  },
+  {
+   "city": "EWR",
+   "ceiling": 54,
+   "price": 42,
+   "p_model": 0.4293,
+   "p_market": 0.42,
+   "edge_pts": 0.9,
+   "size_lcb": 0.0,
+   "signals": [
+    {
+     "code": "UNFIT_DIST",
+     "why": "PoP above threshold: convective days left-skew the max, which the Gaussian cannot represent."
+    },
+    {
+     "code": "GRAVEYARD",
+     "why": "42c sits in the 20-90c range: 0 wins in 14 measured units below 50c, negative mean P&L in every band under 90c."
+    },
+    {
+     "code": "PAST_PEAK",
+     "why": "local hour 22:00 is past this station's measured convergence hour (14:00) with the running max still 2.0F short. The climb window has closed."
     }
    ]
   }
